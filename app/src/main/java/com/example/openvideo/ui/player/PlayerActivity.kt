@@ -47,6 +47,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnScreenshot: ImageButton
     private lateinit var btnAbLoop: ImageButton
     private lateinit var btnPip: ImageButton
+    private lateinit var btnLock: ImageButton
     private lateinit var btnFullscreen: ImageButton
     private lateinit var btnBack: ImageButton
     private lateinit var seekBar: SeekBar
@@ -74,6 +75,9 @@ class PlayerActivity : AppCompatActivity() {
     private var abLoopState = AbLoopState.IDLE
     private var abLoopPointA: Long = -1
     private var abLoopPointB: Long = -1
+
+    // Screen lock state
+    private var isScreenLocked = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,6 +141,7 @@ class PlayerActivity : AppCompatActivity() {
         btnScreenshot = findViewById(R.id.btn_screenshot)
         btnAbLoop = findViewById(R.id.btn_ab_loop)
         btnPip = findViewById(R.id.btn_pip)
+        btnLock = findViewById(R.id.btn_lock)
         btnFullscreen = findViewById(R.id.btn_fullscreen)
         btnBack = findViewById(R.id.btn_back)
         seekBar = findViewById(R.id.seek_bar)
@@ -223,6 +228,10 @@ class PlayerActivity : AppCompatActivity() {
                 val params = android.app.PictureInPictureParams.Builder().build()
                 enterPictureInPictureMode(params)
             }
+        }
+
+        btnLock.setOnClickListener {
+            toggleScreenLock()
         }
 
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -459,6 +468,23 @@ class PlayerActivity : AppCompatActivity() {
         val delay = playerPrefs.controlsAutoHide * 1000L
         if (delay > 0) {
             handler.postDelayed(hideControlsRunnable, delay)
+        }
+    }
+
+    private fun toggleScreenLock() {
+        isScreenLocked = !isScreenLocked
+        if (isScreenLocked) {
+            // Lock screen - disable touch on gesture overlay
+            gestureOverlay.setOnTouchListener { _, _ -> true }
+            btnLock.setImageResource(R.drawable.ic_lock)
+            btnLock.setColorFilter(android.graphics.Color.RED)
+            android.widget.Toast.makeText(this, "屏幕已锁定，点击锁定按钮解锁", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            // Unlock screen - restore gesture handling
+            initGestures()
+            btnLock.setImageResource(R.drawable.ic_lock)
+            btnLock.clearColorFilter()
+            android.widget.Toast.makeText(this, "屏幕已解锁", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
