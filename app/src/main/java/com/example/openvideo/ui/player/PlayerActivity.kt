@@ -23,6 +23,7 @@ import androidx.media3.ui.PlayerView
 import com.example.openvideo.R
 import com.example.openvideo.core.player.AspectRatio
 import com.example.openvideo.core.player.PlayerManager
+import com.example.openvideo.core.prefs.PlayerPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.math.abs
@@ -31,6 +32,7 @@ import kotlin.math.abs
 class PlayerActivity : AppCompatActivity() {
 
     @Inject lateinit var playerManager: PlayerManager
+    @Inject lateinit var playerPrefs: PlayerPrefs
     private val viewModel: PlayerViewModel by viewModels()
 
     private lateinit var playerView: PlayerView
@@ -115,7 +117,7 @@ class PlayerActivity : AppCompatActivity() {
         btnNext.setOnClickListener { viewModel.seekForward() }
 
         btnSettings.setOnClickListener {
-            PlayerSettingsDialog(this, playerManager, viewModel).show()
+            PlayerSettingsDialog(this, playerManager, viewModel, playerPrefs).show()
         }
 
         btnFullscreen.setOnClickListener {

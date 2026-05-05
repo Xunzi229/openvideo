@@ -98,6 +98,70 @@
     <string name="settings_double_tap_playback">倍速播放</string>
     <string name="settings_double_tap_none">无动作</string>
 
+    <!-- 画面设置 -->
+    <string name="settings_group_display">画面设置</string>
+    <string name="settings_aspect_ratio_label">画面比例</string>
+    <string name="settings_ratio_fit">适应</string>
+    <string name="settings_ratio_fill">填充</string>
+    <string name="settings_ratio_crop">裁剪</string>
+    <string name="settings_ratio_stretch">拉伸</string>
+    <string name="settings_rotation">画面旋转</string>
+    <string name="settings_rotation_0">0°</string>
+    <string name="settings_rotation_90">90°</string>
+    <string name="settings_rotation_180">180°</string>
+    <string name="settings_rotation_270">270°</string>
+    <string name="settings_mirror">画面镜像</string>
+
+    <!-- 声音设置 -->
+    <string name="settings_group_audio">声音设置</string>
+    <string name="settings_speed_preserve_pitch">倍速不变调</string>
+    <string name="settings_volume_boost">音量增强</string>
+    <string name="settings_audio_track">音轨选择</string>
+    <string name="settings_audio_track_auto">自动</string>
+    <string name="settings_audio_channel_label">声道选择</string>
+
+    <!-- 字幕设置 -->
+    <string name="settings_group_subtitle">字幕设置</string>
+    <string name="settings_load_subtitle">加载外挂字幕</string>
+    <string name="settings_subtitle_track">字幕轨选择</string>
+    <string name="settings_subtitle_track_off">关闭</string>
+    <string name="settings_subtitle_color">字幕颜色</string>
+    <string name="settings_subtitle_bg">字幕背景</string>
+    <string name="settings_subtitle_bg_none">无</string>
+    <string name="settings_subtitle_bg_semi">半透明黑</string>
+    <string name="settings_subtitle_bg_opaque">全黑</string>
+    <string name="settings_subtitle_position">字幕位置</string>
+    <string name="settings_subtitle_encoding">字幕编码</string>
+    <string name="settings_encoding_auto">自动检测</string>
+    <string name="settings_audio_delay">声音提前/延后</string>
+
+    <!-- 手势设置 -->
+    <string name="settings_group_gesture">手势设置</string>
+    <string name="settings_left_vertical">左侧上下滑动</string>
+    <string name="settings_right_vertical">右侧上下滑动</string>
+    <string name="settings_horizontal_swipe">水平滑动</string>
+    <string name="settings_gesture_sensitivity">手势灵敏度</string>
+    <string name="settings_sensitivity_low">低</string>
+    <string name="settings_sensitivity_medium">中</string>
+    <string name="settings_sensitivity_high">高</string>
+    <string name="settings_action_brightness">调节亮度</string>
+    <string name="settings_action_volume">调节音量</string>
+    <string name="settings_action_seek">快进快退</string>
+    <string name="settings_action_none">无操作</string>
+    <string name="settings_double_tap_forward">快进</string>
+    <string name="settings_double_tap_backward">快退</string>
+
+    <!-- 其他设置 -->
+    <string name="settings_group_other">其他设置</string>
+    <string name="settings_screen_lock">播放时锁定屏幕</string>
+    <string name="settings_controls_auto_hide">控制栏自动隐藏</string>
+    <string name="settings_hide_3s">3秒</string>
+    <string name="settings_hide_5s">5秒</string>
+    <string name="settings_hide_8s">8秒</string>
+    <string name="settings_hide_never">不自动隐藏</string>
+    <string name="settings_skip_intro_seconds">片头跳过(秒)</string>
+    <string name="settings_skip_outro_seconds">片尾跳过(秒)</string>
+
     <!-- General -->
     <string name="refresh">刷新</string>
     <string name="no_videos">暂无视频</string>

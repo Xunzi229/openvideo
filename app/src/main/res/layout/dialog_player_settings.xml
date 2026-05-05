@@ -446,94 +446,876 @@
             </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout
+        <ScrollView
             android:id="@+id/section_video"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/ov_bg_elevated_strong"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/ov_space_lg"
             android:visibility="gone">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_unavailable_yet"
-                android:textColor="@color/ov_text_secondary"
-                android:textSize="@dimen/ov_text_body" />
-        </LinearLayout>
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
 
-        <LinearLayout
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_display"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <!-- 画面比例 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_aspect_ratio_label"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_aspect_ratio_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 画面旋转 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_rotation"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_rotation_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 画面镜像 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_mirror"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_mirror"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
             android:id="@+id/section_audio"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/ov_bg_elevated_strong"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/ov_space_lg"
             android:visibility="gone">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_unavailable_yet"
-                android:textColor="@color/ov_text_secondary"
-                android:textSize="@dimen/ov_text_body" />
-        </LinearLayout>
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
 
-        <LinearLayout
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_audio"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <!-- 倍速不变调 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_speed_preserve_pitch"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_speed_pitch"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 音量增强 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_volume_boost"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_volume_boost"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 音轨选择 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_audio_track"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_audio_track_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_audio_track_auto"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 声道选择 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_audio_channel_label"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_audio_channel_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 声音提前/延后 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_audio_delay"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_audio_delay_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0ms"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
             android:id="@+id/section_subtitle"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/ov_bg_elevated_strong"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/ov_space_lg"
             android:visibility="gone">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_unavailable_yet"
-                android:textColor="@color/ov_text_secondary"
-                android:textSize="@dimen/ov_text_body" />
-        </LinearLayout>
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
 
-        <LinearLayout
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_subtitle"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <!-- 加载外挂字幕 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_load_subtitle"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_load_subtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_off"
+                        android:textColor="@color/ov_accent_blue"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 字幕轨选择 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_subtitle_track"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_subtitle_track_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_subtitle_track_off"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 字幕大小 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_subtitle_size"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <SeekBar
+                        android:id="@+id/seekbar_subtitle_size"
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:max="18"
+                        android:progress="4" />
+
+                    <TextView
+                        android:id="@+id/tv_subtitle_size_value"
+                        android:layout_width="40dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="18sp"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_caption" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 字幕颜色 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_subtitle_color"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_subtitle_color_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="白色"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 字幕背景 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_subtitle_bg"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_subtitle_bg_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 字幕位置 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_subtitle_position"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <SeekBar
+                        android:id="@+id/seekbar_subtitle_position"
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:max="100"
+                        android:progress="100" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 字幕编码 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_subtitle_encoding"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_subtitle_encoding_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
             android:id="@+id/section_gesture"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/ov_bg_elevated_strong"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/ov_space_lg"
             android:visibility="gone">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_unavailable_yet"
-                android:textColor="@color/ov_text_secondary"
-                android:textSize="@dimen/ov_text_body" />
-        </LinearLayout>
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
 
-        <LinearLayout
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_gesture"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <!-- 左侧上下滑动 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_left_vertical"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_left_vertical_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 右侧上下滑动 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_right_vertical"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_right_vertical_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 双击操作 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_double_tap_action"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_double_tap_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 长按操作 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_double_tap_playback"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_long_press_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 水平滑动 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_horizontal_swipe"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_horizontal_swipe_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 手势灵敏度 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_gesture_sensitivity"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_sensitivity_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
+
+        <ScrollView
             android:id="@+id/section_other"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/ov_bg_elevated_strong"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="@dimen/ov_space_lg"
             android:visibility="gone">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/settings_unavailable_yet"
-                android:textColor="@color/ov_text_secondary"
-                android:textSize="@dimen/ov_text_body" />
-        </LinearLayout>
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_other"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <!-- 记住播放进度 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_remember_progress"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_remember_progress_other"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 自动播放下一个 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_auto_play_next"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_auto_play_next_other"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 屏幕常亮 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_keep_screen_on"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_keep_screen_on"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 控制栏自动隐藏 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_controls_auto_hide"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_auto_hide_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 跳过片头 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_skip_intro_seconds"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_intro_seconds_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <!-- 跳过片尾 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_skip_outro_seconds"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_outro_seconds_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+            </LinearLayout>
+        </ScrollView>
     </LinearLayout>
 </LinearLayout>
