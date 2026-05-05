@@ -78,6 +78,7 @@ class PlayerActivity : AppCompatActivity() {
 
     // Screen lock state
     private var isScreenLocked = false
+    private var pendingSeekTarget: Long? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -94,6 +95,9 @@ class PlayerActivity : AppCompatActivity() {
         val id = intent.getLongExtra("video_id", 0)
 
         viewModel.initialize(Uri.parse(uriString), title, id)
+
+        // Load external subtitles if available
+        loadSubtitles(uriString)
 
         playerView.player = viewModel.player
         tvTitle.text = title
@@ -175,9 +179,9 @@ class PlayerActivity : AppCompatActivity() {
                 playerManager.takeScreenshot(surfaceView) { success, path ->
                     runOnUiThread {
                         if (success) {
-                            android.widget.Toast.makeText(this, "截图已保存: $path", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(this, getString(R.string.player_screenshot_saved, path), android.widget.Toast.LENGTH_SHORT).show()
                         } else {
-                            android.widget.Toast.makeText(this, "截图失败", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(this, getString(R.string.player_screenshot_failed), android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -190,19 +194,19 @@ class PlayerActivity : AppCompatActivity() {
                     abLoopPointA = playerManager.currentPosition
                     abLoopState = AbLoopState.POINT_A_SET
                     btnAbLoop.setColorFilter(android.graphics.Color.YELLOW)
-                    android.widget.Toast.makeText(this, "A点已设置: ${formatTime(abLoopPointA)}", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this, getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)), android.widget.Toast.LENGTH_SHORT).show()
                 }
                 AbLoopState.POINT_A_SET -> {
                     abLoopPointB = playerManager.currentPosition
                     if (abLoopPointB > abLoopPointA) {
                         abLoopState = AbLoopState.LOOPING
                         btnAbLoop.setColorFilter(android.graphics.Color.GREEN)
-                        android.widget.Toast.makeText(this, "B点已设置，开始循环", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
                     } else {
                         abLoopState = AbLoopState.IDLE
                         abLoopPointA = -1
                         btnAbLoop.clearColorFilter()
-                        android.widget.Toast.makeText(this, "B点必须在A点之后", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(this, getString(R.string.player_ab_point_b_error), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
                 AbLoopState.LOOPING -> {
@@ -210,7 +214,7 @@ class PlayerActivity : AppCompatActivity() {
                     abLoopPointA = -1
                     abLoopPointB = -1
                     btnAbLoop.clearColorFilter()
-                    android.widget.Toast.makeText(this, "AB循环已取消", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_cancelled), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -380,12 +384,19 @@ class PlayerActivity : AppCompatActivity() {
         val seekMs = (dx / resources.displayMetrics.widthPixels * 60_000).toLong()
         val target = (viewModel.uiState.value.currentPosition + seekMs)
             .coerceIn(0, viewModel.uiState.value.duration)
+        pendingSeekTarget = target
         seekIndicator.text = "${formatTime(target)} / ${formatTime(viewModel.uiState.value.duration)}"
         seekIndicator.visibility = View.VISIBLE
     }
 
     private fun applySeekGesture() {
-        // The seek is already shown as indicator, actual seek happens on ACTION_UP
+        val state = viewModel.uiState.value
+        // Re-read the target from the indicator text isn't reliable, recalculate
+        // The target was computed in handleSeekGesture, store it instead
+        pendingSeekTarget?.let { target ->
+            viewModel.seekTo(target.coerceIn(0, state.duration))
+            pendingSeekTarget = null
+        }
     }
 
     private fun handleBrightnessGesture(dy: Float) {
@@ -474,17 +485,13 @@ class PlayerActivity : AppCompatActivity() {
     private fun toggleScreenLock() {
         isScreenLocked = !isScreenLocked
         if (isScreenLocked) {
-            // Lock screen - disable touch on gesture overlay
             gestureOverlay.setOnTouchListener { _, _ -> true }
-            btnLock.setImageResource(R.drawable.ic_lock)
             btnLock.setColorFilter(android.graphics.Color.RED)
-            android.widget.Toast.makeText(this, "屏幕已锁定，点击锁定按钮解锁", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.player_locked), android.widget.Toast.LENGTH_SHORT).show()
         } else {
-            // Unlock screen - restore gesture handling
             initGestures()
-            btnLock.setImageResource(R.drawable.ic_lock)
             btnLock.clearColorFilter()
-            android.widget.Toast.makeText(this, "屏幕已解锁", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this, getString(R.string.player_unlocked), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -494,7 +501,6 @@ class PlayerActivity : AppCompatActivity() {
         controller.hide(WindowInsetsCompat.Type.systemBars())
         controller.systemBarsBehavior =
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     private fun formatTime(ms: Long): String {

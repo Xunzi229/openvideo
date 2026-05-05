@@ -2,7 +2,6 @@ package com.example.openvideo.core.player
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.media.audiofx.AudioEffect
 import android.media.audiofx.Equalizer
 import android.net.Uri
 import android.os.Build
@@ -12,10 +11,7 @@ import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionOverride
-import androidx.media3.common.VideoEffects
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
@@ -104,11 +100,13 @@ class PlayerManager @Inject constructor(
             val params = selector.buildUponParameters()
             when (mode) {
                 DecodeMode.SOFT -> {
-                    // Force software decoder by overriding to prefer VP9/AVC software decoders
-                    params.setRendererDisabled(C.TRACK_TYPE_VIDEO, false)
+                    // Force software decoder by disabling hardware decoder fallback
+                    params.setDecoderEnabled(C.TRACK_TYPE_VIDEO, true)
+                    params.setAllowVideoMixedMimeTypeAdaptiveSupport(false)
                 }
                 DecodeMode.HARD -> {
-                    params.setRendererDisabled(C.TRACK_TYPE_VIDEO, false)
+                    params.setDecoderEnabled(C.TRACK_TYPE_VIDEO, true)
+                    params.setAllowVideoMixedMimeTypeAdaptiveSupport(true)
                 }
             }
             selector.setParameters(params)
@@ -138,36 +136,38 @@ class PlayerManager @Inject constructor(
     }
 
     // P1: Video Filters
+    private val activeEffects = mutableListOf<androidx.media3.common.Effect>()
+
     @OptIn(UnstableApi::class)
     fun setBrightness(value: Float) {
-        player?.let { p ->
-            val effects = mutableListOf<androidx.media3.common.Effect>()
-            effects.add(Brightness(value))
-            p.setVideoEffects(effects)
-        }
+        activeEffects.removeAll { it is Brightness }
+        activeEffects.add(Brightness(value))
+        applyEffects()
     }
 
     @OptIn(UnstableApi::class)
     fun setContrast(value: Float) {
-        player?.let { p ->
-            val effects = mutableListOf<androidx.media3.common.Effect>()
-            effects.add(Contrast(value))
-            p.setVideoEffects(effects)
-        }
+        activeEffects.removeAll { it is Contrast }
+        activeEffects.add(Contrast(value))
+        applyEffects()
     }
 
     @OptIn(UnstableApi::class)
     fun setRotation(degrees: Float) {
-        player?.let { p ->
-            val effects = mutableListOf<androidx.media3.common.Effect>()
-            effects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees).build())
-            p.setVideoEffects(effects)
-        }
+        activeEffects.removeAll { it is ScaleAndRotateTransformation }
+        activeEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees).build())
+        applyEffects()
     }
 
     @OptIn(UnstableApi::class)
     fun clearEffects() {
+        activeEffects.clear()
         player?.setVideoEffects(emptyList())
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun applyEffects() {
+        player?.setVideoEffects(activeEffects.toList())
     }
 
     // P1: Equalizer

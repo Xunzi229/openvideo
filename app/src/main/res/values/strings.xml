@@ -218,4 +218,14 @@
     <string name="privacy_title">隐私文件夹</string>
     <string name="privacy_empty">暂无隐私文件夹</string>
     <string name="privacy_add">添加隐私文件夹</string>
+
+    <!-- Player -->
+    <string name="player_screenshot_saved">截图已保存: %s</string>
+    <string name="player_screenshot_failed">截图失败</string>
+    <string name="player_ab_point_a_set">A点已设置: %s</string>
+    <string name="player_ab_point_b_error">B点必须在A点之后</string>
+    <string name="player_ab_loop_started">B点已设置，开始循环</string>
+    <string name="player_ab_loop_cancelled">AB循环已取消</string>
+    <string name="player_locked">屏幕已锁定，点击锁定按钮解锁</string>
+    <string name="player_unlocked">屏幕已解锁</string>
 </resources>
