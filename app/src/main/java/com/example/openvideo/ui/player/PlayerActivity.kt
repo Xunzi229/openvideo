@@ -46,6 +46,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnSettings: ImageButton
     private lateinit var btnScreenshot: ImageButton
     private lateinit var btnAbLoop: ImageButton
+    private lateinit var btnPip: ImageButton
     private lateinit var btnFullscreen: ImageButton
     private lateinit var btnBack: ImageButton
     private lateinit var seekBar: SeekBar
@@ -135,6 +136,7 @@ class PlayerActivity : AppCompatActivity() {
         btnSettings = findViewById(R.id.btn_settings)
         btnScreenshot = findViewById(R.id.btn_screenshot)
         btnAbLoop = findViewById(R.id.btn_ab_loop)
+        btnPip = findViewById(R.id.btn_pip)
         btnFullscreen = findViewById(R.id.btn_fullscreen)
         btnBack = findViewById(R.id.btn_back)
         seekBar = findViewById(R.id.seek_bar)
@@ -213,6 +215,13 @@ class PlayerActivity : AppCompatActivity() {
                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             } else {
                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        }
+
+        btnPip.setOnClickListener {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val params = android.app.PictureInPictureParams.Builder().build()
+                enterPictureInPictureMode(params)
             }
         }
 
@@ -473,14 +482,27 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        viewModel.saveHistory()
-        viewModel.player?.pause()
+        if (!isInPictureInPictureMode) {
+            viewModel.saveHistory()
+            viewModel.player?.pause()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         viewModel.release()
+    }
+
+    override fun onPictureInPictureModeChanged(isInPipMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPipMode, newConfig)
+        if (isInPipMode) {
+            // Hide controls in PiP mode
+            controlsContainer.visibility = View.GONE
+        } else {
+            // Show controls when exiting PiP
+            controlsContainer.visibility = View.VISIBLE
+        }
     }
 
     private enum class SwipeSide { LEFT, RIGHT, NONE }

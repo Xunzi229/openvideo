@@ -30,6 +30,8 @@
             android:name=".ui.player.PlayerActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:screenOrientation="sensor"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
             android:theme="@style/Theme.OpenVideo.Player" />
 
     </application>
