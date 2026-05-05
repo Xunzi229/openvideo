@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenVideo</string>
+
+    <!-- Bottom Navigation -->
+    <string name="nav_live">直播</string>
+    <string name="nav_media">影视</string>
+    <string name="nav_mine">我的</string>
+
+    <!-- Tabs -->
+    <string name="tab_local_video">本地视频</string>
+    <string name="tab_playlist">播放列表</string>
+
+    <!-- Categories -->
+    <string name="cat_movie">电影</string>
+    <string name="cat_web">网络片</string>
+    <string name="cat_documentary">纪录片</string>
+
+    <!-- Filters -->
+    <string name="filter_recommend">推荐</string>
+    <string name="filter_hot">热门</string>
+    <string name="filter_latest">最新</string>
+    <string name="filter_hollywood">好莱坞</string>
+
+    <!-- Player -->
+    <string name="player_speed">倍速</string>
+    <string name="player_lock">锁屏</string>
+    <string name="player_hw_decode">硬解码</string>
+    <string name="player_audio_track">音轨</string>
+    <string name="player_subtitle">字幕同步</string>
+    <string name="player_aspect_ratio">画面比例</string>
+
+    <!-- Player Settings -->
+    <string name="settings_decode_mode">解码方式</string>
+    <string name="settings_soft_decode">软解码</string>
+    <string name="settings_hard_decode">硬解码</string>
+    <string name="settings_render_mode">渲染方式</string>
+    <string name="settings_surface">表面</string>
+    <string name="settings_texture">纹理</string>
+    <string name="settings_danmaku">弹幕</string>
+    <string name="settings_on">开</string>
+    <string name="settings_off">关</string>
+    <string name="settings_aspect_ratio">画面比例</string>
+    <string name="settings_ratio_default">默认</string>
+    <string name="settings_ratio_4_3">4:3</string>
+    <string name="settings_ratio_16_9">16:9</string>
+    <string name="settings_bg_audio">背景音</string>
+
+    <!-- General -->
+    <string name="refresh">刷新</string>
+    <string name="no_videos">暂无视频</string>
+    <string name="duration_format">%02d:%02d:%02d</string>
+    <string name="size_format">%.1f MB</string>
+    <string name="resolution_format">%dx%d</string>
+</resources>
