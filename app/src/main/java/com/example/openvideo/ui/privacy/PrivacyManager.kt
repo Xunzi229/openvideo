@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import java.security.MessageDigest
 
 class PrivacyManager(private val context: Context) {
 
@@ -43,20 +44,26 @@ class PrivacyManager(private val context: Context) {
     }
 
     fun setPassword(password: String) {
-        prefs.edit().putString(KEY_PASSWORD, password).apply()
+        prefs.edit().putString(KEY_PASSWORD_HASH, hashPassword(password)).apply()
     }
 
     fun verifyPassword(password: String): Boolean {
-        val stored = prefs.getString(KEY_PASSWORD, null) ?: return true
-        return stored == password
+        val stored = prefs.getString(KEY_PASSWORD_HASH, null) ?: return false
+        return stored == hashPassword(password)
     }
 
     fun hasPassword(): Boolean {
-        return prefs.getString(KEY_PASSWORD, null) != null
+        return prefs.getString(KEY_PASSWORD_HASH, null) != null
+    }
+
+    private fun hashPassword(password: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(password.toByteArray())
+        return hash.joinToString("") { "%02x".format(it) }
     }
 
     companion object {
         private const val KEY_HIDDEN_FOLDERS = "hidden_folders"
-        private const val KEY_PASSWORD = "password"
+        private const val KEY_PASSWORD_HASH = "password_hash"
     }
 }

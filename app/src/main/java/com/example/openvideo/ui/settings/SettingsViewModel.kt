@@ -2,17 +2,18 @@ package com.example.openvideo.ui.settings
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import com.bumptech.glide.Glide
 import androidx.lifecycle.viewModelScope
+import com.bumptech.glide.Glide
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.io.File
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -55,10 +56,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun clearCache() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
-            ctx.cacheDir?.let { deleteRecursively(it) }
-            Glide.get(ctx).clearMemory()
+            ctx.cacheDir?.deleteRecursively()
+            withContext(Dispatchers.Main) {
+                Glide.get(ctx).clearMemory()
+            }
             computeCacheSize()
         }
     }
@@ -70,9 +73,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun computeCacheSize() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
-            val size = calculateDirSize(ctx.cacheDir)
+            val size = ctx.cacheDir?.walkTopDown()?.sumOf { it.length() } ?: 0L
             _cacheSize.value = formatSize(size)
         }
     }
@@ -82,21 +85,6 @@ class SettingsViewModel @Inject constructor(
             repository.getHistory().collect { list ->
                 _historyCount.value = list.size
             }
-        }
-    }
-
-    private fun calculateDirSize(dir: File?): Long {
-        if (dir == null || !dir.exists()) return 0
-        var size = 0L
-        dir.listFiles()?.forEach {
-            size += if (it.isDirectory) calculateDirSize(it) else it.length()
-        }
-        return size
-    }
-
-    private fun deleteRecursively(dir: File) {
-        dir.listFiles()?.forEach {
-            if (it.isDirectory) deleteRecursively(it) else it.delete()
         }
     }
 

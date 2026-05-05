@@ -76,8 +76,11 @@ class HomeViewModel @Inject constructor(
         _viewMode.value = mode
     }
 
+    private var loadJob: kotlinx.coroutines.Job? = null
+
     fun loadVideos() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _isLoading.value = true
             repository.scanLocalVideos().collect { list ->
                 _videos.value = list
@@ -95,7 +98,8 @@ class HomeViewModel @Inject constructor(
     fun deleteVideo(video: VideoItem) {
         viewModelScope.launch {
             repository.deleteVideo(video)
-            loadVideos()
+            // Re-scan from MediaStore instead of re-subscribing
+            _videos.value = _videos.value.filter { it.id != video.id }
         }
     }
 }

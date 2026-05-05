@@ -28,6 +28,9 @@ interface PlaylistDao {
     @Query("SELECT * FROM playlist_videos WHERE playlistId = :playlistId ORDER BY position")
     fun getVideos(playlistId: Long): Flow<List<PlaylistVideoEntity>>
 
+    @Query("SELECT * FROM playlist_videos WHERE playlistId = :playlistId ORDER BY position")
+    suspend fun getVideosOnce(playlistId: Long): List<PlaylistVideoEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVideo(video: PlaylistVideoEntity)
 

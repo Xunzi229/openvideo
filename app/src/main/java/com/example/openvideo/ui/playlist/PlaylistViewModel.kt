@@ -49,7 +49,11 @@ class PlaylistViewModel @Inject constructor(
 
     fun addToPlaylist(playlistId: Long, video: VideoItem) {
         viewModelScope.launch {
-            val count = playlistDao.getVideoCount(playlistId)
+            // Check for duplicate
+            val existing = playlistDao.getVideosOnce(playlistId)
+            if (existing.any { it.videoId == video.id }) return@launch
+
+            val count = existing.size
             playlistDao.insertVideo(
                 PlaylistVideoEntity(
                     playlistId = playlistId,
