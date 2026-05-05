@@ -3,8 +3,9 @@
     <string name="app_name">OpenVideo</string>
 
     <!-- Bottom Navigation -->
-    <string name="nav_live">直播</string>
-    <string name="nav_media">影视</string>
+    <string name="nav_home">首页</string>
+    <string name="nav_video">视频</string>
+    <string name="nav_playlist">播放列表</string>
     <string name="nav_mine">我的</string>
 
     <!-- Tabs -->
@@ -31,6 +32,34 @@
     <string name="player_aspect_ratio">画面比例</string>
 
     <!-- Player Settings -->
+    <string name="settings_nav_playback">播放</string>
+    <string name="settings_nav_video">画面</string>
+    <string name="settings_nav_audio">声音</string>
+    <string name="settings_nav_subtitle">字幕</string>
+    <string name="settings_nav_gesture">手势</string>
+    <string name="settings_nav_other">其他</string>
+    <string name="settings_title">播放器设置</string>
+    <string name="settings_reset_defaults">恢复默认设置</string>
+    <string name="settings_group_play_control">播放控制</string>
+    <string name="settings_group_play_options">播放选项</string>
+    <string name="settings_playback_speed">播放速度</string>
+    <string name="settings_speed_0_5">0.5x</string>
+    <string name="settings_speed_0_75">0.75x</string>
+    <string name="settings_speed_1_0">1.0x</string>
+    <string name="settings_speed_1_25">1.25x</string>
+    <string name="settings_speed_1_5">1.5x</string>
+    <string name="settings_speed_2_0">2.0x</string>
+    <string name="settings_loop_mode">循环播放</string>
+    <string name="settings_loop_off">关闭</string>
+    <string name="settings_loop_single">单集循环</string>
+    <string name="settings_loop_list">列表循环</string>
+    <string name="settings_skip_intro_outro">跳过片头片尾</string>
+    <string name="settings_seek_interval">快进/快退间隔</string>
+    <string name="settings_seek_5s">5s</string>
+    <string name="settings_seek_10s">10s</string>
+    <string name="settings_seek_15s">15s</string>
+    <string name="settings_remember_progress">记住播放进度</string>
+    <string name="settings_remember_progress_desc">自动记录上次播放位置</string>
     <string name="settings_decode_mode">解码方式</string>
     <string name="settings_soft_decode">软解码</string>
     <string name="settings_hard_decode">硬解码</string>
@@ -45,6 +74,29 @@
     <string name="settings_ratio_4_3">4:3</string>
     <string name="settings_ratio_16_9">16:9</string>
     <string name="settings_bg_audio">背景音</string>
+    <string name="settings_bg_audio_desc">切换到后台时，继续播放音频</string>
+    <string name="settings_hardware_acceleration">播放时启用硬件加速</string>
+    <string name="settings_pause_on_exit">退出时自动暂停</string>
+    <string name="settings_unavailable_yet">当前设计图未定义该分组细项</string>
+    <string name="settings_loudness_boost">音量增强</string>
+    <string name="settings_audio_channel">声道</string>
+    <string name="settings_audio_stereo">立体声</string>
+    <string name="settings_audio_left">左声道</string>
+    <string name="settings_audio_right">右声道</string>
+    <string name="settings_subtitle_auto_load">自动加载字幕</string>
+    <string name="settings_subtitle_size">字幕大小</string>
+    <string name="settings_subtitle_small">小</string>
+    <string name="settings_subtitle_medium">中</string>
+    <string name="settings_subtitle_large">大</string>
+    <string name="settings_gesture_brightness">亮度手势</string>
+    <string name="settings_gesture_volume">音量手势</string>
+    <string name="settings_gesture_seek">进度手势</string>
+    <string name="settings_keep_screen_on">保持屏幕常亮</string>
+    <string name="settings_auto_play_next">自动连播下一集</string>
+    <string name="settings_double_tap_action">双击动作</string>
+    <string name="settings_double_tap_pause">暂停/播放</string>
+    <string name="settings_double_tap_playback">倍速播放</string>
+    <string name="settings_double_tap_none">无动作</string>
 
     <!-- General -->
     <string name="refresh">刷新</string>
@@ -52,4 +104,12 @@
     <string name="duration_format">%02d:%02d:%02d</string>
     <string name="size_format">%.1f MB</string>
     <string name="resolution_format">%dx%d</string>
+    <string name="home_title_video">视频</string>
+    <string name="home_filter_all">全部</string>
+    <string name="home_filter_recent">最近播放</string>
+    <string name="home_filter_favorite">收藏</string>
+    <string name="home_sort_by_modified">按修改时间</string>
+    <string name="home_view_list">列表视图</string>
+    <string name="home_view_grid">网格视图</string>
+    <string name="more_options">更多选项</string>
 </resources>

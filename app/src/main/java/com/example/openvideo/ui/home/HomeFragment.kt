@@ -17,7 +17,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.model.VideoItem
@@ -55,7 +55,7 @@ class HomeFragment : Fragment() {
             openPlayer(video)
         }
 
-        recyclerView.layoutManager = GridLayoutManager(requireContext(), 2)
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
         view.findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {

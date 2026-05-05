@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_app_root">
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/fragment_container"
@@ -17,7 +18,10 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/ov_bottom_nav_height"
+        android:background="@color/ov_bg_elevated_strong"
+        app:itemIconTint="@color/ov_text_secondary"
+        app:itemTextColor="@color/ov_text_secondary"
         app:menu="@menu/bottom_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

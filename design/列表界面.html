@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视频列表</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: #0d0d0d;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .phone {
+    width: 390px;
+    min-height: 844px;
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px 8px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px 14px;
+  }
+
+  .page-title {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 700;
+  }
+
+  .header-icons {
+    display: flex;
+    gap: 16px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* Filter tabs */
+  .filter-tabs {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+
+  .tab.active {
+    background: #2563eb;
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .tab:not(.active) {
+    background: #1e1e1e;
+    color: rgba(255,255,255,0.7);
+    border-color: #2a2a2a;
+  }
+
+  /* Sort bar */
+  .sort-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px 10px;
+  }
+
+  .sort-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .view-toggle {
+    display: flex;
+    gap: 2px;
+  }
+
+  .view-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .view-btn.active {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  /* Video list */
+  .video-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: 80px;
+  }
+  .video-list::-webkit-scrollbar { display: none; }
+
+  .video-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .video-item:hover { background: rgba(255,255,255,0.04); }
+
+  .thumb-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 160px;
+    height: 90px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #222;
+  }
+
+  .thumb-bg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .duration {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.03em;
+  }
+
+  .video-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .video-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .video-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .meta-tag {
+    color: rgba(255,255,255,0.45);
+    font-size: 12.5px;
+  }
+
+  .more-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.15s;
+  }
+
+  .more-btn:hover { background: rgba(255,255,255,0.08); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 390px;
+    background: #141414;
+    border-top: 1px solid #222;
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0 20px;
+    z-index: 100;
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.45);
+    font-size: 11px;
+    min-width: 60px;
+  }
+
+  .nav-item.active {
+    color: #2563eb;
+  }
+
+  .nav-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-item.active .nav-icon.play-circle {
+    background: #2563eb;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>10:30</span>
+    <div class="status-icons">
+      <!-- Wifi -->
+      <svg width="16" height="12" viewBox="0 0 24 18" fill="white">
+        <path d="M12 14.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"/>
+        <path d="M7.5 11.5C8.9 10.1 10.4 9.5 12 9.5s3.1.6 4.5 2" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M4 8C6.5 5.5 9.1 4 12 4s5.5 1.5 8 4" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M1 4.5C4.3 1.7 7.9 0 12 0s7.7 1.7 11 4.5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+      <!-- Signal -->
+      <svg width="14" height="12" viewBox="0 0 20 16" fill="white">
+        <rect x="0" y="10" width="4" height="6" rx="1"/>
+        <rect x="5.5" y="7" width="4" height="9" rx="1"/>
+        <rect x="11" y="3.5" width="4" height="12.5" rx="1"/>
+        <rect x="16.5" y="0" width="3.5" height="16" rx="1"/>
+      </svg>
+      <!-- Battery -->
+      <svg width="22" height="12" viewBox="0 0 28 14" fill="none">
+        <rect x="0" y="1" width="24" height="12" rx="3" stroke="white" stroke-width="1.5"/>
+        <rect x="1.5" y="2.5" width="18" height="9" rx="2" fill="white"/>
+        <path d="M25 4.5v5a2 2 0 0 0 0-5z" fill="white"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="page-title">视频</div>
+    <div class="header-icons">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <div class="tab active">全部</div>
+    <div class="tab">最近播放</div>
+    <div class="tab">收藏</div>
+    <div class="tab">自然</div>
+    <div class="tab">旅行</div>
+    <div class="tab">城市</div>
+    <div class="tab">纪录片</div>
+  </div>
+
+  <!-- Sort bar -->
+  <div class="sort-bar">
+    <div class="sort-left">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="8" y1="6" x2="21" y2="6"/>
+        <line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <path d="M3 6l2 2-2 2"/>
+      </svg>
+      <span>按修改时间</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </div>
+    <div class="view-toggle">
+      <div class="view-btn active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </div>
+      <div class="view-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video list -->
+  <div class="video-list">
+
+    <!-- Item 1: Alps Sunrise -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#2a1040"/>
+              <stop offset="40%" stop-color="#c05030"/>
+              <stop offset="60%" stop-color="#f0a040"/>
+              <stop offset="100%" stop-color="#301828"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sky1)"/>
+          <ellipse cx="80" cy="55" rx="18" ry="12" fill="#f5c050" opacity="0.8"/>
+          <polygon points="0,90 30,40 55,65 80,35 105,65 130,42 160,90" fill="#2a1828" opacity="0.9"/>
+          <rect x="60" y="55" width="40" height="35" fill="rgba(10,5,15,0.7)"/>
+          <rect x="65" y="60" width="8" height="30" fill="#201015" opacity="0.8"/>
+        </svg>
+        <span class="duration">45:10</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">阿尔卑斯山的日出</div>
+        <div class="video-meta">
+          <span class="meta-tag">4K</span>
+          <span class="meta-tag">2024-05-20</span>
+          <span class="meta-tag">1.2GB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 2: Iceland Aurora -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#050d15"/>
+              <stop offset="60%" stop-color="#0a1a20"/>
+              <stop offset="100%" stop-color="#0d0f10"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sky2)"/>
+          <!-- Aurora bands -->
+          <path d="M-10,20 Q40,5 80,18 Q120,30 170,15" stroke="#00e5a0" stroke-width="14" fill="none" opacity="0.35" stroke-linecap="round"/>
+          <path d="M-10,30 Q50,12 90,28 Q130,42 170,25" stroke="#40ffc0" stroke-width="10" fill="none" opacity="0.45" stroke-linecap="round"/>
+          <path d="M-10,15 Q30,8 70,20 Q110,35 170,20" stroke="#00c0e0" stroke-width="8" fill="none" opacity="0.3" stroke-linecap="round"/>
+          <!-- Stars -->
+          <circle cx="15" cy="8" r="0.8" fill="white" opacity="0.9"/>
+          <circle cx="45" cy="5" r="0.6" fill="white" opacity="0.8"/>
+          <circle cx="100" cy="7" r="0.8" fill="white" opacity="0.9"/>
+          <circle cx="130" cy="4" r="0.6" fill="white" opacity="0.7"/>
+          <circle cx="150" cy="10" r="0.8" fill="white" opacity="0.8"/>
+          <!-- Mountain silhouette -->
+          <polygon points="0,90 20,55 45,70 70,45 90,65 120,50 145,65 160,90" fill="#0a0c0e"/>
+          <!-- Reflection on water -->
+          <rect x="0" y="72" width="160" height="18" fill="#080c10" opacity="0.8"/>
+          <path d="M40,76 Q80,74 120,77" stroke="#00e5a0" stroke-width="3" fill="none" opacity="0.2"/>
+        </svg>
+        <span class="duration">42:11</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">冰岛极光之夜</div>
+        <div class="video-meta">
+          <span class="meta-tag">4K</span>
+          <span class="meta-tag">2024-05-18</span>
+          <span class="meta-tag">1.1GB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 3: Atlantic Coast Road -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#3a5070"/>
+              <stop offset="50%" stop-color="#6080a0"/>
+              <stop offset="100%" stop-color="#304050"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sky3)"/>
+          <!-- Cliff left -->
+          <polygon points="0,0 0,90 50,90 60,60 40,30 20,10" fill="#3a3020"/>
+          <polygon points="0,0 25,5 40,30 20,10" fill="#4a4030"/>
+          <!-- Ocean -->
+          <rect x="50" y="45" width="110" height="45" fill="#204060" opacity="0.9"/>
+          <path d="M50,55 Q80,52 110,56 Q140,60 160,57" stroke="#3060a0" stroke-width="2" fill="none" opacity="0.5"/>
+          <!-- Road winding -->
+          <path d="M20,90 Q35,70 45,58 Q55,48 80,50 Q110,53 130,65 Q145,72 160,90" stroke="#1a1a1a" stroke-width="14" fill="none"/>
+          <path d="M20,90 Q35,70 45,58 Q55,48 80,50 Q110,53 130,65 Q145,72 160,90" stroke="#2a2a2a" stroke-width="10" fill="none"/>
+          <!-- Road markings -->
+          <path d="M30,85 Q38,72 44,62" stroke="rgba(255,200,0,0.6)" stroke-width="1.5" stroke-dasharray="5,4" fill="none"/>
+          <!-- Sunset glow -->
+          <ellipse cx="130" cy="30" rx="35" ry="25" fill="#f0a030" opacity="0.2"/>
+        </svg>
+        <span class="duration">33:27</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">大西洋海岸公路之旅</div>
+        <div class="video-meta">
+          <span class="meta-tag">4K</span>
+          <span class="meta-tag">2024-05-16</span>
+          <span class="meta-tag">950MB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 4: Tokyo Night -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1a0a2e"/>
+              <stop offset="60%" stop-color="#2a1545"/>
+              <stop offset="100%" stop-color="#1a0a20"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sky4)"/>
+          <!-- City buildings -->
+          <rect x="5" y="30" width="18" height="60" fill="#1a1a2a"/>
+          <rect x="25" y="20" width="14" height="70" fill="#201828"/>
+          <rect x="41" y="35" width="12" height="55" fill="#1a1520"/>
+          <rect x="55" y="15" width="20" height="75" fill="#22183a"/>
+          <!-- Tokyo Tower (red) -->
+          <polygon points="85,5 90,5 96,90 79,90" fill="#cc2020" opacity="0.9"/>
+          <rect x="80" y="40" width="15" height="3" fill="#cc2020"/>
+          <rect x="81" y="28" width="13" height="2" fill="#cc2020"/>
+          <!-- Lights on tower -->
+          <circle cx="87" cy="7" r="1.5" fill="#ff8080" opacity="0.9"/>
+          <circle cx="87" cy="20" r="1" fill="#ffffff" opacity="0.7"/>
+          <!-- More buildings right -->
+          <rect x="100" y="25" width="16" height="65" fill="#1a1828"/>
+          <rect x="118" y="38" width="12" height="52" fill="#201520"/>
+          <rect x="132" y="18" width="18" height="72" fill="#1a1030"/>
+          <rect x="152" y="32" width="12" height="58" fill="#1a1428"/>
+          <!-- Building windows -->
+          <g fill="#f0a030" opacity="0.6">
+            <rect x="7" y="33" width="3" height="2"/><rect x="12" y="33" width="3" height="2"/>
+            <rect x="7" y="38" width="3" height="2"/><rect x="12" y="40" width="3" height="2"/>
+            <rect x="27" y="23" width="3" height="2"/><rect x="32" y="26" width="3" height="2"/>
+            <rect x="57" y="18" width="4" height="2"/><rect x="63" y="22" width="4" height="2"/>
+            <rect x="57" y="28" width="4" height="2"/><rect x="63" y="32" width="4" height="2"/>
+            <rect x="102" y="28" width="4" height="2"/><rect x="108" y="32" width="4" height="2"/>
+            <rect x="134" y="22" width="4" height="2"/><rect x="140" y="28" width="4" height="2"/>
+          </g>
+          <!-- Purple/pink city glow -->
+          <rect x="0" y="70" width="160" height="20" fill="#301040" opacity="0.5"/>
+          <ellipse cx="55" cy="85" rx="50" ry="15" fill="#6020c0" opacity="0.2"/>
+        </svg>
+        <span class="duration">28:30</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">东京城市漫步</div>
+        <div class="video-meta">
+          <span class="meta-tag">1080P</span>
+          <span class="meta-tag">2024-05-15</span>
+          <span class="meta-tag">780MB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 5: Underwater Coral -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#0a3050"/>
+              <stop offset="60%" stop-color="#0a5070"/>
+              <stop offset="100%" stop-color="#083040"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sea)"/>
+          <!-- Light rays from top -->
+          <path d="M60,0 L30,90" stroke="rgba(100,200,255,0.08)" stroke-width="20" fill="none"/>
+          <path d="M90,0 L80,90" stroke="rgba(100,200,255,0.1)" stroke-width="15" fill="none"/>
+          <path d="M120,0 L130,90" stroke="rgba(100,200,255,0.07)" stroke-width="18" fill="none"/>
+          <!-- Sea turtle body -->
+          <ellipse cx="95" cy="48" rx="28" ry="18" fill="#5a8030" opacity="0.9"/>
+          <!-- Shell pattern -->
+          <ellipse cx="95" cy="48" rx="22" ry="14" fill="#4a7028" opacity="0.8"/>
+          <polygon points="95,38 88,44 95,50 102,44" fill="#3a5820" opacity="0.7"/>
+          <polygon points="95,50 88,44 82,50 88,56" fill="#3a5820" opacity="0.6"/>
+          <polygon points="95,50 102,44 108,50 102,56" fill="#3a5820" opacity="0.6"/>
+          <!-- Head -->
+          <ellipse cx="72" cy="48" rx="10" ry="8" fill="#6a9040" opacity="0.9"/>
+          <circle cx="70" cy="46" r="2" fill="#1a1a0a"/>
+          <!-- Flippers -->
+          <ellipse cx="88" cy="30" rx="14" ry="5" fill="#5a8030" opacity="0.8" transform="rotate(-30,88,30)"/>
+          <ellipse cx="102" cy="30" rx="14" ry="5" fill="#5a8030" opacity="0.8" transform="rotate(30,102,30)"/>
+          <ellipse cx="88" cy="66" rx="14" ry="5" fill="#5a8030" opacity="0.8" transform="rotate(30,88,66)"/>
+          <ellipse cx="102" cy="66" rx="14" ry="5" fill="#5a8030" opacity="0.8" transform="rotate(-30,102,66)"/>
+          <!-- Tail -->
+          <path d="M122,48 Q135,42 138,48 Q135,54 122,48" fill="#5a8030" opacity="0.7"/>
+          <!-- Coral bottom -->
+          <ellipse cx="20" cy="88" rx="15" ry="5" fill="#e04040" opacity="0.7"/>
+          <rect x="18" y="70" width="4" height="20" rx="2" fill="#c03030" opacity="0.8"/>
+          <rect x="14" y="75" width="3" height="15" rx="1.5" fill="#e04040" opacity="0.7"/>
+          <rect x="22" y="72" width="3" height="18" rx="1.5" fill="#c03030" opacity="0.7"/>
+          <ellipse cx="145" cy="88" rx="12" ry="4" fill="#ff6040" opacity="0.6"/>
+          <rect x="143" y="74" width="4" height="16" rx="2" fill="#e05030" opacity="0.7"/>
+          <!-- Bubbles -->
+          <circle cx="75" cy="20" r="3" stroke="rgba(200,240,255,0.6)" stroke-width="1" fill="none"/>
+          <circle cx="82" cy="12" r="2" stroke="rgba(200,240,255,0.5)" stroke-width="1" fill="none"/>
+          <circle cx="68" cy="15" r="1.5" stroke="rgba(200,240,255,0.5)" stroke-width="1" fill="none"/>
+        </svg>
+        <span class="duration">51:23</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">海底世界：珊瑚礁</div>
+        <div class="video-meta">
+          <span class="meta-tag">4K</span>
+          <span class="meta-tag">2024-05-12</span>
+          <span class="meta-tag">1.6GB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 6: Sahara Desert -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sky6" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#c06820"/>
+              <stop offset="40%" stop-color="#e08030"/>
+              <stop offset="70%" stop-color="#f0a040"/>
+              <stop offset="100%" stop-color="#d07030"/>
+            </linearGradient>
+            <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#c07828"/>
+              <stop offset="100%" stop-color="#a05818"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sky6)"/>
+          <!-- Sun -->
+          <circle cx="120" cy="25" r="15" fill="#ffdd60" opacity="0.9"/>
+          <circle cx="120" cy="25" r="22" fill="#ffcc40" opacity="0.25"/>
+          <!-- Sand dunes -->
+          <path d="M0,90 Q20,50 50,60 Q80,70 110,52 Q135,38 160,55 L160,90 Z" fill="url(#sand)"/>
+          <path d="M0,90 Q30,65 60,72 Q90,78 120,68 Q140,62 160,72 L160,90 Z" fill="#b06820" opacity="0.9"/>
+          <!-- Shadow on dunes -->
+          <path d="M50,60 Q65,65 80,62 L80,90 Z" fill="#804010" opacity="0.4"/>
+          <path d="M110,52 Q125,56 140,55 L160,65 L160,90 Z" fill="#804010" opacity="0.4"/>
+          <!-- Dune ripples -->
+          <path d="M10,80 Q40,77 70,80" stroke="#d08030" stroke-width="1" fill="none" opacity="0.5"/>
+          <path d="M30,85 Q70,82 100,85" stroke="#d08030" stroke-width="1" fill="none" opacity="0.4"/>
+        </svg>
+        <span class="duration">39:16</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">撒哈拉沙漠穿越</div>
+        <div class="video-meta">
+          <span class="meta-tag">4K</span>
+          <span class="meta-tag">2024-05-10</span>
+          <span class="meta-tag">1.0GB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 7: Waterfall -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="forest" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#1a3010"/>
+              <stop offset="60%" stop-color="#2a4818"/>
+              <stop offset="100%" stop-color="#1a3010"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#forest)"/>
+          <!-- Tree canopy background -->
+          <ellipse cx="20" cy="20" rx="25" ry="20" fill="#1a3a0a" opacity="0.9"/>
+          <ellipse cx="50" cy="15" rx="30" ry="22" fill="#223a10" opacity="0.9"/>
+          <ellipse cx="110" cy="18" rx="28" ry="20" fill="#1a3a0a" opacity="0.9"/>
+          <ellipse cx="145" cy="22" rx="22" ry="18" fill="#223a10" opacity="0.9"/>
+          <!-- Rocky cliff -->
+          <polygon points="55,10 70,10 80,30 60,45 45,35" fill="#5a5040" opacity="0.8"/>
+          <polygon points="80,10 100,10 105,30 80,30" fill="#6a6050" opacity="0.8"/>
+          <!-- Waterfall main -->
+          <rect x="68" y="25" width="18" height="45" fill="rgba(200,230,255,0.85)" rx="3"/>
+          <!-- Waterfall streaks -->
+          <rect x="70" y="28" width="2" height="40" fill="rgba(255,255,255,0.6)" rx="1"/>
+          <rect x="75" y="30" width="1.5" height="38" fill="rgba(255,255,255,0.5)" rx="1"/>
+          <rect x="80" y="27" width="2" height="42" fill="rgba(255,255,255,0.6)" rx="1"/>
+          <rect x="83" y="32" width="1.5" height="36" fill="rgba(255,255,255,0.4)" rx="1"/>
+          <!-- Mist at bottom -->
+          <ellipse cx="77" cy="72" rx="25" ry="10" fill="rgba(200,230,255,0.5)"/>
+          <!-- Pool -->
+          <ellipse cx="77" cy="76" rx="30" ry="12" fill="#3a6888" opacity="0.7"/>
+          <path d="M50,78 Q77,74 104,78" stroke="rgba(200,240,255,0.4)" stroke-width="2" fill="none"/>
+          <!-- Foreground trees/ferns -->
+          <polygon points="0,90 0,60 15,90" fill="#1a3008" opacity="0.9"/>
+          <polygon points="150,90 160,55 160,90" fill="#1a3008" opacity="0.9"/>
+          <ellipse cx="130" cy="80" rx="20" ry="12" fill="#1e3a0c" opacity="0.9"/>
+          <!-- Sky visible top -->
+          <rect x="0" y="0" width="160" height="12" fill="#6080a0" opacity="0.4"/>
+        </svg>
+        <span class="duration">24:18</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">瀑布的治愈时刻</div>
+        <div class="video-meta">
+          <span class="meta-tag">1080P</span>
+          <span class="meta-tag">2024-05-08</span>
+          <span class="meta-tag">560MB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Item 8: Swiss Lake Town -->
+    <div class="video-item">
+      <div class="thumb-wrap">
+        <svg class="thumb-bg" viewBox="0 0 160 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="sky8" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#4a6888"/>
+              <stop offset="50%" stop-color="#6080a8"/>
+              <stop offset="100%" stop-color="#385060"/>
+            </linearGradient>
+          </defs>
+          <rect width="160" height="90" fill="url(#sky8)"/>
+          <!-- Clouds -->
+          <ellipse cx="40" cy="18" rx="30" ry="12" fill="rgba(255,255,255,0.2)"/>
+          <ellipse cx="65" cy="14" rx="22" ry="10" fill="rgba(255,255,255,0.15)"/>
+          <ellipse cx="130" cy="20" rx="25" ry="10" fill="rgba(255,255,255,0.18)"/>
+          <!-- Snow mountains background -->
+          <polygon points="0,60 25,25 50,50 70,35 90,55 110,28 135,50 160,30 160,65 0,65" fill="#d8dce8" opacity="0.7"/>
+          <!-- Snow peaks -->
+          <polygon points="25,25 18,35 32,35" fill="white" opacity="0.9"/>
+          <polygon points="70,35 63,45 77,45" fill="white" opacity="0.9"/>
+          <polygon points="110,28 103,40 117,40" fill="white" opacity="0.9"/>
+          <!-- Green hills -->
+          <path d="M0,65 Q30,55 60,62 Q90,68 120,60 Q145,55 160,62 L160,90 L0,90Z" fill="#3a6020"/>
+          <!-- Lake -->
+          <rect x="0" y="68" width="160" height="22" fill="#486878" opacity="0.8"/>
+          <path d="M0,72 Q40,70 80,73 Q120,76 160,72" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" fill="none"/>
+          <!-- Small town buildings -->
+          <rect x="30" y="55" width="10" height="14" fill="#c8b080"/>
+          <polygon points="30,55 35,48 40,55" fill="#a04040"/>
+          <rect x="44" y="52" width="10" height="17" fill="#c0a870"/>
+          <polygon points="44,52 49,44 54,52" fill="#a04040"/>
+          <rect x="58" y="57" width="8" height="12" fill="#b8a068"/>
+          <polygon points="58,57 62,51 66,57" fill="#904040"/>
+          <!-- Tree line -->
+          <ellipse cx="15" cy="62" rx="8" ry="6" fill="#2a5010" opacity="0.9"/>
+          <ellipse cx="80" cy="60" rx="7" ry="5" fill="#2a5010" opacity="0.8"/>
+          <ellipse cx="100" cy="62" rx="9" ry="6" fill="#2a5010" opacity="0.9"/>
+          <ellipse cx="140" cy="60" rx="10" ry="7" fill="#2a5010" opacity="0.8"/>
+        </svg>
+        <span class="duration">31:05</span>
+      </div>
+      <div class="video-info">
+        <div class="video-title">瑞士湖畔小镇</div>
+        <div class="video-meta">
+          <span class="meta-tag">4K</span>
+          <span class="meta-tag">2024-05-05</span>
+          <span class="meta-tag">820MB</span>
+        </div>
+      </div>
+      <div class="more-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.5)">
+          <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+        </svg>
+      </div>
+    </div>
+
+  </div><!-- end video-list -->
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span>首页</span>
+    </div>
+    <div class="nav-item active">
+      <div class="nav-icon play-circle">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+          <polygon points="5 3 19 12 5 21 5 3"/>
+        </svg>
+      </div>
+      <span>视频</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <path d="M3 10l2-2-2-2"/><circle cx="3" cy="18" r="1.5" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <span>播放列表</span>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <span>我的</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+    });
+  });
+
+  // View toggle
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  // Nav switching
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

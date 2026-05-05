@@ -18,4 +18,5 @@ local.properties
 *.bak
 *.swp
 .claude
+.superpowers
 .idea

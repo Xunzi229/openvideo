@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- OpenVideo dark immersive design tokens. Prefer these over hardcoded UI values. -->
+
+    <color name="ov_bg_base">#FF070C14</color>
+    <color name="ov_bg_gradient_mid">#FF101724</color>
+    <color name="ov_bg_elevated">#E6141B27</color>
+    <color name="ov_bg_elevated_strong">#F21A2230</color>
+    <color name="ov_bg_overlay">#CC05080D</color>
+
+    <color name="ov_accent_blue">#FF2F7CF6</color>
+    <color name="ov_accent_blue_pressed">#FF245FBF</color>
+    <color name="ov_accent_blue_soft">#332F7CF6</color>
+
+    <color name="ov_text_primary">#FFF2F6FF</color>
+    <color name="ov_text_secondary">#FFB4BDCA</color>
+    <color name="ov_text_tertiary">#FF7E8A9A</color>
+    <color name="ov_divider">#1FFFFFFF</color>
+    <color name="ov_icon_default">#FFD6DEEA</color>
+
+    <dimen name="ov_space_xs">4dp</dimen>
+    <dimen name="ov_space_sm">8dp</dimen>
+    <dimen name="ov_space_md">12dp</dimen>
+    <dimen name="ov_space_lg">16dp</dimen>
+    <dimen name="ov_space_xl">24dp</dimen>
+    <dimen name="ov_space_page">16dp</dimen>
+    <dimen name="ov_space_card">16dp</dimen>
+    <dimen name="ov_space_row_vertical">14dp</dimen>
+
+    <dimen name="ov_radius_sm">8dp</dimen>
+    <dimen name="ov_radius_md">12dp</dimen>
+    <dimen name="ov_radius_lg">18dp</dimen>
+    <dimen name="ov_radius_pill">999dp</dimen>
+
+    <dimen name="ov_text_title">20sp</dimen>
+    <dimen name="ov_text_body">16sp</dimen>
+    <dimen name="ov_text_meta">13sp</dimen>
+    <dimen name="ov_text_caption">12sp</dimen>
+
+    <dimen name="ov_control_bar_height">56dp</dimen>
+    <dimen name="ov_bottom_nav_height">64dp</dimen>
+    <dimen name="ov_video_thumb_height">120dp</dimen>
+</resources>

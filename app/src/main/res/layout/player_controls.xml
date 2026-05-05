@@ -1,20 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+﻿<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/controls_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Top bar -->
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:layout_marginTop="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:gravity="center_vertical"
-        android:padding="8dp"
-        android:background="@color/control_bg"
+        android:orientation="horizontal"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -24,119 +23,118 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
             android:src="@drawable/ic_arrow_back"
-            app:tint="#FFFFFFFF"
-            android:contentDescription="返回" />
+            app:tint="@color/ov_text_primary" />
 
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginHorizontal="8dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FFFFFFFF"
-            android:textSize="16sp" />
-
+            android:textColor="@color/ov_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Center play button -->
-    <ImageButton
-        android:id="@+id/btn_play_center"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_play"
-        app:tint="#FFFFFFFF"
-        android:contentDescription="播放"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <!-- Bottom bar -->
     <LinearLayout
-        android:id="@+id/bottom_bar"
+        android:id="@+id/bottom_panel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="14dp"
         android:orientation="vertical"
-        android:padding="8dp"
-        android:background="@color/control_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Seekbar row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/tv_current_time"
-                android:layout_width="wrap_content"
+                android:layout_width="38dp"
                 android:layout_height="wrap_content"
-                android:textColor="#FFFFFFFF"
-                android:textSize="12sp"
-                android:text="00:00" />
+                android:text="00:00"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="13sp" />
 
             <SeekBar
                 android:id="@+id/seek_bar"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginHorizontal="8dp"
-                android:progressTint="@color/seekbar_progress"
-                android:thumbTint="@color/seekbar_progress" />
+                android:layout_marginHorizontal="10dp"
+                android:progressTint="@color/ov_accent_blue"
+                android:thumbTint="@color/ov_text_primary" />
 
             <TextView
                 android:id="@+id/tv_total_time"
-                android:layout_width="wrap_content"
+                android:layout_width="38dp"
                 android:layout_height="wrap_content"
-                android:textColor="#FFFFFFFF"
-                android:textSize="12sp"
-                android:text="00:00" />
-
+                android:gravity="end"
+                android:text="00:00"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="13sp" />
         </LinearLayout>
 
-        <!-- Control buttons row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginTop="4dp">
-
-            <ImageButton
-                android:id="@+id/btn_play"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_play"
-                app:tint="#FFFFFFFF"
-                android:contentDescription="播放" />
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:orientation="horizontal">
 
             <ImageButton
                 android:id="@+id/btn_prev"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="上一个"
                 android:src="@drawable/ic_skip_previous"
-                app:tint="#FFFFFFFF"
-                android:contentDescription="上一个" />
+                app:tint="@color/ov_text_primary" />
+
+            <ImageButton
+                android:id="@+id/btn_play"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_marginHorizontal="10dp"
+                android:background="@drawable/bg_pill_unselected"
+                android:contentDescription="播放"
+                android:src="@drawable/ic_play"
+                app:tint="@color/ov_text_primary" />
 
             <ImageButton
                 android:id="@+id/btn_next"
+                android:layout_width="46dp"
+                android:layout_height="46dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="下一个"
+                android:src="@drawable/ic_skip_next"
+                app:tint="@color/ov_text_primary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_settings"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_skip_next"
-                app:tint="#FFFFFFFF"
-                android:contentDescription="下一个" />
+                android:contentDescription="设置"
+                android:src="@drawable/ic_settings"
+                app:tint="@color/ov_text_secondary" />
 
             <View
                 android:layout_width="0dp"
@@ -144,26 +142,28 @@
                 android:layout_weight="1" />
 
             <ImageButton
-                android:id="@+id/btn_settings"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_settings"
-                app:tint="#FFFFFFFF"
-                android:contentDescription="设置" />
-
-            <ImageButton
                 android:id="@+id/btn_fullscreen"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:layout_marginStart="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="全屏"
                 android:src="@drawable/ic_fullscreen"
-                app:tint="#FFFFFFFF"
-                android:contentDescription="全屏" />
-
+                app:tint="@color/ov_text_secondary" />
         </LinearLayout>
-
     </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btn_play_center"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="播放"
+        android:src="@drawable/ic_play"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@color/ov_text_primary" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

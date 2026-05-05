@@ -1,185 +1,539 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="280dp"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp"
-    android:background="#FF1A1A1A">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="920dp"
+    android:layout_height="560dp"
+    android:background="@color/ov_bg_base"
+    android:orientation="horizontal"
+    android:padding="@dimen/ov_space_lg">
 
-    <!-- 解码方式 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/settings_decode_mode"
-        android:textColor="#CCFFFFFF"
-        android:textSize="14sp" />
-
-    <RadioGroup
-        android:id="@+id/rg_decode"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
-
-        <RadioButton
-            android:id="@+id/rb_soft_decode"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_soft_decode"
-            android:textColor="#FFFFFFFF" />
-
-        <RadioButton
-            android:id="@+id/rb_hard_decode"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_hard_decode"
-            android:textColor="#FFFFFFFF" />
-
-    </RadioGroup>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="12dp"
-        android:background="#33FFFFFF" />
-
-    <!-- 渲染方式 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/settings_render_mode"
-        android:textColor="#CCFFFFFF"
-        android:textSize="14sp" />
-
-    <RadioGroup
-        android:id="@+id/rg_render"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
-
-        <RadioButton
-            android:id="@+id/rb_surface"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_surface"
-            android:textColor="#FFFFFFFF" />
-
-        <RadioButton
-            android:id="@+id/rb_texture"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_texture"
-            android:textColor="#FFFFFFFF" />
-
-    </RadioGroup>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="12dp"
-        android:background="#33FFFFFF" />
-
-    <!-- 弹幕 -->
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+        android:layout_width="220dp"
+        android:layout_height="match_parent"
+        android:background="@color/ov_bg_elevated_strong"
+        android:orientation="vertical"
+        android:padding="@dimen/ov_space_sm">
 
         <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_danmaku"
-            android:textColor="#CCFFFFFF"
-            android:textSize="14sp" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_danmaku"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="12dp"
-        android:background="#33FFFFFF" />
-
-    <!-- 画面比例 -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/settings_aspect_ratio"
-        android:textColor="#CCFFFFFF"
-        android:textSize="14sp" />
-
-    <RadioGroup
-        android:id="@+id/rg_ratio"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
-
-        <RadioButton
-            android:id="@+id/rb_ratio_default"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_ratio_default"
-            android:textColor="#FFFFFFFF" />
-
-        <RadioButton
-            android:id="@+id/rb_ratio_4_3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_ratio_4_3"
-            android:textColor="#FFFFFFFF" />
-
-        <RadioButton
-            android:id="@+id/rb_ratio_16_9"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_ratio_16_9"
-            android:textColor="#FFFFFFFF" />
-
-    </RadioGroup>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginVertical="12dp"
-        android:background="#33FFFFFF" />
-
-    <!-- 背景音 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_title"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="@dimen/ov_text_body"
+            android:textStyle="bold" />
 
         <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_bg_audio"
-            android:textColor="#CCFFFFFF"
-            android:textSize="14sp" />
+            android:id="@+id/nav_playback"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/ov_space_sm"
+            android:background="@drawable/bg_settings_nav_selected"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_nav_playback"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="@dimen/ov_text_body" />
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switch_bg_audio"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+        <TextView
+            android:id="@+id/nav_video"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/ov_space_xs"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_nav_video"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_body" />
 
+        <TextView
+            android:id="@+id/nav_audio"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/ov_space_xs"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_nav_audio"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_body" />
+
+        <TextView
+            android:id="@+id/nav_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/ov_space_xs"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_nav_subtitle"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_body" />
+
+        <TextView
+            android:id="@+id/nav_gesture"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/ov_space_xs"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_nav_gesture"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_body" />
+
+        <TextView
+            android:id="@+id/nav_other"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/ov_space_xs"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_nav_other"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_body" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_reset_defaults"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/ov_space_md"
+            android:text="@string/settings_reset_defaults"
+            android:textColor="@color/ov_accent_blue"
+            android:textSize="@dimen/ov_text_body" />
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="@dimen/ov_space_lg"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:id="@+id/section_playback"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_play_control"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:text="@string/settings_playback_speed"
+                    android:textColor="@color/ov_text_primary"
+                    android:textSize="@dimen/ov_text_body" />
+
+                <RadioGroup
+                    android:id="@+id/rg_speed"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_xs"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/rb_speed_0_5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_speed_0_5"
+                        android:textColor="@color/ov_text_primary" />
+
+                    <RadioButton
+                        android:id="@+id/rb_speed_0_75"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_speed_0_75"
+                        android:textColor="@color/ov_text_primary" />
+
+                    <RadioButton
+                        android:id="@+id/rb_speed_1_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_speed_1_0"
+                        android:textColor="@color/ov_text_primary" />
+
+                    <RadioButton
+                        android:id="@+id/rb_speed_1_25"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_speed_1_25"
+                        android:textColor="@color/ov_text_primary" />
+
+                    <RadioButton
+                        android:id="@+id/rb_speed_1_5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_speed_1_5"
+                        android:textColor="@color/ov_text_primary" />
+
+                    <RadioButton
+                        android:id="@+id/rb_speed_2_0"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_speed_2_0"
+                        android:textColor="@color/ov_text_primary" />
+                </RadioGroup>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_loop_mode"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_loop_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_skip_intro_outro"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_skip_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_seek_interval"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_seek_interval_value"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_body" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_remember_progress"
+                            android:textColor="@color/ov_text_primary"
+                            android:textSize="@dimen/ov_text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_remember_progress_desc"
+                            android:textColor="@color/ov_text_secondary"
+                            android:textSize="@dimen/ov_text_caption" />
+                    </LinearLayout>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_remember_progress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="@dimen/ov_space_md"
+                android:background="@color/ov_bg_elevated_strong"
+                android:orientation="vertical"
+                android:padding="@dimen/ov_space_lg">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_group_play_options"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/ov_space_md"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_hardware_acceleration"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_hardware_accel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_pause_on_exit"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_pause_on_exit"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/settings_auto_play_next"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_auto_play_next"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginVertical="@dimen/ov_space_md"
+                    android:background="@color/ov_divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_bg_audio"
+                            android:textColor="@color/ov_text_primary"
+                            android:textSize="@dimen/ov_text_body" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/settings_bg_audio_desc"
+                            android:textColor="@color/ov_text_secondary"
+                            android:textSize="@dimen/ov_text_caption" />
+                    </LinearLayout>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_bg_audio"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_video"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/ov_bg_elevated_strong"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/ov_space_lg"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_unavailable_yet"
+                android:textColor="@color/ov_text_secondary"
+                android:textSize="@dimen/ov_text_body" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_audio"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/ov_bg_elevated_strong"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/ov_space_lg"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_unavailable_yet"
+                android:textColor="@color/ov_text_secondary"
+                android:textSize="@dimen/ov_text_body" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/ov_bg_elevated_strong"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/ov_space_lg"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_unavailable_yet"
+                android:textColor="@color/ov_text_secondary"
+                android:textSize="@dimen/ov_text_body" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_gesture"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/ov_bg_elevated_strong"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/ov_space_lg"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_unavailable_yet"
+                android:textColor="@color/ov_text_secondary"
+                android:textSize="@dimen/ov_text_body" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/section_other"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/ov_bg_elevated_strong"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/ov_space_lg"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_unavailable_yet"
+                android:textColor="@color/ov_text_secondary"
+                android:textSize="@dimen/ov_text_body" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

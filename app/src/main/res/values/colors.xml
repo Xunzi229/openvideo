@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#FF1A73E8</color>
-    <color name="primary_variant">#FF1557B0</color>
-    <color name="on_primary">#FFFFFFFF</color>
-    <color name="secondary">#FF03DAC5</color>
-    <color name="background">#FFFFFFFF</color>
-    <color name="surface">#FFF5F5F5</color>
-    <color name="on_background">#FF1C1B1F</color>
-    <color name="on_surface">#FF1C1B1F</color>
+    <color name="primary">@color/ov_accent_blue</color>
+    <color name="primary_variant">@color/ov_accent_blue_pressed</color>
+    <color name="on_primary">@color/ov_text_primary</color>
+    <color name="secondary">@color/ov_accent_blue</color>
+    <color name="background">@color/ov_bg_base</color>
+    <color name="surface">@color/ov_bg_elevated</color>
+    <color name="on_background">@color/ov_text_primary</color>
+    <color name="on_surface">@color/ov_text_primary</color>
     <color name="player_bg">#FF000000</color>
-    <color name="control_bg">#CC000000</color>
-    <color name="seekbar_progress">#FF1A73E8</color>
-    <color name="text_secondary">#FF666666</color>
-    <color name="divider">#FFE0E0E0</color>
+    <color name="control_bg">@color/ov_bg_overlay</color>
+    <color name="seekbar_progress">@color/ov_accent_blue</color>
+    <color name="text_secondary">@color/ov_text_secondary</color>
+    <color name="divider">@color/ov_divider</color>
 </resources>

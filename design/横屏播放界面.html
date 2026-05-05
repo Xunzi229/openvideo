@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>横屏播放器</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .player {
+    width: 900px;
+    aspect-ratio: 16/9;
+    border-radius: 18px;
+    overflow: hidden;
+    position: relative;
+    background: #1a0a1e;
+    box-shadow: 0 32px 100px rgba(0,0,0,0.8);
+  }
+
+  /* Background scene */
+  .bg {
+    position: absolute;
+    inset: 0;
+    background:
+      /* Foreground dark overlay bottom */
+      linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 30%, transparent 60%),
+      /* Top overlay */
+      linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 25%),
+      /* Left overlay for controls */
+      linear-gradient(to right, rgba(0,0,0,0.4) 0%, transparent 15%),
+      /* Right overlay */
+      linear-gradient(to left, rgba(0,0,0,0.3) 0%, transparent 12%),
+      /* Sky gradient */
+      linear-gradient(180deg,
+        #1a1035 0%,
+        #2d1b4e 8%,
+        #4a2060 15%,
+        #7b3070 22%,
+        #c0504a 32%,
+        #e8784a 38%,
+        #f5a048 43%,
+        #f0c060 46%,
+        #f5d070 48%,
+        #f5a048 52%,
+        #e07038 56%,
+        #c05030 62%,
+        #7040508 70%,
+        #4a3060 78%,
+        #2a1840 88%,
+        #1a1030 100%
+      );
+    z-index: 0;
+  }
+
+  /* Mountain silhouettes */
+  .mountains {
+    position: absolute;
+    bottom: 28%;
+    left: 0;
+    right: 0;
+    height: 55%;
+    z-index: 1;
+  }
+
+  /* Lake reflection */
+  .lake {
+    position: absolute;
+    bottom: 18%;
+    left: 0;
+    right: 0;
+    height: 20%;
+    background: linear-gradient(180deg,
+      rgba(120, 80, 60, 0.5) 0%,
+      rgba(180, 120, 60, 0.3) 20%,
+      rgba(80, 60, 100, 0.4) 50%,
+      rgba(30, 20, 50, 0.7) 100%
+    );
+    z-index: 2;
+  }
+
+  /* Dock/pier */
+  .dock {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 40%;
+    z-index: 3;
+    background: linear-gradient(180deg,
+      rgba(40,25,15,0.0) 0%,
+      rgba(30,18,10,0.9) 40%,
+      rgba(20,12,6,1) 100%
+    );
+    clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%);
+  }
+
+  /* Figure sitting */
+  .figure {
+    position: absolute;
+    bottom: 38%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 44px;
+    z-index: 4;
+  }
+
+  /* Controls overlay */
+  .controls {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    padding: 18px 20px 0;
+    gap: 12px;
+  }
+
+  .back-btn {
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+
+  .title {
+    color: #fff;
+    font-size: 17px;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .badge-4k {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  .top-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #fff;
+  }
+
+  .icon-btn {
+    cursor: pointer;
+    opacity: 0.9;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-btn:hover { opacity: 1; }
+
+  .tv-badge {
+    border: 1.5px solid rgba(255,255,255,0.8);
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.05em;
+  }
+
+  /* Middle area */
+  .middle {
+    flex: 1;
+    display: flex;
+    position: relative;
+  }
+
+  /* Brightness slider - left side */
+  .brightness-slider {
+    position: absolute;
+    left: 20px;
+    top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 11;
+  }
+
+  .brightness-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .slider-track-v {
+    width: 3px;
+    height: 120px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .slider-fill-v {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: #4a90e2;
+    border-radius: 2px;
+  }
+
+  .slider-thumb-v {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    top: 38%;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    cursor: grab;
+  }
+
+  /* Lock icon - left mid */
+  .lock-btn {
+    position: absolute;
+    left: 26px;
+    bottom: 120px;
+    color: rgba(255,255,255,0.85);
+    cursor: pointer;
+  }
+
+  /* Right side buttons */
+  .right-btns {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .speed-badge {
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+
+  /* Progress + Bottom controls */
+  .bottom-area {
+    padding: 0 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Progress bar */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .time {
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 40px;
+  }
+
+  .time.end { text-align: right; }
+
+  .progress-track {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+  }
+
+  .progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 27.4%;
+    background: #4a90e2;
+    border-radius: 2px;
+  }
+
+  .progress-thumb {
+    position: absolute;
+    left: 27.4%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+  }
+
+  /* Bottom controls */
+  .bottom-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+  }
+
+  .ctrl-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .ctrl-center {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .ctrl-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .ctrl-icon {
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: opacity 0.15s;
+  }
+
+  .ctrl-icon:hover { opacity: 0.7; }
+
+  /* Play/Pause circle button */
+  .play-btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .play-btn:hover { background: rgba(255,255,255,0.15); }
+
+  /* SVG cloud/mountain layers */
+  .scene-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<div class="player">
+  <!-- Background gradient sky -->
+  <div class="bg"></div>
+
+  <!-- Scene SVG: mountains, clouds, reflection, person -->
+  <svg class="scene-svg" viewBox="0 0 900 506" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sun" cx="50%" cy="52%" r="12%">
+        <stop offset="0%" stop-color="#fff8e0" stop-opacity="1"/>
+        <stop offset="30%" stop-color="#ffd060" stop-opacity="0.9"/>
+        <stop offset="70%" stop-color="#ff8040" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#ff4020" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffb040" stop-opacity="0.6"/>
+        <stop offset="100%" stop-color="#ff6020" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a1035"/>
+        <stop offset="12%" stop-color="#3a1a50"/>
+        <stop offset="25%" stop-color="#7b3060"/>
+        <stop offset="38%" stop-color="#c05048"/>
+        <stop offset="44%" stop-color="#e87848"/>
+        <stop offset="48%" stop-color="#f5c060"/>
+        <stop offset="52%" stop-color="#f5a048"/>
+        <stop offset="60%" stop-color="#c05030"/>
+        <stop offset="72%" stop-color="#6a3858"/>
+        <stop offset="85%" stop-color="#2a1840"/>
+        <stop offset="100%" stop-color="#1a1030"/>
+      </linearGradient>
+      <linearGradient id="mtnLeft" x1="0" y1="0" x2="0.3" y2="1">
+        <stop offset="0%" stop-color="#e0d4c0"/>
+        <stop offset="20%" stop-color="#b8a880"/>
+        <stop offset="50%" stop-color="#6a5848"/>
+        <stop offset="100%" stop-color="#3a2a20"/>
+      </linearGradient>
+      <linearGradient id="mtnRight" x1="1" y1="0" x2="0.7" y2="1">
+        <stop offset="0%" stop-color="#d8ccc0"/>
+        <stop offset="20%" stop-color="#a09080"/>
+        <stop offset="50%" stop-color="#6a5848"/>
+        <stop offset="100%" stop-color="#3a2a20"/>
+      </linearGradient>
+      <linearGradient id="mtnCenter" x1="0.5" y1="0" x2="0.5" y2="1">
+        <stop offset="0%" stop-color="#9090a0"/>
+        <stop offset="40%" stop-color="#585870"/>
+        <stop offset="100%" stop-color="#2a2838"/>
+      </linearGradient>
+      <linearGradient id="lakeGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#604030" stop-opacity="0.7"/>
+        <stop offset="30%" stop-color="#403050" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#181020" stop-opacity="0.95"/>
+      </linearGradient>
+      <linearGradient id="dockGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#201408" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#100a04" stop-opacity="1"/>
+      </linearGradient>
+      <filter id="blur2">
+        <feGaussianBlur stdDeviation="2"/>
+      </filter>
+    </defs>
+
+    <!-- Sky -->
+    <rect width="900" height="506" fill="url(#skyGrad)"/>
+
+    <!-- Sun glow -->
+    <ellipse cx="450" cy="258" rx="120" ry="80" fill="url(#glow)" filter="url(#blur2)"/>
+    <circle cx="450" cy="258" r="50" fill="url(#sun)"/>
+
+    <!-- Clouds top-left -->
+    <g opacity="0.55" fill="#c07060">
+      <ellipse cx="100" cy="80" rx="70" ry="22" filter="url(#blur2)"/>
+      <ellipse cx="180" cy="65" rx="55" ry="18" filter="url(#blur2)"/>
+      <ellipse cx="60" cy="100" rx="50" ry="16" filter="url(#blur2)"/>
+    </g>
+    <!-- Clouds top-right -->
+    <g opacity="0.55" fill="#c06858">
+      <ellipse cx="780" cy="75" rx="75" ry="22" filter="url(#blur2)"/>
+      <ellipse cx="860" cy="60" rx="50" ry="16" filter="url(#blur2)"/>
+      <ellipse cx="700" cy="95" rx="60" ry="18" filter="url(#blur2)"/>
+    </g>
+    <!-- Clouds mid -->
+    <g opacity="0.45" fill="#d07050">
+      <ellipse cx="250" cy="140" rx="90" ry="20" filter="url(#blur2)"/>
+      <ellipse cx="650" cy="130" rx="80" ry="18" filter="url(#blur2)"/>
+      <ellipse cx="350" cy="115" rx="60" ry="15" filter="url(#blur2)"/>
+      <ellipse cx="570" cy="110" rx="55" ry="14" filter="url(#blur2)"/>
+    </g>
+
+    <!-- Left mountains (far, snow-capped) -->
+    <polygon points="0,350 80,160 160,280 230,200 310,310 120,350" fill="url(#mtnLeft)" opacity="0.9"/>
+    <polygon points="0,350 80,160 120,200 0,300" fill="#d8ccb8" opacity="0.4"/>
+    <!-- Snow left -->
+    <polygon points="80,160 60,210 100,195 130,215 100,160" fill="#e8e0d0" opacity="0.7"/>
+
+    <!-- Right mountains (far, snow-capped) -->
+    <polygon points="900,350 820,165 740,285 670,205 590,315 780,350" fill="url(#mtnRight)" opacity="0.9"/>
+    <polygon points="820,165 780,200 830,210" fill="#d8ccb8" opacity="0.4"/>
+    <!-- Snow right -->
+    <polygon points="820,165 840,215 800,200 770,218 820,165" fill="#e8e0d0" opacity="0.7"/>
+
+    <!-- Center background mountains -->
+    <polygon points="300,350 370,230 420,270 450,220 480,268 530,235 600,350" fill="url(#mtnCenter)" opacity="0.8"/>
+    <!-- Center mountain snow -->
+    <polygon points="450,220 435,250 450,242 465,252" fill="#c0b8b0" opacity="0.5"/>
+
+    <!-- Lake surface -->
+    <rect x="0" y="330" width="900" height="120" fill="url(#lakeGrad)"/>
+
+    <!-- Sun reflection on lake -->
+    <ellipse cx="450" cy="370" rx="30" ry="50" fill="#f5c060" opacity="0.35" filter="url(#blur2)"/>
+    <rect x="442" y="330" width="16" height="90" fill="#f5d070" opacity="0.25" filter="url(#blur2)"/>
+
+    <!-- Lake horizontal ripple lines -->
+    <g stroke="rgba(180,140,100,0.15)" stroke-width="1" fill="none">
+      <line x1="0" y1="345" x2="900" y2="345"/>
+      <line x1="0" y1="360" x2="900" y2="360"/>
+      <line x1="0" y1="375" x2="900" y2="375"/>
+      <line x1="0" y1="390" x2="900" y2="390"/>
+      <line x1="0" y1="408" x2="900" y2="408"/>
+    </g>
+
+    <!-- Dock / pier -->
+    <polygon points="410,506 490,506 475,340 425,340" fill="url(#dockGrad)"/>
+    <!-- Dock planks -->
+    <g stroke="rgba(0,0,0,0.4)" stroke-width="1" fill="none">
+      <line x1="427" y1="360" x2="473" y2="360"/>
+      <line x1="426" y1="380" x2="474" y2="380"/>
+      <line x1="424" y1="400" x2="476" y2="400"/>
+      <line x1="422" y1="425" x2="478" y2="425"/>
+      <line x1="420" y1="455" x2="480" y2="455"/>
+      <line x1="418" y1="485" x2="482" y2="485"/>
+    </g>
+    <!-- Dock side rails -->
+    <line x1="422" y1="340" x2="412" y2="506" stroke="rgba(60,35,15,0.8)" stroke-width="3"/>
+    <line x1="478" y1="340" x2="488" y2="506" stroke="rgba(60,35,15,0.8)" stroke-width="3"/>
+
+    <!-- Sitting figure -->
+    <g fill="#1a0d05">
+      <!-- body -->
+      <ellipse cx="450" cy="338" rx="16" ry="12"/>
+      <!-- head -->
+      <circle cx="450" cy="320" r="9"/>
+      <!-- hood/jacket bulk -->
+      <ellipse cx="450" cy="336" rx="19" ry="10" fill="#220e06"/>
+      <!-- legs crossed -->
+      <ellipse cx="438" cy="348" rx="10" ry="5" transform="rotate(-15,438,348)"/>
+      <ellipse cx="462" cy="348" rx="10" ry="5" transform="rotate(15,462,348)"/>
+    </g>
+
+    <!-- Dark overlay bottom for controls -->
+    <rect x="0" y="380" width="900" height="126" fill="rgba(0,0,0,0.65)"/>
+    <!-- Top overlay -->
+    <rect x="0" y="0" width="900" height="70" fill="rgba(0,0,0,0.5)"/>
+    <!-- Left overlay -->
+    <rect x="0" y="0" width="110" height="506" fill="rgba(0,0,0,0.25)"/>
+  </svg>
+
+  <!-- UI Controls layer -->
+  <div class="controls">
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="back-btn icon-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <span class="title">阿尔卑斯山的日出</span>
+      <span class="badge-4k">4K</span>
+      <div style="flex:1"></div>
+      <div class="top-right">
+        <!-- Cast icon -->
+        <div class="icon-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 8.5C6.5 8.5 10.5 10.5 13 14"/>
+            <path d="M2 13c3 0 5.5 1.5 7 4"/>
+            <circle cx="2" cy="19" r="1.5" fill="white" stroke="none"/>
+            <path d="M22 6H10a2 2 0 0 0-2 2v3"/>
+            <path d="M22 6v12H14"/>
+          </svg>
+        </div>
+        <!-- TV badge -->
+        <div class="icon-btn">
+          <span class="tv-badge">TV</span>
+        </div>
+        <!-- More menu -->
+        <div class="icon-btn">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+            <circle cx="12" cy="5" r="1.5"/>
+            <circle cx="12" cy="12" r="1.5"/>
+            <circle cx="12" cy="19" r="1.5"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle spacer with brightness + right icons -->
+    <div class="middle">
+      <!-- Brightness slider -->
+      <div class="brightness-slider">
+        <div class="brightness-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </div>
+        <div class="slider-track-v">
+          <div class="slider-fill-v"></div>
+          <div class="slider-thumb-v"></div>
+        </div>
+      </div>
+
+      <!-- Lock icon -->
+      <div class="lock-btn icon-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="11" width="14" height="11" rx="2"/>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+        </svg>
+      </div>
+
+      <!-- Right buttons -->
+      <div class="right-btns">
+        <div class="speed-badge">1.0x</div>
+        <!-- Fullscreen expand -->
+        <div class="icon-btn" style="color:white; margin-top:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="9 21 3 21 3 15"/>
+            <line x1="21" y1="3" x2="14" y2="10"/>
+            <line x1="3" y1="21" x2="10" y2="14"/>
+          </svg>
+        </div>
+        <!-- PiP -->
+        <div class="icon-btn" style="color:white; margin-top:4px;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="15" rx="2"/>
+            <rect x="12" y="11" width="8" height="6" rx="1"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom area -->
+    <div class="bottom-area">
+      <!-- Progress bar -->
+      <div class="progress-row">
+        <span class="time">12:34</span>
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+          <div class="progress-thumb"></div>
+        </div>
+        <span class="time end">45:10</span>
+      </div>
+
+      <!-- Playback controls -->
+      <div class="bottom-controls" style="position:relative;">
+        <!-- Left: playlist -->
+        <div class="ctrl-left ctrl-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <path d="M3 10l2-2-2-2"/>
+            <circle cx="3" cy="18" r="1.5" fill="white" stroke="none"/>
+          </svg>
+          <span style="color:rgba(255,255,255,0.9); font-size:14px; margin-left:6px;">列表</span>
+        </div>
+
+        <!-- Center controls -->
+        <div class="ctrl-center">
+          <!-- Rewind 10s -->
+          <div class="ctrl-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+              <text x="9" y="15" font-size="6" fill="white" stroke="none" font-family="sans-serif" font-weight="bold">10</text>
+            </svg>
+          </div>
+          <!-- Prev -->
+          <div class="ctrl-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
+              <polygon points="19 20 9 12 19 4 19 20"/>
+              <line x1="5" y1="19" x2="5" y2="5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <!-- Pause button -->
+          <div class="play-btn">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+              <rect x="6" y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
+            </svg>
+          </div>
+          <!-- Next -->
+          <div class="ctrl-icon">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="white">
+              <polygon points="5 4 15 12 5 20 5 4"/>
+              <line x1="19" y1="5" x2="19" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <!-- Forward 10s -->
+          <div class="ctrl-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <text x="9" y="15" font-size="6" fill="white" stroke="none" font-family="sans-serif" font-weight="bold">10</text>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Right: fullscreen -->
+        <div class="ctrl-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round">
+            <polyline points="8 3 3 3 3 8"/>
+            <polyline points="16 3 21 3 21 8"/>
+            <polyline points="8 21 3 21 3 16"/>
+            <polyline points="16 21 21 21 21 16"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Toggle play/pause
+  const playBtn = document.querySelector('.play-btn');
+  let playing = true;
+  playBtn.addEventListener('click', () => {
+    playing = !playing;
+    playBtn.innerHTML = playing
+      ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>`
+      : `<svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
+  });
+
+  // Draggable progress
+  const track = document.querySelector('.progress-track');
+  const fill = document.querySelector('.progress-fill');
+  const thumb = document.querySelector('.progress-thumb');
+  track.addEventListener('click', (e) => {
+    const rect = track.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    fill.style.width = (pct * 100) + '%';
+    thumb.style.left = (pct * 100) + '%';
+  });
+
+  // Toggle speed badge
+  const speeds = ['0.5x','0.75x','1.0x','1.25x','1.5x','2.0x'];
+  const speedBadge = document.querySelector('.speed-badge');
+  let speedIdx = 2;
+  speedBadge.addEventListener('click', () => {
+    speedIdx = (speedIdx + 1) % speeds.length;
+    speedBadge.textContent = speeds[speedIdx];
+  });
+</script>
+</body>
+</html>
