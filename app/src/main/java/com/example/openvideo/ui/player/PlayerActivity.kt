@@ -24,6 +24,7 @@ import com.example.openvideo.R
 import com.example.openvideo.core.player.AspectRatio
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.subtitle.SubtitleLoader
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlin.math.abs
@@ -33,6 +34,7 @@ class PlayerActivity : AppCompatActivity() {
 
     @Inject lateinit var playerManager: PlayerManager
     @Inject lateinit var playerPrefs: PlayerPrefs
+    @Inject lateinit var subtitleLoader: SubtitleLoader
     private val viewModel: PlayerViewModel by viewModels()
 
     private lateinit var playerView: PlayerView
@@ -51,6 +53,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var tvTitle: TextView
     private lateinit var gestureOverlay: View
     private lateinit var seekIndicator: TextView
+    private lateinit var tvSubtitle: TextView
     private lateinit var brightnessIndicator: View
     private lateinit var brightnessProgress: ProgressBar
     private lateinit var volumeIndicator: View
@@ -105,6 +108,17 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadSubtitles(videoPath: String) {
+        val subtitleFiles = subtitleLoader.findSubtitleFiles(videoPath)
+        if (subtitleFiles.isNotEmpty()) {
+            // Load the first subtitle file found
+            val subtitles = subtitleLoader.loadFromFile(subtitleFiles[0])
+            if (subtitles.isNotEmpty()) {
+                viewModel.setSubtitles(subtitles)
+            }
+        }
+    }
+
     private fun initViews() {
         playerView = findViewById(R.id.player_view)
         controlsContainer = findViewById(R.id.controls_container)
@@ -122,6 +136,7 @@ class PlayerActivity : AppCompatActivity() {
         tvTitle = findViewById(R.id.tv_title)
         gestureOverlay = findViewById(R.id.gesture_overlay)
         seekIndicator = findViewById(R.id.seek_indicator)
+        tvSubtitle = findViewById(R.id.tv_subtitle)
         brightnessIndicator = findViewById(R.id.brightness_indicator)
         brightnessProgress = findViewById(R.id.brightness_progress)
         volumeIndicator = findViewById(R.id.volume_indicator)
@@ -318,6 +333,15 @@ class PlayerActivity : AppCompatActivity() {
                     seekBar.progress = state.currentPosition.toInt()
                     tvCurrentTime.text = formatTime(state.currentPosition)
                     tvTotalTime.text = formatTime(state.duration)
+
+                    // Update subtitle
+                    val subtitle = viewModel.getCurrentSubtitle()
+                    if (subtitle.isNotEmpty()) {
+                        tvSubtitle.text = subtitle
+                        tvSubtitle.visibility = View.VISIBLE
+                    } else {
+                        tvSubtitle.visibility = View.GONE
+                    }
                 }
                 handler.postDelayed(this, 500)
             }

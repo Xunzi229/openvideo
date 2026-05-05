@@ -7,6 +7,7 @@ import com.example.openvideo.core.player.AspectRatio
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.player.RenderMode
+import com.example.openvideo.core.subtitle.SubtitleItem
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,7 +25,9 @@ data class PlayerUiState(
     val renderMode: RenderMode = RenderMode.SURFACE,
     val aspectRatio: AspectRatio = AspectRatio.DEFAULT,
     val speed: Float = 1.0f,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val currentSubtitle: String = "",
+    val subtitles: List<SubtitleItem> = emptyList()
 )
 
 @HiltViewModel
@@ -101,6 +104,17 @@ class PlayerViewModel @Inject constructor(
     fun setSpeed(speed: Float) {
         playerManager.setSpeed(speed)
         _uiState.value = _uiState.value.copy(speed = speed)
+    }
+
+    fun setSubtitles(subtitles: List<SubtitleItem>) {
+        _uiState.value = _uiState.value.copy(subtitles = subtitles)
+    }
+
+    fun getCurrentSubtitle(): String {
+        val state = _uiState.value
+        if (state.subtitles.isEmpty()) return ""
+        val pos = state.currentPosition
+        return state.subtitles.find { pos in it.startTimeMs..it.endTimeMs }?.text ?: ""
     }
 
     fun setDecodeMode(mode: DecodeMode) {
