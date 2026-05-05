@@ -5,9 +5,12 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +35,7 @@ class HomeFragment : Fragment() {
     private lateinit var adapter: VideoGridAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
+    private lateinit var searchView: EditText
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -50,6 +54,8 @@ class HomeFragment : Fragment() {
 
         recyclerView = view.findViewById(R.id.recycler_videos)
         emptyView = view.findViewById(R.id.tv_empty)
+        searchView = view.findViewById(R.id.search_view)
+        searchView.visibility = View.VISIBLE
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
@@ -62,6 +68,14 @@ class HomeFragment : Fragment() {
         view.findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {
             checkPermissionAndLoad()
         }
+
+        searchView.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                viewModel.updateSearchQuery(s?.toString().orEmpty())
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
         observeVideos()
         checkPermissionAndLoad()

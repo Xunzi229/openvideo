@@ -56,6 +56,29 @@
             app:tint="@color/ov_text_secondary" />
     </LinearLayout>
 
+    <EditText
+        android:id="@+id/search_view"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/bg_settings_nav_selected"
+        android:drawableStart="@drawable/ic_search"
+        android:drawablePadding="8dp"
+        android:drawableTint="@color/ov_text_tertiary"
+        android:hint="搜索视频..."
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:paddingHorizontal="12dp"
+        android:textColor="@color/ov_text_primary"
+        android:textColorHint="@color/ov_text_tertiary"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header_row" />
+
     <HorizontalScrollView
         android:id="@+id/category_scroll"
         android:layout_width="0dp"

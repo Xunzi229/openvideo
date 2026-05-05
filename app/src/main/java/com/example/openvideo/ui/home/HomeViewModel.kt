@@ -7,6 +7,9 @@ import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -16,13 +19,23 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _videos = MutableStateFlow<List<VideoItem>>(emptyList())
-    val videos: StateFlow<List<VideoItem>> = _videos
+
+    private val _searchQuery = MutableStateFlow("")
+
+    val videos: StateFlow<List<VideoItem>> = combine(_videos, _searchQuery) { list, query ->
+        if (query.isBlank()) list
+        else list.filter { it.title.contains(query, ignoreCase = true) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     init {
         loadVideos()
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
     }
 
     fun loadVideos() {
