@@ -98,8 +98,15 @@ class HomeViewModel @Inject constructor(
     fun deleteVideo(video: VideoItem) {
         viewModelScope.launch {
             repository.deleteVideo(video)
-            // Re-scan from MediaStore instead of re-subscribing
             _videos.value = _videos.value.filter { it.id != video.id }
+        }
+    }
+
+    fun deleteVideos(videos: List<VideoItem>) {
+        viewModelScope.launch {
+            val ids = videos.map { it.id }.toSet()
+            videos.forEach { repository.deleteVideo(it) }
+            _videos.value = _videos.value.filter { it.id !in ids }
         }
     }
 }

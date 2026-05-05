@@ -240,7 +240,7 @@ class HomeFragment : Fragment() {
             .setTitle("批量删除")
             .setMessage("确定删除 ${selected.size} 个视频？删除后不可恢复。")
             .setPositiveButton("删除") { _, _ ->
-                selected.forEach { viewModel.deleteVideo(it) }
+                viewModel.deleteVideos(selected)
                 adapter.exitMultiSelectMode()
                 actionMode?.finish()
             }
