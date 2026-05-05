@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.openvideo.data.local.FavoriteDao
 import com.example.openvideo.data.local.HistoryDao
+import com.example.openvideo.data.local.PlaylistDao
 import com.example.openvideo.data.local.VideoDatabase
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.core.prefs.PlayerPrefs
@@ -25,7 +26,7 @@ object AppModule {
             context,
             VideoDatabase::class.java,
             "openvideo.db"
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
 
     @Provides
@@ -33,6 +34,9 @@ object AppModule {
 
     @Provides
     fun provideFavoriteDao(db: VideoDatabase): FavoriteDao = db.favoriteDao()
+
+    @Provides
+    fun providePlaylistDao(db: VideoDatabase): PlaylistDao = db.playlistDao()
 
     @Provides
     @Singleton
