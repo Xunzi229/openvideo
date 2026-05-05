@@ -30,7 +30,8 @@ data class PlayerUiState(
 @HiltViewModel
 class PlayerViewModel @Inject constructor(
     private val playerManager: PlayerManager,
-    private val repository: VideoRepository
+    private val repository: VideoRepository,
+    private val playerPrefs: com.example.openvideo.core.prefs.PlayerPrefs
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -65,10 +66,29 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
+    fun restorePosition(videoId: Long) {
+        viewModelScope.launch {
+            val history = repository.getHistory(videoId)
+            if (history != null && history.lastPosition > 0) {
+                val duration = playerManager.duration
+                if (duration > 0 && history.lastPosition < duration - 10_000) {
+                    playerManager.seekTo(history.lastPosition)
+                }
+            }
+        }
+    }
+
     fun togglePlayPause() = playerManager.togglePlayPause()
 
-    fun seekForward() = playerManager.seekForward()
-    fun seekBackward() = playerManager.seekBackward()
+    fun seekForward() {
+        val ms = playerPrefs.seekInterval * 1000L
+        playerManager.seekForward(ms)
+    }
+
+    fun seekBackward() {
+        val ms = playerPrefs.seekInterval * 1000L
+        playerManager.seekBackward(ms)
+    }
     fun seekTo(positionMs: Long) = playerManager.seekTo(positionMs)
 
     fun updatePosition() {

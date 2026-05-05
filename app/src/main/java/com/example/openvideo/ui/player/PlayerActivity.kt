@@ -72,6 +72,7 @@ class PlayerActivity : AppCompatActivity() {
         initViews()
         initGestures()
         setupControls()
+        applyPlayerSettings()
 
         val uriString = intent.getStringExtra("video_uri") ?: run { finish(); return }
         val title = intent.getStringExtra("video_title") ?: ""
@@ -84,6 +85,23 @@ class PlayerActivity : AppCompatActivity() {
 
         observeState()
         scheduleHideControls()
+
+        // Restore playback position if remember_progress is on
+        if (playerPrefs.rememberProgress) {
+            viewModel.restorePosition(id)
+        }
+    }
+
+    private fun applyPlayerSettings() {
+        // Apply speed
+        viewModel.setSpeed(playerPrefs.speed)
+
+        // Apply keep screen on
+        if (playerPrefs.keepScreenOn) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun initViews() {
@@ -313,7 +331,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun scheduleHideControls() {
         handler.removeCallbacks(hideControlsRunnable)
-        handler.postDelayed(hideControlsRunnable, 3000)
+        val delay = playerPrefs.controlsAutoHide * 1000L
+        if (delay > 0) {
+            handler.postDelayed(hideControlsRunnable, delay)
+        }
     }
 
     private fun enterImmersiveMode() {

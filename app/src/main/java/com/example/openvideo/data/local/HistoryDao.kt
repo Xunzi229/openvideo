@@ -18,6 +18,9 @@ interface HistoryDao {
     @Query("DELETE FROM play_history WHERE videoId = :videoId")
     suspend fun delete(videoId: Long)
 
+    @Query("SELECT * FROM play_history WHERE videoId = :videoId LIMIT 1")
+    suspend fun getByVideoId(videoId: Long): HistoryEntity?
+
     @Query("DELETE FROM play_history")
     suspend fun deleteAll()
 }

@@ -35,6 +35,8 @@ class VideoRepository @Inject constructor(
         )
     }
 
+    suspend fun getHistory(videoId: Long): HistoryEntity? = historyDao.getByVideoId(videoId)
+
     suspend fun clearHistory() = historyDao.deleteAll()
 
     // Favorites
