@@ -2,8 +2,6 @@ package com.example.openvideo.ui.privacy
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -11,19 +9,8 @@ class PrivacyManager(private val context: Context) {
 
     private val secureRandom = SecureRandom()
 
-    private val prefs: SharedPreferences by lazy {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        EncryptedSharedPreferences.create(
-            context,
-            "privacy_prefs",
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("privacy_prefs", Context.MODE_PRIVATE)
 
     fun getHiddenFolders(): List<String> {
         val set = prefs.getStringSet(KEY_HIDDEN_FOLDERS, emptySet()) ?: emptySet()

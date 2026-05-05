@@ -85,13 +85,11 @@ class PlayerViewModel @Inject constructor(
 
     fun togglePlayPause() = playerManager.togglePlayPause()
 
-    fun seekForward() {
-        val ms = playerPrefs.seekInterval * 1000L
+    fun seekForward(ms: Long = playerPrefs.seekInterval * 1000L) {
         playerManager.seekForward(ms)
     }
 
-    fun seekBackward() {
-        val ms = playerPrefs.seekInterval * 1000L
+    fun seekBackward(ms: Long = playerPrefs.seekInterval * 1000L) {
         playerManager.seekBackward(ms)
     }
     fun seekTo(positionMs: Long) = playerManager.seekTo(positionMs)

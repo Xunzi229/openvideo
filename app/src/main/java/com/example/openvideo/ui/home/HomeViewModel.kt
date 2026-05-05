@@ -2,6 +2,7 @@ package com.example.openvideo.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository

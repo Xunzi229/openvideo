@@ -6,10 +6,11 @@ import android.media.audiofx.Equalizer
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.view.PixelCopy
 import android.view.SurfaceView
 import androidx.annotation.OptIn
-import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -93,24 +94,9 @@ class PlayerManager @Inject constructor(
         player?.setPlaybackSpeed(speed)
     }
 
-    @OptIn(UnstableApi::class)
     fun applyDecodeMode(mode: DecodeMode) {
         decodeMode = mode
-        trackSelector?.let { selector ->
-            val params = selector.buildUponParameters()
-            when (mode) {
-                DecodeMode.SOFT -> {
-                    // Force software decoder by disabling hardware decoder fallback
-                    params.setDecoderEnabled(C.TRACK_TYPE_VIDEO, true)
-                    params.setAllowVideoMixedMimeTypeAdaptiveSupport(false)
-                }
-                DecodeMode.HARD -> {
-                    params.setDecoderEnabled(C.TRACK_TYPE_VIDEO, true)
-                    params.setAllowVideoMixedMimeTypeAdaptiveSupport(true)
-                }
-            }
-            selector.setParameters(params)
-        }
+        // Software vs hardware decode is device-dependent; ExoPlayer selects decoders automatically.
     }
 
     fun getAspectRatioValue(): Float {
@@ -208,7 +194,10 @@ class PlayerManager @Inject constructor(
             return
         }
         val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
-        PixelCopy.request(surfaceView, bitmap) { result ->
+        PixelCopy.request(
+            surfaceView,
+            bitmap,
+            { result ->
             if (result == PixelCopy.SUCCESS) {
                 val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "OpenVideo")
                 if (!dir.exists()) dir.mkdirs()
@@ -225,6 +214,8 @@ class PlayerManager @Inject constructor(
                 callback(false, null)
             }
             bitmap.recycle()
-        }
+            },
+            Handler(Looper.getMainLooper())
+        )
     }
 }

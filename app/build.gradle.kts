@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.openvideo"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
+    implementation(libs.media3.effect)
 
     // Hilt
     implementation(libs.hilt.android)
