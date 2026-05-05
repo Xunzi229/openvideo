@@ -36,6 +36,7 @@ class HomeFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
     private lateinit var searchView: EditText
+    private lateinit var sortLabel: TextView
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -56,6 +57,9 @@ class HomeFragment : Fragment() {
         emptyView = view.findViewById(R.id.tv_empty)
         searchView = view.findViewById(R.id.search_view)
         searchView.visibility = View.VISIBLE
+
+        sortLabel = view.findViewById(R.id.tv_sort_label)
+        sortLabel.setOnClickListener { viewModel.cycleSortField() }
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
@@ -84,10 +88,24 @@ class HomeFragment : Fragment() {
     private fun observeVideos() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.videos.collect { list ->
-                    adapter.submitList(list)
-                    emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
-                    recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+                launch {
+                    viewModel.videos.collect { list ->
+                        adapter.submitList(list)
+                        emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                        recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+                    }
+                }
+                launch {
+                    viewModel.sortField.collect { field ->
+                        sortLabel.text = getString(field.labelRes)
+                    }
+                }
+                launch {
+                    viewModel.sortAsc.collect { asc ->
+                        sortLabel.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                            0, 0, if (asc) R.drawable.ic_arrow_up else R.drawable.ic_arrow_down, 0
+                        )
+                    }
                 }
             }
         }
