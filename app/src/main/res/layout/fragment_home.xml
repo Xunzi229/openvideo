@@ -162,6 +162,7 @@
             android:padding="2dp">
 
             <ImageButton
+                android:id="@+id/btn_list_view"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="@color/ov_accent_blue"
@@ -170,6 +171,7 @@
                 app:tint="@color/ov_text_primary" />
 
             <ImageButton
+                android:id="@+id/btn_grid_view"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?attr/selectableItemBackgroundBorderless"

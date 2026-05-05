@@ -17,7 +17,17 @@ class VideoGridAdapter(
     private val onMoreOptions: ((VideoItem, View) -> Unit)? = null
 ) : ListAdapter<VideoItem, VideoGridAdapter.ViewHolder>(DIFF) {
 
+    var viewMode: ViewMode = ViewMode.LIST
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
+
     companion object {
+        private const val TYPE_LIST = 0
+        private const val TYPE_GRID = 1
         private val DIFF = object : DiffUtil.ItemCallback<VideoItem>() {
             override fun areItemsTheSame(a: VideoItem, b: VideoItem) = a.id == b.id
             override fun areContentsTheSame(a: VideoItem, b: VideoItem) = a == b
@@ -28,8 +38,8 @@ class VideoGridAdapter(
         val thumbnail: ImageView = view.findViewById(R.id.iv_thumbnail)
         val title: TextView = view.findViewById(R.id.tv_title)
         val duration: TextView = view.findViewById(R.id.tv_duration)
-        val size: TextView = view.findViewById(R.id.tv_size)
-        val resolution: TextView = view.findViewById(R.id.tv_resolution)
+        val size: TextView? = view.findViewById(R.id.tv_size)
+        val resolution: TextView? = view.findViewById(R.id.tv_resolution)
         val moreBtn: View? = view.findViewById(R.id.btn_more)
 
         init {
@@ -48,9 +58,13 @@ class VideoGridAdapter(
         }
     }
 
+    override fun getItemViewType(position: Int): Int {
+        return if (viewMode == ViewMode.GRID) TYPE_GRID else TYPE_LIST
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_video, parent, false)
+        val layout = if (viewType == TYPE_GRID) R.layout.item_video_grid else R.layout.item_video
+        val view = LayoutInflater.from(parent.context).inflate(layout, parent, false)
         return ViewHolder(view)
     }
 
@@ -59,8 +73,8 @@ class VideoGridAdapter(
 
         holder.title.text = item.title
         holder.duration.text = formatDuration(item.duration)
-        holder.size.text = formatSize(item.size)
-        holder.resolution.text = "${item.width}x${item.height}"
+        holder.size?.text = formatSize(item.size)
+        holder.resolution?.text = "${item.width}x${item.height}"
 
         Glide.with(holder.thumbnail)
             .load(item.thumbnailUri)

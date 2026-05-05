@@ -20,6 +20,8 @@ enum class SortField(val labelRes: Int) {
     DURATION(R.string.sort_by_duration)
 }
 
+enum class ViewMode { LIST, GRID }
+
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: VideoRepository
@@ -29,9 +31,11 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private val _sortField = MutableStateFlow(SortField.DATE)
     private val _sortAsc = MutableStateFlow(false)
+    private val _viewMode = MutableStateFlow(ViewMode.LIST)
 
     val sortField: StateFlow<SortField> = _sortField
     val sortAsc: StateFlow<Boolean> = _sortAsc
+    val viewMode: StateFlow<ViewMode> = _viewMode
 
     val videos: StateFlow<List<VideoItem>> = combine(
         _videos, _searchQuery, _sortField, _sortAsc
@@ -66,6 +70,10 @@ class HomeViewModel @Inject constructor(
 
     fun toggleSortOrder() {
         _sortAsc.value = !_sortAsc.value
+    }
+
+    fun setViewMode(mode: ViewMode) {
+        _viewMode.value = mode
     }
 
     fun loadVideos() {

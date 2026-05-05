@@ -37,6 +37,8 @@ class HomeFragment : Fragment() {
     private lateinit var emptyView: TextView
     private lateinit var searchView: EditText
     private lateinit var sortLabel: TextView
+    private lateinit var btnList: ImageButton
+    private lateinit var btnGrid: ImageButton
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -60,6 +62,11 @@ class HomeFragment : Fragment() {
 
         sortLabel = view.findViewById(R.id.tv_sort_label)
         sortLabel.setOnClickListener { viewModel.cycleSortField() }
+
+        btnList = view.findViewById(R.id.btn_list_view)
+        btnGrid = view.findViewById(R.id.btn_grid_view)
+        btnList.setOnClickListener { viewModel.setViewMode(ViewMode.LIST) }
+        btnGrid.setOnClickListener { viewModel.setViewMode(ViewMode.GRID) }
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
@@ -107,6 +114,14 @@ class HomeFragment : Fragment() {
                         )
                     }
                 }
+                launch {
+                    viewModel.viewMode.collect { mode ->
+                        adapter.viewMode = mode
+                        val spanCount = if (mode == ViewMode.GRID) 2 else 1
+                        recyclerView.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), spanCount)
+                        updateViewModeButtons(mode)
+                    }
+                }
             }
         }
     }
@@ -143,6 +158,25 @@ class HomeFragment : Fragment() {
             onFavorite = { viewModel.toggleFavorite(video) },
             onDelete = { confirmDelete(video) }
         ).show()
+    }
+
+    private fun updateViewModeButtons(mode: ViewMode) {
+        val activeBg = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ov_accent_blue)
+        val inactiveBg = android.graphics.Color.TRANSPARENT
+        val activeTint = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ov_text_primary)
+        val inactiveTint = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ov_text_secondary)
+
+        if (mode == ViewMode.LIST) {
+            btnList.setBackgroundColor(activeBg)
+            btnGrid.setBackgroundColor(inactiveBg)
+            btnList.setColorFilter(activeTint)
+            btnGrid.setColorFilter(inactiveTint)
+        } else {
+            btnList.setBackgroundColor(inactiveBg)
+            btnGrid.setBackgroundColor(activeBg)
+            btnList.setColorFilter(inactiveTint)
+            btnGrid.setColorFilter(activeTint)
+        }
     }
 
     private fun confirmDelete(video: VideoItem) {
