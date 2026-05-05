@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.effect)
+    implementation(libs.androidx.media)
 
     // Hilt
     implementation(libs.hilt.android)
@@ -77,4 +78,5 @@ dependencies {
 
     // Window (WindowSizeClass)
     implementation(libs.androidx.window)
+    implementation(libs.androidx.security.crypto)
 }
