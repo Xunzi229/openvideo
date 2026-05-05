@@ -1,17 +1,30 @@
 package com.example.openvideo.core.player
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.audiofx.AudioEffect
+import android.media.audiofx.Equalizer
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.view.PixelCopy
+import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
+import androidx.media3.common.VideoEffects
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.Brightness
+import androidx.media3.effect.Contrast
+import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.io.FileOutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -122,5 +135,96 @@ class PlayerManager @Inject constructor(
 
     fun removeListener(listener: Player.Listener) {
         player?.removeListener(listener)
+    }
+
+    // P1: Video Filters
+    @OptIn(UnstableApi::class)
+    fun setBrightness(value: Float) {
+        player?.let { p ->
+            val effects = mutableListOf<androidx.media3.common.Effect>()
+            effects.add(Brightness(value))
+            p.setVideoEffects(effects)
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun setContrast(value: Float) {
+        player?.let { p ->
+            val effects = mutableListOf<androidx.media3.common.Effect>()
+            effects.add(Contrast(value))
+            p.setVideoEffects(effects)
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun setRotation(degrees: Float) {
+        player?.let { p ->
+            val effects = mutableListOf<androidx.media3.common.Effect>()
+            effects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees).build())
+            p.setVideoEffects(effects)
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    fun clearEffects() {
+        player?.setVideoEffects(emptyList())
+    }
+
+    // P1: Equalizer
+    private var equalizer: Equalizer? = null
+
+    fun initEqualizer(audioSessionId: Int) {
+        releaseEqualizer()
+        try {
+            equalizer = Equalizer(0, audioSessionId)
+            equalizer?.enabled = true
+        } catch (e: Exception) {
+            equalizer = null
+        }
+    }
+
+    fun releaseEqualizer() {
+        equalizer?.release()
+        equalizer = null
+    }
+
+    fun setEqualizerPreset(preset: Short) {
+        equalizer?.usePreset(preset)
+    }
+
+    fun getEqualizerPresets(): List<String> {
+        val eq = equalizer ?: return emptyList()
+        return (0 until eq.numberOfPresets).map { eq.getPresetName(it.toShort()) }
+    }
+
+    fun setEqualizerBand(band: Short, level: Short) {
+        equalizer?.setBandLevel(band, level)
+    }
+
+    // P1: Screenshot
+    fun takeScreenshot(surfaceView: SurfaceView, callback: (Boolean, String?) -> Unit) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            callback(false, null)
+            return
+        }
+        val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
+        PixelCopy.request(surfaceView, bitmap) { result ->
+            if (result == PixelCopy.SUCCESS) {
+                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "OpenVideo")
+                if (!dir.exists()) dir.mkdirs()
+                val file = File(dir, "screenshot_${System.currentTimeMillis()}.jpg")
+                try {
+                    FileOutputStream(file).use { out ->
+                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                    }
+                    callback(true, file.absolutePath)
+                } catch (e: Exception) {
+                    callback(false, null)
+                }
+            } else {
+                callback(false, null)
+            }
+            bitmap.recycle()
+        }
     }
 }

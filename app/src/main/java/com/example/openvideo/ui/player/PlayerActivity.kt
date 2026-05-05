@@ -42,6 +42,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnPrev: ImageButton
     private lateinit var btnNext: ImageButton
     private lateinit var btnSettings: ImageButton
+    private lateinit var btnScreenshot: ImageButton
     private lateinit var btnFullscreen: ImageButton
     private lateinit var btnBack: ImageButton
     private lateinit var seekBar: SeekBar
@@ -112,6 +113,7 @@ class PlayerActivity : AppCompatActivity() {
         btnPrev = findViewById(R.id.btn_prev)
         btnNext = findViewById(R.id.btn_next)
         btnSettings = findViewById(R.id.btn_settings)
+        btnScreenshot = findViewById(R.id.btn_screenshot)
         btnFullscreen = findViewById(R.id.btn_fullscreen)
         btnBack = findViewById(R.id.btn_back)
         seekBar = findViewById(R.id.seek_bar)
@@ -136,6 +138,21 @@ class PlayerActivity : AppCompatActivity() {
 
         btnSettings.setOnClickListener {
             PlayerSettingsDialog(this, playerManager, viewModel, playerPrefs).show()
+        }
+
+        btnScreenshot.setOnClickListener {
+            val surfaceView = playerView.videoSurfaceView as? android.view.SurfaceView
+            if (surfaceView != null) {
+                playerManager.takeScreenshot(surfaceView) { success, path ->
+                    runOnUiThread {
+                        if (success) {
+                            android.widget.Toast.makeText(this, "截图已保存: $path", android.widget.Toast.LENGTH_SHORT).show()
+                        } else {
+                            android.widget.Toast.makeText(this, "截图失败", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
         }
 
         btnFullscreen.setOnClickListener {
