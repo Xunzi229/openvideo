@@ -73,4 +73,7 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+
+    // Window (WindowSizeClass)
+    implementation(libs.androidx.window)
 }

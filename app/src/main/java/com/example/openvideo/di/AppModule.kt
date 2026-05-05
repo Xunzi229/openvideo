@@ -5,6 +5,8 @@ import androidx.room.Room
 import com.example.openvideo.data.local.FavoriteDao
 import com.example.openvideo.data.local.HistoryDao
 import com.example.openvideo.data.local.VideoDatabase
+import com.example.openvideo.core.prefs.AppPrefs
+import com.example.openvideo.core.prefs.PlayerPrefs
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,4 +33,16 @@ object AppModule {
 
     @Provides
     fun provideFavoriteDao(db: VideoDatabase): FavoriteDao = db.favoriteDao()
+
+    @Provides
+    @Singleton
+    fun providePlayerPrefs(@ApplicationContext context: Context): PlayerPrefs {
+        return PlayerPrefs(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAppPrefs(@ApplicationContext context: Context): AppPrefs {
+        return AppPrefs(context)
+    }
 }
