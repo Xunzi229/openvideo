@@ -4,7 +4,219 @@
 
 ---
 
+## 基础开发逻辑（强制约束）
+
+> 以下兼容性规则是所有功能开发的**前提条件**。开发任何功能时必须遵循这些逻辑，不得绕过或忽略。
+
+### 一、架构兼容（x86 / ARM）
+
+#### ABI 策略
+
+| ABI | 优先级 | 说明 |
+|-----|--------|------|
+| arm64-v8a | 最高 | 主流 Android 设备（2016 年后几乎所有手机） |
+| armeabi-v7a | 高 | 老旧 32 位 ARM 设备 |
+| x86_64 | 中 | ChromeOS、部分 Android 模拟器、Intel 平板 |
+| x86 | 中 | 老旧模拟器、少量 Intel 手机 |
+
+**APK 策略：**
+- 使用 Android App Bundle (AAB) 发布，Google Play 按设备 ABI 按需分发 native 库
+- 侧载场景：提供通用 APK（包含所有 ABI）或按 ABI 分包（`splits.abi`）
+- `build.gradle.kts` 中配置 `ndk.abiFilters` 明确支持范围
+
+**底层逻辑：**
+- **解码器选择优先级**：硬件解码器 → 架构优化的软解码器 → 通用软解码器
+- **x86 设备特殊处理**：x86 Android 设备可能通过 ARM 转译层运行 ARM native 库，性能损失 10~30%。检测到 x86 架构时优先使用 x86 原生解码器（如 MediaCodec 提供的 Intel 硬件解码）
+- **模拟器检测**：通过 `Build.FINGERPRINT` 包含 `generic` 或 `sdk` 判断模拟器环境，模拟器下默认使用软解码（模拟器硬件解码常有兼容问题）
+
+#### 解码器兼容矩阵
+
+| 视频编码 | ARM 硬解 | ARM 软解 | x86 硬解 | x86 软解 |
+|----------|----------|----------|----------|----------|
+| H.264 (AVC) | 全支持 | 全支持 | 全支持 | 全支持 |
+| H.265 (HEVC) | API 21+ 设备基本支持 | FFmpeg 回退 | Intel 设备支持 | FFmpeg 回退 |
+| VP9 | API 24+ 部分设备 | FFmpeg 回退 | Intel 支持 | FFmpeg 回退 |
+| AV1 | API 29+ 新设备 | FFmpeg 回退 | 极少设备 | FFmpeg 回退 |
+| MPEG-4/2/1 | 部分设备 | FFmpeg 回退 | 部分设备 | FFmpeg 回退 |
+| RMVB/FLV | 不支持 | FFmpeg 回退 | 不支持 | FFmpeg 回退 |
+
+**底层逻辑：**
+- **解码能力探测**：`MediaCodecList` 枚举设备所有编解码器，按 MIME type 查询是否支持目标编码+分辨率组合。结果缓存到本地文件，避免每次启动重新探测
+- **自动回退链**：目标 MIME → 查缓存 → 硬件解码器尝试 → 失败则软件解码器 → 再失败则提示不支持
+- **分辨率限制**：部分低端设备硬件解码器有分辨率上限（如 1080p），超过时自动切换软解
+- **软解性能保护**：检测 CPU 核心数和频率，低端设备（< 4 核或 < 1.5GHz）播放高码率视频时降低解码线程优先级，避免 UI 卡顿
+
+#### Native 库管理
+
+| 库 | 用途 | ABI 策略 |
+|----|------|----------|
+| ExoPlayer FFmpeg 扩展 | 软解不常见格式 | 按 ABI 编译，优先使用 |
+| libass | ASS/SSA 字幕渲染 | 按 ABI 编译，字体渲染引擎 |
+| chardet | 字符编码检测 | 纯 Java 实现，无 ABI 限制 |
+
+**底层逻辑：**
+- `libs.versions.toml` 中 ExoPlayer FFmpeg 模块按 ABI 提供 `so` 文件
+- 如果某个 ABI 缺少 `so` 文件，运行时 catch `UnsatisfiedLinkError`，标记该功能不可用并使用纯 Java 回退
+- `OpenVideoApp.onCreate()` 中预加载 native 库（`System.loadLibrary`），失败时记录日志并设置降级标志
+
+---
+
+### 二、Android 厂商兼容
+
+#### 厂商后台限制
+
+Android 厂商为省电，各自实现激进的后台进程管理，影响后台音频播放和历史记录保存。
+
+| 厂商 | ROM | 问题 | 解决方案 |
+|------|-----|------|----------|
+| 小米 | MIUI/HyperOS | 后台进程 15 分钟内被杀；自启动默认关闭 | 引导用户开启自启动权限；使用前台 Service + 通知保活；`PowerKeeper` 白名单请求 |
+| 华为 | EMUI/HarmonyOS | 后台活动严格管控；锁屏后应用被冻结 | 引导用户关闭"应用启动管理"的自动管理；使用 `doze白名单` 请求（需用户确认） |
+| OPPO | ColorOS | 后台冻结；推送延迟 | 引导用户在"电池"设置中关闭"后台冻结"；前台 Service 保活 |
+| vivo | OriginOS/FuntouchOS | 后台高耗电自动清理 | 同 OPPO 策略 |
+| 三星 | OneUI | 相对宽松但"深度睡眠"功能会冻结不活跃应用 | 引导用户将应用从"深度睡眠"列表移除；前台 Service |
+| OnePlus | OxygenOS | 继承 OPPO 策略（同 ColorOS） | 同 OPPO |
+| 魅族 | Flyme | 后台管控严格 | 前台 Service + 引导设置 |
+
+**底层逻辑：**
+- **厂商检测**：通过 `Build.MANUFACTURER` + `Build.BRAND` 判断厂商，维护一份 `VendorCompat` 工具类
+- **权限引导**：首次使用后台音频功能时，检测是否为目标厂商设备，弹出引导对话框："为了保证后台播放不被中断，请在系统设置中允许本应用的自启动/后台活动权限"。提供"一键跳转"按钮，使用各厂商的 Intent Action 跳转到对应设置页
+- **各厂商设置页 Intent**：
+  - 小米：`Intent("miui.intent.action.APP_PERM_EDITOR")` + packageName
+  - 华为：`Intent("huawei.systemmanager")` + 组件名
+  - OPPO：`Intent("oppo.intent.action.AUTO_START")` 或 Settings → 电池
+  - 三星：`Settings.ACTION_BATTERY_SAVER_SETTINGS` 或 `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`
+  - 通用回退：`Settings.ACTION_APPLICATION_DETAILS_SETTINGS` → 应用详情页
+- **前台 Service**：后台播放使用 `startForeground()` + `FOREGROUND_SERVICE_MEDIA_PLAYBACK` 类型（API 29+）。通知常驻，用户不可滑动关闭。Service 被系统杀死时通过 `START_STICKY` 自动重启
+- **电量优化白名单**：`PowerManager.isIgnoringBatteryOptimizations()` 检查，未加入白名单时提示用户。使用 `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 请求（需 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 权限，Google Play 审核严格，开源项目可用）
+
+#### 存储权限兼容
+
+| Android 版本 | 权限模型 | 视频访问策略 |
+|-------------|----------|-------------|
+| 5.0~9 (API 21~28) | `READ_EXTERNAL_STORAGE` | 授权后直接 MediaStore 查询 |
+| 10 (API 29) | `READ_EXTERNAL_STORAGE` + Scoped Storage 可选 | 使用 `requestLegacyExternalStorage` 过渡 |
+| 11+ (API 30+) | `READ_MEDIA_VIDEO` (API 33+) 或 `MANAGE_EXTERNAL_STORAGE` | MediaStore 查询无需额外权限；文件删除需要 `ContentResolver.delete()` |
+
+**底层逻辑：**
+- **权限请求**：运行时检查 → 未授权则请求 → 被永久拒绝则引导到设置页
+- **文件删除**：API 29 以下使用 `File.delete()`；API 29+ 使用 `ContentResolver.delete(contentUri)`；如果被拒绝（权限不足），弹出 SAF 授权对话框
+- **文件重命名**：`ContentResolver.update()` 修改 `MediaStore.Video.Media.DISPLAY_NAME`
+- **外挂字幕文件访问**：字幕文件可能不在 MediaStore 中。API 30+ 使用 `ACTION_OPEN_DOCUMENT` 获取字幕文件的 content URI，通过 `ContentResolver.openInputStream()` 读取
+
+#### 显示与渲染兼容
+
+| 问题 | 涉及厂商 | 解决方案 |
+|------|----------|----------|
+| SurfaceView 在某些设备上 z-order 异常 | 部分联发科设备 | 回退到 TextureView；设置 `setZOrderOnTop(true)` |
+| 折叠屏展开/折叠时 Surface 销毁 | 三星 Fold、华为 Mate X | 使用 `configChanges` 捕获配置变更；在 `onConfigurationChanged` 中重建 Surface 而非重建 Activity |
+| 高刷新率屏幕（90Hz/120Hz）帧率不匹配 | 大多数新设备 | 使用 `Display.getRefreshRate()` 获取刷新率，向 `Choreographer` 注册 VSync 回调同步帧 |
+| HDR 视频在非 HDR 屏幕上颜色发灰 | 部分设备 | 检测 `Display.isHdr()`，非 HDR 屏幕播放 HDR 视频时使用 tone mapping（ExoPlayer `MediaItem` 的 `colorInfo` 处理） |
+| 曲面屏边缘误触 | 三星 Edge、部分国产曲面屏 | 手势热区内缩 20dp；提供"边缘防误触"开关 |
+
+#### 通知与媒体控制兼容
+
+| 问题 | 涉及版本/厂商 | 解决方案 |
+|------|--------------|----------|
+| Android 13+ 通知权限 | API 33+ | 首次启动请求 `POST_NOTIFICATIONS` 权限 |
+| 通知渠道 | API 26+ | 创建 `IMPORTANCE_LOW` 渠道"播放控制"，不可删除 |
+| 媒体通知样式 | 不同厂商 ROM | 使用 `MediaStyle` + `setMediaSession()`，系统自动适配 |
+| 锁屏控制 | 部分厂商锁屏不显示 | 通过 `MediaSession.setActive(true)` 注册，系统级别保证显示 |
+| 蓝牙 AVRCP | 各厂商蓝牙栈 | 通过 `MediaSession` 元数据同步，蓝牙设备自动读取 |
+
+#### Android 版本兼容层
+
+| 功能 | 最低 API | 降级方案 |
+|------|----------|----------|
+| Picture-in-Picture | 26 (O) | API < 26 隐藏 PiP 按钮 |
+| 自动旋转 | 18 (JB MR2) | API < 18 使用固定横屏 |
+| 前台 Service 类型 | 29 (Q) | API < 29 使用普通前台 Service（不需要指定类型） |
+| `READ_MEDIA_VIDEO` | 33 (T) | API < 33 使用 `READ_EXTERNAL_STORAGE` |
+| 通知运行时权限 | 33 (T) | API < 33 无需请求 |
+| `WindowInsets` API | 30 (R) | API < 30 使用 `ViewCompat.setOnApplyWindowInsetsListener` |
+| `setVideoEffects` (ExoPlayer) | 29 (Q) | API < 29 不支持视频滤镜，隐藏该选项 |
+
+**底层逻辑：**
+- 封装 `CompatUtil` 工具类，集中管理版本判断和降级逻辑
+- 每个功能入口先调用 `CompatUtil.isSupported(feature)` 判断，不支持时隐藏 UI 或显示灰色提示
+- 使用 `@RequiresApi` 注解标记需要特定 API 的方法，Lint 辅助检查
+
+---
+
+### 三、页面自适应
+
+#### 屏幕尺寸与形态适配
+
+##### 断点系统
+
+| 断点 | 宽度范围 | 设备类型 | 布局策略 |
+|------|----------|----------|----------|
+| Compact | 0~599dp | 手机竖屏 | 单列布局，底部导航栏 |
+| Medium | 600~839dp | 手机横屏 / 小平板 | 双列布局，侧边导航栏 |
+| Expanded | 840dp+ | 大平板 / 折叠屏展开 | 三列布局，侧边导航栏 + 详情面板 |
+
+##### 各页面适配方案
+
+**视频列表页：**
+- Compact：单列列表（现有布局）
+- Medium：2列网格
+- Expanded：3~4列网格 + 右侧视频详情面板（Master-Detail 模式）
+- 搜索栏：Compact 时折叠为图标，点击展开；Medium/Expanded 时始终显示
+
+**播放器页：**
+- 手机竖屏：底部控制栏，视频居上，下方可选信息区
+- 手机横屏：全屏沉浸，控制栏叠加在视频底部（现有布局）
+- 平板：视频居中，两侧留黑边（或显示视频信息/播放列表侧栏）
+- 折叠屏半折叠（Flex Mode）：上半屏显示视频，下半屏显示控制面板和字幕
+
+**设置页：**
+- Compact：左侧导航 + 右侧内容分两屏切换（现有布局）
+- Medium/Expanded：左侧导航栏常驻 + 右侧内容并排显示
+
+**底部导航栏：**
+- Compact：底部 4 tab（现有）
+- Medium：侧边 NavigationRail（图标 + 文字竖排）
+- Expanded：侧边 NavigationDrawer（图标 + 文字横排，可展开/收起）
+
+**底层逻辑：**
+- 使用 `WindowSizeClass`（Jetpack 库）自动计算断点
+- 布局文件分三套：`layout/`、`layout-w600dp/`、`layout-w840dp/`
+- Fragment 使用 `Navigation Component`，不同断点下 `NavHost` 的 `popBackStack` 行为不同（Compact 返回栈，Expanded 关闭详情面板）
+- 横竖屏切换使用 `configChanges` 保留播放器状态，不重建 Activity
+
+#### 刘海屏/挖孔屏/瀑布屏
+
+| 场景 | 处理策略 |
+|------|----------|
+| 刘海/挖孔（Display Cutout） | 播放器沉浸模式下使用 `LAYOUT_IN_DISPLAY_CUTOUT_SHORT_EDGES`，视频延伸到刘海区域 |
+| 瀑布屏（曲面边缘） | 控制栏内缩 `systemWindowInsetBottom`，手势热区避开曲面区域（左右各留 20dp 安全区） |
+| 折叠屏铰链区域 | 检测 `FoldingFeature`，如果视频跨越铰链则自动调整布局避免内容被遮挡 |
+| 状态栏/导航栏 | 沉浸模式下 `WindowInsetsController.hide()` 全部隐藏；非沉浸模式下内容避开系统栏 |
+
+**底层逻辑：**
+- API 28+：`WindowInsets` 检测 cutout 区域
+- API 30+：`WindowInsets.Type` 精确获取系统栏、IME、cutout 的 inset
+- 旧版本回退：`fitsSystemWindows` + `ViewCompat.setOnApplyWindowInsetsListener()`
+- 每次 `onConfigurationChanged()` 时重新计算 insets，因为折叠状态可能变化
+
+#### 多窗口模式
+
+| 模式 | 行为 |
+|------|------|
+| 分屏（Split Screen） | 播放器继续播放，控件自适应小窗口布局。视频比例切换为 Fit 模式避免裁剪 |
+| 自由窗口（Freeform） | 同分屏，窗口可拖拽调整大小，实时响应尺寸变化 |
+| 画中画（PiP） | P2 功能，进入 PiP 后隐藏自定义控件，使用系统默认 |
+| 多实例（Multi-Instance） | 不支持，`android:launchMode="singleTask"` 保证全局唯一播放器 |
+
+**底层逻辑：**
+- `isInMultiWindowMode` 检测多窗口状态
+- 多窗口下 `onResume` 不代表可见，使用 `hasWindowFocus()` 判断真正可见性
+- 分屏模式下音量控制需要区分哪个窗口有焦点
+
+---
+
 ## 目录
+
+> 以下所有功能开发时，必须遵循上方的「基础开发逻辑」。
 
 1. [P0 — 播放器设置：画面](#一播放器设置--画面)
 2. [P0 — 播放器设置：声音](#二播放器设置--声音)
@@ -18,9 +230,6 @@
 10. [P1 — 文件列表增强](#p1--文件列表增强)
 11. [P1 — 播放列表管理](#p1--播放列表管理)
 12. [P2 — 高级功能](#p2--高级功能)
-13. [页面自适应设计](#页面自适应设计)
-14. [架构兼容设计](#架构兼容设计x86--arm)
-15. [Android 厂商兼容设计](#android-厂商兼容设计)
 
 ---
 
@@ -385,213 +594,6 @@
 
 ---
 
-## 页面自适应设计
-
-### 屏幕尺寸与形态适配
-
-#### 断点系统
-
-| 断点 | 宽度范围 | 设备类型 | 布局策略 |
-|------|----------|----------|----------|
-| Compact | 0~599dp | 手机竖屏 | 单列布局，底部导航栏 |
-| Medium | 600~839dp | 手机横屏 / 小平板 | 双列布局，侧边导航栏 |
-| Expanded | 840dp+ | 大平板 / 折叠屏展开 | 三列布局，侧边导航栏 + 详情面板 |
-
-#### 各页面适配方案
-
-**视频列表页：**
-- Compact：单列列表（现有布局）
-- Medium：2列网格
-- Expanded：3~4列网格 + 右侧视频详情面板（Master-Detail 模式）
-- 搜索栏：Compact 时折叠为图标，点击展开；Medium/Expanded 时始终显示
-
-**播放器页：**
-- 手机竖屏：底部控制栏，视频居上，下方可选信息区
-- 手机横屏：全屏沉浸，控制栏叠加在视频底部（现有布局）
-- 平板：视频居中，两侧留黑边（或显示视频信息/播放列表侧栏）
-- 折叠屏半折叠（Flex Mode）：上半屏显示视频，下半屏显示控制面板和字幕
-
-**设置页：**
-- Compact：左侧导航 + 右侧内容分两屏切换（现有布局）
-- Medium/Expanded：左侧导航栏常驻 + 右侧内容并排显示
-
-**底部导航栏：**
-- Compact：底部 4 tab（现有）
-- Medium：侧边 NavigationRail（图标 + 文字竖排）
-- Expanded：侧边 NavigationDrawer（图标 + 文字横排，可展开/收起）
-
-#### 底层逻辑
-
-- 使用 `WindowSizeClass`（Jetpack 库）自动计算断点
-- 布局文件分三套：`layout/`、`layout-w600dp/`、`layout-w840dp/`
-- Fragment 使用 `Navigation Component`，不同断点下 `NavHost` 的 `popBackStack` 行为不同（Compact 返回栈，Expanded 关闭详情面板）
-- 横竖屏切换使用 `configChanges` 保留播放器状态，不重建 Activity
-
-### 刘海屏/挖孔屏/瀑布屏
-
-| 场景 | 处理策略 |
-|------|----------|
-| 刘海/挖孔（Display Cutout） | 播放器沉浸模式下使用 `LAYOUT_IN_DISPLAY_CUTOUT_SHORT_EDGES`，视频延伸到刘海区域 |
-| 瀑布屏（曲面边缘） | 控制栏内缩 `systemWindowInsetBottom`，手势热区避开曲面区域（左右各留 20dp 安全区） |
-| 折叠屏铰链区域 | 检测 `FoldingFeature`，如果视频跨越铰链则自动调整布局避免内容被遮挡 |
-| 状态栏/导航栏 | 沉浸模式下 `WindowInsetsController.hide()` 全部隐藏；非沉浸模式下内容避开系统栏 |
-
-底层逻辑：
-- API 28+：`WindowInsets` 检测 cutout 区域
-- API 30+：`WindowInsets.Type` 精确获取系统栏、IME、cutout 的 inset
-- 旧版本回退：`fitsSystemWindows` + `ViewCompat.setOnApplyWindowInsetsListener()`
-- 每次 `onConfigurationChanged()` 时重新计算 insets，因为折叠状态可能变化
-
-### 多窗口模式
-
-| 模式 | 行为 |
-|------|------|
-| 分屏（Split Screen） | 播放器继续播放，控件自适应小窗口布局。视频比例切换为 Fit 模式避免裁剪 |
-| 自由窗口（Freeform） | 同分屏，窗口可拖拽调整大小，实时响应尺寸变化 |
-| 画中画（PiP） | P2 功能，进入 PiP 后隐藏自定义控件，使用系统默认 |
-| 多实例（Multi-Instance） | 不支持，`android:launchMode="singleTask"` 保证全局唯一播放器 |
-
-底层逻辑：
-- `isInMultiWindowMode` 检测多窗口状态
-- 多窗口下 `onResume` 不代表可见，使用 `hasWindowFocus()` 判断真正可见性
-- 分屏模式下音量控制需要区分哪个窗口有焦点
-
----
-
-## 架构兼容设计（x86 / ARM）
-
-### ABI 策略
-
-| ABI | 优先级 | 说明 |
-|-----|--------|------|
-| arm64-v8a | 最高 | 主流 Android 设备（2016 年后几乎所有手机） |
-| armeabi-v7a | 高 | 老旧 32 位 ARM 设备 |
-| x86_64 | 中 | ChromeOS、部分 Android 模拟器、Intel 平板 |
-| x86 | 中 | 老旧模拟器、少量 Intel 手机 |
-
-APK 策略：
-- 使用 Android App Bundle (AAB) 发布，Google Play 按设备 ABI 按需分发 native 库
-- 侧载场景：提供通用 APK（包含所有 ABI）或按 ABI 分包（`splits.abi`）
-- `build.gradle.kts` 中配置 `ndk.abiFilters` 明确支持范围
-
-底层逻辑：
-- **解码器选择优先级**：硬件解码器 → 架构优化的软解码器 → 通用软解码器
-- **x86 设备特殊处理**：x86 Android 设备可能通过 ARM 转译层运行 ARM native 库，性能损失 10~30%。检测到 x86 架构时优先使用 x86 原生解码器（如 MediaCodec 提供的 Intel 硬件解码）
-- **模拟器检测**：通过 `Build.FINGERPRINT` 包含 `generic` 或 `sdk` 判断模拟器环境，模拟器下默认使用软解码（模拟器硬件解码常有兼容问题）
-
-### 解码器兼容矩阵
-
-| 视频编码 | ARM 硬解 | ARM 软解 | x86 硬解 | x86 软解 |
-|----------|----------|----------|----------|----------|
-| H.264 (AVC) | 全支持 | 全支持 | 全支持 | 全支持 |
-| H.265 (HEVC) | API 21+ 设备基本支持 | FFmpeg 回退 | Intel 设备支持 | FFmpeg 回退 |
-| VP9 | API 24+ 部分设备 | FFmpeg 回退 | Intel 支持 | FFmpeg 回退 |
-| AV1 | API 29+ 新设备 | FFmpeg 回退 | 极少设备 | FFmpeg 回退 |
-| MPEG-4/2/1 | 部分设备 | FFmpeg 回退 | 部分设备 | FFmpeg 回退 |
-| RMVB/FLV | 不支持 | FFmpeg 回退 | 不支持 | FFmpeg 回退 |
-
-底层逻辑：
-- **解码能力探测**：`MediaCodecList` 枚举设备所有编解码器，按 MIME type 查询是否支持目标编码+分辨率组合。结果缓存到本地文件，避免每次启动重新探测
-- **自动回退链**：目标 MIME → 查缓存 → 硬件解码器尝试 → 失败则软件解码器 → 再失败则提示不支持
-- **分辨率限制**：部分低端设备硬件解码器有分辨率上限（如 1080p），超过时自动切换软解
-- **软解性能保护**：检测 CPU 核心数和频率，低端设备（< 4 核或 < 1.5GHz）播放高码率视频时降低解码线程优先级，避免 UI 卡顿
-
-### Native 库管理
-
-| 库 | 用途 | ABI 策略 |
-|----|------|----------|
-| ExoPlayer FFmpeg 扩展 | 软解不常见格式 | 按 ABI 编译，优先使用 |
-| libass | ASS/SSA 字幕渲染 | 按 ABI 编译，字体渲染引擎 |
-| chardet | 字符编码检测 | 纯 Java 实现，无 ABI 限制 |
-
-底层逻辑：
-- `libs.versions.toml` 中 ExoPlayer FFmpeg 模块按 ABI 提供 `so` 文件
-- 如果某个 ABI 缺少 `so` 文件，运行时 catch `UnsatisfiedLinkError`，标记该功能不可用并使用纯 Java 回退
-- `OpenVideoApp.onCreate()` 中预加载 native 库（`System.loadLibrary`），失败时记录日志并设置降级标志
-
----
-
-## Android 厂商兼容设计
-
-### 厂商后台限制
-
-Android 厂商为省电，各自实现激进的后台进程管理，影响后台音频播放和历史记录保存。
-
-| 厂商 | ROM | 问题 | 解决方案 |
-|------|-----|------|----------|
-| 小米 | MIUI/HyperOS | 后台进程 15 分钟内被杀；自启动默认关闭 | 引导用户开启自启动权限；使用前台 Service + 通知保活；`PowerKeeper` 白名单请求 |
-| 华为 | EMUI/HarmonyOS | 后台活动严格管控；锁屏后应用被冻结 | 引导用户关闭"应用启动管理"的自动管理；使用 `doze白名单` 请求（需用户确认） |
-| OPPO | ColorOS | 后台冻结；推送延迟 | 引导用户在"电池"设置中关闭"后台冻结"；前台 Service 保活 |
-| vivo | OriginOS/FuntouchOS | 后台高耗电自动清理 | 同 OPPO 策略 |
-| 三星 | OneUI | 相对宽松但"深度睡眠"功能会冻结不活跃应用 | 引导用户将应用从"深度睡眠"列表移除；前台 Service |
-| OnePlus | OxygenOS | 继承 OPPO 策略（同 ColorOS） | 同 OPPO |
-| 魅族 | Flyme | 后台管控严格 | 前台 Service + 引导设置 |
-
-底层逻辑：
-- **厂商检测**：通过 `Build.MANUFACTURER` + `Build.BRAND` 判断厂商，维护一份 `VendorCompat` 工具类
-- **权限引导**：首次使用后台音频功能时，检测是否为目标厂商设备，弹出引导对话框："为了保证后台播放不被中断，请在系统设置中允许本应用的自启动/后台活动权限"。提供"一键跳转"按钮，使用各厂商的 Intent Action 跳转到对应设置页
-- **各厂商设置页 Intent**：
-  - 小米：`Intent("miui.intent.action.APP_PERM_EDITOR")` + packageName
-  - 华为：`Intent("huawei.systemmanager")` + 组件名
-  - OPPO：`Intent("oppo.intent.action.AUTO_START")` 或 Settings → 电池
-  - 三星：`Settings.ACTION_BATTERY_SAVER_SETTINGS` 或 `Settings.ACTION_APPLICATION_DETAILS_SETTINGS`
-  - 通用回退：`Settings.ACTION_APPLICATION_DETAILS_SETTINGS` → 应用详情页
-- **前台 Service**：后台播放使用 `startForeground()` + `FOREGROUND_SERVICE_MEDIA_PLAYBACK` 类型（API 29+）。通知常驻，用户不可滑动关闭。Service 被系统杀死时通过 `START_STICKY` 自动重启
-- **电量优化白名单**：`PowerManager.isIgnoringBatteryOptimizations()` 检查，未加入白名单时提示用户。使用 `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 请求（需 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` 权限，Google Play 审核严格，开源项目可用）
-
-### 存储权限兼容
-
-| Android 版本 | 权限模型 | 视频访问策略 |
-|-------------|----------|-------------|
-| 5.0~9 (API 21~28) | `READ_EXTERNAL_STORAGE` | 授权后直接 MediaStore 查询 |
-| 10 (API 29) | `READ_EXTERNAL_STORAGE` + Scoped Storage 可选 | 使用 `requestLegacyExternalStorage` 过渡 |
-| 11+ (API 30+) | `READ_MEDIA_VIDEO` (API 33+) 或 `MANAGE_EXTERNAL_STORAGE` | MediaStore 查询无需额外权限；文件删除需要 `ContentResolver.delete()` |
-
-底层逻辑：
-- **权限请求**：运行时检查 → 未授权则请求 → 被永久拒绝则引导到设置页
-- **文件删除**：API 29 以下使用 `File.delete()`；API 29+ 使用 `ContentResolver.delete(contentUri)`；如果被拒绝（权限不足），弹出 SAF 授权对话框
-- **文件重命名**：`ContentResolver.update()` 修改 `MediaStore.Video.Media.DISPLAY_NAME`
-- **外挂字幕文件访问**：字幕文件可能不在 MediaStore 中。API 30+ 使用 `ACTION_OPEN_DOCUMENT` 获取字幕文件的 content URI，通过 `ContentResolver.openInputStream()` 读取
-
-### 显示与渲染兼容
-
-| 问题 | 涉及厂商 | 解决方案 |
-|------|----------|----------|
-| SurfaceView 在某些设备上 z-order 异常 | 部分联发科设备 | 回退到 TextureView；设置 `setZOrderOnTop(true)` |
-| 折叠屏展开/折叠时 Surface 销毁 | 三星 Fold、华为 Mate X | 使用 `configChanges` 捕获配置变更；在 `onConfigurationChanged` 中重建 Surface 而非重建 Activity |
-| 高刷新率屏幕（90Hz/120Hz）帧率不匹配 | 大多数新设备 | 使用 `Display.getRefreshRate()` 获取刷新率，向 `Choreographer` 注册 VSync 回调同步帧 |
-| HDR 视频在非 HDR 屏幕上颜色发灰 | 部分设备 | 检测 `Display.isHdr()`，非 HDR 屏幕播放 HDR 视频时使用 tone mapping（ExoPlayer `MediaItem` 的 `colorInfo` 处理） |
-| 曲面屏边缘误触 | 三星 Edge、部分国产曲面屏 | 手势热区内缩 20dp；提供"边缘防误触"开关 |
-
-### 通知与媒体控制兼容
-
-| 问题 | 涉及版本/厂商 | 解决方案 |
-|------|--------------|----------|
-| Android 13+ 通知权限 | API 33+ | 首次启动请求 `POST_NOTIFICATIONS` 权限 |
-| 通知渠道 | API 26+ | 创建 `IMPORTANCE_LOW` 渠道"播放控制"，不可删除 |
-| 媒体通知样式 | 不同厂商 ROM | 使用 `MediaStyle` + `setMediaSession()`，系统自动适配 |
-| 锁屏控制 | 部分厂商锁屏不显示 | 通过 `MediaSession.setActive(true)` 注册，系统级别保证显示 |
-| 蓝牙 AVRCP | 各厂商蓝牙栈 | 通过 `MediaSession` 元数据同步，蓝牙设备自动读取 |
-
-### Android 版本兼容层
-
-| 功能 | 最低 API | 降级方案 |
-|------|----------|----------|
-| Picture-in-Picture | 26 (O) | API < 26 隐藏 PiP 按钮 |
-| 自动旋转 | 18 (JB MR2) | API < 18 使用固定横屏 |
-| 前台 Service 类型 | 29 (Q) | API < 29 使用普通前台 Service（不需要指定类型） |
-| `READ_MEDIA_VIDEO` | 33 (T) | API < 33 使用 `READ_EXTERNAL_STORAGE` |
-| 通知运行时权限 | 33 (T) | API < 33 无需请求 |
-| `WindowInsets` API | 30 (R) | API < 30 使用 `ViewCompat.setOnApplyWindowInsetsListener` |
-| `setVideoEffects` (ExoPlayer) | 29 (Q) | API < 29 不支持视频滤镜，隐藏该选项 |
-
-底层逻辑：
-- 封装 `CompatUtil` 工具类，集中管理版本判断和降级逻辑
-- 每个功能入口先调用 `CompatUtil.isSupported(feature)` 判断，不支持时隐藏 UI 或显示灰色提示
-- 使用 `@RequiresApi` 注解标记需要特定 API 的方法，Lint 辅助检查
-
----
-
 ## 功能总览
 
 | 模块 | P0 | P1 | P2 |
@@ -605,6 +607,5 @@ Android 厂商为省电，各自实现激进的后台进程管理，影响后台
 | 文件列表 | 7项菜单 | 6项增强 | 4项高级 |
 | 软件设置 | 9项 | — | 3项系统集成 |
 | 播放列表 | — | 5项 + 3层逻辑 | — |
-| 页面自适应 | 3套断点 + 4类设备 | — | — |
-| 架构兼容 | 4 ABI + 6编码 + 3 native库 | — | — |
-| 厂商兼容 | 7厂商 + 5类兼容问题 | — | — |
+
+> 以上所有功能开发时，必须遵循「基础开发逻辑」中的架构兼容、厂商兼容、页面自适应规则。
