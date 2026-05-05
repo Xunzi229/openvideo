@@ -51,9 +51,10 @@ class HomeFragment : Fragment() {
         recyclerView = view.findViewById(R.id.recycler_videos)
         emptyView = view.findViewById(R.id.tv_empty)
 
-        adapter = VideoGridAdapter { video ->
-            openPlayer(video)
-        }
+        adapter = VideoGridAdapter(
+            onClick = { video -> openPlayer(video) },
+            onMoreOptions = { video, anchor -> showVideoOptions(video) }
+        )
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
@@ -101,5 +102,23 @@ class HomeFragment : Fragment() {
             putExtra("video_id", video.id)
         }
         startActivity(intent)
+    }
+
+    private fun showVideoOptions(video: VideoItem) {
+        VideoOptionsSheet(
+            context = requireContext(),
+            video = video,
+            onFavorite = { viewModel.toggleFavorite(video) },
+            onDelete = { confirmDelete(video) }
+        ).show()
+    }
+
+    private fun confirmDelete(video: VideoItem) {
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("删除视频")
+            .setMessage("确定删除「${video.title}」？删除后不可恢复。")
+            .setPositiveButton("删除") { _, _ -> viewModel.deleteVideo(video) }
+            .setNegativeButton("取消", null)
+            .show()
     }
 }

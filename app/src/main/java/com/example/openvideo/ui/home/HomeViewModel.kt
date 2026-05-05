@@ -34,4 +34,17 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
+
+    fun toggleFavorite(video: VideoItem) {
+        viewModelScope.launch {
+            repository.toggleFavorite(video)
+        }
+    }
+
+    fun deleteVideo(video: VideoItem) {
+        viewModelScope.launch {
+            repository.deleteVideo(video)
+            loadVideos()
+        }
+    }
 }

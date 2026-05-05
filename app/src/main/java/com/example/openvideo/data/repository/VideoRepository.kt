@@ -59,4 +59,8 @@ class VideoRepository @Inject constructor(
     }
 
     suspend fun isFavorite(videoId: Long): Boolean = favoriteDao.isFavorite(videoId)
+
+    fun deleteVideo(video: VideoItem): Boolean {
+        return videoScanner.deleteVideo(video.uri)
+    }
 }

@@ -90,4 +90,12 @@ class VideoScanner @Inject constructor(
 
         emit(videos)
     }.flowOn(Dispatchers.IO)
+
+    fun deleteVideo(uri: Uri): Boolean {
+        return try {
+            context.contentResolver.delete(uri, null, null) > 0
+        } catch (e: Exception) {
+            false
+        }
+    }
 }

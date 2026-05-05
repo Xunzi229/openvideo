@@ -13,7 +13,8 @@ import com.example.openvideo.R
 import com.example.openvideo.data.model.VideoItem
 
 class VideoGridAdapter(
-    private val onClick: (VideoItem) -> Unit
+    private val onClick: (VideoItem) -> Unit,
+    private val onMoreOptions: ((VideoItem, View) -> Unit)? = null
 ) : ListAdapter<VideoItem, VideoGridAdapter.ViewHolder>(DIFF) {
 
     companion object {
@@ -29,12 +30,19 @@ class VideoGridAdapter(
         val duration: TextView = view.findViewById(R.id.tv_duration)
         val size: TextView = view.findViewById(R.id.tv_size)
         val resolution: TextView = view.findViewById(R.id.tv_resolution)
+        val moreBtn: View? = view.findViewById(R.id.btn_more)
 
         init {
             view.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
                     onClick(getItem(pos))
+                }
+            }
+            moreBtn?.setOnClickListener { btn ->
+                val pos = bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    onMoreOptions?.invoke(getItem(pos), btn)
                 }
             }
         }
