@@ -182,4 +182,25 @@
     <string name="home_view_list">列表视图</string>
     <string name="home_view_grid">网格视图</string>
     <string name="more_options">更多选项</string>
+
+    <!-- Settings Page -->
+    <string name="settings_page_title">设置</string>
+    <string name="settings_section_general">通用</string>
+    <string name="settings_theme">主题模式</string>
+    <string name="settings_theme_system">跟随系统</string>
+    <string name="settings_theme_dark">深色</string>
+    <string name="settings_theme_light">浅色</string>
+    <string name="settings_language">语言</string>
+    <string name="settings_language_system">跟随系统</string>
+    <string name="settings_language_zh">中文</string>
+    <string name="settings_language_en">English</string>
+    <string name="settings_section_player">播放器</string>
+    <string name="settings_default_ratio">默认画面比例</string>
+    <string name="settings_default_speed">默认播放速度</string>
+    <string name="settings_section_storage">存储管理</string>
+    <string name="settings_clear_cache">清除缩略图缓存</string>
+    <string name="settings_clear_history">清除播放历史</string>
+    <string name="settings_section_about">关于</string>
+    <string name="settings_version">版本号</string>
+    <string name="settings_license">开源许可</string>
 </resources>
