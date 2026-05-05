@@ -208,4 +208,9 @@
     <string name="playlist_empty">暂无播放列表</string>
     <string name="playlist_create">创建播放列表</string>
     <string name="playlist_detail_empty">播放列表为空</string>
+
+    <!-- Multi-select -->
+    <string name="select_all">全选</string>
+    <string name="favorite_selected">收藏所选</string>
+    <string name="delete_selected">删除所选</string>
 </resources>

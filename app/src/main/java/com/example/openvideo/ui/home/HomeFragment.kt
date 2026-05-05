@@ -14,6 +14,8 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.view.ActionMode
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -39,6 +41,7 @@ class HomeFragment : Fragment() {
     private lateinit var sortLabel: TextView
     private lateinit var btnList: ImageButton
     private lateinit var btnGrid: ImageButton
+    private var actionMode: ActionMode? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -70,7 +73,13 @@ class HomeFragment : Fragment() {
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
-            onMoreOptions = { video, anchor -> showVideoOptions(video) }
+            onMoreOptions = { video, anchor -> showVideoOptions(video) },
+            onSelectionChanged = { selected ->
+                if (adapter.isMultiSelectMode) {
+                    actionMode?.title = "${selected.size} 已选择"
+                }
+            },
+            onLongClick = { video -> startMultiSelectMode() }
         )
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -184,6 +193,57 @@ class HomeFragment : Fragment() {
             .setTitle("删除视频")
             .setMessage("确定删除「${video.title}」？删除后不可恢复。")
             .setPositiveButton("删除") { _, _ -> viewModel.deleteVideo(video) }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun startMultiSelectMode() {
+        if (actionMode != null) return
+        actionMode = (requireActivity() as AppCompatActivity).startSupportActionMode(object : ActionMode.Callback {
+            override fun onCreateActionMode(mode: ActionMode, menu: android.view.Menu): Boolean {
+                mode.menuInflater.inflate(R.menu.menu_multi_select, menu)
+                return true
+            }
+
+            override fun onPrepareActionMode(mode: ActionMode, menu: android.view.Menu): Boolean = false
+
+            override fun onActionItemClicked(mode: ActionMode, item: android.view.MenuItem): Boolean {
+                return when (item.itemId) {
+                    R.id.action_select_all -> {
+                        adapter.selectAll()
+                        true
+                    }
+                    R.id.action_delete_selected -> {
+                        confirmDeleteSelected()
+                        true
+                    }
+                    R.id.action_favorite_selected -> {
+                        adapter.getSelectedItems().forEach { viewModel.toggleFavorite(it) }
+                        adapter.exitMultiSelectMode()
+                        mode.finish()
+                        true
+                    }
+                    else -> false
+                }
+            }
+
+            override fun onDestroyActionMode(mode: ActionMode) {
+                adapter.exitMultiSelectMode()
+                actionMode = null
+            }
+        })
+    }
+
+    private fun confirmDeleteSelected() {
+        val selected = adapter.getSelectedItems()
+        android.app.AlertDialog.Builder(requireContext())
+            .setTitle("批量删除")
+            .setMessage("确定删除 ${selected.size} 个视频？删除后不可恢复。")
+            .setPositiveButton("删除") { _, _ ->
+                selected.forEach { viewModel.deleteVideo(it) }
+                adapter.exitMultiSelectMode()
+                actionMode?.finish()
+            }
             .setNegativeButton("取消", null)
             .show()
     }

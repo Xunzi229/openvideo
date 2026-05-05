@@ -1,8 +1,10 @@
 package com.example.openvideo.ui.home
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
@@ -14,7 +16,9 @@ import com.example.openvideo.data.model.VideoItem
 
 class VideoGridAdapter(
     private val onClick: (VideoItem) -> Unit,
-    private val onMoreOptions: ((VideoItem, View) -> Unit)? = null
+    private val onMoreOptions: ((VideoItem, View) -> Unit)? = null,
+    private val onSelectionChanged: ((List<VideoItem>) -> Unit)? = null,
+    private val onLongClick: ((VideoItem) -> Unit)? = null
 ) : ListAdapter<VideoItem, VideoGridAdapter.ViewHolder>(DIFF) {
 
     var viewMode: ViewMode = ViewMode.LIST
@@ -24,6 +28,10 @@ class VideoGridAdapter(
                 notifyDataSetChanged()
             }
         }
+
+    private val selectedItems = mutableSetOf<Long>()
+    var isMultiSelectMode = false
+        private set
 
     companion object {
         private const val TYPE_LIST = 0
@@ -41,18 +49,40 @@ class VideoGridAdapter(
         val size: TextView? = view.findViewById(R.id.tv_size)
         val resolution: TextView? = view.findViewById(R.id.tv_resolution)
         val moreBtn: View? = view.findViewById(R.id.btn_more)
+        val checkBox: CheckBox? = view.findViewById(R.id.cb_select)
 
         init {
             view.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
-                    onClick(getItem(pos))
+                    if (isMultiSelectMode) {
+                        toggleSelection(getItem(pos))
+                    } else {
+                        onClick(getItem(pos))
+                    }
                 }
+            }
+            view.setOnLongClickListener {
+                val pos = bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    if (!isMultiSelectMode) {
+                        startMultiSelectMode()
+                        toggleSelection(getItem(pos))
+                    }
+                    onLongClick?.invoke(getItem(pos))
+                }
+                true
             }
             moreBtn?.setOnClickListener { btn ->
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
                     onMoreOptions?.invoke(getItem(pos), btn)
+                }
+            }
+            checkBox?.setOnClickListener {
+                val pos = bindingAdapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    toggleSelection(getItem(pos))
                 }
             }
         }
@@ -76,12 +106,56 @@ class VideoGridAdapter(
         holder.size?.text = formatSize(item.size)
         holder.resolution?.text = "${item.width}x${item.height}"
 
+        // Multi-select UI
+        val isSelected = selectedItems.contains(item.id)
+        holder.checkBox?.visibility = if (isMultiSelectMode) View.VISIBLE else View.GONE
+        holder.checkBox?.isChecked = isSelected
+        holder.itemView.setBackgroundColor(
+            if (isSelected) Color.argb(40, 33, 150, 243) else Color.TRANSPARENT
+        )
+
         Glide.with(holder.thumbnail)
             .load(item.thumbnailUri)
             .centerCrop()
             .placeholder(R.drawable.ic_movie)
             .into(holder.thumbnail)
     }
+
+    fun startMultiSelectMode() {
+        isMultiSelectMode = true
+        selectedItems.clear()
+        notifyDataSetChanged()
+    }
+
+    fun exitMultiSelectMode() {
+        isMultiSelectMode = false
+        selectedItems.clear()
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(emptyList())
+    }
+
+    fun toggleSelection(item: VideoItem) {
+        if (selectedItems.contains(item.id)) {
+            selectedItems.remove(item.id)
+        } else {
+            selectedItems.add(item.id)
+        }
+        notifyItemChanged(currentList.indexOf(item))
+        onSelectionChanged?.invoke(getSelectedItems())
+    }
+
+    fun selectAll() {
+        selectedItems.clear()
+        currentList.forEach { selectedItems.add(it.id) }
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(getSelectedItems())
+    }
+
+    fun getSelectedItems(): List<VideoItem> {
+        return currentList.filter { selectedItems.contains(it.id) }
+    }
+
+    fun getSelectedCount(): Int = selectedItems.size
 
     private fun formatDuration(ms: Long): String {
         val totalSec = ms / 1000

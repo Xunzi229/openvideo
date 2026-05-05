@@ -86,6 +86,13 @@
         </LinearLayout>
     </LinearLayout>
 
+    <CheckBox
+        android:id="@+id/cb_select"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:buttonTint="@color/ov_accent_blue" />
+
     <ImageButton
         android:id="@+id/btn_more"
         android:layout_width="32dp"
