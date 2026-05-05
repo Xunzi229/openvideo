@@ -213,4 +213,9 @@
     <string name="select_all">全选</string>
     <string name="favorite_selected">收藏所选</string>
     <string name="delete_selected">删除所选</string>
+
+    <!-- Privacy -->
+    <string name="privacy_title">隐私文件夹</string>
+    <string name="privacy_empty">暂无隐私文件夹</string>
+    <string name="privacy_add">添加隐私文件夹</string>
 </resources>
