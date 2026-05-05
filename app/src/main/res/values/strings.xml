@@ -228,4 +228,48 @@
     <string name="player_ab_loop_cancelled">AB循环已取消</string>
     <string name="player_locked">屏幕已锁定，点击锁定按钮解锁</string>
     <string name="player_unlocked">屏幕已解锁</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_delete_title">删除视频</string>
+    <string name="dialog_delete_message">确定删除「%s」？删除后不可恢复。</string>
+    <string name="dialog_batch_delete_title">批量删除</string>
+    <string name="dialog_batch_delete_message">确定删除 %d 个视频？删除后不可恢复。</string>
+    <string name="action_delete">删除</string>
+    <string name="action_cancel">取消</string>
+    <string name="action_ok">确定</string>
+    <string name="action_clear">清除</string>
+    <string name="action_remove">移除</string>
+    <string name="action_add">添加</string>
+    <string name="action_create">创建</string>
+    <string name="action_rename">重命名</string>
+    <string name="video_details_title">视频详情</string>
+    <string name="detail_filename">文件名</string>
+    <string name="detail_path">路径</string>
+    <string name="detail_resolution">分辨率</string>
+    <string name="detail_duration">时长</string>
+    <string name="detail_size">大小</string>
+
+    <!-- Settings dialogs -->
+    <string name="dialog_clear_cache_title">清除缓存</string>
+    <string name="dialog_clear_cache_message">确定清除缩略图缓存？</string>
+    <string name="dialog_clear_history_title">清除历史</string>
+    <string name="dialog_clear_history_message">确定清除所有播放历史？</string>
+
+    <!-- Privacy dialogs -->
+    <string name="privacy_hint_path">输入文件夹路径</string>
+    <string name="privacy_add_title">添加隐私文件夹</string>
+    <string name="privacy_remove_title">移除隐私文件夹</string>
+    <string name="privacy_remove_message">确定移除「%s」？</string>
+
+    <!-- Playlist dialogs -->
+    <string name="playlist_hint_name">播放列表名称</string>
+    <string name="playlist_create_title">创建播放列表</string>
+    <string name="playlist_rename_title">重命名</string>
+    <string name="playlist_delete_title">删除播放列表</string>
+    <string name="playlist_delete_message">确定删除「%s」？</string>
+    <string name="playlist_clear_title">清空播放列表</string>
+    <string name="playlist_clear_message">确定清空「%s」中的所有视频？</string>
+    <string name="playlist_option_rename">重命名</string>
+    <string name="playlist_option_delete">删除</string>
+    <string name="multi_select_count">%d 已选择</string>
 </resources>

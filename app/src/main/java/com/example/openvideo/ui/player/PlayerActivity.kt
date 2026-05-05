@@ -65,6 +65,38 @@ class PlayerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var controlsVisible = true
     private val hideControlsRunnable = Runnable { hideControls() }
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            if (!isSeeking) {
+                viewModel.updatePosition()
+                val state = viewModel.uiState.value
+                val duration = state.duration
+                if (duration > 0 && duration != Long.MAX_VALUE) {
+                    seekBar.max = duration.toInt()
+                    seekBar.progress = state.currentPosition.toInt().coerceIn(0, seekBar.max)
+                }
+                tvCurrentTime.text = formatTime(state.currentPosition)
+                tvTotalTime.text = formatTime(state.duration)
+
+                // AB Loop logic
+                if (abLoopState == AbLoopState.LOOPING && abLoopPointA >= 0 && abLoopPointB >= 0) {
+                    if (state.currentPosition >= abLoopPointB) {
+                        playerManager.seekTo(abLoopPointA)
+                    }
+                }
+
+                // Update subtitle
+                val subtitle = viewModel.getCurrentSubtitle()
+                if (subtitle.isNotEmpty()) {
+                    tvSubtitle.text = subtitle
+                    tvSubtitle.visibility = View.VISIBLE
+                } else {
+                    tvSubtitle.visibility = View.GONE
+                }
+            }
+            handler.postDelayed(this, 500)
+        }
+    }
 
     private lateinit var gestureDetector: GestureDetector
     private var currentBrightness = 0.5f
@@ -79,6 +111,8 @@ class PlayerActivity : AppCompatActivity() {
     // Screen lock state
     private var isScreenLocked = false
     private var pendingSeekTarget: Long? = null
+    private var playerListener: Player.Listener? = null
+    private var isLongPressing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,6 +122,7 @@ class PlayerActivity : AppCompatActivity() {
         initViews()
         initGestures()
         setupControls()
+        initBrightnessAndVolume()
         applyPlayerSettings()
 
         val uriString = intent.getStringExtra("video_uri") ?: run { finish(); return }
@@ -102,7 +137,6 @@ class PlayerActivity : AppCompatActivity() {
         playerView.player = viewModel.player
         tvTitle.text = title
 
-        observeState()
         scheduleHideControls()
 
         // Restore playback position if remember_progress is on
@@ -123,13 +157,52 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadSubtitles(videoPath: String) {
-        val subtitleFiles = subtitleLoader.findSubtitleFiles(videoPath)
-        if (subtitleFiles.isNotEmpty()) {
-            // Load the first subtitle file found
-            val subtitles = subtitleLoader.loadFromFile(subtitleFiles[0])
-            if (subtitles.isNotEmpty()) {
-                viewModel.setSubtitles(subtitles)
+    private fun initBrightnessAndVolume() {
+        // Read current window brightness (BRIGHTNESS_DEFAULT is -1f)
+        val windowBrightness = window.attributes.screenBrightness
+        currentBrightness = if (windowBrightness in 0f..1f) {
+            windowBrightness
+        } else {
+            // Read system brightness setting
+            try {
+                android.provider.Settings.System.getInt(
+                    contentResolver,
+                    android.provider.Settings.System.SCREEN_BRIGHTNESS
+                ) / 255f
+            } catch (_: Exception) {
+                0.5f
+            }
+        }
+
+        // Read current music stream volume
+        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+        val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+        currentVolume = if (maxVolume > 0) currentVol.toFloat() / maxVolume else 0.5f
+
+        brightnessProgress.progress = (currentBrightness * 100).toInt()
+        volumeProgress.progress = (currentVolume * 100).toInt()
+    }
+
+    private fun loadSubtitles(uriString: String) {
+        val uri = Uri.parse(uriString)
+        when (uri.scheme) {
+            "file" -> {
+                val path = uri.path ?: return
+                val subtitleFiles = subtitleLoader.findSubtitleFiles(path)
+                if (subtitleFiles.isNotEmpty()) {
+                    val subtitles = subtitleLoader.loadFromFile(subtitleFiles[0])
+                    if (subtitles.isNotEmpty()) {
+                        viewModel.setSubtitles(subtitles)
+                    }
+                }
+            }
+            else -> {
+                // content:// or other schemes — try loading directly from URI
+                val subtitles = subtitleLoader.loadFromUri(uri)
+                if (subtitles.isNotEmpty()) {
+                    viewModel.setSubtitles(subtitles)
+                }
             }
         }
     }
@@ -261,11 +334,12 @@ class PlayerActivity : AppCompatActivity() {
             if (controlsVisible) hideControls() else showControls()
         }
 
-        viewModel.player?.addListener(object : Player.Listener {
+        playerListener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updatePlayPauseIcon(isPlaying)
             }
-        })
+        }
+        viewModel.player?.addListener(playerListener!!)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -297,6 +371,7 @@ class PlayerActivity : AppCompatActivity() {
                 // P1: Long press action from settings
                 when (playerPrefs.longPressAction) {
                     com.example.openvideo.core.prefs.LongPressAction.SPEED -> {
+                        isLongPressing = true
                         val speed = playerPrefs.longPressSpeed
                         viewModel.setSpeed(speed)
                     }
@@ -371,7 +446,8 @@ class PlayerActivity : AppCompatActivity() {
                     volumeIndicator.visibility = View.GONE
 
                     // P1: Restore speed after long press
-                    if (playerPrefs.longPressAction == com.example.openvideo.core.prefs.LongPressAction.SPEED) {
+                    if (isLongPressing) {
+                        isLongPressing = false
                         viewModel.setSpeed(playerPrefs.speed)
                     }
                 }
@@ -421,36 +497,12 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun observeState() {
-        val updateRunnable = object : Runnable {
-            override fun run() {
-                if (!isSeeking) {
-                    viewModel.updatePosition()
-                    val state = viewModel.uiState.value
-                    seekBar.max = state.duration.toInt()
-                    seekBar.progress = state.currentPosition.toInt()
-                    tvCurrentTime.text = formatTime(state.currentPosition)
-                    tvTotalTime.text = formatTime(state.duration)
-
-                    // AB Loop logic
-                    if (abLoopState == AbLoopState.LOOPING && abLoopPointA >= 0 && abLoopPointB >= 0) {
-                        if (state.currentPosition >= abLoopPointB) {
-                            playerManager.seekTo(abLoopPointA)
-                        }
-                    }
-
-                    // Update subtitle
-                    val subtitle = viewModel.getCurrentSubtitle()
-                    if (subtitle.isNotEmpty()) {
-                        tvSubtitle.text = subtitle
-                        tvSubtitle.visibility = View.VISIBLE
-                    } else {
-                        tvSubtitle.visibility = View.GONE
-                    }
-                }
-                handler.postDelayed(this, 500)
-            }
-        }
+        handler.removeCallbacks(updateRunnable)
         handler.post(updateRunnable)
+    }
+
+    private fun stopObservingState() {
+        handler.removeCallbacks(updateRunnable)
     }
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
@@ -462,15 +514,19 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun showControls() {
         controlsVisible = true
-        controlsContainer.animate().alpha(1f).setDuration(200).start()
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = 1f
         controlsContainer.visibility = View.VISIBLE
         scheduleHideControls()
     }
 
     private fun hideControls() {
         controlsVisible = false
+        controlsContainer.animate().cancel()
         controlsContainer.animate().alpha(0f).setDuration(200).withEndAction {
-            controlsContainer.visibility = View.GONE
+            if (!controlsVisible) {
+                controlsContainer.visibility = View.GONE
+            }
         }.start()
     }
 
@@ -512,8 +568,14 @@ class PlayerActivity : AppCompatActivity() {
         else String.format("%02d:%02d", m, s)
     }
 
+    override fun onResume() {
+        super.onResume()
+        observeState()
+    }
+
     override fun onPause() {
         super.onPause()
+        stopObservingState()
         if (!isInPictureInPictureMode) {
             viewModel.saveHistory()
             viewModel.player?.pause()
@@ -523,17 +585,21 @@ class PlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
+        playerListener?.let { viewModel.player?.removeListener(it) }
+        playerListener = null
         viewModel.release()
     }
 
     override fun onPictureInPictureModeChanged(isInPipMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPipMode, newConfig)
         if (isInPipMode) {
-            // Hide controls in PiP mode
+            handler.removeCallbacks(hideControlsRunnable)
+            controlsContainer.animate().cancel()
+            controlsContainer.alpha = 0f
             controlsContainer.visibility = View.GONE
+            controlsVisible = false
         } else {
-            // Show controls when exiting PiP
-            controlsContainer.visibility = View.VISIBLE
+            showControls()
         }
     }
 

@@ -140,7 +140,8 @@ class VideoGridAdapter(
         } else {
             selectedItems.add(item.id)
         }
-        notifyItemChanged(currentList.indexOf(item))
+        val index = currentList.indexOf(item)
+        if (index >= 0) notifyItemChanged(index)
         onSelectionChanged?.invoke(getSelectedItems())
     }
 

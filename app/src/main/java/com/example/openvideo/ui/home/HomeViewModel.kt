@@ -2,6 +2,7 @@ package com.example.openvideo.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,14 +25,15 @@ enum class ViewMode { LIST, GRID }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val repository: VideoRepository
+    private val repository: VideoRepository,
+    private val appPrefs: AppPrefs
 ) : ViewModel() {
 
     private val _videos = MutableStateFlow<List<VideoItem>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
-    private val _sortField = MutableStateFlow(SortField.DATE)
-    private val _sortAsc = MutableStateFlow(false)
-    private val _viewMode = MutableStateFlow(ViewMode.LIST)
+    private val _sortField = MutableStateFlow(sortFieldFromPrefs(appPrefs.sortField))
+    private val _sortAsc = MutableStateFlow(appPrefs.sortAsc)
+    private val _viewMode = MutableStateFlow(viewModeFromPrefs(appPrefs.viewMode))
 
     val sortField: StateFlow<SortField> = _sortField
     val sortAsc: StateFlow<Boolean> = _sortAsc
@@ -66,14 +68,33 @@ class HomeViewModel @Inject constructor(
         val fields = SortField.entries
         val next = (fields.indexOf(_sortField.value) + 1) % fields.size
         _sortField.value = fields[next]
+        appPrefs.sortField = fields[next].name.lowercase()
     }
 
     fun toggleSortOrder() {
         _sortAsc.value = !_sortAsc.value
+        appPrefs.sortAsc = _sortAsc.value
     }
 
     fun setViewMode(mode: ViewMode) {
         _viewMode.value = mode
+        appPrefs.viewMode = mode.name.lowercase()
+    }
+
+    private fun sortFieldFromPrefs(key: String): SortField {
+        return when (key) {
+            "name" -> SortField.NAME
+            "size" -> SortField.SIZE
+            "duration" -> SortField.DURATION
+            else -> SortField.DATE
+        }
+    }
+
+    private fun viewModeFromPrefs(key: String): ViewMode {
+        return when (key) {
+            "grid" -> ViewMode.GRID
+            else -> ViewMode.LIST
+        }
     }
 
     private var loadJob: kotlinx.coroutines.Job? = null
@@ -97,16 +118,21 @@ class HomeViewModel @Inject constructor(
 
     fun deleteVideo(video: VideoItem) {
         viewModelScope.launch {
-            repository.deleteVideo(video)
-            _videos.value = _videos.value.filter { it.id != video.id }
+            if (repository.deleteVideo(video)) {
+                _videos.value = _videos.value.filter { it.id != video.id }
+            }
         }
     }
 
     fun deleteVideos(videos: List<VideoItem>) {
         viewModelScope.launch {
-            val ids = videos.map { it.id }.toSet()
-            videos.forEach { repository.deleteVideo(it) }
-            _videos.value = _videos.value.filter { it.id !in ids }
+            val ids = videos
+                .filter { repository.deleteVideo(it) }
+                .map { it.id }
+                .toSet()
+            if (ids.isNotEmpty()) {
+                _videos.value = _videos.value.filter { it.id !in ids }
+            }
         }
     }
 }

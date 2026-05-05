@@ -57,21 +57,21 @@ class VideoOptionsSheet(
 
     private fun showDetails() {
         val details = buildString {
-            appendLine("文件名: ${video.title}")
-            appendLine("路径: ${video.path}")
-            appendLine("分辨率: ${video.width}x${video.height}")
+            appendLine("${context.getString(R.string.detail_filename)}: ${video.title}")
+            appendLine("${context.getString(R.string.detail_path)}: ${video.path}")
+            appendLine("${context.getString(R.string.detail_resolution)}: ${video.width}x${video.height}")
             val durationSec = video.duration / 1000
             val h = durationSec / 3600
             val m = (durationSec % 3600) / 60
             val s = durationSec % 60
-            appendLine("时长: %02d:%02d:%02d".format(h, m, s))
+            appendLine("${context.getString(R.string.detail_duration)}: %02d:%02d:%02d".format(h, m, s))
             val sizeMB = video.size / (1024.0 * 1024.0)
-            appendLine("大小: %.1f MB".format(sizeMB))
+            appendLine("${context.getString(R.string.detail_size)}: %.1f MB".format(sizeMB))
         }
-        android.app.AlertDialog.Builder(context)
-            .setTitle("视频详情")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.video_details_title)
             .setMessage(details)
-            .setPositiveButton("确定", null)
+            .setPositiveButton(R.string.action_ok, null)
             .show()
     }
 }

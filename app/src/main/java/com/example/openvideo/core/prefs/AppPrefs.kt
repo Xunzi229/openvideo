@@ -24,6 +24,18 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getFloat(KEY_BRIGHTNESS, -1f)
         set(value) = putFloat(KEY_BRIGHTNESS, value)
 
+    var viewMode: String
+        get() = getString(KEY_VIEW_MODE, "list")
+        set(value) = putString(KEY_VIEW_MODE, value)
+
+    var sortField: String
+        get() = getString(KEY_SORT_FIELD, "date")
+        set(value) = putString(KEY_SORT_FIELD, value)
+
+    var sortAsc: Boolean
+        get() = getBoolean(KEY_SORT_ASC, false)
+        set(value) = putBoolean(KEY_SORT_ASC, value)
+
     companion object {
         private const val PREFS_NAME = "app_settings"
 
@@ -32,5 +44,8 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_DEFAULT_ASPECT_RATIO = "default_aspect_ratio"
         private const val KEY_DEFAULT_SPEED = "default_speed"
         private const val KEY_BRIGHTNESS = "brightness"
+        private const val KEY_VIEW_MODE = "view_mode"
+        private const val KEY_SORT_FIELD = "sort_field"
+        private const val KEY_SORT_ASC = "sort_asc"
     }
 }

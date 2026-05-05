@@ -42,6 +42,7 @@ class PlayerViewModel @Inject constructor(
 
     private var videoId: Long = 0
     private var videoUri: Uri? = null
+    private var playerListener: androidx.media3.common.Player.Listener? = null
 
     fun initialize(uri: Uri, title: String, id: Long) {
         videoId = id
@@ -51,7 +52,7 @@ class PlayerViewModel @Inject constructor(
         val player = playerManager.initialize()
         playerManager.setMediaUri(uri)
 
-        playerManager.addListener(object : androidx.media3.common.Player.Listener {
+        playerListener = object : androidx.media3.common.Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
             }
@@ -61,7 +62,8 @@ class PlayerViewModel @Inject constructor(
                     duration = playerManager.duration
                 )
             }
-        })
+        }
+        playerManager.addListener(playerListener!!)
 
         viewModelScope.launch {
             val isFav = repository.isFavorite(id)
@@ -156,6 +158,8 @@ class PlayerViewModel @Inject constructor(
 
     fun release() {
         saveHistory()
+        playerListener?.let { playerManager.removeListener(it) }
+        playerListener = null
         playerManager.release()
     }
 

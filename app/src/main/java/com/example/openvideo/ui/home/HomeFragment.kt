@@ -76,7 +76,7 @@ class HomeFragment : Fragment() {
             onMoreOptions = { video, anchor -> showVideoOptions(video) },
             onSelectionChanged = { selected ->
                 if (adapter.isMultiSelectMode) {
-                    actionMode?.title = "${selected.size} 已选择"
+                    actionMode?.title = getString(R.string.multi_select_count, selected.size)
                 }
             },
             onLongClick = { video -> startMultiSelectMode() }
@@ -127,7 +127,12 @@ class HomeFragment : Fragment() {
                     viewModel.viewMode.collect { mode ->
                         adapter.viewMode = mode
                         val spanCount = if (mode == ViewMode.GRID) 2 else 1
-                        recyclerView.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), spanCount)
+                        val lm = recyclerView.layoutManager
+                        if (lm is androidx.recyclerview.widget.GridLayoutManager) {
+                            lm.spanCount = spanCount
+                        } else {
+                            recyclerView.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), spanCount)
+                        }
                         updateViewModeButtons(mode)
                     }
                 }
@@ -170,10 +175,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateViewModeButtons(mode: ViewMode) {
-        val activeBg = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ov_accent_blue)
+        val activeBg = ContextCompat.getColor(requireContext(), R.color.ov_accent_blue)
         val inactiveBg = android.graphics.Color.TRANSPARENT
-        val activeTint = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ov_text_primary)
-        val inactiveTint = androidx.core.content.ContextCompat.getColor(requireContext(), R.color.ov_text_secondary)
+        val activeTint = ContextCompat.getColor(requireContext(), R.color.ov_text_primary)
+        val inactiveTint = ContextCompat.getColor(requireContext(), R.color.ov_text_secondary)
 
         if (mode == ViewMode.LIST) {
             btnList.setBackgroundColor(activeBg)
@@ -189,11 +194,11 @@ class HomeFragment : Fragment() {
     }
 
     private fun confirmDelete(video: VideoItem) {
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("删除视频")
-            .setMessage("确定删除「${video.title}」？删除后不可恢复。")
-            .setPositiveButton("删除") { _, _ -> viewModel.deleteVideo(video) }
-            .setNegativeButton("取消", null)
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_delete_title)
+            .setMessage(getString(R.string.dialog_delete_message, video.title))
+            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteVideo(video) }
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -236,15 +241,15 @@ class HomeFragment : Fragment() {
 
     private fun confirmDeleteSelected() {
         val selected = adapter.getSelectedItems()
-        android.app.AlertDialog.Builder(requireContext())
-            .setTitle("批量删除")
-            .setMessage("确定删除 ${selected.size} 个视频？删除后不可恢复。")
-            .setPositiveButton("删除") { _, _ ->
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_batch_delete_title)
+            .setMessage(getString(R.string.dialog_batch_delete_message, selected.size))
+            .setPositiveButton(R.string.action_delete) { _, _ ->
                 viewModel.deleteVideos(selected)
                 adapter.exitMultiSelectMode()
                 actionMode?.finish()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 }

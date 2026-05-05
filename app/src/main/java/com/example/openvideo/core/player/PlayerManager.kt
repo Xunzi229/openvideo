@@ -43,9 +43,7 @@ class PlayerManager @Inject constructor(
     var aspectRatio = AspectRatio.DEFAULT
 
     fun initialize(): ExoPlayer {
-        trackSelector = DefaultTrackSelector(context).apply {
-            setParameters(buildUponParameters().setMaxVideoSizeSd())
-        }
+        trackSelector = DefaultTrackSelector(context)
 
         val player = ExoPlayer.Builder(context)
             .setTrackSelector(trackSelector!!)
@@ -56,6 +54,8 @@ class PlayerManager @Inject constructor(
     }
 
     fun release() {
+        clearEffects()
+        releaseEqualizer()
         player?.release()
         player = null
         trackSelector = null

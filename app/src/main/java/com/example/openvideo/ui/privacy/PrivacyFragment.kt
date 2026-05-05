@@ -6,12 +6,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -60,32 +60,32 @@ class PrivacyFragment : Fragment() {
 
     private fun showAddDialog() {
         val input = EditText(requireContext()).apply {
-            hint = "输入文件夹路径"
+            hint = getString(R.string.privacy_hint_path)
             setPadding(48, 32, 48, 16)
         }
-        AlertDialog.Builder(requireContext())
-            .setTitle("添加隐私文件夹")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.privacy_add_title)
             .setView(input)
-            .setPositiveButton("添加") { _, _ ->
+            .setPositiveButton(R.string.action_add) { _, _ ->
                 val path = input.text.toString().trim()
                 if (path.isNotEmpty()) {
                     privacyManager.addHiddenFolder(path)
                     loadFolders()
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
     private fun confirmRemove(path: String) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("移除隐私文件夹")
-            .setMessage("确定移除「$path」？")
-            .setPositiveButton("移除") { _, _ ->
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.privacy_remove_title)
+            .setMessage(getString(R.string.privacy_remove_message, path))
+            .setPositiveButton(R.string.action_remove) { _, _ ->
                 privacyManager.removeHiddenFolder(path)
                 loadFolders()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 }

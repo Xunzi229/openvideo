@@ -5,8 +5,11 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import java.security.MessageDigest
+import java.security.SecureRandom
 
 class PrivacyManager(private val context: Context) {
+
+    private val secureRandom = SecureRandom()
 
     private val prefs: SharedPreferences by lazy {
         val masterKey = MasterKey.Builder(context)
@@ -44,21 +47,32 @@ class PrivacyManager(private val context: Context) {
     }
 
     fun setPassword(password: String) {
-        prefs.edit().putString(KEY_PASSWORD_HASH, hashPassword(password)).apply()
+        val salt = generateSalt()
+        val hash = hashPassword(password, salt)
+        prefs.edit().putString(KEY_PASSWORD_HASH, "$salt:$hash").apply()
     }
 
     fun verifyPassword(password: String): Boolean {
         val stored = prefs.getString(KEY_PASSWORD_HASH, null) ?: return false
-        return stored == hashPassword(password)
+        val parts = stored.split(":", limit = 2)
+        if (parts.size != 2) return false
+        val (salt, expectedHash) = parts
+        return hashPassword(password, salt) == expectedHash
     }
 
     fun hasPassword(): Boolean {
         return prefs.getString(KEY_PASSWORD_HASH, null) != null
     }
 
-    private fun hashPassword(password: String): String {
+    private fun generateSalt(): String {
+        val bytes = ByteArray(16)
+        secureRandom.nextBytes(bytes)
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+
+    private fun hashPassword(password: String, salt: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(password.toByteArray())
+        val hash = digest.digest((salt + password).toByteArray())
         return hash.joinToString("") { "%02x".format(it) }
     }
 

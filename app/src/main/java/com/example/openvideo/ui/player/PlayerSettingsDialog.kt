@@ -510,13 +510,15 @@ class PlayerSettingsDialog(
     // ── 其他分组 ──
 
     private fun setupOtherSection() {
-        // 记住播放进度
+        // 记住播放进度 (read-only mirror of playback section)
         val rememberSwitch = findViewById<SwitchMaterial>(R.id.switch_remember_progress_other)
-        bindSwitch(rememberSwitch, playerPrefs.rememberProgress) { playerPrefs.rememberProgress = it }
+        rememberSwitch.setOnCheckedChangeListener(null)
+        rememberSwitch.isChecked = playerPrefs.rememberProgress
 
-        // 自动播放下一个
+        // 自动播放下一个 (read-only mirror of playback section)
         val autoNextSwitch = findViewById<SwitchMaterial>(R.id.switch_auto_play_next_other)
-        bindSwitch(autoNextSwitch, playerPrefs.autoPlayNext) { playerPrefs.autoPlayNext = it }
+        autoNextSwitch.setOnCheckedChangeListener(null)
+        autoNextSwitch.isChecked = playerPrefs.autoPlayNext
 
         // 屏幕常亮
         val keepScreenSwitch = findViewById<SwitchMaterial>(R.id.switch_keep_screen_on)

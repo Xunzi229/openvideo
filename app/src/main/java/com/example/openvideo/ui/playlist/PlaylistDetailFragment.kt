@@ -1,12 +1,12 @@
 package com.example.openvideo.ui.playlist
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -15,6 +15,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.ui.player.PlayerActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -67,7 +69,12 @@ class PlaylistDetailFragment : Fragment() {
 
         adapter = PlaylistVideoAdapter(
             onClick = { video ->
-                // TODO: open player
+                val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+                    putExtra("video_uri", video.videoPath)
+                    putExtra("video_title", video.videoTitle)
+                    putExtra("video_id", video.videoId)
+                }
+                startActivity(intent)
             },
             onRemove = { video ->
                 viewModel.removeFromPlaylist(playlistId, video.videoId)
@@ -89,11 +96,11 @@ class PlaylistDetailFragment : Fragment() {
     }
 
     private fun confirmClear() {
-        AlertDialog.Builder(requireContext())
-            .setTitle("清空播放列表")
-            .setMessage("确定清空「$playlistName」中的所有视频？")
-            .setPositiveButton("清空") { _, _ -> viewModel.clearPlaylist(playlistId) }
-            .setNegativeButton("取消", null)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.playlist_clear_title)
+            .setMessage(getString(R.string.playlist_clear_message, playlistName))
+            .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearPlaylist(playlistId) }
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 }

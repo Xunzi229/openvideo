@@ -71,20 +71,20 @@ class SettingsFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.row_clear_cache).setOnClickListener {
-            android.app.AlertDialog.Builder(requireContext())
-                .setTitle("清除缓存")
-                .setMessage("确定清除缩略图缓存？")
-                .setPositiveButton("清除") { _, _ -> viewModel.clearCache() }
-                .setNegativeButton("取消", null)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.dialog_clear_cache_title)
+                .setMessage(R.string.dialog_clear_cache_message)
+                .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearCache() }
+                .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
 
         view.findViewById<View>(R.id.row_clear_history).setOnClickListener {
-            android.app.AlertDialog.Builder(requireContext())
-                .setTitle("清除历史")
-                .setMessage("确定清除所有播放历史？")
-                .setPositiveButton("清除") { _, _ -> viewModel.clearHistory() }
-                .setNegativeButton("取消", null)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.dialog_clear_history_title)
+                .setMessage(R.string.dialog_clear_history_message)
+                .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearHistory() }
+                .setNegativeButton(R.string.action_cancel, null)
                 .show()
         }
 

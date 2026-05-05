@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -15,6 +14,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -72,23 +72,26 @@ class PlaylistFragment : Fragment() {
 
     private fun showCreateDialog() {
         val input = EditText(requireContext()).apply {
-            hint = "播放列表名称"
+            hint = getString(R.string.playlist_hint_name)
             setPadding(48, 32, 48, 16)
         }
-        AlertDialog.Builder(requireContext())
-            .setTitle("创建播放列表")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.playlist_create_title)
             .setView(input)
-            .setPositiveButton("创建") { _, _ ->
+            .setPositiveButton(R.string.action_create) { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) viewModel.createPlaylist(name)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
     private fun showPlaylistOptions(playlist: com.example.openvideo.data.local.PlaylistEntity) {
-        val options = arrayOf("重命名", "删除")
-        AlertDialog.Builder(requireContext())
+        val options = arrayOf(
+            getString(R.string.playlist_option_rename),
+            getString(R.string.playlist_option_delete)
+        )
+        MaterialAlertDialogBuilder(requireContext())
             .setTitle(playlist.name)
             .setItems(options) { _, which ->
                 when (which) {
@@ -104,23 +107,23 @@ class PlaylistFragment : Fragment() {
             setText(playlist.name)
             setPadding(48, 32, 48, 16)
         }
-        AlertDialog.Builder(requireContext())
-            .setTitle("重命名")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.playlist_rename_title)
             .setView(input)
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton(R.string.action_ok) { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) viewModel.renamePlaylist(playlist.id, name)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
     private fun confirmDelete(playlist: com.example.openvideo.data.local.PlaylistEntity) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("删除播放列表")
-            .setMessage("确定删除「${playlist.name}」？")
-            .setPositiveButton("删除") { _, _ -> viewModel.deletePlaylist(playlist.id) }
-            .setNegativeButton("取消", null)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.playlist_delete_title)
+            .setMessage(getString(R.string.playlist_delete_message, playlist.name))
+            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deletePlaylist(playlist.id) }
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 }
