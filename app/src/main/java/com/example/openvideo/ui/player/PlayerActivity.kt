@@ -217,13 +217,31 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                viewModel.togglePlayPause()
+                // P1: Double tap action from settings
+                when (playerPrefs.doubleTapAction) {
+                    com.example.openvideo.core.prefs.DoubleTapAction.PLAY_PAUSE -> viewModel.togglePlayPause()
+                    com.example.openvideo.core.prefs.DoubleTapAction.FORWARD -> {
+                        val ms = playerPrefs.seekInterval * 1000L
+                        viewModel.seekForward(ms)
+                    }
+                    com.example.openvideo.core.prefs.DoubleTapAction.BACKWARD -> {
+                        val ms = playerPrefs.seekInterval * 1000L
+                        viewModel.seekBackward(ms)
+                    }
+                    com.example.openvideo.core.prefs.DoubleTapAction.NONE -> {}
+                }
                 return true
             }
 
             override fun onLongPress(e: MotionEvent) {
-                // Long press for 2x speed
-                viewModel.setSpeed(2.0f)
+                // P1: Long press action from settings
+                when (playerPrefs.longPressAction) {
+                    com.example.openvideo.core.prefs.LongPressAction.SPEED -> {
+                        val speed = playerPrefs.longPressSpeed
+                        viewModel.setSpeed(speed)
+                    }
+                    com.example.openvideo.core.prefs.LongPressAction.NONE -> {}
+                }
             }
         })
 
@@ -231,7 +249,9 @@ class PlayerActivity : AppCompatActivity() {
         var startY = 0f
         var isHorizontalSwipe = false
         var isVerticalSwipe = false
+        var isEdgeSwipe = false
         var swipeSide = SwipeSide.NONE
+        val edgeThreshold = resources.displayMetrics.widthPixels * 0.05f // 5% edge
 
         gestureOverlay.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
@@ -242,6 +262,7 @@ class PlayerActivity : AppCompatActivity() {
                     startY = event.y
                     isHorizontalSwipe = false
                     isVerticalSwipe = false
+                    isEdgeSwipe = event.x < edgeThreshold || event.x > resources.displayMetrics.widthPixels - edgeThreshold
                     swipeSide = if (event.x < resources.displayMetrics.widthPixels / 2) {
                         SwipeSide.LEFT
                     } else {
@@ -273,6 +294,15 @@ class PlayerActivity : AppCompatActivity() {
                     }
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    // P1: Edge swipe back
+                    if (isEdgeSwipe && isHorizontalSwipe) {
+                        val dx = event.x - startX
+                        if (dx > 100) { // Swipe right from left edge
+                            finish()
+                            return@setOnTouchListener true
+                        }
+                    }
+
                     if (isHorizontalSwipe) {
                         applySeekGesture()
                     }
@@ -280,9 +310,9 @@ class PlayerActivity : AppCompatActivity() {
                     brightnessIndicator.visibility = View.GONE
                     volumeIndicator.visibility = View.GONE
 
-                    // Restore speed after long press
-                    if (viewModel.uiState.value.speed == 2.0f) {
-                        viewModel.setSpeed(1.0f)
+                    // P1: Restore speed after long press
+                    if (playerPrefs.longPressAction == com.example.openvideo.core.prefs.LongPressAction.SPEED) {
+                        viewModel.setSpeed(playerPrefs.speed)
                     }
                 }
             }
