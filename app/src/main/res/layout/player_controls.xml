@@ -146,6 +146,16 @@
                 android:src="@drawable/ic_screenshot"
                 app:tint="@color/ov_text_secondary" />
 
+            <ImageButton
+                android:id="@+id/btn_ab_loop"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="AB循环"
+                android:src="@drawable/ic_ab_loop"
+                app:tint="@color/ov_text_secondary" />
+
             <View
                 android:layout_width="0dp"
                 android:layout_height="0dp"

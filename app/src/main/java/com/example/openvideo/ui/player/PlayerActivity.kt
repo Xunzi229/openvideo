@@ -45,6 +45,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnNext: ImageButton
     private lateinit var btnSettings: ImageButton
     private lateinit var btnScreenshot: ImageButton
+    private lateinit var btnAbLoop: ImageButton
     private lateinit var btnFullscreen: ImageButton
     private lateinit var btnBack: ImageButton
     private lateinit var seekBar: SeekBar
@@ -67,6 +68,11 @@ class PlayerActivity : AppCompatActivity() {
     private var currentBrightness = 0.5f
     private var currentVolume = 0.5f
     private var isSeeking = false
+
+    // AB Loop state
+    private var abLoopState = AbLoopState.IDLE
+    private var abLoopPointA: Long = -1
+    private var abLoopPointB: Long = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,6 +134,7 @@ class PlayerActivity : AppCompatActivity() {
         btnNext = findViewById(R.id.btn_next)
         btnSettings = findViewById(R.id.btn_settings)
         btnScreenshot = findViewById(R.id.btn_screenshot)
+        btnAbLoop = findViewById(R.id.btn_ab_loop)
         btnFullscreen = findViewById(R.id.btn_fullscreen)
         btnBack = findViewById(R.id.btn_back)
         seekBar = findViewById(R.id.seek_bar)
@@ -166,6 +173,37 @@ class PlayerActivity : AppCompatActivity() {
                             android.widget.Toast.makeText(this, "截图失败", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     }
+                }
+            }
+        }
+
+        btnAbLoop.setOnClickListener {
+            when (abLoopState) {
+                AbLoopState.IDLE -> {
+                    abLoopPointA = playerManager.currentPosition
+                    abLoopState = AbLoopState.POINT_A_SET
+                    btnAbLoop.setColorFilter(android.graphics.Color.YELLOW)
+                    android.widget.Toast.makeText(this, "A点已设置: ${formatTime(abLoopPointA)}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                AbLoopState.POINT_A_SET -> {
+                    abLoopPointB = playerManager.currentPosition
+                    if (abLoopPointB > abLoopPointA) {
+                        abLoopState = AbLoopState.LOOPING
+                        btnAbLoop.setColorFilter(android.graphics.Color.GREEN)
+                        android.widget.Toast.makeText(this, "B点已设置，开始循环", android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        abLoopState = AbLoopState.IDLE
+                        abLoopPointA = -1
+                        btnAbLoop.clearColorFilter()
+                        android.widget.Toast.makeText(this, "B点必须在A点之后", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+                AbLoopState.LOOPING -> {
+                    abLoopState = AbLoopState.IDLE
+                    abLoopPointA = -1
+                    abLoopPointB = -1
+                    btnAbLoop.clearColorFilter()
+                    android.widget.Toast.makeText(this, "AB循环已取消", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -364,6 +402,13 @@ class PlayerActivity : AppCompatActivity() {
                     tvCurrentTime.text = formatTime(state.currentPosition)
                     tvTotalTime.text = formatTime(state.duration)
 
+                    // AB Loop logic
+                    if (abLoopState == AbLoopState.LOOPING && abLoopPointA >= 0 && abLoopPointB >= 0) {
+                        if (state.currentPosition >= abLoopPointB) {
+                            playerManager.seekTo(abLoopPointA)
+                        }
+                    }
+
                     // Update subtitle
                     val subtitle = viewModel.getCurrentSubtitle()
                     if (subtitle.isNotEmpty()) {
@@ -439,4 +484,5 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private enum class SwipeSide { LEFT, RIGHT, NONE }
+    private enum class AbLoopState { IDLE, POINT_A_SET, LOOPING }
 }
