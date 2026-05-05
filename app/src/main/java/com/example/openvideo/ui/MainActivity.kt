@@ -9,6 +9,7 @@ import com.example.openvideo.core.ui.WindowSizeHelper
 import com.example.openvideo.ui.favorite.FavoriteFragment
 import com.example.openvideo.ui.history.HistoryFragment
 import com.example.openvideo.ui.home.HomeFragment
+import com.example.openvideo.ui.playlist.PlaylistFragment
 import com.example.openvideo.ui.settings.SettingsFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import dagger.hilt.android.AndroidEntryPoint
@@ -38,7 +39,7 @@ class MainActivity : AppCompatActivity() {
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_home -> HomeFragment()
                 R.id.nav_video -> HomeFragment()
-                R.id.nav_playlist -> FavoriteFragment()
+                R.id.nav_playlist -> PlaylistFragment()
                 R.id.nav_mine -> SettingsFragment()
                 else -> HomeFragment()
             }

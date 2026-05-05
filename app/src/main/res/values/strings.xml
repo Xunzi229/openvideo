@@ -203,4 +203,9 @@
     <string name="settings_section_about">关于</string>
     <string name="settings_version">版本号</string>
     <string name="settings_license">开源许可</string>
+
+    <!-- Playlist -->
+    <string name="playlist_empty">暂无播放列表</string>
+    <string name="playlist_create">创建播放列表</string>
+    <string name="playlist_detail_empty">播放列表为空</string>
 </resources>
