@@ -11,6 +11,7 @@ import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.TextView
 import com.example.openvideo.R
+import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.*
@@ -68,28 +69,37 @@ class PlayerSettingsDialog(
         setContentView(R.layout.dialog_player_settings)
 
         window?.apply {
+            val bounds = PlayerSettingsLayoutPolicy.dialogBounds(
+                context.resources.displayMetrics.widthPixels,
+                context.resources.displayMetrics.heightPixels
+            )
             setLayout(
-                (context.resources.displayMetrics.widthPixels * 0.92f).toInt(),
-                (context.resources.displayMetrics.heightPixels * 0.78f).toInt()
+                bounds.width,
+                bounds.height
             )
             setBackgroundDrawableResource(android.R.color.transparent)
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         }
 
-        setupNavigation()
-        setupPlaybackSection()
-        setupVideoSection()
-        setupAudioSection()
-        setupSubtitleSection()
-        setupGestureSection()
-        setupOtherSection()
-        setupResetDefaults()
+        runCatching {
+            setupNavigation()
+            setupRowLabels()
+            setupPlaybackSection()
+            setupVideoSection()
+            setupAudioSection()
+            setupSubtitleSection()
+            setupGestureSection()
+            setupOtherSection()
+            setupResetDefaults()
 
-        bindDualRememberSwitches()
-        bindDualAutoNextSwitches()
+            bindDualRememberSwitches()
+            bindDualAutoNextSwitches()
 
-        setSelectedNav(R.id.nav_playback)
-        showSection(R.id.section_playback)
+            setSelectedNav(R.id.nav_playback)
+            showSection(R.id.section_playback)
+        }.onFailure { error ->
+            CrashLogger.logPlayerError(context, error)
+        }
     }
 
     // ── Navigation ──
@@ -104,16 +114,58 @@ class PlayerSettingsDialog(
             R.id.nav_other to R.id.section_other
         )
         navSectionMap.forEach { (navId, sectionId) ->
-            findViewById<View>(navId).setOnClickListener {
+            findViewById<View>(navId)?.setOnClickListener {
                 setSelectedNav(navId)
                 showSection(sectionId)
             }
         }
     }
 
+    private fun setupRowLabels() {
+        setValueRow(R.id.row_loop, R.string.settings_loop_mode)
+        setValueRow(R.id.row_skip, R.string.settings_skip_intro_outro)
+        setValueRow(R.id.row_seek, R.string.settings_seek_interval)
+        setSwitchRow(R.id.row_remember, R.string.settings_remember_progress)
+        setSwitchRow(R.id.row_hw, R.string.settings_hardware_acceleration)
+        setSwitchRow(R.id.row_pause, R.string.settings_pause_on_exit)
+        setSwitchRow(R.id.row_auto_next, R.string.settings_auto_play_next)
+        setSwitchRow(R.id.row_bg_audio, R.string.settings_bg_audio)
+
+        setValueRow(R.id.row_aspect, R.string.settings_aspect_ratio_label)
+        setValueRow(R.id.row_rotation, R.string.settings_rotation)
+        setSwitchRow(R.id.row_mirror, R.string.settings_mirror)
+
+        setSwitchRow(R.id.row_pitch, R.string.settings_speed_preserve_pitch)
+        setSwitchRow(R.id.row_boost, R.string.settings_volume_boost)
+        setValueRow(R.id.row_channel, R.string.settings_audio_channel_label)
+        setValueRow(R.id.row_delay, R.string.settings_audio_delay)
+
+        action(R.id.row_load_subtitle).setText(R.string.settings_load_subtitle)
+        setSeekRow(R.id.row_subtitle_size, R.string.settings_subtitle_size)
+        setValueRow(R.id.row_subtitle_color, R.string.settings_subtitle_color)
+        row(R.id.row_subtitle_color)?.visibility = View.GONE
+        setValueRow(R.id.row_subtitle_bg, R.string.settings_subtitle_bg)
+        setSeekRow(R.id.row_subtitle_position, R.string.settings_subtitle_position)
+        setValueRow(R.id.row_subtitle_encoding, R.string.settings_subtitle_encoding)
+
+        setValueRow(R.id.row_left_vertical, R.string.settings_left_vertical)
+        setValueRow(R.id.row_right_vertical, R.string.settings_right_vertical)
+        setValueRow(R.id.row_double_tap, R.string.settings_double_tap_action)
+        setValueRow(R.id.row_long_press, R.string.settings_double_tap_playback)
+        setValueRow(R.id.row_horizontal, R.string.settings_horizontal_swipe)
+        setValueRow(R.id.row_sensitivity, R.string.settings_gesture_sensitivity)
+
+        setSwitchRow(R.id.row_remember_other, R.string.settings_remember_progress)
+        setSwitchRow(R.id.row_auto_next_other, R.string.settings_auto_play_next)
+        setSwitchRow(R.id.row_keep_screen, R.string.settings_keep_screen_on)
+        setValueRow(R.id.row_auto_hide, R.string.settings_controls_auto_hide)
+        setValueRow(R.id.row_intro, R.string.settings_skip_intro_seconds)
+        setValueRow(R.id.row_outro, R.string.settings_skip_outro_seconds)
+    }
+
     private fun setSelectedNav(selectedId: Int) {
         navIds.forEach { id ->
-            val nav = findViewById<TextView>(id)
+            val nav = findViewById<TextView>(id) ?: return@forEach
             val selected = id == selectedId
             nav.setBackgroundResource(if (selected) R.drawable.bg_settings_nav_selected else android.R.color.transparent)
             nav.setTextColor(context.getColor(if (selected) R.color.ov_text_primary else R.color.ov_text_secondary))
@@ -127,7 +179,7 @@ class PlayerSettingsDialog(
             R.id.section_gesture, R.id.section_other
         )
         allSections.forEach { id ->
-            findViewById<View>(id).visibility = if (id == selectedId) View.VISIBLE else View.GONE
+            findViewById<View>(id)?.visibility = if (id == selectedId) View.VISIBLE else View.GONE
         }
     }
 
@@ -174,7 +226,7 @@ class PlayerSettingsDialog(
     private fun setupLoopRow() {
         val mode = playerPrefs.loopMode
         loopModeIndex = loopModes.indexOf(mode.key).takeIf { it >= 0 } ?: 0
-        val loopValue = findViewById<TextView>(R.id.tv_loop_value)
+        val loopValue = value(R.id.row_loop)
         fun update() {
             val textRes = when (loopModes[loopModeIndex]) {
                 "single" -> R.string.settings_loop_single
@@ -195,7 +247,7 @@ class PlayerSettingsDialog(
     private fun setupSeekIntervalRow() {
         val interval = playerPrefs.seekInterval
         seekIntervalIndex = seekIntervals.indexOf(interval).takeIf { it >= 0 } ?: 1
-        val seekValue = findViewById<TextView>(R.id.tv_seek_interval_value)
+        val seekValue = value(R.id.row_seek)
         fun update() {
             val textRes = when (seekIntervals[seekIntervalIndex]) {
                 5 -> R.string.settings_seek_5s
@@ -213,10 +265,10 @@ class PlayerSettingsDialog(
     }
 
     private fun setupPlaybackSwitches() {
-        val hwAccelSwitch = findViewById<SwitchMaterial>(R.id.switch_hardware_accel)
-        val pauseOnExitSwitch = findViewById<SwitchMaterial>(R.id.switch_pause_on_exit)
-        val bgAudioSwitch = findViewById<SwitchMaterial>(R.id.switch_bg_audio)
-        val skipValue = findViewById<TextView>(R.id.tv_skip_value)
+        val hwAccelSwitch = switch(R.id.row_hw)
+        val pauseOnExitSwitch = switch(R.id.row_pause)
+        val bgAudioSwitch = switch(R.id.row_bg_audio)
+        val skipValue = value(R.id.row_skip)
 
         var skipEnabled = playerPrefs.skipIntroOutro
         fun updateSkipText() {
@@ -242,7 +294,7 @@ class PlayerSettingsDialog(
     private fun setupVideoSection() {
         // 画面比例
         aspectRatioIndex = aspectRatios.indexOf(playerPrefs.aspectRatio).takeIf { it >= 0 } ?: 0
-        val aspectValue = findViewById<TextView>(R.id.tv_aspect_ratio_value)
+        val aspectValue = value(R.id.row_aspect)
         fun updateAspect() {
             val textRes = when (aspectRatios[aspectRatioIndex]) {
                 AspectRatio.FIT -> R.string.settings_ratio_fit
@@ -263,7 +315,7 @@ class PlayerSettingsDialog(
 
         // 画面旋转
         rotationIndex = rotations.indexOf(playerPrefs.rotation).takeIf { it >= 0 } ?: 0
-        val rotationValue = findViewById<TextView>(R.id.tv_rotation_value)
+        val rotationValue = value(R.id.row_rotation)
         fun updateRotation() {
             rotationValue.text = "${rotations[rotationIndex]}°"
         }
@@ -275,7 +327,7 @@ class PlayerSettingsDialog(
         }
 
         // 画面镜像
-        val mirrorSwitch = findViewById<SwitchMaterial>(R.id.switch_mirror)
+        val mirrorSwitch = switch(R.id.row_mirror)
         bindSwitch(mirrorSwitch, playerPrefs.mirror) { playerPrefs.mirror = it }
     }
 
@@ -283,7 +335,7 @@ class PlayerSettingsDialog(
 
     private fun setupAudioSection() {
         // 倍速不变调
-        val pitchSwitch = findViewById<SwitchMaterial>(R.id.switch_speed_pitch)
+        val pitchSwitch = switch(R.id.row_pitch)
         bindSwitch(pitchSwitch, playerPrefs.speedPreservePitch) {
             playerPrefs.speedPreservePitch = it
             viewModel.setSpeed(
@@ -293,7 +345,7 @@ class PlayerSettingsDialog(
         }
 
         // 音量增强
-        val boostSwitch = findViewById<SwitchMaterial>(R.id.switch_volume_boost)
+        val boostSwitch = switch(R.id.row_boost)
         bindSwitch(boostSwitch, playerPrefs.volumeBoost) {
             playerPrefs.volumeBoost = it
             viewModel.setVolumeBoost(it)
@@ -301,7 +353,7 @@ class PlayerSettingsDialog(
 
         // 声道选择
         audioChannelIndex = audioChannels.indexOf(playerPrefs.audioChannel).takeIf { it >= 0 } ?: 0
-        val channelValue = findViewById<TextView>(R.id.tv_audio_channel_value)
+        val channelValue = value(R.id.row_channel)
         fun updateChannel() {
             val textRes = when (audioChannels[audioChannelIndex]) {
                 AudioChannel.STEREO -> R.string.settings_audio_stereo
@@ -318,7 +370,7 @@ class PlayerSettingsDialog(
         }
 
         // 声音延迟
-        val delayValue = findViewById<TextView>(R.id.tv_audio_delay_value)
+        val delayValue = value(R.id.row_delay)
         fun updateDelay() {
             delayValue.text = "${playerPrefs.audioDelay}ms"
         }
@@ -342,12 +394,12 @@ class PlayerSettingsDialog(
 
     private fun setupSubtitleSection() {
         // 加载外挂字幕
-        val loadSubtitle = findViewById<TextView>(R.id.tv_load_subtitle)
+        val loadSubtitle = action(R.id.row_load_subtitle)
         loadSubtitle.setOnClickListener { onRequestPickSubtitle() }
 
         // 字幕大小
-        val sizeSeekbar = findViewById<SeekBar>(R.id.seekbar_subtitle_size)
-        val sizeValue = findViewById<TextView>(R.id.tv_subtitle_size_value)
+        val sizeSeekbar = seekbar(R.id.row_subtitle_size)
+        val sizeValue = value(R.id.row_subtitle_size)
         val currentSize = playerPrefs.subtitleSize
         sizeSeekbar.progress = (currentSize - 14) / 2
         sizeValue.text = "${currentSize}sp"
@@ -363,7 +415,7 @@ class PlayerSettingsDialog(
 
         // 字幕背景
         subtitleBgIndex = subtitleBgStyles.indexOf(playerPrefs.subtitleBgStyle).takeIf { it >= 0 } ?: 1
-        val bgValue = findViewById<TextView>(R.id.tv_subtitle_bg_value)
+        val bgValue = value(R.id.row_subtitle_bg)
         fun updateBg() {
             val textRes = when (subtitleBgStyles[subtitleBgIndex]) {
                 SubtitleBgStyle.NONE -> R.string.settings_subtitle_bg_none
@@ -380,7 +432,7 @@ class PlayerSettingsDialog(
         }
 
         // 字幕位置
-        val posSeekbar = findViewById<SeekBar>(R.id.seekbar_subtitle_position)
+        val posSeekbar = seekbar(R.id.row_subtitle_position)
         posSeekbar.progress = (playerPrefs.subtitlePosition * 100).toInt()
         posSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
@@ -392,7 +444,7 @@ class PlayerSettingsDialog(
 
         // 字幕编码
         encodingIndex = encodings.indexOf(playerPrefs.subtitleEncoding).takeIf { it >= 0 } ?: 0
-        val encodingValue = findViewById<TextView>(R.id.tv_subtitle_encoding_value)
+        val encodingValue = value(R.id.row_subtitle_encoding)
         fun updateEncoding() {
             encodingValue.text = if (encodingIndex == 0)
                 context.getString(R.string.settings_encoding_auto)
@@ -411,7 +463,7 @@ class PlayerSettingsDialog(
     private fun setupGestureSection() {
         // 左侧上下滑动
         leftGestureIndex = gestureActions.indexOf(playerPrefs.leftVerticalGesture).takeIf { it >= 0 } ?: 0
-        val leftValue = findViewById<TextView>(R.id.tv_left_vertical_value)
+        val leftValue = value(R.id.row_left_vertical)
         fun updateLeft() {
             leftValue.setText(when (gestureActions[leftGestureIndex]) {
                 GestureAction.BRIGHTNESS -> R.string.settings_action_brightness
@@ -429,7 +481,7 @@ class PlayerSettingsDialog(
 
         // 右侧上下滑动
         rightGestureIndex = gestureActions.indexOf(playerPrefs.rightVerticalGesture).takeIf { it >= 0 } ?: 1
-        val rightValue = findViewById<TextView>(R.id.tv_right_vertical_value)
+        val rightValue = value(R.id.row_right_vertical)
         fun updateRight() {
             rightValue.setText(when (gestureActions[rightGestureIndex]) {
                 GestureAction.BRIGHTNESS -> R.string.settings_action_brightness
@@ -447,7 +499,7 @@ class PlayerSettingsDialog(
 
         // 双击操作
         doubleTapIndex = doubleTapActions.indexOf(playerPrefs.doubleTapAction).takeIf { it >= 0 } ?: 0
-        val doubleTapValue = findViewById<TextView>(R.id.tv_double_tap_value)
+        val doubleTapValue = value(R.id.row_double_tap)
         fun updateDoubleTap() {
             doubleTapValue.setText(when (doubleTapActions[doubleTapIndex]) {
                 DoubleTapAction.PLAY_PAUSE -> R.string.settings_double_tap_pause
@@ -465,7 +517,7 @@ class PlayerSettingsDialog(
 
         // 长按操作
         longPressIndex = longPressActions.indexOf(playerPrefs.longPressAction).takeIf { it >= 0 } ?: 0
-        val longPressValue = findViewById<TextView>(R.id.tv_long_press_value)
+        val longPressValue = value(R.id.row_long_press)
         fun updateLongPress() {
             longPressValue.setText(when (longPressActions[longPressIndex]) {
                 LongPressAction.SPEED -> R.string.settings_double_tap_playback
@@ -481,7 +533,7 @@ class PlayerSettingsDialog(
 
         // 水平滑动
         horizontalIndex = gestureActions.indexOf(playerPrefs.horizontalSwipeAction).takeIf { it >= 0 } ?: 2
-        val horizontalValue = findViewById<TextView>(R.id.tv_horizontal_swipe_value)
+        val horizontalValue = value(R.id.row_horizontal)
         fun updateHorizontal() {
             horizontalValue.setText(when (gestureActions[horizontalIndex]) {
                 GestureAction.BRIGHTNESS -> R.string.settings_action_brightness
@@ -499,7 +551,7 @@ class PlayerSettingsDialog(
 
         // 灵敏度
         sensitivityIndex = (playerPrefs.gestureSensitivity - 1).coerceIn(0, 2)
-        val sensitivityValue = findViewById<TextView>(R.id.tv_sensitivity_value)
+        val sensitivityValue = value(R.id.row_sensitivity)
         fun updateSensitivity() {
             sensitivityValue.setText(when (sensitivityIndex) {
                 0 -> R.string.settings_sensitivity_low
@@ -519,12 +571,12 @@ class PlayerSettingsDialog(
 
     private fun setupOtherSection() {
         // 屏幕常亮
-        val keepScreenSwitch = findViewById<SwitchMaterial>(R.id.switch_keep_screen_on)
+        val keepScreenSwitch = switch(R.id.row_keep_screen)
         bindSwitch(keepScreenSwitch, playerPrefs.keepScreenOn) { playerPrefs.keepScreenOn = it }
 
         // 控制栏自动隐藏
         autoHideIndex = autoHideOptions.indexOf(playerPrefs.controlsAutoHide).takeIf { it >= 0 } ?: 0
-        val autoHideValue = findViewById<TextView>(R.id.tv_auto_hide_value)
+        val autoHideValue = value(R.id.row_auto_hide)
         fun updateAutoHide() {
             val textRes = when (autoHideOptions[autoHideIndex]) {
                 3 -> R.string.settings_hide_3s
@@ -542,7 +594,7 @@ class PlayerSettingsDialog(
         }
 
         // 跳过片头
-        val introValue = findViewById<TextView>(R.id.tv_intro_seconds_value)
+        val introValue = value(R.id.row_intro)
         fun updateIntro() {
             introValue.text = "${playerPrefs.introSeconds}"
         }
@@ -554,7 +606,7 @@ class PlayerSettingsDialog(
         }
 
         // 跳过片尾
-        val outroValue = findViewById<TextView>(R.id.tv_outro_seconds_value)
+        val outroValue = value(R.id.row_outro)
         fun updateOutro() {
             outroValue.text = "${playerPrefs.outroSeconds}"
         }
@@ -569,7 +621,7 @@ class PlayerSettingsDialog(
     // ── 恢复默认 ──
 
     private fun setupResetDefaults() {
-        findViewById<View>(R.id.tv_reset_defaults).setOnClickListener {
+        findViewById<View>(R.id.tv_reset_defaults)?.setOnClickListener {
             playerPrefs.resetToDefaults()
             // Re-setup all sections
             setupPlaybackSection()
@@ -584,8 +636,8 @@ class PlayerSettingsDialog(
     }
 
     private fun bindDualRememberSwitches() {
-        val primary = findViewById<SwitchMaterial>(R.id.switch_remember_progress)
-        val mirror = findViewById<SwitchMaterial>(R.id.switch_remember_progress_other)
+        val primary = switch(R.id.row_remember)
+        val mirror = switch(R.id.row_remember_other)
         lateinit var listener: CompoundButton.OnCheckedChangeListener
         listener = CompoundButton.OnCheckedChangeListener { _, checked ->
             playerPrefs.rememberProgress = checked
@@ -605,8 +657,8 @@ class PlayerSettingsDialog(
     }
 
     private fun bindDualAutoNextSwitches() {
-        val primary = findViewById<SwitchMaterial>(R.id.switch_auto_play_next)
-        val mirror = findViewById<SwitchMaterial>(R.id.switch_auto_play_next_other)
+        val primary = switch(R.id.row_auto_next)
+        val mirror = switch(R.id.row_auto_next_other)
         lateinit var listener: CompoundButton.OnCheckedChangeListener
         listener = CompoundButton.OnCheckedChangeListener { _, checked ->
             playerPrefs.autoPlayNext = checked
@@ -626,6 +678,31 @@ class PlayerSettingsDialog(
     }
 
     // ── Utility ──
+
+    private fun row(rowId: Int): View? = findViewById(rowId)
+
+    private fun setValueRow(rowId: Int, titleRes: Int) {
+        row(rowId)?.findViewById<TextView>(R.id.row_title)?.setText(titleRes)
+    }
+
+    private fun setSwitchRow(rowId: Int, titleRes: Int) {
+        row(rowId)?.findViewById<TextView>(R.id.row_title)?.setText(titleRes)
+    }
+
+    private fun setSeekRow(rowId: Int, titleRes: Int) {
+        row(rowId)?.findViewById<TextView>(R.id.row_title)?.setText(titleRes)
+    }
+
+    private fun value(rowId: Int): TextView =
+        row(rowId)?.findViewById(R.id.row_value) ?: TextView(context)
+
+    private fun switch(rowId: Int): SwitchMaterial =
+        row(rowId)?.findViewById(R.id.row_switch) ?: SwitchMaterial(context)
+
+    private fun seekbar(rowId: Int): SeekBar =
+        row(rowId)?.findViewById(R.id.row_seekbar) ?: SeekBar(context)
+
+    private fun action(rowId: Int): TextView = row(rowId) as? TextView ?: TextView(context)
 
     private fun bindSwitch(
         view: SwitchMaterial,

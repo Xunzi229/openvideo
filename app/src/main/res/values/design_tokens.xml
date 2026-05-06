@@ -41,4 +41,9 @@
     <dimen name="ov_control_bar_height">56dp</dimen>
     <dimen name="ov_bottom_nav_height">64dp</dimen>
     <dimen name="ov_video_thumb_height">120dp</dimen>
+    <dimen name="ov_player_settings_nav_width">172dp</dimen>
+    <dimen name="ov_player_settings_padding">14dp</dimen>
+    <dimen name="ov_player_settings_row_value_max_width">220dp</dimen>
+    <dimen name="ov_player_settings_seek_width">170dp</dimen>
+    <dimen name="ov_player_settings_value_width">48dp</dimen>
 </resources>

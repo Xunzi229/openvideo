@@ -235,6 +235,16 @@
     <string name="player_locked">屏幕已锁定，点击锁定按钮解锁</string>
     <string name="player_unlocked">屏幕已解锁</string>
     <string name="player_playback_error">播放失败，已记录错误日志</string>
+    <string name="player_action_back">返回</string>
+    <string name="player_action_previous">上一个</string>
+    <string name="player_action_play">播放</string>
+    <string name="player_action_next">下一个</string>
+    <string name="player_action_settings">设置</string>
+    <string name="player_action_screenshot">截图</string>
+    <string name="player_action_ab_loop">AB循环</string>
+    <string name="player_action_pip">画中画</string>
+    <string name="player_action_fullscreen">全屏</string>
+    <string name="player_action_lock">锁定</string>
 
     <!-- Dialogs -->
     <string name="dialog_delete_title">删除视频</string>
