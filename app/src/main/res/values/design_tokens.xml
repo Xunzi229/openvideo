@@ -11,6 +11,7 @@
     <color name="ov_accent_blue">#FF5B95FF</color>
     <color name="ov_accent_blue_pressed">#FF447AE0</color>
     <color name="ov_accent_blue_soft">#335B95FF</color>
+    <color name="ov_nav_active_indicator">#665A5368</color>
 
     <color name="ov_text_primary">#FFF2F6FF</color>
     <color name="ov_text_secondary">#FFB4BDCA</color>

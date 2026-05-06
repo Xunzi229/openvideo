@@ -23,4 +23,10 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>
+
+    <style name="Widget.OpenVideo.BottomNavigation.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:width">80dp</item>
+        <item name="android:height">52dp</item>
+        <item name="android:color">@color/ov_nav_active_indicator</item>
+    </style>
 </resources>
