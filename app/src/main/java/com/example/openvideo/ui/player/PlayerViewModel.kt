@@ -43,6 +43,7 @@ class PlayerViewModel @Inject constructor(
     private var videoId: Long = 0
     private var videoUri: Uri? = null
     private var playerListener: androidx.media3.common.Player.Listener? = null
+    private var pendingRestorePosition: Long? = null
 
     fun initialize(uri: Uri, title: String, id: Long) {
         videoId = id
@@ -61,6 +62,9 @@ class PlayerViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     duration = playerManager.duration
                 )
+                if (playbackState == androidx.media3.common.Player.STATE_READY) {
+                    applyPendingRestore()
+                }
             }
         }
         playerManager.addListener(playerListener!!)
@@ -75,10 +79,8 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             val history = repository.getHistory(videoId)
             if (history != null && history.lastPosition > 0) {
-                val duration = playerManager.duration
-                if (duration > 0 && history.lastPosition < duration - 10_000) {
-                    playerManager.seekTo(history.lastPosition)
-                }
+                pendingRestorePosition = history.lastPosition
+                applyPendingRestore()
             }
         }
     }
@@ -160,6 +162,19 @@ class PlayerViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private fun applyPendingRestore() {
+        val savedPosition = pendingRestorePosition ?: return
+        val target = PlaybackResumePolicy.restoreTarget(
+            savedPositionMs = savedPosition,
+            durationMs = playerManager.duration
+        ) ?: run {
+            pendingRestorePosition = null
+            return
+        }
+        playerManager.seekTo(target)
+        pendingRestorePosition = null
     }
 
     fun release() {

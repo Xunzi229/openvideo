@@ -4,11 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AppPrefs
+import com.example.openvideo.data.local.FavoriteEntity
+import com.example.openvideo.data.local.HistoryEntity
 import com.example.openvideo.data.local.PlaylistDao
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.playlist.PlaylistEditor
+import android.net.Uri
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 enum class SortField(val labelRes: Int) {
@@ -27,6 +31,8 @@ enum class SortField(val labelRes: Int) {
 }
 
 enum class ViewMode { LIST, GRID }
+
+enum class HomeCategory { ALL, RECENT, FAVORITES }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -41,14 +47,29 @@ class HomeViewModel @Inject constructor(
     private val _sortField = MutableStateFlow(sortFieldFromPrefs(appPrefs.sortField))
     private val _sortAsc = MutableStateFlow(appPrefs.sortAsc)
     private val _viewMode = MutableStateFlow(viewModeFromPrefs(appPrefs.viewMode))
+    private val _category = MutableStateFlow(HomeCategory.ALL)
 
     val sortField: StateFlow<SortField> = _sortField
     val sortAsc: StateFlow<Boolean> = _sortAsc
     val viewMode: StateFlow<ViewMode> = _viewMode
+    val category: StateFlow<HomeCategory> = _category
     val playlists: Flow<List<PlaylistEntity>> = playlistDao.getAll()
 
+    private val categoryVideos: Flow<List<VideoItem>> = combine(
+        _videos,
+        repository.getHistory(),
+        repository.getFavorites(),
+        _category
+    ) { scanned, history, favorites, category ->
+        when (category) {
+            HomeCategory.ALL -> scanned
+            HomeCategory.RECENT -> videosFromHistory(scanned, history)
+            HomeCategory.FAVORITES -> videosFromFavorites(scanned, favorites)
+        }
+    }
+
     val videos: StateFlow<List<VideoItem>> = combine(
-        _videos, _searchQuery, _sortField, _sortAsc
+        categoryVideos, _searchQuery, _sortField, _sortAsc
     ) { list, query, field, asc ->
         val filtered = if (query.isBlank()) list
         else list.filter { it.title.contains(query, ignoreCase = true) }
@@ -87,6 +108,10 @@ class HomeViewModel @Inject constructor(
     fun setViewMode(mode: ViewMode) {
         _viewMode.value = mode
         appPrefs.viewMode = mode.name.lowercase()
+    }
+
+    fun setCategory(category: HomeCategory) {
+        _category.value = category
     }
 
     private fun sortFieldFromPrefs(key: String): SortField {
@@ -153,6 +178,65 @@ class HomeViewModel @Inject constructor(
     fun createPlaylistWithVideo(name: String, video: VideoItem) {
         viewModelScope.launch {
             playlistEditor.createPlaylistWithVideo(name, video)
+        }
+    }
+
+    private fun videosFromHistory(
+        scanned: List<VideoItem>,
+        history: List<HistoryEntity>
+    ): List<VideoItem> {
+        val scannedById = scanned.associateBy { it.id }
+        return history
+            .sortedByDescending { it.timestamp }
+            .map { item ->
+                scannedById[item.videoId]?.copy(dateAdded = item.timestamp / 1000)
+                    ?: item.toVideoItem()
+            }
+    }
+
+    private fun videosFromFavorites(
+        scanned: List<VideoItem>,
+        favorites: List<FavoriteEntity>
+    ): List<VideoItem> {
+        val scannedById = scanned.associateBy { it.id }
+        return favorites
+            .sortedByDescending { it.timestamp }
+            .map { item ->
+                scannedById[item.videoId]?.copy(dateAdded = item.timestamp / 1000)
+                    ?: item.toVideoItem()
+            }
+    }
+
+    private fun HistoryEntity.toVideoItem(): VideoItem = VideoItem(
+        id = videoId,
+        title = title,
+        path = path,
+        uri = storedUri(path),
+        duration = duration,
+        size = 0,
+        width = 0,
+        height = 0,
+        dateAdded = timestamp / 1000,
+        thumbnailUri = null
+    )
+
+    private fun FavoriteEntity.toVideoItem(): VideoItem = VideoItem(
+        id = videoId,
+        title = title,
+        path = path,
+        uri = storedUri(path),
+        duration = duration,
+        size = 0,
+        width = 0,
+        height = 0,
+        dateAdded = timestamp / 1000,
+        thumbnailUri = null
+    )
+
+    private fun storedUri(path: String): Uri {
+        return when {
+            path.startsWith("content://") || path.startsWith("file://") -> Uri.parse(path)
+            else -> Uri.fromFile(File(path))
         }
     }
 }

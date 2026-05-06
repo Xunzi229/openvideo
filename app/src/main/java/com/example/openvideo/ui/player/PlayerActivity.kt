@@ -94,6 +94,7 @@ class PlayerActivity : AppCompatActivity() {
                 seekBar.progress = seekBarState.progress
                 tvCurrentTime.text = formatTime(state.currentPosition)
                 tvTotalTime.text = formatTime(state.duration)
+                saveProgressPeriodically(state.currentPosition)
 
                 // AB Loop logic
                 if (abLoopState == AbLoopState.LOOPING && abLoopPointA >= 0 && abLoopPointB >= 0) {
@@ -133,6 +134,7 @@ class PlayerActivity : AppCompatActivity() {
     private var hasSkippedIntro = false
     private val startupTrace = PlayerStartupTrace()
     private var hasLoggedFirstFrame = false
+    private var lastHistorySavedPositionMs = 0L
 
     /** 单次手势起始亮度/音量（0–1），避免 MOVE 期间重复累加误差 */
     private var brightnessGestureAnchor = 0.5f
@@ -709,6 +711,13 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun syncPlayPauseIcon() {
         updatePlayPauseIcon(viewModel.player?.playWhenReady == true || viewModel.player?.isPlaying == true)
+    }
+
+    private fun saveProgressPeriodically(positionMs: Long) {
+        if (positionMs <= 0) return
+        if (abs(positionMs - lastHistorySavedPositionMs) < 5_000L) return
+        lastHistorySavedPositionMs = positionMs
+        viewModel.saveHistory()
     }
 
     private fun showControls() {

@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.home
 
 import android.Manifest
+import android.content.res.ColorStateList
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -28,6 +29,7 @@ import com.example.openvideo.R
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.player.PlayerActivity
+import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -44,6 +46,9 @@ class HomeFragment : Fragment() {
     private lateinit var sortLabel: TextView
     private lateinit var btnList: ImageButton
     private lateinit var btnGrid: ImageButton
+    private lateinit var chipAll: Chip
+    private lateinit var chipRecent: Chip
+    private lateinit var chipFavorite: Chip
     private var actionMode: ActionMode? = null
 
     private val permissionLauncher = registerForActivityResult(
@@ -73,6 +78,12 @@ class HomeFragment : Fragment() {
         btnGrid = view.findViewById(R.id.btn_grid_view)
         btnList.setOnClickListener { viewModel.setViewMode(ViewMode.LIST) }
         btnGrid.setOnClickListener { viewModel.setViewMode(ViewMode.GRID) }
+        chipAll = view.findViewById(R.id.chip_all)
+        chipRecent = view.findViewById(R.id.chip_recent)
+        chipFavorite = view.findViewById(R.id.chip_favorite)
+        chipAll.setOnClickListener { viewModel.setCategory(HomeCategory.ALL) }
+        chipRecent.setOnClickListener { viewModel.setCategory(HomeCategory.RECENT) }
+        chipFavorite.setOnClickListener { viewModel.setCategory(HomeCategory.FAVORITES) }
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
@@ -137,6 +148,11 @@ class HomeFragment : Fragment() {
                             recyclerView.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), spanCount)
                         }
                         updateViewModeButtons(mode)
+                    }
+                }
+                launch {
+                    viewModel.category.collect { category ->
+                        updateCategoryChips(category)
                     }
                 }
             }
@@ -238,6 +254,31 @@ class HomeFragment : Fragment() {
             btnList.setColorFilter(inactiveTint)
             btnGrid.setColorFilter(activeTint)
         }
+    }
+
+    private fun updateCategoryChips(category: HomeCategory) {
+        bindCategoryChip(chipAll, category == HomeCategory.ALL)
+        bindCategoryChip(chipRecent, category == HomeCategory.RECENT)
+        bindCategoryChip(chipFavorite, category == HomeCategory.FAVORITES)
+    }
+
+    private fun bindCategoryChip(chip: Chip, selected: Boolean) {
+        val background = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.ov_accent_blue else R.color.ov_bg_elevated
+        )
+        val stroke = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.ov_accent_blue else R.color.ov_divider
+        )
+        val text = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.ov_text_primary else R.color.ov_text_secondary
+        )
+        chip.isChecked = selected
+        chip.chipBackgroundColor = ColorStateList.valueOf(background)
+        chip.chipStrokeColor = ColorStateList.valueOf(stroke)
+        chip.setTextColor(text)
     }
 
     private fun confirmDelete(video: VideoItem) {
