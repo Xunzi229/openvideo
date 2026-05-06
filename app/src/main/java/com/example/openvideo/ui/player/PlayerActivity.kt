@@ -51,6 +51,12 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var playerView: PlayerView
     private lateinit var controlsContainer: View
+    private lateinit var topBar: View
+    private lateinit var topScrim: View
+    private lateinit var bottomScrim: View
+    private lateinit var centerControls: View
+    private lateinit var bottomPanel: View
+    private lateinit var toolRow: View
     private lateinit var btnPlay: ImageButton
     private lateinit var btnPlayCenter: ImageButton
     private lateinit var btnPrev: ImageButton
@@ -136,6 +142,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        requestedOrientation = PlayerOrientationPolicy.defaultOrientation()
         pickSubtitleLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@registerForActivityResult
             val subtitles = subtitleLoader.loadFromUri(uri)
@@ -276,6 +283,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun initViews() {
         playerView = findViewById(R.id.player_view)
         controlsContainer = findViewById(R.id.controls_container)
+        topBar = findViewById(R.id.top_bar)
+        topScrim = findViewById(R.id.top_scrim)
+        bottomScrim = findViewById(R.id.bottom_scrim)
+        centerControls = findViewById(R.id.center_controls)
+        bottomPanel = findViewById(R.id.bottom_panel)
+        toolRow = findViewById(R.id.tool_row)
         btnPlay = findViewById(R.id.btn_play)
         btnPlayCenter = findViewById(R.id.btn_play_center)
         btnPrev = findViewById(R.id.btn_prev)
@@ -301,8 +314,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun setupControls() {
-        btnPlay.setOnClickListener { viewModel.togglePlayPause() }
-        btnPlayCenter.setOnClickListener { viewModel.togglePlayPause() }
+        btnPlay.setOnClickListener { togglePlayPauseAndSyncIcon() }
+        btnPlayCenter.setOnClickListener { togglePlayPauseAndSyncIcon() }
         btnBack.setOnClickListener { finish() }
 
         btnPrev.setOnClickListener { viewModel.seekBackward() }
@@ -418,6 +431,10 @@ class PlayerActivity : AppCompatActivity() {
                 updatePlayPauseIcon(isPlaying)
             }
 
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                updatePlayPauseIcon(playWhenReady)
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (
                     playbackState == Player.STATE_READY &&
@@ -448,12 +465,18 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
         viewModel.player?.addListener(playerListener!!)
+        syncPlayPauseIcon()
+        applyControlVisibility()
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private fun initGestures() {
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                if (isScreenLocked) {
+                    showLockedControls()
+                    return true
+                }
                 if (controlsVisible) hideControls() else showControls()
                 return true
             }
@@ -673,10 +696,19 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
-        val icon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
+        val icon = PlayerControlState.playPauseIcon(isPlaying)
         btnPlay.setImageResource(icon)
         btnPlayCenter.setImageResource(icon)
-        btnPlayCenter.visibility = if (isPlaying) View.GONE else View.VISIBLE
+        btnPlayCenter.visibility = View.GONE
+    }
+
+    private fun togglePlayPauseAndSyncIcon() {
+        viewModel.togglePlayPause()
+        syncPlayPauseIcon()
+    }
+
+    private fun syncPlayPauseIcon() {
+        updatePlayPauseIcon(viewModel.player?.playWhenReady == true || viewModel.player?.isPlaying == true)
     }
 
     private fun showControls() {
@@ -684,6 +716,7 @@ class PlayerActivity : AppCompatActivity() {
         controlsContainer.animate().cancel()
         controlsContainer.alpha = 1f
         controlsContainer.visibility = View.VISIBLE
+        applyControlVisibility()
         scheduleHideControls()
     }
 
@@ -697,6 +730,35 @@ class PlayerActivity : AppCompatActivity() {
         }.start()
     }
 
+    private fun showLockedControls() {
+        controlsVisible = true
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = 1f
+        controlsContainer.visibility = View.VISIBLE
+        applyControlVisibility()
+        handler.removeCallbacks(hideControlsRunnable)
+        handler.postDelayed(hideControlsRunnable, 1_500)
+    }
+
+    private fun applyControlVisibility() {
+        val visibility = PlayerControlState.visibilityFor(isScreenLocked, controlsVisible)
+        val chromeVisibility = if (visibility.chromeVisible) View.VISIBLE else View.GONE
+        topScrim.visibility = chromeVisibility
+        bottomScrim.visibility = chromeVisibility
+        topBar.visibility = chromeVisibility
+        centerControls.visibility = chromeVisibility
+        bottomPanel.visibility = chromeVisibility
+        toolRow.visibility = chromeVisibility
+        btnPlayCenter.visibility = View.GONE
+        btnLock.visibility = if (visibility.lockButtonVisible) View.VISIBLE else View.GONE
+        btnLock.isSelected = visibility.lockButtonSelected
+        if (visibility.lockButtonSelected) {
+            btnLock.setColorFilter(android.graphics.Color.RED)
+        } else {
+            btnLock.clearColorFilter()
+        }
+    }
+
     private fun scheduleHideControls() {
         handler.removeCallbacks(hideControlsRunnable)
         val delay = playerPrefs.controlsAutoHide * 1000L
@@ -708,12 +770,22 @@ class PlayerActivity : AppCompatActivity() {
     private fun toggleScreenLock() {
         isScreenLocked = !isScreenLocked
         if (isScreenLocked) {
-            gestureOverlay.setOnTouchListener { _, _ -> true }
-            btnLock.setColorFilter(android.graphics.Color.RED)
+            gestureOverlay.setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_UP) showLockedControls()
+                true
+            }
+            controlsVisible = true
+            controlsContainer.visibility = View.VISIBLE
+            controlsContainer.alpha = 1f
+            applyControlVisibility()
             android.widget.Toast.makeText(this, getString(R.string.player_locked), android.widget.Toast.LENGTH_SHORT).show()
         } else {
             initGestures()
-            btnLock.clearColorFilter()
+            controlsVisible = true
+            controlsContainer.visibility = View.VISIBLE
+            controlsContainer.alpha = 1f
+            applyControlVisibility()
+            scheduleHideControls()
             android.widget.Toast.makeText(this, getString(R.string.player_unlocked), android.widget.Toast.LENGTH_SHORT).show()
         }
     }
