@@ -76,11 +76,10 @@ class PlayerActivity : AppCompatActivity() {
             if (!isSeeking) {
                 viewModel.updatePosition()
                 val state = viewModel.uiState.value
-                val duration = state.duration
-                if (duration > 0 && duration != Long.MAX_VALUE) {
-                    seekBar.max = duration.toInt()
-                    seekBar.progress = state.currentPosition.toInt().coerceIn(0, seekBar.max)
-                }
+                val seekBarState = PlayerTimeline.seekBarState(state.currentPosition, state.duration)
+                seekBar.isEnabled = seekBarState.enabled
+                seekBar.max = seekBarState.max
+                seekBar.progress = seekBarState.progress
                 tvCurrentTime.text = formatTime(state.currentPosition)
                 tvTotalTime.text = formatTime(state.duration)
 
@@ -375,7 +374,13 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onStopTrackingTouch(sb: SeekBar) {
-                viewModel.seekTo(sb.progress.toLong())
+                viewModel.seekTo(
+                    PlayerTimeline.positionFromSeekBar(
+                        progress = sb.progress,
+                        max = sb.max,
+                        durationMs = viewModel.uiState.value.duration
+                    )
+                )
                 isSeeking = false
                 scheduleHideControls()
             }
@@ -551,19 +556,19 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun handleSeekGesture(dx: Float) {
         val seekMs = (dx / resources.displayMetrics.widthPixels * 60_000).toLong()
-        val target = (viewModel.uiState.value.currentPosition + seekMs)
-            .coerceIn(0, viewModel.uiState.value.duration)
+        val state = viewModel.uiState.value
+        val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
         pendingSeekTarget = target
-        seekIndicator.text = "${formatTime(target)} / ${formatTime(viewModel.uiState.value.duration)}"
+        seekIndicator.text = "${formatTime(target)} / ${formatTime(state.duration)}"
         seekIndicator.visibility = View.VISIBLE
     }
 
     private fun handleVerticalSeekGesture(dy: Float) {
         val seekMs = (-dy / resources.displayMetrics.heightPixels * 60_000).toLong()
-        val target = (viewModel.uiState.value.currentPosition + seekMs)
-            .coerceIn(0, viewModel.uiState.value.duration)
+        val state = viewModel.uiState.value
+        val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
         pendingSeekTarget = target
-        seekIndicator.text = "${formatTime(target)} / ${formatTime(viewModel.uiState.value.duration)}"
+        seekIndicator.text = "${formatTime(target)} / ${formatTime(state.duration)}"
         seekIndicator.visibility = View.VISIBLE
     }
 
@@ -572,7 +577,7 @@ class PlayerActivity : AppCompatActivity() {
         // Re-read the target from the indicator text isn't reliable, recalculate
         // The target was computed in handleSeekGesture, store it instead
         pendingSeekTarget?.let { target ->
-            viewModel.seekTo(target.coerceIn(0, state.duration))
+            viewModel.seekTo(PlayerTimeline.safeSeekTarget(0, target, state.duration))
             pendingSeekTarget = null
         }
     }

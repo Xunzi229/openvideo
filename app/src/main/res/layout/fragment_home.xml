@@ -87,7 +87,7 @@
         android:scrollbars="none"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header_row">
+        app:layout_constraintTop_toBottomOf="@id/search_view">
 
         <com.google.android.material.chip.ChipGroup
             android:layout_width="wrap_content"
@@ -163,19 +163,21 @@
 
             <ImageButton
                 android:id="@+id/btn_list_view"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="@color/ov_accent_blue"
+                android:layout_width="44dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_icon_button_selected"
                 android:contentDescription="@string/home_view_list"
+                android:padding="9dp"
                 android:src="@drawable/ic_list"
                 app:tint="@color/ov_text_primary" />
 
             <ImageButton
                 android:id="@+id/btn_grid_view"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_width="44dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_icon_button_unselected"
                 android:contentDescription="@string/home_view_grid"
+                android:padding="9dp"
                 android:src="@drawable/ic_grid"
                 app:tint="@color/ov_text_secondary" />
         </LinearLayout>

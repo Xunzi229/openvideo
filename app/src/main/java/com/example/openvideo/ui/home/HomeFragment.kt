@@ -223,19 +223,17 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateViewModeButtons(mode: ViewMode) {
-        val activeBg = ContextCompat.getColor(requireContext(), R.color.ov_accent_blue)
-        val inactiveBg = android.graphics.Color.TRANSPARENT
         val activeTint = ContextCompat.getColor(requireContext(), R.color.ov_text_primary)
         val inactiveTint = ContextCompat.getColor(requireContext(), R.color.ov_text_secondary)
 
         if (mode == ViewMode.LIST) {
-            btnList.setBackgroundColor(activeBg)
-            btnGrid.setBackgroundColor(inactiveBg)
+            btnList.setBackgroundResource(R.drawable.bg_icon_button_selected)
+            btnGrid.setBackgroundResource(R.drawable.bg_icon_button_unselected)
             btnList.setColorFilter(activeTint)
             btnGrid.setColorFilter(inactiveTint)
         } else {
-            btnList.setBackgroundColor(inactiveBg)
-            btnGrid.setBackgroundColor(activeBg)
+            btnList.setBackgroundResource(R.drawable.bg_icon_button_unselected)
+            btnGrid.setBackgroundResource(R.drawable.bg_icon_button_selected)
             btnList.setColorFilter(inactiveTint)
             btnGrid.setColorFilter(activeTint)
         }
