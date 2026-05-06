@@ -6,9 +6,8 @@ import androidx.fragment.app.Fragment
 import com.example.openvideo.R
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.core.ui.WindowSizeHelper
-import com.example.openvideo.ui.favorite.FavoriteFragment
-import com.example.openvideo.ui.history.HistoryFragment
 import com.example.openvideo.ui.home.HomeFragment
+import com.example.openvideo.ui.local.LocalFolderFragment
 import com.example.openvideo.ui.playlist.PlaylistFragment
 import com.example.openvideo.ui.settings.SettingsFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -28,21 +27,22 @@ class MainActivity : AppCompatActivity() {
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         if (savedInstanceState == null) {
-            bottomNav.selectedItemId = R.id.nav_video
+            bottomNav.selectedItemId = R.id.nav_home
         }
 
         if (savedInstanceState == null) {
-            loadFragment(HomeFragment())
+            loadFragment(LocalFolderFragment())
         }
 
         bottomNav.setOnItemSelectedListener { item ->
             val fragment: Fragment = when (item.itemId) {
-                R.id.nav_home -> HomeFragment()
+                R.id.nav_home -> LocalFolderFragment()
                 R.id.nav_video -> HomeFragment()
                 R.id.nav_playlist -> PlaylistFragment()
                 R.id.nav_mine -> SettingsFragment()
-                else -> HomeFragment()
+                else -> LocalFolderFragment()
             }
+            supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
             loadFragment(fragment)
             true
         }

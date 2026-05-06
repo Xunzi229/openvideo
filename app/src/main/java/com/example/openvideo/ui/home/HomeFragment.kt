@@ -186,13 +186,16 @@ class HomeFragment : Fragment() {
     }
 
     private fun showVideoOptions(video: VideoItem) {
-        VideoOptionsSheet(
-            context = requireContext(),
-            video = video,
-            onFavorite = { viewModel.toggleFavorite(video) },
-            onAddToPlaylist = { showAddToPlaylistDialog(video) },
-            onDelete = { confirmDelete(video) }
-        ).show()
+        viewLifecycleOwner.lifecycleScope.launch {
+            VideoOptionsSheet(
+                context = requireContext(),
+                video = video,
+                isFavorite = viewModel.isFavorite(video.id),
+                onFavorite = { viewModel.toggleFavorite(video) },
+                onAddToPlaylist = { showAddToPlaylistDialog(video) },
+                onDelete = { confirmDelete(video) }
+            ).show()
+        }
     }
 
     private fun showAddToPlaylistDialog(video: VideoItem) {

@@ -23,53 +23,67 @@
             android:textSize="17sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/nav_playback"
-            style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/bg_settings_nav_selected"
-            android:text="@string/settings_nav_playback"
-            android:textColor="@color/ov_text_primary" />
-
-        <TextView
-            android:id="@+id/nav_video"
-            style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
-            android:text="@string/settings_nav_video" />
-
-        <TextView
-            android:id="@+id/nav_audio"
-            style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
-            android:text="@string/settings_nav_audio" />
-
-        <TextView
-            android:id="@+id/nav_subtitle"
-            style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
-            android:text="@string/settings_nav_subtitle" />
-
-        <TextView
-            android:id="@+id/nav_gesture"
-            style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
-            android:text="@string/settings_nav_gesture" />
-
-        <TextView
-            android:id="@+id/nav_other"
-            style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
-            android:text="@string/settings_nav_other" />
-
-        <View
+        <ScrollView
+            android:id="@+id/nav_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:layout_marginTop="10dp"
+            android:layout_weight="1"
+            android:fillViewport="false"
+            android:overScrollMode="ifContentScrolls"
+            android:scrollbars="vertical">
 
-        <TextView
-            android:id="@+id/tv_reset_defaults"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="12dp"
-            android:text="@string/settings_reset_defaults"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="15sp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="8dp">
+
+                <TextView
+                    android:id="@+id/nav_playback"
+                    style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
+                    android:layout_marginTop="0dp"
+                    android:background="@drawable/bg_settings_nav_selected"
+                    android:text="@string/settings_nav_playback"
+                    android:textColor="@color/ov_text_primary" />
+
+                <TextView
+                    android:id="@+id/nav_video"
+                    style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
+                    android:text="@string/settings_nav_video" />
+
+                <TextView
+                    android:id="@+id/nav_audio"
+                    style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
+                    android:text="@string/settings_nav_audio" />
+
+                <TextView
+                    android:id="@+id/nav_subtitle"
+                    style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
+                    android:text="@string/settings_nav_subtitle" />
+
+                <TextView
+                    android:id="@+id/nav_gesture"
+                    style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
+                    android:text="@string/settings_nav_gesture" />
+
+                <TextView
+                    android:id="@+id/nav_other"
+                    style="@style/Widget.OpenVideo.PlayerSettings.NavItem"
+                    android:text="@string/settings_nav_other" />
+
+                <TextView
+                    android:id="@+id/tv_reset_defaults"
+                    android:layout_width="match_parent"
+                    android:layout_height="44dp"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="12dp"
+                    android:text="@string/settings_reset_defaults"
+                    android:textColor="@color/ov_accent_blue"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </ScrollView>
     </LinearLayout>
 
     <FrameLayout

@@ -3,7 +3,7 @@
     <string name="app_name">OpenVideo</string>
 
     <!-- Bottom Navigation -->
-    <string name="nav_home">首页</string>
+    <string name="nav_home">本地</string>
     <string name="nav_video">视频</string>
     <string name="nav_playlist">播放列表</string>
     <string name="nav_mine">我的</string>
@@ -184,7 +184,18 @@
     <string name="home_view_list">列表视图</string>
     <string name="home_view_grid">网格视图</string>
     <string name="more_options">更多选项</string>
+    <string name="local_folder_title">文件夹</string>
+    <string name="action_back">返回</string>
+    <string name="option_play">播放</string>
+    <string name="option_favorite">收藏</string>
+    <string name="option_favorited">已收藏</string>
+    <string name="option_details">查看详情</string>
+    <string name="option_share">分享</string>
     <string name="option_add_to_playlist">添加到播放列表</string>
+    <plurals name="video_count">
+        <item quantity="one">%d 个视频</item>
+        <item quantity="other">%d 个视频</item>
+    </plurals>
 
     <!-- Settings Page -->
     <string name="settings_page_title">设置</string>

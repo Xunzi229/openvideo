@@ -49,4 +49,17 @@ object PlayerSettingsLayoutPolicy {
             width = (screenWidth * 0.75f).toInt(),
             height = (screenHeight * 0.70f).toInt()
         )
+
+    fun navigationNeedsScroll(
+        availableHeightDp: Int,
+        itemCount: Int,
+        itemHeightDp: Int = 42,
+        itemSpacingDp: Int = 4,
+        titleHeightDp: Int = 40,
+        resetHeightDp: Int = 44,
+        verticalPaddingDp: Int = 32
+    ): Boolean {
+        val navHeight = itemCount * itemHeightDp + (itemCount - 1).coerceAtLeast(0) * itemSpacingDp
+        return titleHeightDp + navHeight + resetHeightDp + verticalPaddingDp > availableHeightDp
+    }
 }

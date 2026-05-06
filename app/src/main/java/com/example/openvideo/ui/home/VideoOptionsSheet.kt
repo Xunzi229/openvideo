@@ -12,6 +12,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 class VideoOptionsSheet(
     context: Context,
     private val video: VideoItem,
+    isFavorite: Boolean,
     private val onFavorite: () -> Unit,
     private val onAddToPlaylist: () -> Unit,
     private val onDelete: () -> Unit
@@ -26,7 +27,9 @@ class VideoOptionsSheet(
             // Will be handled by caller
         }
 
-        view.findViewById<TextView>(R.id.option_favorite).setOnClickListener {
+        val favoriteOption = view.findViewById<TextView>(R.id.option_favorite)
+        favoriteOption.setText(if (isFavorite) R.string.option_favorited else R.string.option_favorite)
+        favoriteOption.setOnClickListener {
             dismiss()
             onFavorite()
         }

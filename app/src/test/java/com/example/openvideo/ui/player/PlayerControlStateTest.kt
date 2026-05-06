@@ -65,4 +65,15 @@ class PlayerControlStateTest {
         assertEquals(1440, bounds.width)
         assertEquals(756, bounds.height)
     }
+
+    @Test
+    fun settingsNavigationNeedsScrollOnShortLandscapeScreens() {
+        assertEquals(
+            true,
+            PlayerSettingsLayoutPolicy.navigationNeedsScroll(
+                availableHeightDp = 280,
+                itemCount = 6
+            )
+        )
+    }
 }

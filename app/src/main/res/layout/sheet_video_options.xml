@@ -12,7 +12,7 @@
         android:layout_height="48dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/ov_space_md"
-        android:text="播放"
+        android:text="@string/option_play"
         android:textColor="@color/ov_text_primary"
         android:textSize="@dimen/ov_text_body" />
 
@@ -22,7 +22,7 @@
         android:layout_height="48dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/ov_space_md"
-        android:text="收藏"
+        android:text="@string/option_favorite"
         android:textColor="@color/ov_text_primary"
         android:textSize="@dimen/ov_text_body" />
 
@@ -42,7 +42,7 @@
         android:layout_height="48dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/ov_space_md"
-        android:text="查看详情"
+        android:text="@string/option_details"
         android:textColor="@color/ov_text_primary"
         android:textSize="@dimen/ov_text_body" />
 
@@ -52,7 +52,7 @@
         android:layout_height="48dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/ov_space_md"
-        android:text="分享"
+        android:text="@string/option_share"
         android:textColor="@color/ov_text_primary"
         android:textSize="@dimen/ov_text_body" />
 
@@ -62,7 +62,7 @@
         android:layout_height="48dp"
         android:gravity="center_vertical"
         android:paddingHorizontal="@dimen/ov_space_md"
-        android:text="删除"
+        android:text="@string/action_delete"
         android:textColor="@color/ov_accent_blue"
         android:textSize="@dimen/ov_text_body" />
 

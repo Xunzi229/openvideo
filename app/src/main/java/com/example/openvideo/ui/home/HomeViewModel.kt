@@ -149,6 +149,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    suspend fun isFavorite(videoId: Long): Boolean = repository.isFavorite(videoId)
+
     fun deleteVideo(video: VideoItem) {
         viewModelScope.launch {
             if (repository.deleteVideo(video)) {
