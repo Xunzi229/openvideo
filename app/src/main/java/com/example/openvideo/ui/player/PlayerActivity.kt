@@ -40,6 +40,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.abs
+import android.content.SharedPreferences
+import android.content.Context
 
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
@@ -142,6 +144,12 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var pickSubtitleLauncher: ActivityResultLauncher<Array<String>>
 
+    // SharedPreferences listener for external subtitle URI written by settings sheet
+    private lateinit var settingsPrefs: SharedPreferences
+    private lateinit var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener
+    private var currentVideoUriString: String = ""
+    private var currentVideoPath: String = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestedOrientation = PlayerOrientationPolicy.defaultOrientation()
@@ -178,6 +186,22 @@ class PlayerActivity : AppCompatActivity() {
         tvTitle.text = title
 
         loadSubtitlesAsync(uriString, videoPath)
+
+        // remember current video info for external subtitle callback
+        currentVideoUriString = uriString
+        currentVideoPath = videoPath
+
+        // register prefs listener to auto-load external subtitle when set by the settings sheet
+        settingsPrefs = getSharedPreferences("player_settings", Context.MODE_PRIVATE)
+        prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key == PlayerPrefs.KEY_EXTERNAL_SUBTITLE) {
+                val uri = prefs.getString(key, "") ?: ""
+                if (uri.isNotBlank()) {
+                    loadSubtitlesAsync(uri, currentVideoPath, showToast = true)
+                }
+            }
+        }
+        settingsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
 
         scheduleHideControls()
 
@@ -247,13 +271,16 @@ class PlayerActivity : AppCompatActivity() {
         volumeProgress.progress = (currentVolume * 100).toInt()
     }
 
-    private fun loadSubtitlesAsync(uriString: String, videoPath: String) {
+    private fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {
         lifecycleScope.launch {
             val subtitles = withContext(Dispatchers.IO) {
                 loadSubtitles(uriString, videoPath)
             }
             if (subtitles.isNotEmpty()) {
                 viewModel.setSubtitles(subtitles)
+                if (showToast) Toast.makeText(this@PlayerActivity, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
+            } else {
+                if (showToast) Toast.makeText(this@PlayerActivity, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
             }
             startupTrace.record("subtitle_scan_finished")
         }
@@ -464,6 +491,29 @@ class PlayerActivity : AppCompatActivity() {
             override fun onPlayerError(error: PlaybackException) {
                 CrashLogger.logPlayerError(this@PlayerActivity, error)
                 Toast.makeText(this@PlayerActivity, R.string.player_playback_error, Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                var w = videoSize.width
+                var h = videoSize.height
+                val rot = videoSize.unappliedRotationDegrees
+                // If the video frame has an unapplied rotation of 90 or 270, swap w/h
+                if ((rot == 90 || rot == 270) && w > 0 && h > 0) {
+                    val tmp = w
+                    w = h
+                    h = tmp
+                }
+                if (w > 0 && h > 0 && playerPrefs.autoOrientationByVideo) {
+                    val ratio = w.toFloat() / h.toFloat()
+                    if (ratio >= 1.2f) {
+                        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    } else if (ratio <= 0.8f) {
+                        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    } else {
+                        // let the sensor/system decide for ambiguous ratios
+                        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+                    }
+                }
             }
         }
         viewModel.player?.addListener(playerListener!!)
@@ -833,11 +883,15 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        // unregister prefs listener
+        if (this::settingsPrefs.isInitialized) {
+            try { settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener) } catch (_: Exception) {}
+        }
         handler.removeCallbacksAndMessages(null)
         playerListener?.let { viewModel.player?.removeListener(it) }
         playerListener = null
         viewModel.release()
+        super.onDestroy()
     }
 
     override fun onPictureInPictureModeChanged(isInPipMode: Boolean, newConfig: android.content.res.Configuration) {

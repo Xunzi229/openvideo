@@ -34,6 +34,31 @@
             android:resizeableActivity="true"
             android:theme="@style/Theme.OpenVideo.Player" />
 
+        <activity
+            android:name=".ui.player.PlayerDisplaySettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenVideo" />
+
+        <activity
+            android:name=".ui.player.PlayerPlaybackSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenVideo" />
+
+        <activity
+            android:name=".ui.player.PlayerAudioSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenVideo" />
+
+        <activity
+            android:name=".ui.player.PlayerSubtitleSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenVideo" />
+
+        <activity
+            android:name=".ui.player.PlayerGestureSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenVideo" />
+
         <service
             android:name=".core.player.PlaybackService"
             android:exported="false"

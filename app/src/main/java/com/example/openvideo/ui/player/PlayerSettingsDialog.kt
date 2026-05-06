@@ -186,10 +186,24 @@ class PlayerSettingsDialog(
     // ── 播放分组 ──
 
     private fun setupPlaybackSection() {
-        setupSpeed()
-        setupLoopRow()
-        setupSeekIntervalRow()
-        setupPlaybackSwitches()
+        // Hide inline detailed controls; expose a single launcher row to open the dedicated playback settings page
+        findViewById<android.widget.RadioGroup?>(R.id.rg_speed)?.visibility = View.GONE
+        row(R.id.row_loop)?.findViewById<TextView>(R.id.row_title)?.text = context.getString(R.string.settings_nav_playback)
+        row(R.id.row_loop)?.setOnClickListener {
+            val fa = context as? androidx.fragment.app.FragmentActivity
+            fa?.let {
+                val sheet = PlayerPlaybackSettingsSheet()
+                sheet.show(it.supportFragmentManager, "player_playback_settings")
+            }
+        }
+        // hide other inline rows
+        row(R.id.row_skip)?.visibility = View.GONE
+        row(R.id.row_seek)?.visibility = View.GONE
+        row(R.id.row_remember)?.visibility = View.GONE
+        row(R.id.row_hw)?.visibility = View.GONE
+        row(R.id.row_pause)?.visibility = View.GONE
+        row(R.id.row_auto_next)?.visibility = View.GONE
+        row(R.id.row_bg_audio)?.visibility = View.GONE
     }
 
     private fun setupSpeed() {
@@ -292,7 +306,7 @@ class PlayerSettingsDialog(
     // ── 画面分组 ──
 
     private fun setupVideoSection() {
-        // 画面比例
+        // 打开独立的“显示设置”页面以逐层配置（画面比例 / 旋转 / 镜像 / 自动方向）
         aspectRatioIndex = aspectRatios.indexOf(playerPrefs.aspectRatio).takeIf { it >= 0 } ?: 0
         val aspectValue = value(R.id.row_aspect)
         fun updateAspect() {
@@ -308,262 +322,77 @@ class PlayerSettingsDialog(
         }
         updateAspect()
         aspectValue.setOnClickListener {
-            aspectRatioIndex = (aspectRatioIndex + 1) % aspectRatios.size
-            playerPrefs.aspectRatio = aspectRatios[aspectRatioIndex]
-            updateAspect()
+            // 打开独立页面进行详尽配置
+            val fa = context as? androidx.fragment.app.FragmentActivity
+            fa?.let {
+                val sheet = PlayerDisplaySettingsSheet()
+                sheet.show(it.supportFragmentManager, "player_display_settings")
+            }
         }
 
-        // 画面旋转
-        rotationIndex = rotations.indexOf(playerPrefs.rotation).takeIf { it >= 0 } ?: 0
-        val rotationValue = value(R.id.row_rotation)
-        fun updateRotation() {
-            rotationValue.text = "${rotations[rotationIndex]}°"
-        }
-        updateRotation()
-        rotationValue.setOnClickListener {
-            rotationIndex = (rotationIndex + 1) % rotations.size
-            playerPrefs.rotation = rotations[rotationIndex]
-            updateRotation()
-        }
-
-        // 画面镜像
-        val mirrorSwitch = switch(R.id.row_mirror)
-        bindSwitch(mirrorSwitch, playerPrefs.mirror) { playerPrefs.mirror = it }
+        // 旋转/镜像等项在独立页面中配置，隐藏当前行的直接控制，避免重复
+        row(R.id.row_rotation)?.visibility = View.GONE
+        row(R.id.row_mirror)?.visibility = View.GONE
     }
 
     // ── 声音分组 ──
 
     private fun setupAudioSection() {
-        // 倍速不变调
-        val pitchSwitch = switch(R.id.row_pitch)
-        bindSwitch(pitchSwitch, playerPrefs.speedPreservePitch) {
-            playerPrefs.speedPreservePitch = it
-            viewModel.setSpeed(
-                playerPrefs.speed,
-                PlayerPlaybackSettings.pitchFor(playerPrefs.speed, it)
-            )
-        }
-
-        // 音量增强
-        val boostSwitch = switch(R.id.row_boost)
-        bindSwitch(boostSwitch, playerPrefs.volumeBoost) {
-            playerPrefs.volumeBoost = it
-            viewModel.setVolumeBoost(it)
-        }
-
-        // 声道选择
-        audioChannelIndex = audioChannels.indexOf(playerPrefs.audioChannel).takeIf { it >= 0 } ?: 0
+        // Hide inline audio controls; repurpose channel row to open dedicated audio settings
+        row(R.id.row_pitch)?.visibility = View.GONE
+        row(R.id.row_boost)?.visibility = View.GONE
         val channelValue = value(R.id.row_channel)
-        fun updateChannel() {
-            val textRes = when (audioChannels[audioChannelIndex]) {
-                AudioChannel.STEREO -> R.string.settings_audio_stereo
-                AudioChannel.LEFT -> R.string.settings_audio_left
-                AudioChannel.RIGHT -> R.string.settings_audio_right
+        channelValue.setText(R.string.settings_nav_audio)
+        row(R.id.row_channel)?.setOnClickListener {
+            val fa = context as? androidx.fragment.app.FragmentActivity
+            fa?.let {
+                val sheet = PlayerAudioSettingsSheet()
+                sheet.show(it.supportFragmentManager, "player_audio_settings")
             }
-            channelValue.setText(textRes)
         }
-        updateChannel()
-        channelValue.setOnClickListener {
-            audioChannelIndex = (audioChannelIndex + 1) % audioChannels.size
-            playerPrefs.audioChannel = audioChannels[audioChannelIndex]
-            updateChannel()
-        }
-
-        // 声音延迟
-        val delayValue = value(R.id.row_delay)
-        fun updateDelay() {
-            delayValue.text = "${playerPrefs.audioDelay}ms"
-        }
-        updateDelay()
-        delayValue.setOnClickListener {
-            // Cycle: -500, -250, 0, 250, 500
-            val current = playerPrefs.audioDelay
-            val next = when {
-                current < -250 -> -250
-                current < 0 -> 0
-                current < 250 -> 250
-                current < 500 -> 500
-                else -> -500
-            }
-            playerPrefs.audioDelay = next
-            updateDelay()
-        }
+        row(R.id.row_delay)?.visibility = View.GONE
     }
 
     // ── 字幕分组 ──
 
     private fun setupSubtitleSection() {
-        // 加载外挂字幕
+        // Hide inline subtitle controls; repurpose the load row to open subtitle detail page
+        row(R.id.row_subtitle_size)?.visibility = View.GONE
+        row(R.id.row_subtitle_color)?.visibility = View.GONE
+        row(R.id.row_subtitle_bg)?.visibility = View.GONE
+        row(R.id.row_subtitle_position)?.visibility = View.GONE
+        row(R.id.row_subtitle_encoding)?.visibility = View.GONE
+
         val loadSubtitle = action(R.id.row_load_subtitle)
-        loadSubtitle.setOnClickListener { onRequestPickSubtitle() }
-
-        // 字幕大小
-        val sizeSeekbar = seekbar(R.id.row_subtitle_size)
-        val sizeValue = value(R.id.row_subtitle_size)
-        val currentSize = playerPrefs.subtitleSize
-        sizeSeekbar.progress = (currentSize - 14) / 2
-        sizeValue.text = "${currentSize}sp"
-        sizeSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                val size = 14 + progress * 2
-                sizeValue.text = "${size}sp"
-                if (fromUser) playerPrefs.subtitleSize = size
+        loadSubtitle.text = context.getString(R.string.settings_nav_subtitle)
+        loadSubtitle.setOnClickListener {
+            val fa = context as? androidx.fragment.app.FragmentActivity
+            fa?.let {
+                val sheet = PlayerSubtitleSettingsSheet()
+                sheet.show(it.supportFragmentManager, "player_subtitle_settings")
             }
-            override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
-        })
-
-        // 字幕背景
-        subtitleBgIndex = subtitleBgStyles.indexOf(playerPrefs.subtitleBgStyle).takeIf { it >= 0 } ?: 1
-        val bgValue = value(R.id.row_subtitle_bg)
-        fun updateBg() {
-            val textRes = when (subtitleBgStyles[subtitleBgIndex]) {
-                SubtitleBgStyle.NONE -> R.string.settings_subtitle_bg_none
-                SubtitleBgStyle.SEMI_TRANSPARENT -> R.string.settings_subtitle_bg_semi
-                SubtitleBgStyle.OPAQUE -> R.string.settings_subtitle_bg_opaque
-            }
-            bgValue.setText(textRes)
-        }
-        updateBg()
-        bgValue.setOnClickListener {
-            subtitleBgIndex = (subtitleBgIndex + 1) % subtitleBgStyles.size
-            playerPrefs.subtitleBgStyle = subtitleBgStyles[subtitleBgIndex]
-            updateBg()
-        }
-
-        // 字幕位置
-        val posSeekbar = seekbar(R.id.row_subtitle_position)
-        posSeekbar.progress = (playerPrefs.subtitlePosition * 100).toInt()
-        posSeekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) playerPrefs.subtitlePosition = progress / 100f
-            }
-            override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
-        })
-
-        // 字幕编码
-        encodingIndex = encodings.indexOf(playerPrefs.subtitleEncoding).takeIf { it >= 0 } ?: 0
-        val encodingValue = value(R.id.row_subtitle_encoding)
-        fun updateEncoding() {
-            encodingValue.text = if (encodingIndex == 0)
-                context.getString(R.string.settings_encoding_auto)
-            else encodings[encodingIndex]
-        }
-        updateEncoding()
-        encodingValue.setOnClickListener {
-            encodingIndex = (encodingIndex + 1) % encodings.size
-            playerPrefs.subtitleEncoding = encodings[encodingIndex]
-            updateEncoding()
         }
     }
 
     // ── 手势分组 ──
 
     private fun setupGestureSection() {
-        // 左侧上下滑动
-        leftGestureIndex = gestureActions.indexOf(playerPrefs.leftVerticalGesture).takeIf { it >= 0 } ?: 0
-        val leftValue = value(R.id.row_left_vertical)
-        fun updateLeft() {
-            leftValue.setText(when (gestureActions[leftGestureIndex]) {
-                GestureAction.BRIGHTNESS -> R.string.settings_action_brightness
-                GestureAction.VOLUME -> R.string.settings_action_volume
-                GestureAction.SEEK -> R.string.settings_action_seek
-                GestureAction.NONE -> R.string.settings_action_none
-            })
-        }
-        updateLeft()
-        leftValue.setOnClickListener {
-            leftGestureIndex = (leftGestureIndex + 1) % gestureActions.size
-            playerPrefs.leftVerticalGesture = gestureActions[leftGestureIndex]
-            updateLeft()
-        }
+        // Hide inline gesture controls; repurpose a row to open detailed gesture settings page
+        row(R.id.row_left_vertical)?.visibility = View.GONE
+        row(R.id.row_right_vertical)?.visibility = View.GONE
+        row(R.id.row_double_tap)?.visibility = View.GONE
+        row(R.id.row_long_press)?.visibility = View.GONE
+        row(R.id.row_horizontal)?.visibility = View.GONE
+        row(R.id.row_sensitivity)?.visibility = View.GONE
 
-        // 右侧上下滑动
-        rightGestureIndex = gestureActions.indexOf(playerPrefs.rightVerticalGesture).takeIf { it >= 0 } ?: 1
-        val rightValue = value(R.id.row_right_vertical)
-        fun updateRight() {
-            rightValue.setText(when (gestureActions[rightGestureIndex]) {
-                GestureAction.BRIGHTNESS -> R.string.settings_action_brightness
-                GestureAction.VOLUME -> R.string.settings_action_volume
-                GestureAction.SEEK -> R.string.settings_action_seek
-                GestureAction.NONE -> R.string.settings_action_none
-            })
-        }
-        updateRight()
-        rightValue.setOnClickListener {
-            rightGestureIndex = (rightGestureIndex + 1) % gestureActions.size
-            playerPrefs.rightVerticalGesture = gestureActions[rightGestureIndex]
-            updateRight()
-        }
-
-        // 双击操作
-        doubleTapIndex = doubleTapActions.indexOf(playerPrefs.doubleTapAction).takeIf { it >= 0 } ?: 0
-        val doubleTapValue = value(R.id.row_double_tap)
-        fun updateDoubleTap() {
-            doubleTapValue.setText(when (doubleTapActions[doubleTapIndex]) {
-                DoubleTapAction.PLAY_PAUSE -> R.string.settings_double_tap_pause
-                DoubleTapAction.FORWARD -> R.string.settings_double_tap_forward
-                DoubleTapAction.BACKWARD -> R.string.settings_double_tap_backward
-                DoubleTapAction.NONE -> R.string.settings_double_tap_none
-            })
-        }
-        updateDoubleTap()
-        doubleTapValue.setOnClickListener {
-            doubleTapIndex = (doubleTapIndex + 1) % doubleTapActions.size
-            playerPrefs.doubleTapAction = doubleTapActions[doubleTapIndex]
-            updateDoubleTap()
-        }
-
-        // 长按操作
-        longPressIndex = longPressActions.indexOf(playerPrefs.longPressAction).takeIf { it >= 0 } ?: 0
-        val longPressValue = value(R.id.row_long_press)
-        fun updateLongPress() {
-            longPressValue.setText(when (longPressActions[longPressIndex]) {
-                LongPressAction.SPEED -> R.string.settings_double_tap_playback
-                LongPressAction.NONE -> R.string.settings_action_none
-            })
-        }
-        updateLongPress()
-        longPressValue.setOnClickListener {
-            longPressIndex = (longPressIndex + 1) % longPressActions.size
-            playerPrefs.longPressAction = longPressActions[longPressIndex]
-            updateLongPress()
-        }
-
-        // 水平滑动
-        horizontalIndex = gestureActions.indexOf(playerPrefs.horizontalSwipeAction).takeIf { it >= 0 } ?: 2
-        val horizontalValue = value(R.id.row_horizontal)
-        fun updateHorizontal() {
-            horizontalValue.setText(when (gestureActions[horizontalIndex]) {
-                GestureAction.BRIGHTNESS -> R.string.settings_action_brightness
-                GestureAction.VOLUME -> R.string.settings_action_volume
-                GestureAction.SEEK -> R.string.settings_action_seek
-                GestureAction.NONE -> R.string.settings_action_none
-            })
-        }
-        updateHorizontal()
-        horizontalValue.setOnClickListener {
-            horizontalIndex = (horizontalIndex + 1) % gestureActions.size
-            playerPrefs.horizontalSwipeAction = gestureActions[horizontalIndex]
-            updateHorizontal()
-        }
-
-        // 灵敏度
-        sensitivityIndex = (playerPrefs.gestureSensitivity - 1).coerceIn(0, 2)
-        val sensitivityValue = value(R.id.row_sensitivity)
-        fun updateSensitivity() {
-            sensitivityValue.setText(when (sensitivityIndex) {
-                0 -> R.string.settings_sensitivity_low
-                1 -> R.string.settings_sensitivity_medium
-                else -> R.string.settings_sensitivity_high
-            })
-        }
-        updateSensitivity()
-        sensitivityValue.setOnClickListener {
-            sensitivityIndex = (sensitivityIndex + 1) % 3
-            playerPrefs.gestureSensitivity = sensitivityIndex + 1
-            updateSensitivity()
+        val launcher = value(R.id.row_left_vertical)
+        launcher.text = context.getString(R.string.settings_nav_gesture)
+        row(R.id.row_left_vertical)?.setOnClickListener {
+            val fa = context as? androidx.fragment.app.FragmentActivity
+            fa?.let {
+                val sheet = PlayerGestureSettingsSheet()
+                sheet.show(it.supportFragmentManager, "player_gesture_settings")
+            }
         }
     }
 

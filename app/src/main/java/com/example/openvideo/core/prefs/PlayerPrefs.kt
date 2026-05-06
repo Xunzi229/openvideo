@@ -72,6 +72,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_MIRROR, false)
         set(value) = putBoolean(KEY_MIRROR, value)
 
+    var autoOrientationByVideo: Boolean
+        get() = getBoolean(KEY_AUTO_ORIENTATION, true)
+        set(value) = putBoolean(KEY_AUTO_ORIENTATION, value)
+
     // ── 声音 ──
 
     var speedPreservePitch: Boolean
@@ -111,6 +115,11 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
     var subtitleEncoding: String
         get() = getString(KEY_SUBTITLE_ENCODING, "auto")
         set(value) = putString(KEY_SUBTITLE_ENCODING, value)
+
+    // 外挂字幕 URI（由设置覆盖层写入，播放器可读取并加载）
+    var externalSubtitleUri: String
+        get() = getString(KEY_EXTERNAL_SUBTITLE, "")
+        set(value) = putString(KEY_EXTERNAL_SUBTITLE, value)
 
     // ── 手势 ──
 
@@ -182,6 +191,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_ASPECT_RATIO = "aspect_ratio"
         private const val KEY_ROTATION = "rotation"
         private const val KEY_MIRROR = "mirror"
+        private const val KEY_AUTO_ORIENTATION = "auto_orientation_by_video"
 
         // 声音
         private const val KEY_SPEED_PRESERVE_PITCH = "speed_preserve_pitch"
@@ -193,8 +203,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SUBTITLE_SIZE = "subtitle_size"
         private const val KEY_SUBTITLE_COLOR = "subtitle_color"
         private const val KEY_SUBTITLE_BG = "subtitle_bg"
-        private const val KEY_SUBTITLE_POSITION = "subtitle_position"
         private const val KEY_SUBTITLE_ENCODING = "subtitle_encoding"
+        // Exposed constant for external subtitle URI so other components can reference it
+        const val KEY_EXTERNAL_SUBTITLE = "external_subtitle_uri"
+        private const val KEY_SUBTITLE_POSITION = "subtitle_position"
 
         // 手势
         private const val KEY_LEFT_VERTICAL = "left_vertical_gesture"

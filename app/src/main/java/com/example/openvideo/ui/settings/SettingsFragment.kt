@@ -64,7 +64,7 @@ class SettingsFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.row_default_speed).setOnClickListener {
-            val speeds = listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+            val speeds = DefaultPlayerSettings.supportedSpeeds
             val next = (speeds.indexOf(viewModel.defaultSpeed) + 1) % speeds.size
             viewModel.setDefaultSpeed(speeds[next])
             updateSpeedLabel(tvSpeed)

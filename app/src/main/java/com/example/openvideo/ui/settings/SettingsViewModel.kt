@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,13 +21,14 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     application: Application,
     private val appPrefs: AppPrefs,
+    private val playerPrefs: PlayerPrefs,
     private val repository: VideoRepository
 ) : AndroidViewModel(application) {
 
     val themeMode: ThemeMode get() = appPrefs.themeMode
     val language: String get() = appPrefs.language
-    val defaultSpeed: Float get() = appPrefs.defaultSpeed
-    val defaultRatio: AspectRatio get() = appPrefs.defaultAspectRatio
+    val defaultSpeed: Float get() = DefaultPlayerSettings.supportedSpeedOrDefault(playerPrefs.speed)
+    val defaultRatio: AspectRatio get() = DefaultPlayerSettings.aspectRatioOrDefault(playerPrefs.aspectRatio)
 
     private val _cacheSize = MutableStateFlow("0 MB")
     val cacheSize: StateFlow<String> = _cacheSize
@@ -41,18 +43,20 @@ class SettingsViewModel @Inject constructor(
 
     fun setThemeMode(mode: ThemeMode) {
         appPrefs.themeMode = mode
+        AppSettingsApplier.apply(appPrefs)
     }
 
     fun setLanguage(lang: String) {
         appPrefs.language = lang
+        AppSettingsApplier.apply(appPrefs)
     }
 
     fun setDefaultSpeed(speed: Float) {
-        appPrefs.defaultSpeed = speed
+        playerPrefs.speed = DefaultPlayerSettings.supportedSpeedOrDefault(speed)
     }
 
     fun setDefaultRatio(ratio: AspectRatio) {
-        appPrefs.defaultAspectRatio = ratio
+        playerPrefs.aspectRatio = DefaultPlayerSettings.aspectRatioOrDefault(ratio)
     }
 
     fun clearCache() {

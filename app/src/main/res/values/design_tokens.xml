@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- OpenVideo dark immersive design tokens. Prefer these over hardcoded UI values. -->
+    <!-- OpenVideo light design tokens. Prefer these over hardcoded UI values. -->
 
-    <color name="ov_bg_base">#FF070C14</color>
-    <color name="ov_bg_gradient_mid">#FF101724</color>
-    <color name="ov_bg_elevated">#E6141B27</color>
-    <color name="ov_bg_elevated_strong">#F21A2230</color>
-    <color name="ov_bg_overlay">#CC05080D</color>
+    <color name="ov_bg_base">#FFF7F9FC</color>
+    <color name="ov_bg_gradient_mid">#FFEAF0F8</color>
+    <color name="ov_bg_elevated">#F2FFFFFF</color>
+    <color name="ov_bg_elevated_strong">#FFFFFFFF</color>
+    <color name="ov_bg_overlay">#CCFFFFFF</color>
 
-    <color name="ov_accent_blue">#FF5B95FF</color>
-    <color name="ov_accent_blue_pressed">#FF447AE0</color>
-    <color name="ov_accent_blue_soft">#335B95FF</color>
-    <color name="ov_nav_active_indicator">#665A5368</color>
+    <color name="ov_accent_blue">#FF2F6FE4</color>
+    <color name="ov_accent_blue_pressed">#FF2458B7</color>
+    <color name="ov_accent_blue_soft">#332F6FE4</color>
+    <color name="ov_nav_active_indicator">#667EA7E8</color>
 
-    <color name="ov_text_primary">#FFF2F6FF</color>
-    <color name="ov_text_secondary">#FFB4BDCA</color>
-    <color name="ov_text_tertiary">#FF7E8A9A</color>
-    <color name="ov_divider">#1FFFFFFF</color>
-    <color name="ov_icon_default">#FFD6DEEA</color>
+    <color name="ov_text_primary">#FF111827</color>
+    <color name="ov_text_secondary">#FF526071</color>
+    <color name="ov_text_tertiary">#FF7B8796</color>
+    <color name="ov_divider">#1F111827</color>
+    <color name="ov_icon_default">#FF28364A</color>
 
     <dimen name="ov_space_xs">4dp</dimen>
     <dimen name="ov_space_sm">8dp</dimen>
