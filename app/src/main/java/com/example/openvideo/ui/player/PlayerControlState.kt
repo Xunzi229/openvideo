@@ -42,6 +42,15 @@ object PlayerControlState {
 object PlayerOrientationPolicy {
     fun defaultOrientation(): Int = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
+    fun initialOrientationForVideo(
+        width: Int,
+        height: Int,
+        autoOrientationByVideo: Boolean
+    ): Int {
+        if (!autoOrientationByVideo) return defaultOrientation()
+        return orientationForVideo(width, height)
+    }
+
     fun orientationForVideo(width: Int, height: Int): Int {
         if (width <= 0 || height <= 0) return defaultOrientation()
 

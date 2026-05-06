@@ -2,6 +2,7 @@ package com.example.openvideo.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.app.PendingIntent
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.data.local.FavoriteEntity
@@ -10,6 +11,7 @@ import com.example.openvideo.data.local.PlaylistDao
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
+import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.ui.playlist.PlaylistEditor
 import android.net.Uri
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -169,6 +171,21 @@ class HomeViewModel @Inject constructor(
                 _videos.value = _videos.value.filter { it.id !in ids }
             }
         }
+    }
+
+    fun deleteVideosWithResult(videos: List<VideoItem>, onResult: (VideoDeleteResult) -> Unit) {
+        viewModelScope.launch {
+            val result = repository.deleteVideos(videos)
+            if (result is VideoDeleteResult.Deleted && result.uris.isNotEmpty()) {
+                val deletedUris = result.uris
+                _videos.value = _videos.value.filter { it.uri !in deletedUris }
+            }
+            onResult(result)
+        }
+    }
+
+    fun createDeleteRequest(videos: List<VideoItem>): PendingIntent? {
+        return repository.createDeleteRequest(videos)
     }
 
     fun addToPlaylist(playlistId: Long, video: VideoItem) {

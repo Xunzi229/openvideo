@@ -1,8 +1,10 @@
 package com.example.openvideo.core.player
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -11,18 +13,20 @@ import android.os.Looper
 import android.view.PixelCopy
 import android.view.SurfaceView
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.ScaleAndRotateTransformation
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
+import android.provider.MediaStore
 import java.io.File
 import java.io.FileOutputStream
 import javax.inject.Inject
@@ -32,6 +36,7 @@ enum class DecodeMode { SOFT, HARD }
 enum class RenderMode { SURFACE, TEXTURE }
 
 @Singleton
+@OptIn(UnstableApi::class)
 class PlayerManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
@@ -68,6 +73,7 @@ class PlayerManager @Inject constructor(
 
     fun release() {
         clearEffects()
+        releaseLoudnessEnhancer()
         releaseEqualizer()
         player?.release()
         player = null
@@ -111,7 +117,12 @@ class PlayerManager @Inject constructor(
     }
 
     fun setVolumeBoost(enabled: Boolean) {
-        player?.volume = if (enabled) 1.5f else 1.0f
+        player?.volume = 1.0f
+        if (enabled) {
+            enableLoudnessEnhancer()
+        } else {
+            releaseLoudnessEnhancer()
+        }
     }
 
     fun applyDecodeMode(mode: DecodeMode) {
@@ -146,40 +157,36 @@ class PlayerManager @Inject constructor(
     // P1: Video Filters
     private val activeEffects = mutableListOf<androidx.media3.common.Effect>()
 
-    @OptIn(UnstableApi::class)
     fun setBrightness(value: Float) {
         activeEffects.removeAll { it is Brightness }
         activeEffects.add(Brightness(value))
         applyEffects()
     }
 
-    @OptIn(UnstableApi::class)
     fun setContrast(value: Float) {
         activeEffects.removeAll { it is Contrast }
         activeEffects.add(Contrast(value))
         applyEffects()
     }
 
-    @OptIn(UnstableApi::class)
     fun setRotation(degrees: Float) {
         activeEffects.removeAll { it is ScaleAndRotateTransformation }
         activeEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees).build())
         applyEffects()
     }
 
-    @OptIn(UnstableApi::class)
     fun clearEffects() {
         activeEffects.clear()
         player?.setVideoEffects(emptyList())
     }
 
-    @OptIn(UnstableApi::class)
     private fun applyEffects() {
         player?.setVideoEffects(activeEffects.toList())
     }
 
     // P1: Equalizer
     private var equalizer: Equalizer? = null
+    private var loudnessEnhancer: LoudnessEnhancer? = null
 
     fun initEqualizer(audioSessionId: Int) {
         releaseEqualizer()
@@ -209,6 +216,24 @@ class PlayerManager @Inject constructor(
         equalizer?.setBandLevel(band, level)
     }
 
+    private fun enableLoudnessEnhancer() {
+        val audioSessionId = player?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
+        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
+
+        releaseLoudnessEnhancer()
+        loudnessEnhancer = runCatching {
+            LoudnessEnhancer(audioSessionId).apply {
+                setTargetGain(VOLUME_BOOST_MILLIBELS)
+                enabled = true
+            }
+        }.getOrNull()
+    }
+
+    private fun releaseLoudnessEnhancer() {
+        loudnessEnhancer?.release()
+        loudnessEnhancer = null
+    }
+
     // P1: Screenshot
     fun takeScreenshot(surfaceView: SurfaceView, callback: (Boolean, String?) -> Unit) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
@@ -221,17 +246,7 @@ class PlayerManager @Inject constructor(
             bitmap,
             { result ->
             if (result == PixelCopy.SUCCESS) {
-                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "OpenVideo")
-                if (!dir.exists()) dir.mkdirs()
-                val file = File(dir, "screenshot_${System.currentTimeMillis()}.jpg")
-                try {
-                    FileOutputStream(file).use { out ->
-                        bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                    }
-                    callback(true, file.absolutePath)
-                } catch (e: Exception) {
-                    callback(false, null)
-                }
+                saveScreenshot(bitmap, callback)
             } else {
                 callback(false, null)
             }
@@ -239,5 +254,50 @@ class PlayerManager @Inject constructor(
             },
             Handler(Looper.getMainLooper())
         )
+    }
+
+    private fun saveScreenshot(bitmap: Bitmap, callback: (Boolean, String?) -> Unit) {
+        val name = "screenshot_${System.currentTimeMillis()}.jpg"
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/OpenVideo")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = context.contentResolver.insert(
+                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
+                    values
+                ) ?: run {
+                    callback(false, null)
+                    return
+                }
+                context.contentResolver.openOutputStream(uri)?.use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                } ?: run {
+                    callback(false, null)
+                    return
+                }
+                values.clear()
+                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                context.contentResolver.update(uri, values, null, null)
+                callback(true, uri.toString())
+            } else {
+                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "OpenVideo")
+                if (!dir.exists()) dir.mkdirs()
+                val file = File(dir, name)
+                FileOutputStream(file).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                }
+                callback(true, file.absolutePath)
+            }
+        } catch (_: Exception) {
+            callback(false, null)
+        }
+    }
+
+    private companion object {
+        const val VOLUME_BOOST_MILLIBELS = 600
     }
 }

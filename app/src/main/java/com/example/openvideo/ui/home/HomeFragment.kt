@@ -3,7 +3,6 @@ package com.example.openvideo.ui.home
 import android.Manifest
 import android.content.res.ColorStateList
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -15,9 +14,11 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.view.ActionMode
 import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.ui.player.PlayerActivity
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -50,11 +52,21 @@ class HomeFragment : Fragment() {
     private lateinit var chipRecent: Chip
     private lateinit var chipFavorite: Chip
     private var actionMode: ActionMode? = null
+    private var pendingDeleteVideos: List<VideoItem> = emptyList()
 
     private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) viewModel.loadVideos()
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants.any { it.value }) viewModel.loadVideos()
+    }
+
+    private val deleteRequestLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && pendingDeleteVideos.isNotEmpty()) {
+            completePendingDeleteAfterSystemGrant()
+        }
+        pendingDeleteVideos = emptyList()
     }
 
     override fun onCreateView(
@@ -160,18 +172,30 @@ class HomeFragment : Fragment() {
     }
 
     private fun checkPermissionAndLoad() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_VIDEO
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
-
-        if (ContextCompat.checkSelfPermission(requireContext(), permission)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (hasVideoReadPermission()) {
             viewModel.loadVideos()
         } else {
-            permissionLauncher.launch(permission)
+            permissionLauncher.launch(videoReadPermissions())
+        }
+    }
+
+    private fun hasVideoReadPermission(): Boolean {
+        return videoReadPermissions().any { permission ->
+            ContextCompat.checkSelfPermission(requireContext(), permission) ==
+                PermissionChecker.PERMISSION_GRANTED
+        }
+    }
+
+    private fun videoReadPermissions(): Array<String> {
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> arrayOf(
+                Manifest.permission.READ_MEDIA_VIDEO,
+                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
+            )
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
+                Manifest.permission.READ_MEDIA_VIDEO
+            )
+            else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
         }
     }
 
@@ -193,6 +217,7 @@ class HomeFragment : Fragment() {
                 context = requireContext(),
                 video = video,
                 isFavorite = viewModel.isFavorite(video.id),
+                onPlay = { openPlayer(video) },
                 onFavorite = { viewModel.toggleFavorite(video) },
                 onAddToPlaylist = { showAddToPlaylistDialog(video) },
                 onDelete = { confirmDelete(video) }
@@ -290,7 +315,7 @@ class HomeFragment : Fragment() {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_delete_title)
             .setMessage(getString(R.string.dialog_delete_message, video.title))
-            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteVideo(video) }
+            .setPositiveButton(R.string.action_delete) { _, _ -> deleteVideosWithSystemRequest(listOf(video)) }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
@@ -338,11 +363,27 @@ class HomeFragment : Fragment() {
             .setTitle(R.string.dialog_batch_delete_title)
             .setMessage(getString(R.string.dialog_batch_delete_message, selected.size))
             .setPositiveButton(R.string.action_delete) { _, _ ->
-                viewModel.deleteVideos(selected)
+                deleteVideosWithSystemRequest(selected)
                 adapter.exitMultiSelectMode()
                 actionMode?.finish()
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+    }
+
+    private fun deleteVideosWithSystemRequest(videos: List<VideoItem>) {
+        viewModel.deleteVideosWithResult(videos) { result ->
+            if (result is VideoDeleteResult.RequiresUserAction) {
+                pendingDeleteVideos = videos
+                deleteRequestLauncher.launch(
+                    IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                )
+            }
+        }
+    }
+
+    private fun completePendingDeleteAfterSystemGrant() {
+        viewModel.deleteVideos(pendingDeleteVideos)
+        viewModel.loadVideos()
     }
 }

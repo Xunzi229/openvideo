@@ -1,8 +1,14 @@
 package com.example.openvideo.ui.player
 
 import android.annotation.SuppressLint
+import android.app.PictureInPictureParams
+import android.content.Context
+import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,16 +25,20 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
+import com.example.openvideo.core.player.PlaybackService
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
@@ -40,8 +50,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.abs
-import android.content.SharedPreferences
-import android.content.Context
 
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
@@ -84,6 +92,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var controlsVisible = true
+    private var isActivityForeground = false
     private val hideControlsRunnable = Runnable { hideControls() }
     private val updateRunnable = object : Runnable {
         override fun run() {
@@ -152,7 +161,11 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestedOrientation = PlayerOrientationPolicy.defaultOrientation()
+        requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
+            width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
+            height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0),
+            autoOrientationByVideo = playerPrefs.autoOrientationByVideo
+        )
         pickSubtitleLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@registerForActivityResult
             val subtitles = subtitleLoader.loadFromUri(uri)
@@ -176,10 +189,6 @@ class PlayerActivity : AppCompatActivity() {
         val title = intent.getStringExtra("video_title") ?: ""
         val id = intent.getLongExtra("video_id", 0)
         val videoPath = intent.getStringExtra("video_path").orEmpty()
-        applyInitialVideoOrientation(
-            width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
-            height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-        )
 
         startupTrace.record("activity_created")
         viewModel.initialize(Uri.parse(uriString), title, id)
@@ -188,6 +197,7 @@ class PlayerActivity : AppCompatActivity() {
         playerView.player = viewModel.player
         startupTrace.record("player_view_attached")
         tvTitle.text = title
+        applyPlayerSettings()
 
         loadSubtitlesAsync(uriString, videoPath)
 
@@ -203,6 +213,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (uri.isNotBlank()) {
                     loadSubtitlesAsync(uri, currentVideoPath, showToast = true)
                 }
+            }
+            if (PlayerPrefs.requiresImmediatePlayerApply(key)) {
+                applyPlayerSettings()
+                scheduleHideControls()
             }
         }
         settingsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
@@ -229,7 +243,7 @@ class PlayerActivity : AppCompatActivity() {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
-        playerView.resizeMode = PlayerViewSettings.resizeModeFor(playerPrefs.aspectRatio)
+        setPlayerResizeMode()
         playerView.rotation = playerPrefs.rotation.toFloat()
         playerView.scaleX = if (playerPrefs.mirror) -1f else 1f
 
@@ -366,7 +380,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnScreenshot.setOnClickListener {
-            val surfaceView = playerView.videoSurfaceView as? android.view.SurfaceView
+            val surfaceView = videoSurfaceView()
             if (surfaceView != null) {
                 playerManager.takeScreenshot(surfaceView) { success, path ->
                     runOnUiThread {
@@ -419,12 +433,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
 
-        btnPip.setOnClickListener {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                val params = android.app.PictureInPictureParams.Builder().build()
-                enterPictureInPictureMode(params)
-            }
-        }
+        btnPip.setOnClickListener { enterPipModeIfSupported() }
 
         btnLock.setOnClickListener {
             toggleScreenLock()
@@ -462,10 +471,12 @@ class PlayerActivity : AppCompatActivity() {
         playerListener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updatePlayPauseIcon(isPlaying)
+                startPlaybackServiceIfNeeded(isPlaying)
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 updatePlayPauseIcon(playWhenReady)
+                startPlaybackServiceIfNeeded(playWhenReady && viewModel.player?.isPlaying == true)
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -478,6 +489,13 @@ class PlayerActivity : AppCompatActivity() {
                 ) {
                     hasSkippedIntro = true
                     viewModel.seekTo(playerPrefs.introSeconds * 1000L)
+                }
+            }
+
+            @OptIn(UnstableApi::class)
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (playerPrefs.volumeBoost) {
+                    viewModel.setVolumeBoost(true)
                 }
             }
 
@@ -814,12 +832,6 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyInitialVideoOrientation(width: Int, height: Int) {
-        if (!playerPrefs.autoOrientationByVideo) return
-        if (width <= 0 || height <= 0) return
-        applyVideoOrientation(width, height)
-    }
-
     private fun applyVideoOrientation(width: Int, height: Int) {
         if (!playerPrefs.autoOrientationByVideo) return
         requestedOrientation = PlayerOrientationPolicy.orientationForVideo(
@@ -870,16 +882,22 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isActivityForeground = true
+        stopPlaybackService()
         observeState()
     }
 
     override fun onPause() {
         super.onPause()
+        isActivityForeground = false
         stopObservingState()
-        if (!isInPictureInPictureMode) {
+        if (!isInPipModeCompat()) {
             viewModel.saveHistory()
             if (playerPrefs.pauseOnExit || !playerPrefs.bgAudio) {
                 viewModel.player?.pause()
+                stopPlaybackService()
+            } else {
+                startPlaybackServiceIfNeeded(viewModel.player?.isPlaying == true)
             }
         }
     }
@@ -907,6 +925,49 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             showControls()
         }
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun setPlayerResizeMode() {
+        playerView.resizeMode = PlayerViewSettings.resizeModeFor(playerPrefs.aspectRatio)
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun videoSurfaceView(): android.view.SurfaceView? {
+        return playerView.videoSurfaceView as? android.view.SurfaceView
+    }
+
+    private fun enterPipModeIfSupported() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        runCatching {
+            enterPictureInPictureMode(PictureInPictureParams.Builder().build())
+        }
+    }
+
+    private fun startPlaybackServiceIfNeeded(isPlaying: Boolean) {
+        if (!playerPrefs.bgAudio || !isPlaying) return
+        if (isActivityForeground || isInPipModeCompat()) return
+        val intent = Intent(this, PlaybackService::class.java).apply {
+            action = PlaybackService.ACTION_START
+            putExtra(PlaybackService.EXTRA_TITLE, tvTitle.text.toString())
+            putExtra(PlaybackService.EXTRA_IS_PLAYING, isPlaying)
+        }
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, intent)
+            } else {
+                startService(intent)
+            }
+        }
+    }
+
+    private fun stopPlaybackService() {
+        runCatching { stopService(Intent(this, PlaybackService::class.java)) }
+    }
+
+    private fun isInPipModeCompat(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
     }
 
     private enum class SwipeSide { LEFT, RIGHT, NONE }

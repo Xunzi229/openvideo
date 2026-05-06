@@ -152,7 +152,6 @@
             android:layout_marginTop="@dimen/ov_space_sm"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="68dp"
             android:paddingEnd="0dp">
 
             <ImageButton

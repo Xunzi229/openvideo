@@ -1,10 +1,12 @@
 package com.example.openvideo.data.repository
 
+import android.app.PendingIntent
 import com.example.openvideo.data.local.FavoriteDao
 import com.example.openvideo.data.local.FavoriteEntity
 import com.example.openvideo.data.local.HistoryDao
 import com.example.openvideo.data.local.HistoryEntity
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.data.scanner.VideoScanner
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -62,5 +64,13 @@ class VideoRepository @Inject constructor(
 
     fun deleteVideo(video: VideoItem): Boolean {
         return videoScanner.deleteVideo(video.uri)
+    }
+
+    fun deleteVideos(videos: List<VideoItem>): VideoDeleteResult {
+        return videoScanner.deleteVideos(videos.map { it.uri })
+    }
+
+    fun createDeleteRequest(videos: List<VideoItem>): PendingIntent? {
+        return videoScanner.createDeleteRequest(videos.map { it.uri })
     }
 }

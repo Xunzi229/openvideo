@@ -5,9 +5,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import androidx.core.app.ServiceCompat
+import androidx.core.content.getSystemService
 import androidx.core.app.NotificationCompat
 import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import android.support.v4.media.session.MediaSessionCompat
@@ -25,18 +26,18 @@ class PlaybackService : Service() {
     @Inject lateinit var mediaSessionManager: MediaSessionManager
 
     private var mediaSession: MediaSessionCompat? = null
-    private val binder = PlaybackBinder()
 
     companion object {
+        const val ACTION_START = "com.example.openvideo.action.START_PLAYBACK_SERVICE"
+        const val ACTION_STOP = "com.example.openvideo.action.STOP_PLAYBACK_SERVICE"
+        const val EXTRA_TITLE = "extra_title"
+        const val EXTRA_IS_PLAYING = "extra_is_playing"
+
         private const val CHANNEL_ID = "playback_channel"
         private const val NOTIFICATION_ID = 1
     }
 
-    inner class PlaybackBinder : Binder() {
-        fun getService(): PlaybackService = this@PlaybackService
-    }
-
-    override fun onBind(intent: Intent?): IBinder = binder
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -53,8 +54,7 @@ class PlaybackService : Service() {
             ).apply {
                 description = "视频播放控制通知"
             }
-            val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            getSystemService<NotificationManager>()?.createNotificationChannel(channel)
         }
     }
 
@@ -126,6 +126,19 @@ class PlaybackService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         MediaButtonReceiver.handleIntent(mediaSession, intent)
+        when (intent?.action) {
+            ACTION_START -> {
+                val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
+                    .ifBlank { getString(R.string.app_name) }
+                val isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, playerManager.isPlaying)
+                updateNotification(title, isPlaying)
+            }
+            ACTION_STOP -> {
+                ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        }
         return START_STICKY
     }
 

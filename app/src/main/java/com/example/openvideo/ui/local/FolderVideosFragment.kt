@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.local
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +9,8 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -18,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.ui.home.HomeViewModel
 import com.example.openvideo.ui.home.VideoGridAdapter
 import com.example.openvideo.ui.home.VideoOptionsSheet
@@ -34,6 +38,16 @@ class FolderVideosFragment : Fragment() {
     private lateinit var adapter: VideoGridAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
+    private var pendingDeleteVideos: List<VideoItem> = emptyList()
+
+    private val deleteRequestLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK && pendingDeleteVideos.isNotEmpty()) {
+            completePendingDeleteAfterSystemGrant()
+        }
+        pendingDeleteVideos = emptyList()
+    }
 
     private val folderKey: String by lazy { requireArguments().getString(ARG_FOLDER_KEY).orEmpty() }
     private val folderName: String by lazy { requireArguments().getString(ARG_FOLDER_NAME).orEmpty() }
@@ -97,6 +111,7 @@ class FolderVideosFragment : Fragment() {
                 context = requireContext(),
                 video = video,
                 isFavorite = viewModel.isFavorite(video.id),
+                onPlay = { openPlayer(video) },
                 onFavorite = { viewModel.toggleFavorite(video) },
                 onAddToPlaylist = { showAddToPlaylistDialog(video) },
                 onDelete = { confirmDelete(video) }
@@ -152,9 +167,25 @@ class FolderVideosFragment : Fragment() {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_delete_title)
             .setMessage(getString(R.string.dialog_delete_message, video.title))
-            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deleteVideo(video) }
+            .setPositiveButton(R.string.action_delete) { _, _ -> deleteVideosWithSystemRequest(listOf(video)) }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+    }
+
+    private fun deleteVideosWithSystemRequest(videos: List<VideoItem>) {
+        viewModel.deleteVideosWithResult(videos) { result ->
+            if (result is VideoDeleteResult.RequiresUserAction) {
+                pendingDeleteVideos = videos
+                deleteRequestLauncher.launch(
+                    IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                )
+            }
+        }
+    }
+
+    private fun completePendingDeleteAfterSystemGrant() {
+        viewModel.deleteVideos(pendingDeleteVideos)
+        viewModel.loadVideos()
     }
 
     companion object {

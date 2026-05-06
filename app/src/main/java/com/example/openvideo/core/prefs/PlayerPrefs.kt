@@ -221,5 +221,25 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_LONG_PRESS_SPEED = "long_press_speed"
         private const val KEY_SWIPE_RANGE = "swipe_range"
         private const val KEY_EDGE_SWIPE_BACK = "edge_swipe_back"
+
+        fun requiresImmediatePlayerApply(key: String?): Boolean {
+            return key in setOf(
+                KEY_SPEED,
+                KEY_LOOP_MODE,
+                KEY_KEEP_SCREEN_ON,
+                KEY_ASPECT_RATIO,
+                KEY_ROTATION,
+                KEY_MIRROR,
+                KEY_SPEED_PRESERVE_PITCH,
+                KEY_VOLUME_BOOST,
+                KEY_AUDIO_CHANNEL,
+                KEY_AUDIO_DELAY,
+                KEY_SUBTITLE_SIZE,
+                KEY_SUBTITLE_COLOR,
+                KEY_SUBTITLE_BG,
+                KEY_SUBTITLE_POSITION,
+                KEY_CONTROLS_AUTO_HIDE
+            )
+        }
     }
 }

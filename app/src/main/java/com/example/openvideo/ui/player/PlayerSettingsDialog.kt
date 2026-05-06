@@ -117,6 +117,7 @@ class PlayerSettingsDialog(
             findViewById<View>(navId)?.setOnClickListener {
                 setSelectedNav(navId)
                 showSection(sectionId)
+                showDetailSettingsForNav(navId)
             }
         }
     }
@@ -189,13 +190,7 @@ class PlayerSettingsDialog(
         // Hide inline detailed controls; expose a single launcher row to open the dedicated playback settings page
         findViewById<android.widget.RadioGroup?>(R.id.rg_speed)?.visibility = View.GONE
         row(R.id.row_loop)?.findViewById<TextView>(R.id.row_title)?.text = context.getString(R.string.settings_nav_playback)
-        row(R.id.row_loop)?.setOnClickListener {
-            val fa = context as? androidx.fragment.app.FragmentActivity
-            fa?.let {
-                val sheet = PlayerPlaybackSettingsSheet()
-                sheet.show(it.supportFragmentManager, "player_playback_settings")
-            }
-        }
+        bindDetailLauncher(R.id.row_loop, ::showPlaybackSettings)
         // hide other inline rows
         row(R.id.row_skip)?.visibility = View.GONE
         row(R.id.row_seek)?.visibility = View.GONE
@@ -321,14 +316,7 @@ class PlayerSettingsDialog(
             aspectValue.setText(textRes)
         }
         updateAspect()
-        aspectValue.setOnClickListener {
-            // 打开独立页面进行详尽配置
-            val fa = context as? androidx.fragment.app.FragmentActivity
-            fa?.let {
-                val sheet = PlayerDisplaySettingsSheet()
-                sheet.show(it.supportFragmentManager, "player_display_settings")
-            }
-        }
+        bindDetailLauncher(R.id.row_aspect, ::showDisplaySettings)
 
         // 旋转/镜像等项在独立页面中配置，隐藏当前行的直接控制，避免重复
         row(R.id.row_rotation)?.visibility = View.GONE
@@ -343,13 +331,7 @@ class PlayerSettingsDialog(
         row(R.id.row_boost)?.visibility = View.GONE
         val channelValue = value(R.id.row_channel)
         channelValue.setText(R.string.settings_nav_audio)
-        row(R.id.row_channel)?.setOnClickListener {
-            val fa = context as? androidx.fragment.app.FragmentActivity
-            fa?.let {
-                val sheet = PlayerAudioSettingsSheet()
-                sheet.show(it.supportFragmentManager, "player_audio_settings")
-            }
-        }
+        bindDetailLauncher(R.id.row_channel, ::showAudioSettings)
         row(R.id.row_delay)?.visibility = View.GONE
     }
 
@@ -365,20 +347,13 @@ class PlayerSettingsDialog(
 
         val loadSubtitle = action(R.id.row_load_subtitle)
         loadSubtitle.text = context.getString(R.string.settings_nav_subtitle)
-        loadSubtitle.setOnClickListener {
-            val fa = context as? androidx.fragment.app.FragmentActivity
-            fa?.let {
-                val sheet = PlayerSubtitleSettingsSheet()
-                sheet.show(it.supportFragmentManager, "player_subtitle_settings")
-            }
-        }
+        bindDetailLauncher(R.id.row_load_subtitle, ::showSubtitleSettings)
     }
 
     // ── 手势分组 ──
 
     private fun setupGestureSection() {
         // Hide inline gesture controls; repurpose a row to open detailed gesture settings page
-        row(R.id.row_left_vertical)?.visibility = View.GONE
         row(R.id.row_right_vertical)?.visibility = View.GONE
         row(R.id.row_double_tap)?.visibility = View.GONE
         row(R.id.row_long_press)?.visibility = View.GONE
@@ -387,13 +362,7 @@ class PlayerSettingsDialog(
 
         val launcher = value(R.id.row_left_vertical)
         launcher.text = context.getString(R.string.settings_nav_gesture)
-        row(R.id.row_left_vertical)?.setOnClickListener {
-            val fa = context as? androidx.fragment.app.FragmentActivity
-            fa?.let {
-                val sheet = PlayerGestureSettingsSheet()
-                sheet.show(it.supportFragmentManager, "player_gesture_settings")
-            }
-        }
+        bindDetailLauncher(R.id.row_left_vertical, ::showGestureSettings)
     }
 
     // ── 其他分组 ──
@@ -532,6 +501,45 @@ class PlayerSettingsDialog(
         row(rowId)?.findViewById(R.id.row_seekbar) ?: SeekBar(context)
 
     private fun action(rowId: Int): TextView = row(rowId) as? TextView ?: TextView(context)
+
+    private fun bindDetailLauncher(rowId: Int, launcher: () -> Unit) {
+        row(rowId)?.setOnClickListener { launcher() }
+    }
+
+    private fun showDetailSettingsForNav(navId: Int) {
+        when (navId) {
+            R.id.nav_playback -> showPlaybackSettings()
+            R.id.nav_video -> showDisplaySettings()
+            R.id.nav_audio -> showAudioSettings()
+            R.id.nav_subtitle -> showSubtitleSettings()
+            R.id.nav_gesture -> showGestureSettings()
+        }
+    }
+
+    private fun showPlaybackSettings() {
+        showDetailSettingsSheet(PlayerPlaybackSettingsSheet(), "player_playback_settings")
+    }
+
+    private fun showDisplaySettings() {
+        showDetailSettingsSheet(PlayerDisplaySettingsSheet(), "player_display_settings")
+    }
+
+    private fun showAudioSettings() {
+        showDetailSettingsSheet(PlayerAudioSettingsSheet(), "player_audio_settings")
+    }
+
+    private fun showSubtitleSettings() {
+        showDetailSettingsSheet(PlayerSubtitleSettingsSheet(), "player_subtitle_settings")
+    }
+
+    private fun showGestureSettings() {
+        showDetailSettingsSheet(PlayerGestureSettingsSheet(), "player_gesture_settings")
+    }
+
+    private fun showDetailSettingsSheet(sheet: BaseSettingsSheet, tag: String) {
+        val activity = context as? androidx.fragment.app.FragmentActivity ?: return
+        sheet.show(activity.supportFragmentManager, tag)
+    }
 
     private fun bindSwitch(
         view: SwitchMaterial,

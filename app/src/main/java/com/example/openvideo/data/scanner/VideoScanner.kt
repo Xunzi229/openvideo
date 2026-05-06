@@ -1,10 +1,13 @@
 package com.example.openvideo.data.scanner
 
+import android.app.PendingIntent
+import android.app.RecoverableSecurityException
 import android.content.ContentUris
 import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import androidx.annotation.RequiresApi
 import com.example.openvideo.data.model.VideoItem
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +16,12 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import javax.inject.Inject
 import javax.inject.Singleton
+
+sealed class VideoDeleteResult {
+    data class Deleted(val uris: Set<Uri>) : VideoDeleteResult()
+    data class RequiresUserAction(val pendingIntent: PendingIntent) : VideoDeleteResult()
+    object Failed : VideoDeleteResult()
+}
 
 @Singleton
 class VideoScanner @Inject constructor(
@@ -92,10 +101,74 @@ class VideoScanner @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     fun deleteVideo(uri: Uri): Boolean {
-        return try {
-            context.contentResolver.delete(uri, null, null) > 0
-        } catch (e: Exception) {
-            false
+        return deleteVideoWithResult(uri) is VideoDeleteResult.Deleted
+    }
+
+    fun deleteVideos(uris: List<Uri>): VideoDeleteResult {
+        if (uris.isEmpty()) return VideoDeleteResult.Deleted(emptySet())
+
+        createDeleteRequest(uris)?.let { request ->
+            return VideoDeleteResult.RequiresUserAction(request)
+        }
+
+        val deleted = mutableSetOf<Uri>()
+        for (uri in uris) {
+            when (val result = deleteVideoWithResult(uri)) {
+                is VideoDeleteResult.Deleted -> deleted += result.uris
+                is VideoDeleteResult.RequiresUserAction -> return result
+                VideoDeleteResult.Failed -> Unit
+            }
+        }
+
+        return if (deleted.isNotEmpty()) {
+            VideoDeleteResult.Deleted(deleted)
+        } else {
+            VideoDeleteResult.Failed
         }
     }
+
+    private fun deleteVideoWithResult(uri: Uri): VideoDeleteResult {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            deleteVideoWithScopedStorageFallback(uri)
+        } else {
+            deleteVideoLegacy(uri)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun deleteVideoWithScopedStorageFallback(uri: Uri): VideoDeleteResult {
+        return try {
+            if (context.contentResolver.delete(uri, null, null) > 0) {
+                VideoDeleteResult.Deleted(setOf(uri))
+            } else {
+                VideoDeleteResult.Failed
+            }
+        } catch (e: RecoverableSecurityException) {
+            VideoDeleteResult.RequiresUserAction(e.userAction.actionIntent)
+        } catch (e: Exception) {
+            VideoDeleteResult.Failed
+        }
+    }
+
+    private fun deleteVideoLegacy(uri: Uri): VideoDeleteResult {
+        return try {
+            if (context.contentResolver.delete(uri, null, null) > 0) {
+                VideoDeleteResult.Deleted(setOf(uri))
+            } else {
+                VideoDeleteResult.Failed
+            }
+        } catch (e: Exception) {
+            VideoDeleteResult.Failed
+        }
+    }
+
+    fun createDeleteRequest(uris: List<Uri>): PendingIntent? {
+        if (uris.isEmpty()) return null
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            MediaStore.createDeleteRequest(context.contentResolver, uris)
+        } else {
+            null
+        }
+    }
+
 }

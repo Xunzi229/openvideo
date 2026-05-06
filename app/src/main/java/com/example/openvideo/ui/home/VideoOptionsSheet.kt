@@ -13,6 +13,7 @@ class VideoOptionsSheet(
     context: Context,
     private val video: VideoItem,
     isFavorite: Boolean,
+    private val onPlay: () -> Unit,
     private val onFavorite: () -> Unit,
     private val onAddToPlaylist: () -> Unit,
     private val onDelete: () -> Unit
@@ -24,7 +25,7 @@ class VideoOptionsSheet(
 
         view.findViewById<TextView>(R.id.option_play).setOnClickListener {
             dismiss()
-            // Will be handled by caller
+            onPlay()
         }
 
         val favoriteOption = view.findViewById<TextView>(R.id.option_favorite)
