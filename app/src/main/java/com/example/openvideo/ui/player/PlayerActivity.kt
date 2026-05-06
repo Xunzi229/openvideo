@@ -176,6 +176,10 @@ class PlayerActivity : AppCompatActivity() {
         val title = intent.getStringExtra("video_title") ?: ""
         val id = intent.getLongExtra("video_id", 0)
         val videoPath = intent.getStringExtra("video_path").orEmpty()
+        applyInitialVideoOrientation(
+            width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
+            height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
+        )
 
         startupTrace.record("activity_created")
         viewModel.initialize(Uri.parse(uriString), title, id)
@@ -494,26 +498,10 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                var w = videoSize.width
-                var h = videoSize.height
-                val rot = videoSize.unappliedRotationDegrees
-                // If the video frame has an unapplied rotation of 90 or 270, swap w/h
-                if ((rot == 90 || rot == 270) && w > 0 && h > 0) {
-                    val tmp = w
-                    w = h
-                    h = tmp
-                }
-                if (w > 0 && h > 0 && playerPrefs.autoOrientationByVideo) {
-                    val ratio = w.toFloat() / h.toFloat()
-                    if (ratio >= 1.2f) {
-                        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                    } else if (ratio <= 0.8f) {
-                        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                    } else {
-                        // let the sensor/system decide for ambiguous ratios
-                        requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
-                    }
-                }
+                applyVideoOrientation(
+                    width = videoSize.width,
+                    height = videoSize.height
+                )
             }
         }
         viewModel.player?.addListener(playerListener!!)
@@ -826,6 +814,20 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun applyInitialVideoOrientation(width: Int, height: Int) {
+        if (!playerPrefs.autoOrientationByVideo) return
+        if (width <= 0 || height <= 0) return
+        applyVideoOrientation(width, height)
+    }
+
+    private fun applyVideoOrientation(width: Int, height: Int) {
+        if (!playerPrefs.autoOrientationByVideo) return
+        requestedOrientation = PlayerOrientationPolicy.orientationForVideo(
+            width = width,
+            height = height
+        )
+    }
+
     private fun toggleScreenLock() {
         isScreenLocked = !isScreenLocked
         if (isScreenLocked) {
@@ -909,4 +911,9 @@ class PlayerActivity : AppCompatActivity() {
 
     private enum class SwipeSide { LEFT, RIGHT, NONE }
     private enum class AbLoopState { IDLE, POINT_A_SET, LOOPING }
+
+    companion object {
+        const val EXTRA_VIDEO_WIDTH = "video_width"
+        const val EXTRA_VIDEO_HEIGHT = "video_height"
+    }
 }

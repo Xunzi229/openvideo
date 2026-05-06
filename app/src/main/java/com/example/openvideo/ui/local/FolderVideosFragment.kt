@@ -85,6 +85,8 @@ class FolderVideosFragment : Fragment() {
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)
             putExtra("video_path", video.path)
+            putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, video.width)
+            putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
         }
         startActivity(intent)
     }

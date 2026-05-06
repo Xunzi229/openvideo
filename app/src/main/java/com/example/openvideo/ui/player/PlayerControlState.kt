@@ -41,6 +41,17 @@ object PlayerControlState {
 
 object PlayerOrientationPolicy {
     fun defaultOrientation(): Int = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
+    fun orientationForVideo(width: Int, height: Int): Int {
+        if (width <= 0 || height <= 0) return defaultOrientation()
+
+        val ratio = width.toFloat() / height.toFloat()
+        return when {
+            ratio >= 1.2f -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            ratio <= 0.8f -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        }
+    }
 }
 
 object PlayerSettingsLayoutPolicy {
