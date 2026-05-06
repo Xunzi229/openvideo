@@ -101,26 +101,8 @@
                     style="@style/Widget.OpenVideo.PlayerSettings.GroupTitle"
                     android:text="@string/settings_group_play_control" />
 
-                <TextView
-                    style="@style/Widget.OpenVideo.PlayerSettings.RowTitle"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/settings_playback_speed" />
-
-                <RadioGroup
-                    android:id="@+id/rg_speed"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:orientation="vertical">
-
-                    <RadioButton android:id="@+id/rb_speed_0_5" style="@style/Widget.OpenVideo.PlayerSettings.Radio" android:text="@string/settings_speed_0_5" />
-                    <RadioButton android:id="@+id/rb_speed_0_75" style="@style/Widget.OpenVideo.PlayerSettings.Radio" android:text="@string/settings_speed_0_75" />
-                    <RadioButton android:id="@+id/rb_speed_1_0" style="@style/Widget.OpenVideo.PlayerSettings.Radio" android:text="@string/settings_speed_1_0" />
-                    <RadioButton android:id="@+id/rb_speed_1_25" style="@style/Widget.OpenVideo.PlayerSettings.Radio" android:text="@string/settings_speed_1_25" />
-                    <RadioButton android:id="@+id/rb_speed_1_5" style="@style/Widget.OpenVideo.PlayerSettings.Radio" android:text="@string/settings_speed_1_5" />
-                    <RadioButton android:id="@+id/rb_speed_2_0" style="@style/Widget.OpenVideo.PlayerSettings.Radio" android:text="@string/settings_speed_2_0" />
-                </RadioGroup>
-
+                <include android:id="@+id/row_speed" layout="@layout/player_settings_row_value" />
+                <include layout="@layout/player_settings_divider" />
                 <include layout="@layout/player_settings_divider" />
                 <include android:id="@+id/row_loop" layout="@layout/player_settings_row_value" />
                 <include android:id="@+id/row_skip" layout="@layout/player_settings_row_value" />

@@ -7,14 +7,21 @@ import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.widget.CompoundButton
-import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerManager
-import com.example.openvideo.core.prefs.*
+import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.prefs.AudioChannel
+import com.example.openvideo.core.prefs.DoubleTapAction
+import com.example.openvideo.core.prefs.GestureAction
+import com.example.openvideo.core.prefs.LongPressAction
+import com.example.openvideo.core.prefs.LoopMode
+import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.switchmaterial.SwitchMaterial
 
 class PlayerSettingsDialog(
@@ -26,42 +33,36 @@ class PlayerSettingsDialog(
 ) : Dialog(context) {
 
     private val navIds = intArrayOf(
-        R.id.nav_playback, R.id.nav_video, R.id.nav_audio,
-        R.id.nav_subtitle, R.id.nav_gesture, R.id.nav_other
+        R.id.nav_playback,
+        R.id.nav_video,
+        R.id.nav_audio,
+        R.id.nav_subtitle,
+        R.id.nav_gesture,
+        R.id.nav_other
     )
-    private val loopModes = arrayOf("off", "single", "list")
-    private var loopModeIndex = 0
-    private val seekIntervals = intArrayOf(5, 10, 15)
-    private var seekIntervalIndex = 1
+
+    private val sectionIds = intArrayOf(
+        R.id.section_playback,
+        R.id.section_video,
+        R.id.section_audio,
+        R.id.section_subtitle,
+        R.id.section_gesture,
+        R.id.section_other
+    )
+
+    private val speedOptions = floatArrayOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+    private val loopOptions = LoopMode.entries.toTypedArray()
+    private val seekOptions = intArrayOf(5, 10, 15)
+    private val aspectOptions = AspectRatio.entries.toTypedArray()
+    private val rotationOptions = intArrayOf(0, 90, 180, 270)
+    private val audioChannelOptions = AudioChannel.entries.toTypedArray()
+    private val subtitleBgOptions = SubtitleBgStyle.entries.toTypedArray()
+    private val subtitleEncodingOptions = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
+    private val gestureOptions = GestureAction.entries.toTypedArray()
+    private val doubleTapOptions = DoubleTapAction.entries.toTypedArray()
+    private val longPressOptions = LongPressAction.entries.toTypedArray()
+    private val sensitivityOptions = intArrayOf(1, 2, 3)
     private val autoHideOptions = intArrayOf(3, 5, 8, 0)
-    private var autoHideIndex = 0
-
-    // 画面
-    private val aspectRatios = AspectRatio.entries.toTypedArray()
-    private var aspectRatioIndex = 0
-    private val rotations = intArrayOf(0, 90, 180, 270)
-    private var rotationIndex = 0
-
-    // 声道
-    private val audioChannels = AudioChannel.entries.toTypedArray()
-    private var audioChannelIndex = 0
-
-    // 字幕
-    private val subtitleBgStyles = SubtitleBgStyle.entries.toTypedArray()
-    private var subtitleBgIndex = 0
-    private val encodings = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
-    private var encodingIndex = 0
-
-    // 手势
-    private val gestureActions = GestureAction.entries.toTypedArray()
-    private val doubleTapActions = DoubleTapAction.entries.toTypedArray()
-    private val longPressActions = LongPressAction.entries.toTypedArray()
-    private var leftGestureIndex = 0
-    private var rightGestureIndex = 0
-    private var doubleTapIndex = 0
-    private var longPressIndex = 0
-    private var horizontalIndex = 0
-    private var sensitivityIndex = 1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -73,10 +74,7 @@ class PlayerSettingsDialog(
                 context.resources.displayMetrics.widthPixels,
                 context.resources.displayMetrics.heightPixels
             )
-            setLayout(
-                bounds.width,
-                bounds.height
-            )
+            setLayout(bounds.width, bounds.height)
             setBackgroundDrawableResource(android.R.color.transparent)
             clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         }
@@ -84,25 +82,14 @@ class PlayerSettingsDialog(
         runCatching {
             setupNavigation()
             setupRowLabels()
-            setupPlaybackSection()
-            setupVideoSection()
-            setupAudioSection()
-            setupSubtitleSection()
-            setupGestureSection()
-            setupOtherSection()
+            bindAllSections()
             setupResetDefaults()
-
-            bindDualRememberSwitches()
-            bindDualAutoNextSwitches()
-
             setSelectedNav(R.id.nav_playback)
             showSection(R.id.section_playback)
         }.onFailure { error ->
             CrashLogger.logPlayerError(context, error)
         }
     }
-
-    // ── Navigation ──
 
     private fun setupNavigation() {
         val navSectionMap = mapOf(
@@ -113,16 +100,17 @@ class PlayerSettingsDialog(
             R.id.nav_gesture to R.id.section_gesture,
             R.id.nav_other to R.id.section_other
         )
+
         navSectionMap.forEach { (navId, sectionId) ->
-            findViewById<View>(navId)?.setOnClickListener {
+            row(navId)?.setOnClickListener {
                 setSelectedNav(navId)
                 showSection(sectionId)
-                showDetailSettingsForNav(navId)
             }
         }
     }
 
     private fun setupRowLabels() {
+        setValueRow(R.id.row_speed, R.string.settings_playback_speed)
         setValueRow(R.id.row_loop, R.string.settings_loop_mode)
         setValueRow(R.id.row_skip, R.string.settings_skip_intro_outro)
         setValueRow(R.id.row_seek, R.string.settings_seek_interval)
@@ -144,7 +132,6 @@ class PlayerSettingsDialog(
         action(R.id.row_load_subtitle).setText(R.string.settings_load_subtitle)
         setSeekRow(R.id.row_subtitle_size, R.string.settings_subtitle_size)
         setValueRow(R.id.row_subtitle_color, R.string.settings_subtitle_color)
-        row(R.id.row_subtitle_color)?.visibility = View.GONE
         setValueRow(R.id.row_subtitle_bg, R.string.settings_subtitle_bg)
         setSeekRow(R.id.row_subtitle_position, R.string.settings_subtitle_position)
         setValueRow(R.id.row_subtitle_encoding, R.string.settings_subtitle_encoding)
@@ -164,6 +151,205 @@ class PlayerSettingsDialog(
         setValueRow(R.id.row_outro, R.string.settings_skip_outro_seconds)
     }
 
+    private fun bindAllSections() {
+        setupPlaybackSection()
+        setupVideoSection()
+        setupAudioSection()
+        setupSubtitleSection()
+        setupGestureSection()
+        setupOtherSection()
+        bindDualRememberSwitches()
+        bindDualAutoNextSwitches()
+    }
+
+    private fun setupPlaybackSection() {
+        setupSpeedRow()
+        bindValueChoice(
+            rowId = R.id.row_loop,
+            options = loopOptions,
+            current = { playerPrefs.loopMode },
+            label = ::loopLabel,
+            onSelected = { mode ->
+                playerPrefs.loopMode = mode
+                viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
+            }
+        )
+        bindBooleanValue(R.id.row_skip, playerPrefs.skipIntroOutro) { playerPrefs.skipIntroOutro = it }
+        bindValueChoice(
+            rowId = R.id.row_seek,
+            options = seekOptions.toTypedArray(),
+            current = { playerPrefs.seekInterval },
+            label = { "${it}s" },
+            onSelected = { playerPrefs.seekInterval = it }
+        )
+        bindSwitch(switch(R.id.row_hw), playerPrefs.hwAcceleration) { checked ->
+            playerPrefs.hwAcceleration = checked
+            viewModel.setDecodeMode(if (checked) DecodeMode.HARD else DecodeMode.SOFT)
+        }
+        bindSwitch(switch(R.id.row_pause), playerPrefs.pauseOnExit) { playerPrefs.pauseOnExit = it }
+        bindSwitch(switch(R.id.row_bg_audio), playerPrefs.bgAudio) { playerPrefs.bgAudio = it }
+    }
+
+    private fun setupSpeedRow() {
+        bindValueChoice(
+            rowId = R.id.row_speed,
+            options = speedOptions.toTypedArray(),
+            current = { playerPrefs.speed },
+            label = { "${it}x" },
+            onSelected = { speed ->
+                playerPrefs.speed = speed
+                viewModel.setSpeed(speed, PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch))
+            }
+        )
+    }
+
+    private fun setupVideoSection() {
+        bindValueChoice(
+            rowId = R.id.row_aspect,
+            options = aspectOptions,
+            current = { playerPrefs.aspectRatio },
+            label = ::aspectLabel,
+            onSelected = { playerPrefs.aspectRatio = it }
+        )
+        bindValueChoice(
+            rowId = R.id.row_rotation,
+            options = rotationOptions.toTypedArray(),
+            current = { playerPrefs.rotation },
+            label = { "$it°" },
+            onSelected = { playerPrefs.rotation = it }
+        )
+        bindSwitch(switch(R.id.row_mirror), playerPrefs.mirror) { playerPrefs.mirror = it }
+    }
+
+    private fun setupAudioSection() {
+        bindSwitch(switch(R.id.row_pitch), playerPrefs.speedPreservePitch) { checked ->
+            playerPrefs.speedPreservePitch = checked
+            viewModel.setSpeed(
+                playerPrefs.speed,
+                PlayerPlaybackSettings.pitchFor(playerPrefs.speed, checked)
+            )
+        }
+        bindSwitch(switch(R.id.row_boost), playerPrefs.volumeBoost) { checked ->
+            playerPrefs.volumeBoost = checked
+            viewModel.setVolumeBoost(checked)
+        }
+        bindValueChoice(
+            rowId = R.id.row_channel,
+            options = audioChannelOptions,
+            current = { playerPrefs.audioChannel },
+            label = ::audioChannelLabel,
+            onSelected = { playerPrefs.audioChannel = it }
+        )
+        bindValueChoice(
+            rowId = R.id.row_delay,
+            options = (-1000..1000 step 250).toList().toTypedArray(),
+            current = { playerPrefs.audioDelay },
+            label = { "${it}ms" },
+            onSelected = { playerPrefs.audioDelay = it }
+        )
+    }
+
+    private fun setupSubtitleSection() {
+        action(R.id.row_load_subtitle).setOnClickListener {
+            dismiss()
+            onRequestPickSubtitle()
+        }
+        bindSeekRow(
+            rowId = R.id.row_subtitle_size,
+            min = 12,
+            max = 36,
+            current = { playerPrefs.subtitleSize },
+            label = { "${it}sp" },
+            onChanged = { playerPrefs.subtitleSize = it }
+        )
+        bindValueChoice(
+            rowId = R.id.row_subtitle_color,
+            options = subtitleColorOptions,
+            current = { subtitleColorOptionFor(playerPrefs.subtitleColor) },
+            label = { it.label },
+            onSelected = { playerPrefs.subtitleColor = it.color }
+        )
+        bindValueChoice(
+            rowId = R.id.row_subtitle_bg,
+            options = subtitleBgOptions,
+            current = { playerPrefs.subtitleBgStyle },
+            label = ::subtitleBgLabel,
+            onSelected = { playerPrefs.subtitleBgStyle = it }
+        )
+        bindSeekRow(
+            rowId = R.id.row_subtitle_position,
+            min = 0,
+            max = 100,
+            current = { (playerPrefs.subtitlePosition.coerceIn(0f, 1f) * 100).toInt() },
+            label = { "$it%" },
+            onChanged = { playerPrefs.subtitlePosition = it / 100f }
+        )
+        bindValueChoice(
+            rowId = R.id.row_subtitle_encoding,
+            options = subtitleEncodingOptions,
+            current = { playerPrefs.subtitleEncoding },
+            label = { if (it == "auto") context.getString(R.string.settings_encoding_auto) else it },
+            onSelected = { playerPrefs.subtitleEncoding = it }
+        )
+    }
+
+    private fun setupGestureSection() {
+        bindValueChoice(R.id.row_left_vertical, gestureOptions, { playerPrefs.leftVerticalGesture }, ::gestureLabel) {
+            playerPrefs.leftVerticalGesture = it
+        }
+        bindValueChoice(R.id.row_right_vertical, gestureOptions, { playerPrefs.rightVerticalGesture }, ::gestureLabel) {
+            playerPrefs.rightVerticalGesture = it
+        }
+        bindValueChoice(R.id.row_double_tap, doubleTapOptions, { playerPrefs.doubleTapAction }, ::doubleTapLabel) {
+            playerPrefs.doubleTapAction = it
+        }
+        bindValueChoice(R.id.row_long_press, longPressOptions, { playerPrefs.longPressAction }, ::longPressLabel) {
+            playerPrefs.longPressAction = it
+        }
+        bindValueChoice(R.id.row_horizontal, gestureOptions, { playerPrefs.horizontalSwipeAction }, ::gestureLabel) {
+            playerPrefs.horizontalSwipeAction = it
+        }
+        bindValueChoice(
+            rowId = R.id.row_sensitivity,
+            options = sensitivityOptions.toTypedArray(),
+            current = { playerPrefs.gestureSensitivity },
+            label = ::sensitivityLabel,
+            onSelected = { playerPrefs.gestureSensitivity = it }
+        )
+    }
+
+    private fun setupOtherSection() {
+        bindSwitch(switch(R.id.row_keep_screen), playerPrefs.keepScreenOn) { playerPrefs.keepScreenOn = it }
+        bindValueChoice(
+            rowId = R.id.row_auto_hide,
+            options = autoHideOptions.toTypedArray(),
+            current = { playerPrefs.controlsAutoHide },
+            label = ::autoHideLabel,
+            onSelected = { playerPrefs.controlsAutoHide = it }
+        )
+        bindValueChoice(
+            rowId = R.id.row_intro,
+            options = (0..300 step 30).toList().toTypedArray(),
+            current = { playerPrefs.introSeconds },
+            label = { "${it}s" },
+            onSelected = { playerPrefs.introSeconds = it }
+        )
+        bindValueChoice(
+            rowId = R.id.row_outro,
+            options = (0..300 step 30).toList().toTypedArray(),
+            current = { playerPrefs.outroSeconds },
+            label = { "${it}s" },
+            onSelected = { playerPrefs.outroSeconds = it }
+        )
+    }
+
+    private fun setupResetDefaults() {
+        row(R.id.tv_reset_defaults)?.setOnClickListener {
+            playerPrefs.resetToDefaults()
+            bindAllSections()
+        }
+    }
+
     private fun setSelectedNav(selectedId: Int) {
         navIds.forEach { id ->
             val nav = findViewById<TextView>(id) ?: return@forEach
@@ -174,292 +360,38 @@ class PlayerSettingsDialog(
     }
 
     private fun showSection(selectedId: Int) {
-        val allSections = intArrayOf(
-            R.id.section_playback, R.id.section_video,
-            R.id.section_audio, R.id.section_subtitle,
-            R.id.section_gesture, R.id.section_other
-        )
-        allSections.forEach { id ->
-            findViewById<View>(id)?.visibility = if (id == selectedId) View.VISIBLE else View.GONE
-        }
-    }
-
-    // ── 播放分组 ──
-
-    private fun setupPlaybackSection() {
-        // Hide inline detailed controls; expose a single launcher row to open the dedicated playback settings page
-        findViewById<android.widget.RadioGroup?>(R.id.rg_speed)?.visibility = View.GONE
-        row(R.id.row_loop)?.findViewById<TextView>(R.id.row_title)?.text = context.getString(R.string.settings_nav_playback)
-        bindDetailLauncher(R.id.row_loop, ::showPlaybackSettings)
-        // hide other inline rows
-        row(R.id.row_skip)?.visibility = View.GONE
-        row(R.id.row_seek)?.visibility = View.GONE
-        row(R.id.row_remember)?.visibility = View.GONE
-        row(R.id.row_hw)?.visibility = View.GONE
-        row(R.id.row_pause)?.visibility = View.GONE
-        row(R.id.row_auto_next)?.visibility = View.GONE
-        row(R.id.row_bg_audio)?.visibility = View.GONE
-    }
-
-    private fun setupSpeed() {
-        val speed = playerPrefs.speed
-        val speedGroup = findViewById<RadioGroup>(R.id.rg_speed)
-        speedGroup.check(
-            when (speed) {
-                0.5f -> R.id.rb_speed_0_5
-                0.75f -> R.id.rb_speed_0_75
-                1.25f -> R.id.rb_speed_1_25
-                1.5f -> R.id.rb_speed_1_5
-                2.0f -> R.id.rb_speed_2_0
-                else -> R.id.rb_speed_1_0
-            }
-        )
-        viewModel.setSpeed(speed, PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch))
-        speedGroup.setOnCheckedChangeListener { _, checkedId ->
-            val selectedSpeed = when (checkedId) {
-                R.id.rb_speed_0_5 -> 0.5f
-                R.id.rb_speed_0_75 -> 0.75f
-                R.id.rb_speed_1_25 -> 1.25f
-                R.id.rb_speed_1_5 -> 1.5f
-                R.id.rb_speed_2_0 -> 2.0f
-                else -> 1.0f
-            }
-            playerPrefs.speed = selectedSpeed
-            viewModel.setSpeed(
-                selectedSpeed,
-                PlayerPlaybackSettings.pitchFor(selectedSpeed, playerPrefs.speedPreservePitch)
-            )
-        }
-    }
-
-    private fun setupLoopRow() {
-        val mode = playerPrefs.loopMode
-        loopModeIndex = loopModes.indexOf(mode.key).takeIf { it >= 0 } ?: 0
-        val loopValue = value(R.id.row_loop)
-        fun update() {
-            val textRes = when (loopModes[loopModeIndex]) {
-                "single" -> R.string.settings_loop_single
-                "list" -> R.string.settings_loop_list
-                else -> R.string.settings_loop_off
-            }
-            loopValue.setText(textRes)
-        }
-        update()
-        loopValue.setOnClickListener {
-            loopModeIndex = (loopModeIndex + 1) % loopModes.size
-            playerPrefs.loopMode = LoopMode.fromKey(loopModes[loopModeIndex])
-            viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
-            update()
-        }
-    }
-
-    private fun setupSeekIntervalRow() {
-        val interval = playerPrefs.seekInterval
-        seekIntervalIndex = seekIntervals.indexOf(interval).takeIf { it >= 0 } ?: 1
-        val seekValue = value(R.id.row_seek)
-        fun update() {
-            val textRes = when (seekIntervals[seekIntervalIndex]) {
-                5 -> R.string.settings_seek_5s
-                15 -> R.string.settings_seek_15s
-                else -> R.string.settings_seek_10s
-            }
-            seekValue.setText(textRes)
-        }
-        update()
-        seekValue.setOnClickListener {
-            seekIntervalIndex = (seekIntervalIndex + 1) % seekIntervals.size
-            playerPrefs.seekInterval = seekIntervals[seekIntervalIndex]
-            update()
-        }
-    }
-
-    private fun setupPlaybackSwitches() {
-        val hwAccelSwitch = switch(R.id.row_hw)
-        val pauseOnExitSwitch = switch(R.id.row_pause)
-        val bgAudioSwitch = switch(R.id.row_bg_audio)
-        val skipValue = value(R.id.row_skip)
-
-        var skipEnabled = playerPrefs.skipIntroOutro
-        fun updateSkipText() {
-            skipValue.setText(if (skipEnabled) R.string.settings_on else R.string.settings_off)
-        }
-        updateSkipText()
-        skipValue.setOnClickListener {
-            skipEnabled = !skipEnabled
-            playerPrefs.skipIntroOutro = skipEnabled
-            updateSkipText()
-        }
-
-        bindSwitch(hwAccelSwitch, playerPrefs.hwAcceleration) { checked ->
-            playerPrefs.hwAcceleration = checked
-            viewModel.setDecodeMode(if (checked) DecodeMode.HARD else DecodeMode.SOFT)
-        }
-        bindSwitch(pauseOnExitSwitch, playerPrefs.pauseOnExit) { playerPrefs.pauseOnExit = it }
-        bindSwitch(bgAudioSwitch, playerPrefs.bgAudio) { playerPrefs.bgAudio = it }
-    }
-
-    // ── 画面分组 ──
-
-    private fun setupVideoSection() {
-        // 打开独立的“显示设置”页面以逐层配置（画面比例 / 旋转 / 镜像 / 自动方向）
-        aspectRatioIndex = aspectRatios.indexOf(playerPrefs.aspectRatio).takeIf { it >= 0 } ?: 0
-        val aspectValue = value(R.id.row_aspect)
-        fun updateAspect() {
-            val textRes = when (aspectRatios[aspectRatioIndex]) {
-                AspectRatio.FIT -> R.string.settings_ratio_fit
-                AspectRatio.FILL -> R.string.settings_ratio_fill
-                AspectRatio.CROP -> R.string.settings_ratio_crop
-                AspectRatio.STRETCH -> R.string.settings_ratio_stretch
-                AspectRatio.RATIO_4_3 -> R.string.settings_ratio_4_3
-                AspectRatio.RATIO_16_9 -> R.string.settings_ratio_16_9
-            }
-            aspectValue.setText(textRes)
-        }
-        updateAspect()
-        bindDetailLauncher(R.id.row_aspect, ::showDisplaySettings)
-
-        // 旋转/镜像等项在独立页面中配置，隐藏当前行的直接控制，避免重复
-        row(R.id.row_rotation)?.visibility = View.GONE
-        row(R.id.row_mirror)?.visibility = View.GONE
-    }
-
-    // ── 声音分组 ──
-
-    private fun setupAudioSection() {
-        // Hide inline audio controls; repurpose channel row to open dedicated audio settings
-        row(R.id.row_pitch)?.visibility = View.GONE
-        row(R.id.row_boost)?.visibility = View.GONE
-        val channelValue = value(R.id.row_channel)
-        channelValue.setText(R.string.settings_nav_audio)
-        bindDetailLauncher(R.id.row_channel, ::showAudioSettings)
-        row(R.id.row_delay)?.visibility = View.GONE
-    }
-
-    // ── 字幕分组 ──
-
-    private fun setupSubtitleSection() {
-        // Hide inline subtitle controls; repurpose the load row to open subtitle detail page
-        row(R.id.row_subtitle_size)?.visibility = View.GONE
-        row(R.id.row_subtitle_color)?.visibility = View.GONE
-        row(R.id.row_subtitle_bg)?.visibility = View.GONE
-        row(R.id.row_subtitle_position)?.visibility = View.GONE
-        row(R.id.row_subtitle_encoding)?.visibility = View.GONE
-
-        val loadSubtitle = action(R.id.row_load_subtitle)
-        loadSubtitle.text = context.getString(R.string.settings_nav_subtitle)
-        bindDetailLauncher(R.id.row_load_subtitle, ::showSubtitleSettings)
-    }
-
-    // ── 手势分组 ──
-
-    private fun setupGestureSection() {
-        // Hide inline gesture controls; repurpose a row to open detailed gesture settings page
-        row(R.id.row_right_vertical)?.visibility = View.GONE
-        row(R.id.row_double_tap)?.visibility = View.GONE
-        row(R.id.row_long_press)?.visibility = View.GONE
-        row(R.id.row_horizontal)?.visibility = View.GONE
-        row(R.id.row_sensitivity)?.visibility = View.GONE
-
-        val launcher = value(R.id.row_left_vertical)
-        launcher.text = context.getString(R.string.settings_nav_gesture)
-        bindDetailLauncher(R.id.row_left_vertical, ::showGestureSettings)
-    }
-
-    // ── 其他分组 ──
-
-    private fun setupOtherSection() {
-        // 屏幕常亮
-        val keepScreenSwitch = switch(R.id.row_keep_screen)
-        bindSwitch(keepScreenSwitch, playerPrefs.keepScreenOn) { playerPrefs.keepScreenOn = it }
-
-        // 控制栏自动隐藏
-        autoHideIndex = autoHideOptions.indexOf(playerPrefs.controlsAutoHide).takeIf { it >= 0 } ?: 0
-        val autoHideValue = value(R.id.row_auto_hide)
-        fun updateAutoHide() {
-            val textRes = when (autoHideOptions[autoHideIndex]) {
-                3 -> R.string.settings_hide_3s
-                5 -> R.string.settings_hide_5s
-                8 -> R.string.settings_hide_8s
-                else -> R.string.settings_hide_never
-            }
-            autoHideValue.setText(textRes)
-        }
-        updateAutoHide()
-        autoHideValue.setOnClickListener {
-            autoHideIndex = (autoHideIndex + 1) % autoHideOptions.size
-            playerPrefs.controlsAutoHide = autoHideOptions[autoHideIndex]
-            updateAutoHide()
-        }
-
-        // 跳过片头
-        val introValue = value(R.id.row_intro)
-        fun updateIntro() {
-            introValue.text = "${playerPrefs.introSeconds}"
-        }
-        updateIntro()
-        introValue.setOnClickListener {
-            val current = playerPrefs.introSeconds
-            playerPrefs.introSeconds = if (current >= 300) 0 else current + 30
-            updateIntro()
-        }
-
-        // 跳过片尾
-        val outroValue = value(R.id.row_outro)
-        fun updateOutro() {
-            outroValue.text = "${playerPrefs.outroSeconds}"
-        }
-        updateOutro()
-        outroValue.setOnClickListener {
-            val current = playerPrefs.outroSeconds
-            playerPrefs.outroSeconds = if (current >= 300) 0 else current + 30
-            updateOutro()
-        }
-    }
-
-    // ── 恢复默认 ──
-
-    private fun setupResetDefaults() {
-        findViewById<View>(R.id.tv_reset_defaults)?.setOnClickListener {
-            playerPrefs.resetToDefaults()
-            // Re-setup all sections
-            setupPlaybackSection()
-            setupVideoSection()
-            setupAudioSection()
-            setupSubtitleSection()
-            setupGestureSection()
-            setupOtherSection()
-            bindDualRememberSwitches()
-            bindDualAutoNextSwitches()
+        sectionIds.forEach { id ->
+            row(id)?.visibility = if (id == selectedId) View.VISIBLE else View.GONE
         }
     }
 
     private fun bindDualRememberSwitches() {
-        val primary = switch(R.id.row_remember)
-        val mirror = switch(R.id.row_remember_other)
-        lateinit var listener: CompoundButton.OnCheckedChangeListener
-        listener = CompoundButton.OnCheckedChangeListener { _, checked ->
-            playerPrefs.rememberProgress = checked
-            primary.setOnCheckedChangeListener(null)
-            mirror.setOnCheckedChangeListener(null)
-            primary.isChecked = checked
-            mirror.isChecked = checked
-            primary.setOnCheckedChangeListener(listener)
-            mirror.setOnCheckedChangeListener(listener)
-        }
-        primary.setOnCheckedChangeListener(null)
-        mirror.setOnCheckedChangeListener(null)
-        primary.isChecked = playerPrefs.rememberProgress
-        mirror.isChecked = playerPrefs.rememberProgress
-        primary.setOnCheckedChangeListener(listener)
-        mirror.setOnCheckedChangeListener(listener)
+        bindDualSwitch(
+            primary = switch(R.id.row_remember),
+            mirror = switch(R.id.row_remember_other),
+            current = { playerPrefs.rememberProgress },
+            onChanged = { playerPrefs.rememberProgress = it }
+        )
     }
 
     private fun bindDualAutoNextSwitches() {
-        val primary = switch(R.id.row_auto_next)
-        val mirror = switch(R.id.row_auto_next_other)
+        bindDualSwitch(
+            primary = switch(R.id.row_auto_next),
+            mirror = switch(R.id.row_auto_next_other),
+            current = { playerPrefs.autoPlayNext },
+            onChanged = { playerPrefs.autoPlayNext = it }
+        )
+    }
+
+    private fun bindDualSwitch(
+        primary: SwitchMaterial,
+        mirror: SwitchMaterial,
+        current: () -> Boolean,
+        onChanged: (Boolean) -> Unit
+    ) {
         lateinit var listener: CompoundButton.OnCheckedChangeListener
         listener = CompoundButton.OnCheckedChangeListener { _, checked ->
-            playerPrefs.autoPlayNext = checked
+            onChanged(checked)
             primary.setOnCheckedChangeListener(null)
             mirror.setOnCheckedChangeListener(null)
             primary.isChecked = checked
@@ -469,13 +401,112 @@ class PlayerSettingsDialog(
         }
         primary.setOnCheckedChangeListener(null)
         mirror.setOnCheckedChangeListener(null)
-        primary.isChecked = playerPrefs.autoPlayNext
-        mirror.isChecked = playerPrefs.autoPlayNext
+        primary.isChecked = current()
+        mirror.isChecked = current()
         primary.setOnCheckedChangeListener(listener)
         mirror.setOnCheckedChangeListener(listener)
     }
 
-    // ── Utility ──
+    private fun <T> bindValueChoice(
+        rowId: Int,
+        options: Array<T>,
+        current: () -> T,
+        label: (T) -> String,
+        onSelected: (T) -> Unit
+    ) {
+        val valueView = value(rowId)
+        fun refresh() {
+            valueView.text = label(current())
+        }
+        refresh()
+        row(rowId)?.setOnClickListener {
+            showChoiceDialog(
+                title = title(rowId),
+                options = options,
+                selected = current(),
+                label = label
+            ) { selected ->
+                onSelected(selected)
+                refresh()
+            }
+        }
+    }
+
+    private fun bindBooleanValue(
+        rowId: Int,
+        initialValue: Boolean,
+        onChanged: (Boolean) -> Unit
+    ) {
+        var valueState = initialValue
+        val valueView = value(rowId)
+        fun refresh() {
+            valueView.setText(if (valueState) R.string.settings_on else R.string.settings_off)
+        }
+        refresh()
+        row(rowId)?.setOnClickListener {
+            valueState = !valueState
+            onChanged(valueState)
+            refresh()
+        }
+    }
+
+    private fun bindSeekRow(
+        rowId: Int,
+        min: Int,
+        max: Int,
+        current: () -> Int,
+        label: (Int) -> String,
+        onChanged: (Int) -> Unit
+    ) {
+        val seekBar = seekbar(rowId)
+        val valueView = value(rowId)
+        val range = max - min
+        fun refresh(value: Int) {
+            seekBar.progress = (value - min).coerceIn(0, range)
+            valueView.text = label(value)
+        }
+        seekBar.max = range
+        refresh(current())
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val value = min + progress
+                valueView.text = label(value)
+                onChanged(value)
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
+            override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+        })
+    }
+
+    private fun <T> showChoiceDialog(
+        title: String,
+        options: Array<T>,
+        selected: T,
+        label: (T) -> String,
+        onSelected: (T) -> Unit
+    ) {
+        val labels = options.map(label).toTypedArray()
+        val checked = options.indexOf(selected).coerceAtLeast(0)
+        AlertDialog.Builder(context)
+            .setTitle(title)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                onSelected(options[which])
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun bindSwitch(
+        view: SwitchMaterial,
+        initialValue: Boolean,
+        onChanged: (Boolean) -> Unit
+    ) {
+        view.setOnCheckedChangeListener(null)
+        view.isChecked = initialValue
+        view.setOnCheckedChangeListener { _, checked -> onChanged(checked) }
+    }
 
     private fun row(rowId: Int): View? = findViewById(rowId)
 
@@ -491,6 +522,10 @@ class PlayerSettingsDialog(
         row(rowId)?.findViewById<TextView>(R.id.row_title)?.setText(titleRes)
     }
 
+    private fun title(rowId: Int): String {
+        return row(rowId)?.findViewById<TextView>(R.id.row_title)?.text?.toString().orEmpty()
+    }
+
     private fun value(rowId: Int): TextView =
         row(rowId)?.findViewById(R.id.row_value) ?: TextView(context)
 
@@ -500,54 +535,80 @@ class PlayerSettingsDialog(
     private fun seekbar(rowId: Int): SeekBar =
         row(rowId)?.findViewById(R.id.row_seekbar) ?: SeekBar(context)
 
-    private fun action(rowId: Int): TextView = row(rowId) as? TextView ?: TextView(context)
+    private fun action(rowId: Int): TextView =
+        row(rowId) as? TextView ?: TextView(context)
 
-    private fun bindDetailLauncher(rowId: Int, launcher: () -> Unit) {
-        row(rowId)?.setOnClickListener { launcher() }
+    private fun loopLabel(value: LoopMode): String = when (value) {
+        LoopMode.OFF -> context.getString(R.string.settings_loop_off)
+        LoopMode.SINGLE -> context.getString(R.string.settings_loop_single)
+        LoopMode.LIST -> context.getString(R.string.settings_loop_list)
     }
 
-    private fun showDetailSettingsForNav(navId: Int) {
-        when (navId) {
-            R.id.nav_playback -> showPlaybackSettings()
-            R.id.nav_video -> showDisplaySettings()
-            R.id.nav_audio -> showAudioSettings()
-            R.id.nav_subtitle -> showSubtitleSettings()
-            R.id.nav_gesture -> showGestureSettings()
-        }
+    private fun aspectLabel(value: AspectRatio): String = when (value) {
+        AspectRatio.FIT -> context.getString(R.string.settings_ratio_fit)
+        AspectRatio.FILL -> context.getString(R.string.settings_ratio_fill)
+        AspectRatio.CROP -> context.getString(R.string.settings_ratio_crop)
+        AspectRatio.STRETCH -> context.getString(R.string.settings_ratio_stretch)
+        AspectRatio.RATIO_4_3 -> context.getString(R.string.settings_ratio_4_3)
+        AspectRatio.RATIO_16_9 -> context.getString(R.string.settings_ratio_16_9)
     }
 
-    private fun showPlaybackSettings() {
-        showDetailSettingsSheet(PlayerPlaybackSettingsSheet(), "player_playback_settings")
+    private fun audioChannelLabel(value: AudioChannel): String = when (value) {
+        AudioChannel.STEREO -> context.getString(R.string.settings_audio_stereo)
+        AudioChannel.LEFT -> context.getString(R.string.settings_audio_left)
+        AudioChannel.RIGHT -> context.getString(R.string.settings_audio_right)
     }
 
-    private fun showDisplaySettings() {
-        showDetailSettingsSheet(PlayerDisplaySettingsSheet(), "player_display_settings")
+    private fun subtitleBgLabel(value: SubtitleBgStyle): String = when (value) {
+        SubtitleBgStyle.NONE -> context.getString(R.string.settings_subtitle_bg_none)
+        SubtitleBgStyle.SEMI_TRANSPARENT -> context.getString(R.string.settings_subtitle_bg_semi)
+        SubtitleBgStyle.OPAQUE -> context.getString(R.string.settings_subtitle_bg_opaque)
     }
 
-    private fun showAudioSettings() {
-        showDetailSettingsSheet(PlayerAudioSettingsSheet(), "player_audio_settings")
+    private fun gestureLabel(value: GestureAction): String = when (value) {
+        GestureAction.BRIGHTNESS -> context.getString(R.string.settings_action_brightness)
+        GestureAction.VOLUME -> context.getString(R.string.settings_action_volume)
+        GestureAction.SEEK -> context.getString(R.string.settings_action_seek)
+        GestureAction.NONE -> context.getString(R.string.settings_action_none)
     }
 
-    private fun showSubtitleSettings() {
-        showDetailSettingsSheet(PlayerSubtitleSettingsSheet(), "player_subtitle_settings")
+    private fun doubleTapLabel(value: DoubleTapAction): String = when (value) {
+        DoubleTapAction.PLAY_PAUSE -> context.getString(R.string.settings_double_tap_pause)
+        DoubleTapAction.FORWARD -> context.getString(R.string.settings_double_tap_forward)
+        DoubleTapAction.BACKWARD -> context.getString(R.string.settings_double_tap_backward)
+        DoubleTapAction.NONE -> context.getString(R.string.settings_double_tap_none)
     }
 
-    private fun showGestureSettings() {
-        showDetailSettingsSheet(PlayerGestureSettingsSheet(), "player_gesture_settings")
+    private fun longPressLabel(value: LongPressAction): String = when (value) {
+        LongPressAction.SPEED -> context.getString(R.string.settings_double_tap_playback)
+        LongPressAction.NONE -> context.getString(R.string.settings_action_none)
     }
 
-    private fun showDetailSettingsSheet(sheet: BaseSettingsSheet, tag: String) {
-        val activity = context as? androidx.fragment.app.FragmentActivity ?: return
-        sheet.show(activity.supportFragmentManager, tag)
+    private fun sensitivityLabel(value: Int): String = when (value) {
+        1 -> context.getString(R.string.settings_sensitivity_low)
+        3 -> context.getString(R.string.settings_sensitivity_high)
+        else -> context.getString(R.string.settings_sensitivity_medium)
     }
 
-    private fun bindSwitch(
-        view: SwitchMaterial,
-        initialValue: Boolean,
-        onChanged: (Boolean) -> Unit
-    ) {
-        view.setOnCheckedChangeListener(null)
-        view.isChecked = initialValue
-        view.setOnCheckedChangeListener { _, checked -> onChanged(checked) }
+    private fun autoHideLabel(value: Int): String = when (value) {
+        3 -> context.getString(R.string.settings_hide_3s)
+        5 -> context.getString(R.string.settings_hide_5s)
+        8 -> context.getString(R.string.settings_hide_8s)
+        else -> context.getString(R.string.settings_hide_never)
+    }
+
+    private data class SubtitleColorOption(val label: String, val color: Int)
+
+    private val subtitleColorOptions: Array<SubtitleColorOption> by lazy {
+        arrayOf(
+            SubtitleColorOption("白色", 0xFFFFFFFF.toInt()),
+            SubtitleColorOption("黄色", 0xFFFFEB3B.toInt()),
+            SubtitleColorOption("绿色", 0xFF8BC34A.toInt()),
+            SubtitleColorOption("蓝色", 0xFF64B5F6.toInt())
+        )
+    }
+
+    private fun subtitleColorOptionFor(color: Int): SubtitleColorOption {
+        return subtitleColorOptions.firstOrNull { it.color == color } ?: subtitleColorOptions.first()
     }
 }
