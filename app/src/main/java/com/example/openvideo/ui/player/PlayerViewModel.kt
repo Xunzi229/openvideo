@@ -49,7 +49,7 @@ class PlayerViewModel @Inject constructor(
         videoUri = uri
         _uiState.value = _uiState.value.copy(title = title)
 
-        val player = playerManager.initialize()
+        playerManager.initialize(uri)
         playerManager.setMediaUri(uri)
 
         playerListener = object : androidx.media3.common.Player.Listener {

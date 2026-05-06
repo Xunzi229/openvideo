@@ -73,6 +73,7 @@ class PlaylistDetailFragment : Fragment() {
                     putExtra("video_uri", video.videoPath)
                     putExtra("video_title", video.videoTitle)
                     putExtra("video_id", video.videoId)
+                    putExtra("video_path", video.videoPath)
                 }
                 startActivity(intent)
             },

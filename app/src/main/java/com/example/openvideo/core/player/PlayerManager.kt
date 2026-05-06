@@ -19,6 +19,7 @@ import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -44,11 +45,21 @@ class PlayerManager @Inject constructor(
     var renderMode = RenderMode.SURFACE
     var aspectRatio = AspectRatio.FIT
 
-    fun initialize(): ExoPlayer {
+    fun initialize(mediaUri: Uri? = null): ExoPlayer {
         trackSelector = DefaultTrackSelector(context)
+        val bufferingProfile = PlayerBufferingPolicy.profileFor(mediaUri?.toString().orEmpty())
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                bufferingProfile.minBufferMs,
+                bufferingProfile.maxBufferMs,
+                bufferingProfile.bufferForPlaybackMs,
+                bufferingProfile.bufferForPlaybackAfterRebufferMs
+            )
+            .build()
 
         val player = ExoPlayer.Builder(context)
             .setTrackSelector(trackSelector!!)
+            .setLoadControl(loadControl)
             .build()
 
         this.player = player

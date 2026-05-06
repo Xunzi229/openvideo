@@ -164,6 +164,7 @@ class HomeFragment : Fragment() {
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)
+            putExtra("video_path", video.path)
         }
         startActivity(intent)
     }

@@ -234,6 +234,7 @@
     <string name="player_ab_loop_cancelled">AB循环已取消</string>
     <string name="player_locked">屏幕已锁定，点击锁定按钮解锁</string>
     <string name="player_unlocked">屏幕已解锁</string>
+    <string name="player_playback_error">播放失败，已记录错误日志</string>
 
     <!-- Dialogs -->
     <string name="dialog_delete_title">删除视频</string>

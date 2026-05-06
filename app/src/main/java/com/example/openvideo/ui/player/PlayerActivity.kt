@@ -23,15 +23,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.ui.PlayerView
 import com.example.openvideo.R
+import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.math.abs
 
@@ -119,6 +125,8 @@ class PlayerActivity : AppCompatActivity() {
     private var playerListener: Player.Listener? = null
     private var isLongPressing = false
     private var hasSkippedIntro = false
+    private val startupTrace = PlayerStartupTrace()
+    private var hasLoggedFirstFrame = false
 
     /** 单次手势起始亮度/音量（0–1），避免 MOVE 期间重复累加误差 */
     private var brightnessGestureAnchor = 0.5f
@@ -150,14 +158,17 @@ class PlayerActivity : AppCompatActivity() {
         val uriString = intent.getStringExtra("video_uri") ?: run { finish(); return }
         val title = intent.getStringExtra("video_title") ?: ""
         val id = intent.getLongExtra("video_id", 0)
+        val videoPath = intent.getStringExtra("video_path").orEmpty()
 
+        startupTrace.record("activity_created")
         viewModel.initialize(Uri.parse(uriString), title, id)
-
-        // Load external subtitles if available
-        loadSubtitles(uriString)
+        startupTrace.record("player_initialized")
 
         playerView.player = viewModel.player
+        startupTrace.record("player_view_attached")
         tvTitle.text = title
+
+        loadSubtitlesAsync(uriString, videoPath)
 
         scheduleHideControls()
 
@@ -227,27 +238,39 @@ class PlayerActivity : AppCompatActivity() {
         volumeProgress.progress = (currentVolume * 100).toInt()
     }
 
-    private fun loadSubtitles(uriString: String) {
-        val uri = Uri.parse(uriString)
-        when (uri.scheme) {
-            "file" -> {
-                val path = uri.path ?: return
-                val subtitleFiles = subtitleLoader.findSubtitleFiles(path)
-                if (subtitleFiles.isNotEmpty()) {
-                    val subtitles = subtitleLoader.loadFromFile(subtitleFiles[0])
-                    if (subtitles.isNotEmpty()) {
-                        viewModel.setSubtitles(subtitles)
-                    }
-                }
+    private fun loadSubtitlesAsync(uriString: String, videoPath: String) {
+        lifecycleScope.launch {
+            val subtitles = withContext(Dispatchers.IO) {
+                loadSubtitles(uriString, videoPath)
             }
-            else -> {
-                // content:// or other schemes — try loading directly from URI
-                val subtitles = subtitleLoader.loadFromUri(uri)
-                if (subtitles.isNotEmpty()) {
-                    viewModel.setSubtitles(subtitles)
-                }
+            if (subtitles.isNotEmpty()) {
+                viewModel.setSubtitles(subtitles)
             }
+            startupTrace.record("subtitle_scan_finished")
         }
+    }
+
+    private fun loadSubtitles(uriString: String, videoPath: String): List<com.example.openvideo.core.subtitle.SubtitleItem> {
+        val uri = Uri.parse(uriString)
+        val sidecarPath = when {
+            uri.scheme == "file" -> uri.path.orEmpty()
+            videoPath.isNotBlank() && !videoPath.startsWith("content://") -> videoPath
+            else -> ""
+        }
+
+        if (sidecarPath.isNotBlank()) {
+            val subtitleFiles = subtitleLoader.findSubtitleFiles(sidecarPath)
+            if (subtitleFiles.isNotEmpty()) {
+                return subtitleLoader.loadFromFile(subtitleFiles[0])
+            }
+            return emptyList()
+        }
+
+        if (PlayerSubtitleAutoload.canLoadAsSubtitleUri(uriString)) {
+            return subtitleLoader.loadFromUri(uri)
+        }
+
+        return emptyList()
     }
 
     private fun initViews() {
@@ -406,6 +429,22 @@ class PlayerActivity : AppCompatActivity() {
                     hasSkippedIntro = true
                     viewModel.seekTo(playerPrefs.introSeconds * 1000L)
                 }
+            }
+
+            override fun onRenderedFirstFrame() {
+                if (hasLoggedFirstFrame) return
+                hasLoggedFirstFrame = true
+                startupTrace.record("first_frame_rendered")
+                CrashLogger.logDiagnostic(
+                    this@PlayerActivity,
+                    "player_startup",
+                    startupTrace.format()
+                )
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                CrashLogger.logPlayerError(this@PlayerActivity, error)
+                Toast.makeText(this@PlayerActivity, R.string.player_playback_error, Toast.LENGTH_SHORT).show()
             }
         }
         viewModel.player?.addListener(playerListener!!)
