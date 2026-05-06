@@ -27,6 +27,16 @@
         android:textSize="@dimen/ov_text_body" />
 
     <TextView
+        android:id="@+id/option_add_to_playlist"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="@dimen/ov_space_md"
+        android:text="@string/option_add_to_playlist"
+        android:textColor="@color/ov_text_primary"
+        android:textSize="@dimen/ov_text_body" />
+
+    <TextView
         android:id="@+id/option_details"
         android:layout_width="match_parent"
         android:layout_height="48dp"

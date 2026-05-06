@@ -13,12 +13,14 @@ import android.view.SurfaceView
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -27,7 +29,6 @@ import javax.inject.Singleton
 
 enum class DecodeMode { SOFT, HARD }
 enum class RenderMode { SURFACE, TEXTURE }
-enum class AspectRatio { DEFAULT, RATIO_4_3, RATIO_16_9, FILL }
 
 @Singleton
 class PlayerManager @Inject constructor(
@@ -41,7 +42,7 @@ class PlayerManager @Inject constructor(
 
     var decodeMode = DecodeMode.HARD
     var renderMode = RenderMode.SURFACE
-    var aspectRatio = AspectRatio.DEFAULT
+    var aspectRatio = AspectRatio.FIT
 
     fun initialize(): ExoPlayer {
         trackSelector = DefaultTrackSelector(context)
@@ -90,8 +91,16 @@ class PlayerManager @Inject constructor(
         player?.seekTo(positionMs)
     }
 
-    fun setSpeed(speed: Float) {
-        player?.setPlaybackSpeed(speed)
+    fun setSpeed(speed: Float, pitch: Float = 1.0f) {
+        player?.playbackParameters = PlaybackParameters(speed, pitch)
+    }
+
+    fun setRepeatMode(repeatMode: Int) {
+        player?.repeatMode = repeatMode
+    }
+
+    fun setVolumeBoost(enabled: Boolean) {
+        player?.volume = if (enabled) 1.5f else 1.0f
     }
 
     fun applyDecodeMode(mode: DecodeMode) {
@@ -101,10 +110,12 @@ class PlayerManager @Inject constructor(
 
     fun getAspectRatioValue(): Float {
         return when (aspectRatio) {
-            AspectRatio.DEFAULT -> 0f
+            AspectRatio.FIT,
+            AspectRatio.FILL,
+            AspectRatio.CROP,
+            AspectRatio.STRETCH -> 0f
             AspectRatio.RATIO_4_3 -> 4f / 3f
             AspectRatio.RATIO_16_9 -> 16f / 9f
-            AspectRatio.FILL -> 0f
         }
     }
 

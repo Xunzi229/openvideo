@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
+import android.widget.CompoundButton
 import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.TextView
@@ -19,16 +20,13 @@ class PlayerSettingsDialog(
     context: Context,
     private val playerManager: PlayerManager,
     private val viewModel: PlayerViewModel,
-    private val playerPrefs: PlayerPrefs
+    private val playerPrefs: PlayerPrefs,
+    private val onRequestPickSubtitle: () -> Unit = {}
 ) : Dialog(context) {
 
     private val navIds = intArrayOf(
         R.id.nav_playback, R.id.nav_video, R.id.nav_audio,
         R.id.nav_subtitle, R.id.nav_gesture, R.id.nav_other
-    )
-    private val sectionIds = intArrayOf(
-        R.id.section_playback, R.id.section_video, R.id.section_audio,
-        R.id.section_subtitle, R.id.section_gesture, R.id.section_other
     )
     private val loopModes = arrayOf("off", "single", "list")
     private var loopModeIndex = 0
@@ -86,6 +84,9 @@ class PlayerSettingsDialog(
         setupGestureSection()
         setupOtherSection()
         setupResetDefaults()
+
+        bindDualRememberSwitches()
+        bindDualAutoNextSwitches()
 
         setSelectedNav(R.id.nav_playback)
         showSection(R.id.section_playback)
@@ -152,7 +153,7 @@ class PlayerSettingsDialog(
                 else -> R.id.rb_speed_1_0
             }
         )
-        viewModel.setSpeed(speed)
+        viewModel.setSpeed(speed, PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch))
         speedGroup.setOnCheckedChangeListener { _, checkedId ->
             val selectedSpeed = when (checkedId) {
                 R.id.rb_speed_0_5 -> 0.5f
@@ -163,7 +164,10 @@ class PlayerSettingsDialog(
                 else -> 1.0f
             }
             playerPrefs.speed = selectedSpeed
-            viewModel.setSpeed(selectedSpeed)
+            viewModel.setSpeed(
+                selectedSpeed,
+                PlayerPlaybackSettings.pitchFor(selectedSpeed, playerPrefs.speedPreservePitch)
+            )
         }
     }
 
@@ -183,6 +187,7 @@ class PlayerSettingsDialog(
         loopValue.setOnClickListener {
             loopModeIndex = (loopModeIndex + 1) % loopModes.size
             playerPrefs.loopMode = LoopMode.fromKey(loopModes[loopModeIndex])
+            viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
             update()
         }
     }
@@ -208,10 +213,8 @@ class PlayerSettingsDialog(
     }
 
     private fun setupPlaybackSwitches() {
-        val rememberSwitch = findViewById<SwitchMaterial>(R.id.switch_remember_progress)
         val hwAccelSwitch = findViewById<SwitchMaterial>(R.id.switch_hardware_accel)
         val pauseOnExitSwitch = findViewById<SwitchMaterial>(R.id.switch_pause_on_exit)
-        val autoNextSwitch = findViewById<SwitchMaterial>(R.id.switch_auto_play_next)
         val bgAudioSwitch = findViewById<SwitchMaterial>(R.id.switch_bg_audio)
         val skipValue = findViewById<TextView>(R.id.tv_skip_value)
 
@@ -226,13 +229,11 @@ class PlayerSettingsDialog(
             updateSkipText()
         }
 
-        bindSwitch(rememberSwitch, playerPrefs.rememberProgress) { playerPrefs.rememberProgress = it }
         bindSwitch(hwAccelSwitch, playerPrefs.hwAcceleration) { checked ->
             playerPrefs.hwAcceleration = checked
             viewModel.setDecodeMode(if (checked) DecodeMode.HARD else DecodeMode.SOFT)
         }
         bindSwitch(pauseOnExitSwitch, playerPrefs.pauseOnExit) { playerPrefs.pauseOnExit = it }
-        bindSwitch(autoNextSwitch, playerPrefs.autoPlayNext) { playerPrefs.autoPlayNext = it }
         bindSwitch(bgAudioSwitch, playerPrefs.bgAudio) { playerPrefs.bgAudio = it }
     }
 
@@ -283,11 +284,20 @@ class PlayerSettingsDialog(
     private fun setupAudioSection() {
         // 倍速不变调
         val pitchSwitch = findViewById<SwitchMaterial>(R.id.switch_speed_pitch)
-        bindSwitch(pitchSwitch, playerPrefs.speedPreservePitch) { playerPrefs.speedPreservePitch = it }
+        bindSwitch(pitchSwitch, playerPrefs.speedPreservePitch) {
+            playerPrefs.speedPreservePitch = it
+            viewModel.setSpeed(
+                playerPrefs.speed,
+                PlayerPlaybackSettings.pitchFor(playerPrefs.speed, it)
+            )
+        }
 
         // 音量增强
         val boostSwitch = findViewById<SwitchMaterial>(R.id.switch_volume_boost)
-        bindSwitch(boostSwitch, playerPrefs.volumeBoost) { playerPrefs.volumeBoost = it }
+        bindSwitch(boostSwitch, playerPrefs.volumeBoost) {
+            playerPrefs.volumeBoost = it
+            viewModel.setVolumeBoost(it)
+        }
 
         // 声道选择
         audioChannelIndex = audioChannels.indexOf(playerPrefs.audioChannel).takeIf { it >= 0 } ?: 0
@@ -333,9 +343,7 @@ class PlayerSettingsDialog(
     private fun setupSubtitleSection() {
         // 加载外挂字幕
         val loadSubtitle = findViewById<TextView>(R.id.tv_load_subtitle)
-        loadSubtitle.setOnClickListener {
-            // Will be wired to file picker in PlayerActivity
-        }
+        loadSubtitle.setOnClickListener { onRequestPickSubtitle() }
 
         // 字幕大小
         val sizeSeekbar = findViewById<SeekBar>(R.id.seekbar_subtitle_size)
@@ -510,16 +518,6 @@ class PlayerSettingsDialog(
     // ── 其他分组 ──
 
     private fun setupOtherSection() {
-        // 记住播放进度 (read-only mirror of playback section)
-        val rememberSwitch = findViewById<SwitchMaterial>(R.id.switch_remember_progress_other)
-        rememberSwitch.setOnCheckedChangeListener(null)
-        rememberSwitch.isChecked = playerPrefs.rememberProgress
-
-        // 自动播放下一个 (read-only mirror of playback section)
-        val autoNextSwitch = findViewById<SwitchMaterial>(R.id.switch_auto_play_next_other)
-        autoNextSwitch.setOnCheckedChangeListener(null)
-        autoNextSwitch.isChecked = playerPrefs.autoPlayNext
-
         // 屏幕常亮
         val keepScreenSwitch = findViewById<SwitchMaterial>(R.id.switch_keep_screen_on)
         bindSwitch(keepScreenSwitch, playerPrefs.keepScreenOn) { playerPrefs.keepScreenOn = it }
@@ -580,7 +578,51 @@ class PlayerSettingsDialog(
             setupSubtitleSection()
             setupGestureSection()
             setupOtherSection()
+            bindDualRememberSwitches()
+            bindDualAutoNextSwitches()
         }
+    }
+
+    private fun bindDualRememberSwitches() {
+        val primary = findViewById<SwitchMaterial>(R.id.switch_remember_progress)
+        val mirror = findViewById<SwitchMaterial>(R.id.switch_remember_progress_other)
+        lateinit var listener: CompoundButton.OnCheckedChangeListener
+        listener = CompoundButton.OnCheckedChangeListener { _, checked ->
+            playerPrefs.rememberProgress = checked
+            primary.setOnCheckedChangeListener(null)
+            mirror.setOnCheckedChangeListener(null)
+            primary.isChecked = checked
+            mirror.isChecked = checked
+            primary.setOnCheckedChangeListener(listener)
+            mirror.setOnCheckedChangeListener(listener)
+        }
+        primary.setOnCheckedChangeListener(null)
+        mirror.setOnCheckedChangeListener(null)
+        primary.isChecked = playerPrefs.rememberProgress
+        mirror.isChecked = playerPrefs.rememberProgress
+        primary.setOnCheckedChangeListener(listener)
+        mirror.setOnCheckedChangeListener(listener)
+    }
+
+    private fun bindDualAutoNextSwitches() {
+        val primary = findViewById<SwitchMaterial>(R.id.switch_auto_play_next)
+        val mirror = findViewById<SwitchMaterial>(R.id.switch_auto_play_next_other)
+        lateinit var listener: CompoundButton.OnCheckedChangeListener
+        listener = CompoundButton.OnCheckedChangeListener { _, checked ->
+            playerPrefs.autoPlayNext = checked
+            primary.setOnCheckedChangeListener(null)
+            mirror.setOnCheckedChangeListener(null)
+            primary.isChecked = checked
+            mirror.isChecked = checked
+            primary.setOnCheckedChangeListener(listener)
+            mirror.setOnCheckedChangeListener(listener)
+        }
+        primary.setOnCheckedChangeListener(null)
+        mirror.setOnCheckedChangeListener(null)
+        primary.isChecked = playerPrefs.autoPlayNext
+        mirror.isChecked = playerPrefs.autoPlayNext
+        primary.setOnCheckedChangeListener(listener)
+        mirror.setOnCheckedChangeListener(listener)
     }
 
     // ── Utility ──

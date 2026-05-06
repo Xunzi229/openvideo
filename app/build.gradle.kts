@@ -79,4 +79,6 @@ dependencies {
     // Window (WindowSizeClass)
     implementation(libs.androidx.window)
     implementation(libs.androidx.security.crypto)
+
+    testImplementation(libs.junit)
 }

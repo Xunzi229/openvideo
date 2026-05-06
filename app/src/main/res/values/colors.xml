@@ -8,7 +8,7 @@
     <color name="surface">@color/ov_bg_elevated</color>
     <color name="on_background">@color/ov_text_primary</color>
     <color name="on_surface">@color/ov_text_primary</color>
-    <color name="player_bg">#FF000000</color>
+    <color name="player_bg">@color/ov_bg_base</color>
     <color name="control_bg">@color/ov_bg_overlay</color>
     <color name="seekbar_progress">@color/ov_accent_blue</color>
     <color name="text_secondary">@color/ov_text_secondary</color>

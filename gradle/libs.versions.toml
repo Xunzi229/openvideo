@@ -18,6 +18,7 @@ coroutines = "1.9.0"
 window = "1.2.0"
 androidxMedia = "1.7.0"
 securityCrypto = "1.1.0-alpha06"
+junit = "4.13.2"
 [libraries]
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +61,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 
 # Window (WindowSizeClass)
 androidx-window = { group = "androidx.window", name = "window", version.ref = "window" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

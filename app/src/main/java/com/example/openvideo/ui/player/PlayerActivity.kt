@@ -1,10 +1,12 @@
 package com.example.openvideo.ui.player
 
 import android.annotation.SuppressLint
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -13,6 +15,9 @@ import android.widget.ImageButton
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -21,9 +26,10 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import com.example.openvideo.R
-import com.example.openvideo.core.player.AspectRatio
 import com.example.openvideo.core.player.PlayerManager
+import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -113,9 +119,26 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingSeekTarget: Long? = null
     private var playerListener: Player.Listener? = null
     private var isLongPressing = false
+    private var hasSkippedIntro = false
+
+    /** 单次手势起始亮度/音量（0–1），避免 MOVE 期间重复累加误差 */
+    private var brightnessGestureAnchor = 0.5f
+    private var volumeGestureAnchor = 0.5f
+
+    private lateinit var pickSubtitleLauncher: ActivityResultLauncher<Array<String>>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pickSubtitleLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri == null) return@registerForActivityResult
+            val subtitles = subtitleLoader.loadFromUri(uri)
+            if (subtitles.isNotEmpty()) {
+                viewModel.setSubtitles(subtitles)
+                Toast.makeText(this, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
         enterImmersiveMode()
         setContentView(R.layout.activity_player)
 
@@ -146,14 +169,35 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyPlayerSettings() {
-        // Apply speed
-        viewModel.setSpeed(playerPrefs.speed)
+        viewModel.setSpeed(
+            playerPrefs.speed,
+            PlayerPlaybackSettings.pitchFor(playerPrefs.speed, playerPrefs.speedPreservePitch)
+        )
+        viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
+        viewModel.setVolumeBoost(playerPrefs.volumeBoost)
 
-        // Apply keep screen on
         if (playerPrefs.keepScreenOn) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+
+        playerView.resizeMode = PlayerViewSettings.resizeModeFor(playerPrefs.aspectRatio)
+        playerView.rotation = playerPrefs.rotation.toFloat()
+        playerView.scaleX = if (playerPrefs.mirror) -1f else 1f
+
+        tvSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
+        tvSubtitle.setTextColor(playerPrefs.subtitleColor)
+        tvSubtitle.setBackgroundColor(
+            when (playerPrefs.subtitleBgStyle) {
+                SubtitleBgStyle.NONE -> Color.TRANSPARENT
+                SubtitleBgStyle.SEMI_TRANSPARENT -> Color.argb(170, 0, 0, 0)
+                SubtitleBgStyle.OPAQUE -> Color.BLACK
+            }
+        )
+        tvSubtitle.post {
+            val travel = playerView.height * 0.6f
+            tvSubtitle.translationY = -((1f - playerPrefs.subtitlePosition.coerceIn(0f, 1f)) * travel)
         }
     }
 
@@ -243,7 +287,14 @@ class PlayerActivity : AppCompatActivity() {
         btnNext.setOnClickListener { viewModel.seekForward() }
 
         btnSettings.setOnClickListener {
-            PlayerSettingsDialog(this, playerManager, viewModel, playerPrefs).show()
+            val dialog = PlayerSettingsDialog(this, playerManager, viewModel, playerPrefs) {
+                pickSubtitleLauncher.launch(arrayOf("*/*"))
+            }
+            dialog.setOnDismissListener {
+                applyPlayerSettings()
+                scheduleHideControls()
+            }
+            dialog.show()
         }
 
         btnScreenshot.setOnClickListener {
@@ -338,6 +389,19 @@ class PlayerActivity : AppCompatActivity() {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updatePlayPauseIcon(isPlaying)
             }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (
+                    playbackState == Player.STATE_READY &&
+                    playerPrefs.skipIntroOutro &&
+                    playerPrefs.introSeconds > 0 &&
+                    !hasSkippedIntro &&
+                    viewModel.uiState.value.currentPosition < playerPrefs.introSeconds * 1000L
+                ) {
+                    hasSkippedIntro = true
+                    viewModel.seekTo(playerPrefs.introSeconds * 1000L)
+                }
+            }
         }
         viewModel.player?.addListener(playerListener!!)
     }
@@ -387,6 +451,7 @@ class PlayerActivity : AppCompatActivity() {
         var isEdgeSwipe = false
         var swipeSide = SwipeSide.NONE
         val edgeThreshold = resources.displayMetrics.widthPixels * 0.05f // 5% edge
+        val gestureSlop = gestureSlopPx()
 
         gestureOverlay.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
@@ -397,6 +462,8 @@ class PlayerActivity : AppCompatActivity() {
                     startY = event.y
                     isHorizontalSwipe = false
                     isVerticalSwipe = false
+                    brightnessGestureAnchor = currentBrightness
+                    volumeGestureAnchor = currentVolume
                     isEdgeSwipe = event.x < edgeThreshold || event.x > resources.displayMetrics.widthPixels - edgeThreshold
                     swipeSide = if (event.x < resources.displayMetrics.widthPixels / 2) {
                         SwipeSide.LEFT
@@ -409,7 +476,7 @@ class PlayerActivity : AppCompatActivity() {
                     val dy = event.y - startY
 
                     if (!isHorizontalSwipe && !isVerticalSwipe) {
-                        if (abs(dx) > 50 || abs(dy) > 50) {
+                        if (abs(dx) > gestureSlop || abs(dy) > gestureSlop) {
                             if (abs(dx) > abs(dy)) {
                                 isHorizontalSwipe = true
                             } else {
@@ -419,18 +486,29 @@ class PlayerActivity : AppCompatActivity() {
                     }
 
                     if (isHorizontalSwipe) {
-                        handleSeekGesture(dx)
+                        when (playerPrefs.horizontalSwipeAction) {
+                            GestureAction.SEEK -> handleSeekGesture(dx)
+                            GestureAction.BRIGHTNESS -> handleBrightnessGestureHorizontal(dx)
+                            GestureAction.VOLUME -> handleVolumeGestureHorizontal(dx)
+                            GestureAction.NONE -> {}
+                        }
                     } else if (isVerticalSwipe) {
-                        when (swipeSide) {
-                            SwipeSide.LEFT -> handleBrightnessGesture(dy)
-                            SwipeSide.RIGHT -> handleVolumeGesture(dy)
-                            SwipeSide.NONE -> {}
+                        val action = when (swipeSide) {
+                            SwipeSide.LEFT -> playerPrefs.leftVerticalGesture
+                            SwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
+                            SwipeSide.NONE -> GestureAction.NONE
+                        }
+                        when (action) {
+                            GestureAction.BRIGHTNESS -> handleBrightnessGesture(dy)
+                            GestureAction.VOLUME -> handleVolumeGesture(dy)
+                            GestureAction.SEEK -> handleVerticalSeekGesture(dy)
+                            GestureAction.NONE -> {}
                         }
                     }
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     // P1: Edge swipe back
-                    if (isEdgeSwipe && isHorizontalSwipe) {
+                    if (playerPrefs.edgeSwipeBack && isEdgeSwipe && isHorizontalSwipe) {
                         val dx = event.x - startX
                         if (dx > 100) { // Swipe right from left edge
                             finish()
@@ -438,8 +516,17 @@ class PlayerActivity : AppCompatActivity() {
                         }
                     }
 
-                    if (isHorizontalSwipe) {
+                    if (isHorizontalSwipe && playerPrefs.horizontalSwipeAction == GestureAction.SEEK) {
                         applySeekGesture()
+                    } else if (isVerticalSwipe) {
+                        val verticalAction = when (swipeSide) {
+                            SwipeSide.LEFT -> playerPrefs.leftVerticalGesture
+                            SwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
+                            SwipeSide.NONE -> GestureAction.NONE
+                        }
+                        if (verticalAction == GestureAction.SEEK) {
+                            applySeekGesture()
+                        }
                     }
                     seekIndicator.visibility = View.GONE
                     brightnessIndicator.visibility = View.GONE
@@ -456,8 +543,23 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun gestureSlopPx(): Int = when (playerPrefs.gestureSensitivity) {
+        1 -> 60
+        2 -> 50
+        else -> 40
+    }
+
     private fun handleSeekGesture(dx: Float) {
         val seekMs = (dx / resources.displayMetrics.widthPixels * 60_000).toLong()
+        val target = (viewModel.uiState.value.currentPosition + seekMs)
+            .coerceIn(0, viewModel.uiState.value.duration)
+        pendingSeekTarget = target
+        seekIndicator.text = "${formatTime(target)} / ${formatTime(viewModel.uiState.value.duration)}"
+        seekIndicator.visibility = View.VISIBLE
+    }
+
+    private fun handleVerticalSeekGesture(dy: Float) {
+        val seekMs = (-dy / resources.displayMetrics.heightPixels * 60_000).toLong()
         val target = (viewModel.uiState.value.currentPosition + seekMs)
             .coerceIn(0, viewModel.uiState.value.duration)
         pendingSeekTarget = target
@@ -476,8 +578,18 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun handleBrightnessGesture(dy: Float) {
-        val delta = -dy / resources.displayMetrics.heightPixels
-        currentBrightness = (currentBrightness + delta).coerceIn(0.01f, 1f)
+        currentBrightness =
+            (brightnessGestureAnchor - dy / resources.displayMetrics.heightPixels).coerceIn(0.01f, 1f)
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = currentBrightness
+        window.attributes = layoutParams
+        brightnessProgress.progress = (currentBrightness * 100).toInt()
+        brightnessIndicator.visibility = View.VISIBLE
+    }
+
+    private fun handleBrightnessGestureHorizontal(dx: Float) {
+        currentBrightness =
+            (brightnessGestureAnchor + dx / resources.displayMetrics.widthPixels).coerceIn(0.01f, 1f)
         val layoutParams = window.attributes
         layoutParams.screenBrightness = currentBrightness
         window.attributes = layoutParams
@@ -488,8 +600,19 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleVolumeGesture(dy: Float) {
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-        val delta = -dy / resources.displayMetrics.heightPixels * maxVolume
-        currentVolume = (currentVolume + delta / maxVolume).coerceIn(0f, 1f)
+        currentVolume =
+            (volumeGestureAnchor - dy / resources.displayMetrics.heightPixels).coerceIn(0f, 1f)
+        val volume = (currentVolume * maxVolume).toInt().coerceIn(0, maxVolume)
+        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
+        volumeProgress.progress = (currentVolume * 100).toInt()
+        volumeIndicator.visibility = View.VISIBLE
+    }
+
+    private fun handleVolumeGestureHorizontal(dx: Float) {
+        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
+        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+        currentVolume =
+            (volumeGestureAnchor + dx / resources.displayMetrics.widthPixels).coerceIn(0f, 1f)
         val volume = (currentVolume * maxVolume).toInt().coerceIn(0, maxVolume)
         audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
         volumeProgress.progress = (currentVolume * 100).toInt()
@@ -578,7 +701,9 @@ class PlayerActivity : AppCompatActivity() {
         stopObservingState()
         if (!isInPictureInPictureMode) {
             viewModel.saveHistory()
-            viewModel.player?.pause()
+            if (playerPrefs.pauseOnExit || !playerPrefs.bgAudio) {
+                viewModel.player?.pause()
+            }
         }
     }
 

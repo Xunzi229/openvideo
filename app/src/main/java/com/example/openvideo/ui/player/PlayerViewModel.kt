@@ -3,10 +3,10 @@ package com.example.openvideo.ui.player
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.openvideo.core.player.AspectRatio
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.player.RenderMode
+import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.subtitle.SubtitleItem
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
@@ -23,7 +23,7 @@ data class PlayerUiState(
     val duration: Long = 0,
     val decodeMode: DecodeMode = DecodeMode.HARD,
     val renderMode: RenderMode = RenderMode.SURFACE,
-    val aspectRatio: AspectRatio = AspectRatio.DEFAULT,
+    val aspectRatio: AspectRatio = AspectRatio.FIT,
     val speed: Float = 1.0f,
     val isFavorite: Boolean = false,
     val currentSubtitle: String = "",
@@ -101,9 +101,17 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
-    fun setSpeed(speed: Float) {
-        playerManager.setSpeed(speed)
+    fun setSpeed(speed: Float, pitch: Float = 1.0f) {
+        playerManager.setSpeed(speed, pitch)
         _uiState.value = _uiState.value.copy(speed = speed)
+    }
+
+    fun setRepeatMode(repeatMode: Int) {
+        playerManager.setRepeatMode(repeatMode)
+    }
+
+    fun setVolumeBoost(enabled: Boolean) {
+        playerManager.setVolumeBoost(enabled)
     }
 
     fun setSubtitles(subtitles: List<SubtitleItem>) {

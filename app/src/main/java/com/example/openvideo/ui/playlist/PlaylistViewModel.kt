@@ -15,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class PlaylistViewModel @Inject constructor(
-    private val playlistDao: PlaylistDao
+    private val playlistDao: PlaylistDao,
+    private val playlistEditor: PlaylistEditor
 ) : ViewModel() {
 
     val playlists: Flow<List<PlaylistEntity>> = playlistDao.getAll()
@@ -49,24 +50,7 @@ class PlaylistViewModel @Inject constructor(
 
     fun addToPlaylist(playlistId: Long, video: VideoItem) {
         viewModelScope.launch {
-            // Check for duplicate
-            val existing = playlistDao.getVideosOnce(playlistId)
-            if (existing.any { it.videoId == video.id }) return@launch
-
-            val count = existing.size
-            playlistDao.insertVideo(
-                PlaylistVideoEntity(
-                    playlistId = playlistId,
-                    videoId = video.id,
-                    videoTitle = video.title,
-                    videoPath = video.path,
-                    videoDuration = video.duration,
-                    position = count
-                )
-            )
-            playlistDao.getById(playlistId)?.let { playlist ->
-                playlistDao.update(playlist.copy(updatedAt = System.currentTimeMillis()))
-            }
+            playlistEditor.addToPlaylist(playlistId, video)
         }
     }
 

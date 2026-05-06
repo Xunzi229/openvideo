@@ -4,9 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AppPrefs
+import com.example.openvideo.data.local.PlaylistDao
+import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
+import com.example.openvideo.ui.playlist.PlaylistEditor
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -27,7 +31,9 @@ enum class ViewMode { LIST, GRID }
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: VideoRepository,
-    private val appPrefs: AppPrefs
+    private val appPrefs: AppPrefs,
+    private val playlistDao: PlaylistDao,
+    private val playlistEditor: PlaylistEditor
 ) : ViewModel() {
 
     private val _videos = MutableStateFlow<List<VideoItem>>(emptyList())
@@ -39,6 +45,7 @@ class HomeViewModel @Inject constructor(
     val sortField: StateFlow<SortField> = _sortField
     val sortAsc: StateFlow<Boolean> = _sortAsc
     val viewMode: StateFlow<ViewMode> = _viewMode
+    val playlists: Flow<List<PlaylistEntity>> = playlistDao.getAll()
 
     val videos: StateFlow<List<VideoItem>> = combine(
         _videos, _searchQuery, _sortField, _sortAsc
@@ -134,6 +141,18 @@ class HomeViewModel @Inject constructor(
             if (ids.isNotEmpty()) {
                 _videos.value = _videos.value.filter { it.id !in ids }
             }
+        }
+    }
+
+    fun addToPlaylist(playlistId: Long, video: VideoItem) {
+        viewModelScope.launch {
+            playlistEditor.addToPlaylist(playlistId, video)
+        }
+    }
+
+    fun createPlaylistWithVideo(name: String, video: VideoItem) {
+        viewModelScope.launch {
+            playlistEditor.createPlaylistWithVideo(name, video)
         }
     }
 }

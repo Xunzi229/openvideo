@@ -25,9 +25,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.player.PlayerActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -170,8 +173,53 @@ class HomeFragment : Fragment() {
             context = requireContext(),
             video = video,
             onFavorite = { viewModel.toggleFavorite(video) },
+            onAddToPlaylist = { showAddToPlaylistDialog(video) },
             onDelete = { confirmDelete(video) }
         ).show()
+    }
+
+    private fun showAddToPlaylistDialog(video: VideoItem) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val playlists = viewModel.playlists.first()
+            if (playlists.isEmpty()) {
+                showCreatePlaylistForVideoDialog(video)
+            } else {
+                showPlaylistPicker(video, playlists)
+            }
+        }
+    }
+
+    private fun showPlaylistPicker(video: VideoItem, playlists: List<PlaylistEntity>) {
+        val names = playlists.map { it.name }
+            .plus(getString(R.string.playlist_create_and_add))
+            .toTypedArray()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.playlist_add_to_title)
+            .setItems(names) { _, which ->
+                if (which == playlists.size) {
+                    showCreatePlaylistForVideoDialog(video)
+                } else {
+                    viewModel.addToPlaylist(playlists[which].id, video)
+                }
+            }
+            .show()
+    }
+
+    private fun showCreatePlaylistForVideoDialog(video: VideoItem) {
+        val input = EditText(requireContext()).apply {
+            hint = getString(R.string.playlist_hint_name)
+            setPadding(48, 32, 48, 16)
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.playlist_create_title)
+            .setMessage(getString(R.string.playlist_add_empty_message, video.title))
+            .setView(input)
+            .setPositiveButton(R.string.action_create) { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isNotEmpty()) viewModel.createPlaylistWithVideo(name, video)
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     private fun updateViewModeButtons(mode: ViewMode) {

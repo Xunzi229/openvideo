@@ -13,6 +13,7 @@ class VideoOptionsSheet(
     context: Context,
     private val video: VideoItem,
     private val onFavorite: () -> Unit,
+    private val onAddToPlaylist: () -> Unit,
     private val onDelete: () -> Unit
 ) : BottomSheetDialog(context) {
 
@@ -28,6 +29,11 @@ class VideoOptionsSheet(
         view.findViewById<TextView>(R.id.option_favorite).setOnClickListener {
             dismiss()
             onFavorite()
+        }
+
+        view.findViewById<TextView>(R.id.option_add_to_playlist).setOnClickListener {
+            dismiss()
+            onAddToPlaylist()
         }
 
         view.findViewById<TextView>(R.id.option_details).setOnClickListener {
