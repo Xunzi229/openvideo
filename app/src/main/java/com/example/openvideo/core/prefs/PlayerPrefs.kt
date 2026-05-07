@@ -76,6 +76,30 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_AUTO_ORIENTATION, true)
         set(value) = putBoolean(KEY_AUTO_ORIENTATION, value)
 
+    var videoDisplayEnabled: Boolean
+        get() = getBoolean(KEY_VIDEO_DISPLAY_ENABLED, true)
+        set(value) = putBoolean(KEY_VIDEO_DISPLAY_ENABLED, value)
+
+    var brightnessAdjustment: Int
+        get() = getInt(KEY_BRIGHTNESS_ADJUSTMENT, 0)
+        set(value) = putInt(KEY_BRIGHTNESS_ADJUSTMENT, value)
+
+    var contrastAdjustment: Int
+        get() = getInt(KEY_CONTRAST_ADJUSTMENT, 0)
+        set(value) = putInt(KEY_CONTRAST_ADJUSTMENT, value)
+
+    var saturationAdjustment: Int
+        get() = getInt(KEY_SATURATION_ADJUSTMENT, 0)
+        set(value) = putInt(KEY_SATURATION_ADJUSTMENT, value)
+
+    var progressStyle: String
+        get() = getString(KEY_PROGRESS_STYLE, "default")
+        set(value) = putString(KEY_PROGRESS_STYLE, value)
+
+    var controlsOpacity: Int
+        get() = getInt(KEY_CONTROLS_OPACITY, 85)
+        set(value) = putInt(KEY_CONTROLS_OPACITY, value)
+
     // ── 声音 ──
 
     var speedPreservePitch: Boolean
@@ -165,6 +189,22 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_EDGE_SWIPE_BACK, false)
         set(value) = putBoolean(KEY_EDGE_SWIPE_BACK, value)
 
+    var keyboardShortcuts: Boolean
+        get() = getBoolean(KEY_KEYBOARD_SHORTCUTS, true)
+        set(value) = putBoolean(KEY_KEYBOARD_SHORTCUTS, value)
+
+    var subtitlesEnabled: Boolean
+        get() = getBoolean(KEY_SUBTITLES_ENABLED, true)
+        set(value) = putBoolean(KEY_SUBTITLES_ENABLED, value)
+
+    var softwareAudioDecoder: Boolean
+        get() = getBoolean(KEY_SOFTWARE_AUDIO_DECODER, false)
+        set(value) = putBoolean(KEY_SOFTWARE_AUDIO_DECODER, value)
+
+    var audioSyncEnabled: Boolean
+        get() = getBoolean(KEY_AUDIO_SYNC_ENABLED, true)
+        set(value) = putBoolean(KEY_AUDIO_SYNC_ENABLED, value)
+
     fun resetToDefaults() {
         prefs.edit().clear().apply()
     }
@@ -192,6 +232,12 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_ROTATION = "rotation"
         private const val KEY_MIRROR = "mirror"
         private const val KEY_AUTO_ORIENTATION = "auto_orientation_by_video"
+        private const val KEY_VIDEO_DISPLAY_ENABLED = "video_display_enabled"
+        private const val KEY_BRIGHTNESS_ADJUSTMENT = "brightness_adjustment"
+        private const val KEY_CONTRAST_ADJUSTMENT = "contrast_adjustment"
+        private const val KEY_SATURATION_ADJUSTMENT = "saturation_adjustment"
+        private const val KEY_PROGRESS_STYLE = "progress_style"
+        private const val KEY_CONTROLS_OPACITY = "controls_opacity"
 
         // 声音
         private const val KEY_SPEED_PRESERVE_PITCH = "speed_preserve_pitch"
@@ -221,6 +267,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_LONG_PRESS_SPEED = "long_press_speed"
         private const val KEY_SWIPE_RANGE = "swipe_range"
         private const val KEY_EDGE_SWIPE_BACK = "edge_swipe_back"
+        private const val KEY_KEYBOARD_SHORTCUTS = "keyboard_shortcuts"
+        private const val KEY_SUBTITLES_ENABLED = "subtitles_enabled"
+        private const val KEY_SOFTWARE_AUDIO_DECODER = "software_audio_decoder"
+        private const val KEY_AUDIO_SYNC_ENABLED = "audio_sync_enabled"
 
         fun requiresImmediatePlayerApply(key: String?): Boolean {
             return key in setOf(
@@ -230,10 +280,16 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
                 KEY_ASPECT_RATIO,
                 KEY_ROTATION,
                 KEY_MIRROR,
+                KEY_VIDEO_DISPLAY_ENABLED,
+                KEY_BRIGHTNESS_ADJUSTMENT,
+                KEY_CONTRAST_ADJUSTMENT,
+                KEY_SATURATION_ADJUSTMENT,
+                KEY_CONTROLS_OPACITY,
                 KEY_SPEED_PRESERVE_PITCH,
                 KEY_VOLUME_BOOST,
                 KEY_AUDIO_CHANNEL,
                 KEY_AUDIO_DELAY,
+                KEY_SUBTITLES_ENABLED,
                 KEY_SUBTITLE_SIZE,
                 KEY_SUBTITLE_COLOR,
                 KEY_SUBTITLE_BG,

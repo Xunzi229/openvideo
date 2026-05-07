@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import android.content.pm.ActivityInfo
+import android.view.Gravity
 import com.example.openvideo.R
 
 data class ControlVisibility(
@@ -65,10 +66,23 @@ object PlayerOrientationPolicy {
 
 object PlayerSettingsLayoutPolicy {
     fun dialogBounds(screenWidth: Int, screenHeight: Int): DialogBounds =
-        DialogBounds(
-            width = (screenWidth * 0.75f).toInt(),
-            height = (screenHeight * 0.70f).toInt()
-        )
+        panelBounds(screenWidth, screenHeight)
+
+    fun panelBounds(screenWidth: Int, screenHeight: Int): DialogBounds =
+        if (screenWidth > screenHeight) {
+            DialogBounds(
+                width = (screenWidth * 0.36f).toInt(),
+                height = screenHeight
+            )
+        } else {
+            DialogBounds(
+                width = screenWidth,
+                height = (screenHeight * 0.60f).toInt()
+            )
+        }
+
+    fun panelGravity(screenWidth: Int, screenHeight: Int): Int =
+        if (screenWidth > screenHeight) Gravity.END else Gravity.BOTTOM
 
     fun navigationNeedsScroll(
         availableHeightDp: Int,

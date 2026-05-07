@@ -59,11 +59,21 @@ class PlayerControlStateTest {
     }
 
     @Test
-    fun settingsDialogUsesLandscapeFriendlyBounds() {
-        val bounds = PlayerSettingsLayoutPolicy.dialogBounds(screenWidth = 1920, screenHeight = 1080)
+    fun settingsPanelUsesRightDrawerInLandscape() {
+        val bounds = PlayerSettingsLayoutPolicy.panelBounds(screenWidth = 1920, screenHeight = 1080)
 
-        assertEquals(1440, bounds.width)
-        assertEquals(756, bounds.height)
+        assertEquals(691, bounds.width)
+        assertEquals(1080, bounds.height)
+        assertEquals(android.view.Gravity.END, PlayerSettingsLayoutPolicy.panelGravity(screenWidth = 1920, screenHeight = 1080))
+    }
+
+    @Test
+    fun settingsPanelUsesBottomSheetInPortrait() {
+        val bounds = PlayerSettingsLayoutPolicy.panelBounds(screenWidth = 1080, screenHeight = 1920)
+
+        assertEquals(1080, bounds.width)
+        assertEquals(1152, bounds.height)
+        assertEquals(android.view.Gravity.BOTTOM, PlayerSettingsLayoutPolicy.panelGravity(screenWidth = 1080, screenHeight = 1920))
     }
 
     @Test

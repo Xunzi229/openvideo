@@ -114,6 +114,12 @@ class HomeViewModel @Inject constructor(
 
     fun setCategory(category: HomeCategory) {
         _category.value = category
+        if (category == HomeCategory.RECENT) {
+            _sortField.value = SortField.DATE
+            _sortAsc.value = false
+            appPrefs.sortField = SortField.DATE.name.lowercase()
+            appPrefs.sortAsc = false
+        }
     }
 
     private fun sortFieldFromPrefs(key: String): SortField {

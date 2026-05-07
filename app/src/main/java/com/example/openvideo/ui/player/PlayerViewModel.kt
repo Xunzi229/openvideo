@@ -42,17 +42,17 @@ class PlayerViewModel @Inject constructor(
 
     private var videoId: Long = 0
     private var videoUri: Uri? = null
+    private var videoPath: String = ""
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
 
-    fun initialize(uri: Uri, title: String, id: Long) {
+    fun initialize(uri: Uri, title: String, id: Long, path: String = "") {
         videoId = id
         videoUri = uri
+        videoPath = path
         _uiState.value = _uiState.value.copy(title = title)
 
         playerManager.initialize(uri)
-        playerManager.setMediaUri(uri)
-
         playerListener = object : androidx.media3.common.Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
@@ -63,11 +63,13 @@ class PlayerViewModel @Inject constructor(
                     duration = playerManager.duration
                 )
                 if (playbackState == androidx.media3.common.Player.STATE_READY) {
+                    markPlaybackStarted()
                     applyPendingRestore()
                 }
             }
         }
         playerManager.addListener(playerListener!!)
+        playerManager.setMediaUri(uri)
 
         viewModelScope.launch {
             val isFav = repository.isFavorite(id)
@@ -149,7 +151,7 @@ class PlayerViewModel @Inject constructor(
                     VideoItem(
                         id = videoId,
                         title = _uiState.value.title,
-                        path = uri.toString(),
+                        path = videoPath.ifBlank { uri.toString() },
                         uri = uri,
                         duration = playerManager.duration,
                         size = 0,
@@ -161,6 +163,28 @@ class PlayerViewModel @Inject constructor(
                     playerManager.currentPosition
                 )
             }
+        }
+    }
+
+    private fun markPlaybackStarted() {
+        viewModelScope.launch {
+            val uri = videoUri ?: return@launch
+            val history = repository.getHistory(videoId)
+            repository.saveHistory(
+                VideoItem(
+                    id = videoId,
+                    title = _uiState.value.title,
+                    path = videoPath.ifBlank { uri.toString() },
+                    uri = uri,
+                    duration = playerManager.duration,
+                    size = 0,
+                    width = 0,
+                    height = 0,
+                    dateAdded = 0,
+                    thumbnailUri = null
+                ),
+                history?.lastPosition ?: 0L
+            )
         }
     }
 

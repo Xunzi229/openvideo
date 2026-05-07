@@ -22,6 +22,7 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -60,6 +61,7 @@ class PlayerActivity : AppCompatActivity() {
     private val viewModel: PlayerViewModel by viewModels()
 
     private lateinit var playerView: PlayerView
+    private lateinit var playerRoot: View
     private lateinit var controlsContainer: View
     private lateinit var topBar: View
     private lateinit var topScrim: View
@@ -117,7 +119,7 @@ class PlayerActivity : AppCompatActivity() {
                 applyIntroOutroSkip(state.currentPosition, state.duration)
 
                 // Update subtitle
-                val subtitle = viewModel.getCurrentSubtitle()
+                val subtitle = if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else ""
                 if (subtitle.isNotEmpty()) {
                     tvSubtitle.text = subtitle
                     tvSubtitle.visibility = View.VISIBLE
@@ -161,6 +163,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener
     private var currentVideoUriString: String = ""
     private var currentVideoPath: String = ""
+    private var isFinishingPlayer = false
+    private var hasReleasedPlayerForExit = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -181,6 +185,11 @@ class PlayerActivity : AppCompatActivity() {
         }
         enterImmersiveMode()
         setContentView(R.layout.activity_player)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finishPlayer()
+            }
+        })
 
         initViews()
         initGestures()
@@ -192,7 +201,7 @@ class PlayerActivity : AppCompatActivity() {
         val videoPath = intent.getStringExtra("video_path").orEmpty()
 
         startupTrace.record("activity_created")
-        viewModel.initialize(Uri.parse(uriString), title, id)
+        viewModel.initialize(Uri.parse(uriString), title, id, videoPath)
         startupTrace.record("player_initialized")
 
         playerView.player = viewModel.player
@@ -238,6 +247,7 @@ class PlayerActivity : AppCompatActivity() {
         )
         viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
         viewModel.setVolumeBoost(playerPrefs.volumeBoost)
+        playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f
 
         if (playerPrefs.keepScreenOn) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -330,6 +340,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
+        playerRoot = findViewById(R.id.player_root)
         playerView = findViewById(R.id.player_view)
         controlsContainer = findViewById(R.id.controls_container)
         topBar = findViewById(R.id.top_bar)
@@ -365,12 +376,13 @@ class PlayerActivity : AppCompatActivity() {
     private fun setupControls() {
         btnPlay.setOnClickListener { togglePlayPauseAndSyncIcon() }
         btnPlayCenter.setOnClickListener { togglePlayPauseAndSyncIcon() }
-        btnBack.setOnClickListener { finish() }
+        btnBack.setOnClickListener { finishPlayer() }
 
         btnPrev.setOnClickListener { viewModel.seekBackward() }
         btnNext.setOnClickListener { viewModel.seekForward() }
 
         btnSettings.setOnClickListener {
+            hideControls()
             val dialog = PlayerSettingsDialog(this, playerManager, viewModel, playerPrefs) {
                 pickSubtitleLauncher.launch(arrayOf("*/*"))
             }
@@ -382,9 +394,9 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnScreenshot.setOnClickListener {
-            val surfaceView = videoSurfaceView()
-            if (surfaceView != null) {
-                playerManager.takeScreenshot(surfaceView) { success, path ->
+            val videoView = videoRenderView()
+            if (videoView != null) {
+                playerManager.takeScreenshot(videoView) { success, path ->
                     runOnUiThread {
                         if (success) {
                             android.widget.Toast.makeText(this, getString(R.string.player_screenshot_saved, path), android.widget.Toast.LENGTH_SHORT).show()
@@ -633,7 +645,7 @@ class PlayerActivity : AppCompatActivity() {
                     if (playerPrefs.edgeSwipeBack && isEdgeSwipe && isHorizontalSwipe) {
                         val dx = event.x - startX
                         if (dx > 100) { // Swipe right from left edge
-                            finish()
+                            finishPlayer()
                             return@setOnTouchListener true
                         }
                     }
@@ -872,6 +884,34 @@ class PlayerActivity : AppCompatActivity() {
         scheduleHideControls()
     }
 
+    private fun finishPlayer() {
+        if (isFinishingPlayer) return
+        isFinishingPlayer = true
+        preparePlayerExitFrame()
+        finish()
+        overridePendingTransition(0, 0)
+        handler.postDelayed({
+            releasePlayerAfterExit()
+        }, PLAYER_EXIT_RELEASE_DELAY_MS)
+    }
+
+    private fun preparePlayerExitFrame() {
+        if (!this::playerView.isInitialized) return
+        playerView.animate().cancel()
+        playerView.player = null
+        playerView.visibility = View.INVISIBLE
+        if (this::playerRoot.isInitialized) {
+            playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.ov_bg_base))
+        }
+        window.setBackgroundDrawableResource(R.color.ov_bg_base)
+    }
+
+    private fun releasePlayerAfterExit() {
+        if (hasReleasedPlayerForExit) return
+        hasReleasedPlayerForExit = true
+        viewModel.release()
+    }
+
     private fun enterImmersiveMode() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
@@ -920,7 +960,8 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacksAndMessages(null)
         playerListener?.let { viewModel.player?.removeListener(it) }
         playerListener = null
-        viewModel.release()
+        preparePlayerExitFrame()
+        releasePlayerAfterExit()
         super.onDestroy()
     }
 
@@ -943,8 +984,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     @OptIn(UnstableApi::class)
-    private fun videoSurfaceView(): android.view.SurfaceView? {
-        return playerView.videoSurfaceView as? android.view.SurfaceView
+    private fun videoRenderView(): View? {
+        return playerView.videoSurfaceView
     }
 
     private fun enterPipModeIfSupported() {
@@ -1004,5 +1045,6 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
+        private const val PLAYER_EXIT_RELEASE_DELAY_MS = 250L
     }
 }

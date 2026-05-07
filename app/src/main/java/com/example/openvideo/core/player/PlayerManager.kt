@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.PixelCopy
 import android.view.SurfaceView
+import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -238,25 +239,38 @@ class PlayerManager @Inject constructor(
     }
 
     // P1: Screenshot
-    fun takeScreenshot(surfaceView: SurfaceView, callback: (Boolean, String?) -> Unit) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            callback(false, null)
-            return
-        }
-        val bitmap = Bitmap.createBitmap(surfaceView.width, surfaceView.height, Bitmap.Config.ARGB_8888)
-        PixelCopy.request(
-            surfaceView,
-            bitmap,
-            { result ->
-            if (result == PixelCopy.SUCCESS) {
+    fun takeScreenshot(videoView: android.view.View, callback: (Boolean, String?) -> Unit) {
+        when (videoView) {
+            is TextureView -> {
+                val bitmap = videoView.bitmap ?: run {
+                    callback(false, null)
+                    return
+                }
                 saveScreenshot(bitmap, callback)
-            } else {
-                callback(false, null)
+                bitmap.recycle()
             }
-            bitmap.recycle()
-            },
-            Handler(Looper.getMainLooper())
-        )
+            is SurfaceView -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+                    callback(false, null)
+                    return
+                }
+                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)
+                PixelCopy.request(
+                    videoView,
+                    bitmap,
+                    { result ->
+                        if (result == PixelCopy.SUCCESS) {
+                            saveScreenshot(bitmap, callback)
+                        } else {
+                            callback(false, null)
+                        }
+                        bitmap.recycle()
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+            }
+            else -> callback(false, null)
+        }
     }
 
     private fun saveScreenshot(bitmap: Bitmap, callback: (Boolean, String?) -> Unit) {

@@ -24,6 +24,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
@@ -46,6 +47,7 @@ class HomeFragment : Fragment() {
     private lateinit var emptyView: TextView
     private lateinit var searchView: EditText
     private lateinit var sortLabel: TextView
+    private lateinit var btnSortOrder: ImageButton
     private lateinit var btnList: ImageButton
     private lateinit var btnGrid: ImageButton
     private lateinit var chipAll: Chip
@@ -53,6 +55,7 @@ class HomeFragment : Fragment() {
     private lateinit var chipFavorite: Chip
     private var actionMode: ActionMode? = null
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
+    private var pendingJumpToTop = false
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -84,7 +87,9 @@ class HomeFragment : Fragment() {
         searchView.visibility = View.VISIBLE
 
         sortLabel = view.findViewById(R.id.tv_sort_label)
-        sortLabel.setOnClickListener { viewModel.cycleSortField() }
+        sortLabel.setOnClickListener { changeSortFieldAndScrollToTop() }
+        btnSortOrder = view.findViewById(R.id.btn_sort_order)
+        btnSortOrder.setOnClickListener { toggleSortOrderAndScrollToTop() }
 
         btnList = view.findViewById(R.id.btn_list_view)
         btnGrid = view.findViewById(R.id.btn_grid_view)
@@ -93,9 +98,9 @@ class HomeFragment : Fragment() {
         chipAll = view.findViewById(R.id.chip_all)
         chipRecent = view.findViewById(R.id.chip_recent)
         chipFavorite = view.findViewById(R.id.chip_favorite)
-        chipAll.setOnClickListener { viewModel.setCategory(HomeCategory.ALL) }
-        chipRecent.setOnClickListener { viewModel.setCategory(HomeCategory.RECENT) }
-        chipFavorite.setOnClickListener { viewModel.setCategory(HomeCategory.FAVORITES) }
+        chipAll.setOnClickListener { switchCategory(HomeCategory.ALL) }
+        chipRecent.setOnClickListener { switchCategory(HomeCategory.RECENT) }
+        chipFavorite.setOnClickListener { switchCategory(HomeCategory.FAVORITES) }
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
@@ -132,7 +137,9 @@ class HomeFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.videos.collect { list ->
-                        adapter.submitList(list)
+                        adapter.submitList(list) {
+                            jumpVideoListToTopIfNeeded()
+                        }
                         emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                         recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
                     }
@@ -144,9 +151,7 @@ class HomeFragment : Fragment() {
                 }
                 launch {
                     viewModel.sortAsc.collect { asc ->
-                        sortLabel.setCompoundDrawablesRelativeWithIntrinsicBounds(
-                            0, 0, if (asc) R.drawable.ic_arrow_up else R.drawable.ic_arrow_down, 0
-                        )
+                        btnSortOrder.setImageResource(if (asc) R.drawable.ic_arrow_up else R.drawable.ic_arrow_down)
                     }
                 }
                 launch {
@@ -154,10 +159,10 @@ class HomeFragment : Fragment() {
                         adapter.viewMode = mode
                         val spanCount = if (mode == ViewMode.GRID) 2 else 1
                         val lm = recyclerView.layoutManager
-                        if (lm is androidx.recyclerview.widget.GridLayoutManager) {
+                        if (lm is GridLayoutManager) {
                             lm.spanCount = spanCount
                         } else {
-                            recyclerView.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), spanCount)
+                            recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
                         }
                         updateViewModeButtons(mode)
                     }
@@ -176,6 +181,36 @@ class HomeFragment : Fragment() {
             viewModel.loadVideos()
         } else {
             permissionLauncher.launch(videoReadPermissions())
+        }
+    }
+
+    private fun switchCategory(category: HomeCategory) {
+        viewModel.setCategory(category)
+        recyclerView.scrollToPosition(0)
+    }
+
+    private fun changeSortFieldAndScrollToTop() {
+        viewModel.cycleSortField()
+        requestVideoListJumpToTop()
+    }
+
+    private fun toggleSortOrderAndScrollToTop() {
+        viewModel.toggleSortOrder()
+        requestVideoListJumpToTop()
+    }
+
+    private fun requestVideoListJumpToTop() {
+        pendingJumpToTop = true
+    }
+
+    private fun jumpVideoListToTopIfNeeded() {
+        if (!pendingJumpToTop) return
+        pendingJumpToTop = false
+        val layoutManager = recyclerView.layoutManager
+        if (layoutManager is LinearLayoutManager) {
+            layoutManager.scrollToPositionWithOffset(0, 0)
+        } else {
+            recyclerView.scrollToPosition(0)
         }
     }
 

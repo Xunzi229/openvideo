@@ -151,17 +151,34 @@
 
         <TextView
             android:id="@+id/tv_sort_label"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:drawablePadding="6dp"
             android:text="@string/home_sort_by_modified"
             android:textColor="@color/ov_text_secondary"
             android:textSize="14sp" />
 
+        <ImageButton
+            android:id="@+id/btn_sort_order"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="2dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/home_sort_order"
+            android:padding="8dp"
+            android:src="@drawable/ic_arrow_down"
+            app:tint="@color/ov_text_secondary" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
         <LinearLayout
+            android:id="@+id/view_mode_toggle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="@color/ov_bg_elevated"
+            android:background="@android:color/transparent"
             android:orientation="horizontal"
             android:padding="2dp">
 
