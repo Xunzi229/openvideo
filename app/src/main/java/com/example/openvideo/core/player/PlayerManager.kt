@@ -82,8 +82,11 @@ class PlayerManager @Inject constructor(
 
     fun setMediaUri(uri: Uri) {
         val mediaItem = MediaItem.fromUri(uri)
-        player?.setMediaItem(mediaItem)
-        player?.prepare()
+        player?.let {
+            it.setMediaItem(mediaItem)
+            it.playWhenReady = true
+            it.prepare()
+        }
     }
 
     fun togglePlayPause() {

@@ -184,9 +184,7 @@ class PlayerActivity : AppCompatActivity() {
 
         initViews()
         initGestures()
-        setupControls()
         initBrightnessAndVolume()
-        applyPlayerSettings()
 
         val uriString = intent.getStringExtra("video_uri") ?: run { finish(); return }
         val title = intent.getStringExtra("video_title") ?: ""
@@ -198,6 +196,7 @@ class PlayerActivity : AppCompatActivity() {
         startupTrace.record("player_initialized")
 
         playerView.player = viewModel.player
+        setupControls()
         startupTrace.record("player_view_attached")
         tvTitle.text = title
         applyPlayerSettings()
@@ -478,6 +477,7 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (!playWhenReady) unlockPlayerForPause()
                 updatePlayPauseIcon(playWhenReady)
                 startPlaybackServiceIfNeeded(playWhenReady && viewModel.player?.isPlaying == true)
             }
@@ -860,6 +860,18 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun unlockPlayerForPause() {
+        if (!isScreenLocked) return
+        isScreenLocked = false
+        initGestures()
+        controlsVisible = true
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = 1f
+        controlsContainer.visibility = View.VISIBLE
+        applyControlVisibility()
+        scheduleHideControls()
+    }
+
     private fun enterImmersiveMode() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
@@ -891,6 +903,7 @@ class PlayerActivity : AppCompatActivity() {
         if (!isInPipModeCompat()) {
             viewModel.saveHistory()
             if (playerPrefs.pauseOnExit || !playerPrefs.bgAudio) {
+                unlockPlayerForPause()
                 viewModel.player?.pause()
                 stopPlaybackService()
             } else {
