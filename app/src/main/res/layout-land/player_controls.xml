@@ -1,38 +1,239 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/controls_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
-    <LinearLayout
+
+    <View
+        android:id="@+id/top_scrim"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="18dp"
-        android:layout_marginEnd="20dp"
+        android:layout_height="96dp"
+        android:background="@drawable/bg_player_top_scrim"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <View
+        android:id="@+id/bottom_scrim"
+        android:layout_width="0dp"
+        android:layout_height="132dp"
+        android:background="@drawable/bg_player_bottom_scrim"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/top_bar"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="24dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-        <ImageButton android:id="@+id/btn_back" android:layout_width="36dp" android:layout_height="36dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="返回" android:src="@drawable/ic_arrow_back" app:tint="@color/ov_text_primary"/>
-        <TextView android:id="@+id/tv_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="10dp" android:ellipsize="end" android:maxLines="1" android:textColor="@color/ov_text_primary" android:textSize="17sp" android:textStyle="bold"/>
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_action_back"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/ov_text_primary" />
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ov_space_md"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
     </LinearLayout>
-    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="20dp" android:layout_marginEnd="20dp" android:layout_marginBottom="16dp" android:orientation="vertical" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal">
-            <TextView android:id="@+id/tv_current_time" android:layout_width="40dp" android:layout_height="wrap_content" android:text="00:00" android:textColor="@color/ov_text_primary" android:textSize="13sp"/>
-            <SeekBar android:id="@+id/seek_bar" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginHorizontal="12dp" android:progressTint="@color/ov_accent_blue" android:thumbTint="@color/ov_text_primary"/>
-            <TextView android:id="@+id/tv_total_time" android:layout_width="40dp" android:layout_height="wrap_content" android:gravity="end" android:text="00:00" android:textColor="@color/ov_text_primary" android:textSize="13sp"/>
+
+    <LinearLayout
+        android:id="@+id/center_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@id/bottom_panel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <ImageButton
+            android:id="@+id/btn_prev"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_action_previous"
+            android:src="@drawable/ic_skip_previous"
+            app:tint="@color/ov_text_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_play"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginHorizontal="18dp"
+            android:background="@drawable/bg_player_primary_button"
+            android:contentDescription="@string/player_action_play"
+            android:src="@drawable/ic_play"
+            app:tint="@color/ov_text_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_next"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_action_next"
+            android:src="@drawable/ic_skip_next"
+            app:tint="@color/ov_text_primary" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/bottom_panel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="14dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <LinearLayout
+            android:id="@+id/progress_row"
+            android:layout_width="match_parent"
+            android:layout_height="30dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_current_time"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="13sp" />
+
+            <SeekBar
+                android:id="@+id/seek_bar"
+                android:layout_width="0dp"
+                android:layout_height="30dp"
+                android:layout_marginHorizontal="@dimen/ov_space_md"
+                android:layout_weight="1"
+                android:progressBackgroundTint="#55B4BDCA"
+                android:progressTint="@color/ov_accent_blue"
+                android:thumbTint="@color/ov_text_primary" />
+
+            <TextView
+                android:id="@+id/tv_total_time"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:text="00:00"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="13sp" />
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:gravity="center_vertical" android:orientation="horizontal">
-            <ImageButton android:id="@+id/btn_settings" android:layout_width="40dp" android:layout_height="40dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="设置" android:src="@drawable/ic_settings" app:tint="@color/ov_text_secondary"/>
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="horizontal">
-                <ImageButton android:id="@+id/btn_prev" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="上一个" android:src="@drawable/ic_skip_previous" app:tint="@color/ov_text_primary"/>
-                <ImageButton android:id="@+id/btn_play" android:layout_width="54dp" android:layout_height="54dp" android:layout_marginHorizontal="10dp" android:background="@drawable/bg_pill_unselected" android:contentDescription="播放" android:src="@drawable/ic_play" app:tint="@color/ov_text_primary"/>
-                <ImageButton android:id="@+id/btn_next" android:layout_width="44dp" android:layout_height="44dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="下一个" android:src="@drawable/ic_skip_next" app:tint="@color/ov_text_primary"/>
-            </LinearLayout>
-            <ImageButton android:id="@+id/btn_fullscreen" android:layout_width="40dp" android:layout_height="40dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="全屏" android:src="@drawable/ic_fullscreen" app:tint="@color/ov_text_secondary"/>
+
+        <LinearLayout
+            android:id="@+id/tool_row"
+            android:layout_width="match_parent"
+            android:layout_height="42dp"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingEnd="0dp">
+
+            <ImageButton
+                android:id="@+id/btn_settings"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_settings"
+                android:src="@drawable/ic_settings"
+                app:tint="@color/ov_text_secondary" />
+
+            <ImageButton
+                android:id="@+id/btn_screenshot"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_screenshot"
+                android:src="@drawable/ic_screenshot"
+                app:tint="@color/ov_text_secondary" />
+
+            <ImageButton
+                android:id="@+id/btn_ab_loop"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_ab_loop"
+                android:src="@drawable/ic_ab_loop"
+                app:tint="@color/ov_text_secondary" />
+
+            <ImageButton
+                android:id="@+id/btn_pip"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="12dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_pip"
+                android:src="@drawable/ic_pip"
+                app:tint="@color/ov_text_secondary" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/btn_fullscreen"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_fullscreen"
+                android:src="@drawable/ic_fullscreen"
+                app:tint="@color/ov_text_secondary" />
         </LinearLayout>
     </LinearLayout>
-    <ImageButton android:id="@+id/btn_play_center" android:layout_width="56dp" android:layout_height="56dp" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="播放" android:src="@drawable/ic_play" android:visibility="gone" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" app:tint="@color/ov_text_primary"/>
+
+    <ImageButton
+        android:id="@+id/btn_lock"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="18dp"
+        android:background="@drawable/bg_player_lock_button"
+        android:contentDescription="@string/player_action_lock"
+        android:src="@drawable/ic_lock"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/ov_text_secondary" />
+
+    <ImageButton
+        android:id="@+id/btn_play_center"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_player_primary_button"
+        android:contentDescription="@string/player_action_play"
+        android:src="@drawable/ic_play"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/ov_text_primary" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

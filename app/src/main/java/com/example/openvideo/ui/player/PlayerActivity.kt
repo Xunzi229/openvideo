@@ -114,6 +114,8 @@ class PlayerActivity : AppCompatActivity() {
                     }
                 }
 
+                applyIntroOutroSkip(state.currentPosition, state.duration)
+
                 // Update subtitle
                 val subtitle = viewModel.getCurrentSubtitle()
                 if (subtitle.isNotEmpty()) {
@@ -143,6 +145,7 @@ class PlayerActivity : AppCompatActivity() {
     private var playerListener: Player.Listener? = null
     private var isLongPressing = false
     private var hasSkippedIntro = false
+    private var hasSkippedOutro = false
     private val startupTrace = PlayerStartupTrace()
     private var hasLoggedFirstFrame = false
     private var lastHistorySavedPositionMs = 0L
@@ -480,15 +483,9 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (
-                    playbackState == Player.STATE_READY &&
-                    playerPrefs.skipIntroOutro &&
-                    playerPrefs.introSeconds > 0 &&
-                    !hasSkippedIntro &&
-                    viewModel.uiState.value.currentPosition < playerPrefs.introSeconds * 1000L
-                ) {
-                    hasSkippedIntro = true
-                    viewModel.seekTo(playerPrefs.introSeconds * 1000L)
+                if (playbackState == Player.STATE_READY) {
+                    val state = viewModel.uiState.value
+                    applyIntroOutroSkip(state.currentPosition, state.duration)
                 }
             }
 
@@ -964,6 +961,24 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun stopPlaybackService() {
         runCatching { stopService(Intent(this, PlaybackService::class.java)) }
+    }
+
+    private fun applyIntroOutroSkip(currentPositionMs: Long, durationMs: Long) {
+        val target = IntroOutroSkipPolicy.skipTarget(
+            enabled = playerPrefs.skipIntroOutro,
+            currentPositionMs = currentPositionMs,
+            durationMs = durationMs,
+            introSeconds = playerPrefs.introSeconds,
+            outroSeconds = playerPrefs.outroSeconds,
+            hasSkippedIntro = hasSkippedIntro,
+            hasSkippedOutro = hasSkippedOutro
+        ) ?: return
+
+        when (target.kind) {
+            IntroOutroSkipPolicy.Kind.INTRO -> hasSkippedIntro = true
+            IntroOutroSkipPolicy.Kind.OUTRO -> hasSkippedOutro = true
+        }
+        viewModel.seekTo(target.positionMs)
     }
 
     private fun isInPipModeCompat(): Boolean {
