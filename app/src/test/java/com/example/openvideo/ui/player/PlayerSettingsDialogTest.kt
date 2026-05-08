@@ -63,6 +63,16 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun playlistAndShareActionsAreWiredToRealPlaybackData() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val viewModelSource = String(Files.readAllBytes(playerViewModelSource()))
+
+        assertTrue(dialogSource.contains("viewModel.addCurrentVideoToDefaultPlaylist()"))
+        assertTrue(viewModelSource.contains("repository.addToQuickPlaylist("))
+        assertTrue(dialogSource.contains("viewModel.currentVideoShareText()"))
+    }
+
+    @Test
     fun playerSettingsLayoutHasGridAndDetailPages() {
         val layout = String(Files.readAllBytes(playerSettingsLayout()))
 
@@ -74,6 +84,35 @@ class PlayerSettingsDialogTest {
         assertTrue(layout.contains("@+id/settings_detail_container"))
         assertTrue(layout.contains("@drawable/bg_player_settings_sheet"))
         assertFalse(layout.contains("@+id/nav_playback"))
+    }
+
+    @Test
+    fun playerSettingsSheetUsesTransparentGlassOverVideo() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val portraitSheet = String(Files.readAllBytes(playerSettingsSheetDrawable()))
+        val landscapeSheet = String(Files.readAllBytes(playerSettingsLandscapeSheetDrawable()))
+
+        listOf(portraitSheet, landscapeSheet).forEach { sheet ->
+            assertFalse(
+                "Settings sheet should not use the old near-opaque black background.",
+                sheet.contains("#F2000000", ignoreCase = true)
+            )
+            assertTrue("Glass sheet should use a translucent gradient.", sheet.contains("<gradient"))
+            assertTrue("Glass sheet should keep a subtle glass edge.", sheet.contains("<stroke"))
+            assertTrue(
+                "Glass sheet should include translucent colors so the video remains visible.",
+                listOf("#8F", "#99", "#A6", "#AA", "#B3").any { sheet.contains(it, ignoreCase = true) }
+            )
+        }
+
+        assertTrue(
+            "Android 12+ devices should blur the playing video behind the sheet.",
+            dialogSource.contains("setBackgroundBlurRadius(")
+        )
+        assertTrue(
+            "The dim overlay should be light enough to preserve the playing video.",
+            dialogSource.contains("setDimAmount(0.30f)")
+        )
     }
 
     private fun playerSettingsDialogSource(): Path {
@@ -119,6 +158,34 @@ class PlayerSettingsDialogTest {
             "ui",
             "player",
             "PlayerViewModel.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerSettingsSheetDrawable(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "res",
+            "drawable",
+            "bg_player_settings_sheet.xml"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerSettingsLandscapeSheetDrawable(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "res",
+            "drawable-land",
+            "bg_player_settings_sheet.xml"
         )
         return sequenceOf(
             relativePath,

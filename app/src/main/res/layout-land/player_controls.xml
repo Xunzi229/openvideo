@@ -17,7 +17,7 @@
     <View
         android:id="@+id/bottom_scrim"
         android:layout_width="0dp"
-        android:layout_height="132dp"
+        android:layout_height="178dp"
         android:background="@drawable/bg_player_bottom_scrim"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -56,46 +56,6 @@
             android:textColor="@color/ov_text_primary"
             android:textSize="17sp"
             android:textStyle="bold" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/center_controls"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@id/bottom_panel"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/top_bar">
-
-        <ImageButton
-            android:id="@+id/btn_prev"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/player_action_previous"
-            android:src="@drawable/ic_skip_previous"
-            app:tint="@color/ov_text_primary" />
-
-        <ImageButton
-            android:id="@+id/btn_play"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginHorizontal="18dp"
-            android:background="@drawable/bg_player_primary_button"
-            android:contentDescription="@string/player_action_play"
-            android:src="@drawable/ic_play"
-            app:tint="@color/ov_text_primary" />
-
-        <ImageButton
-            android:id="@+id/btn_next"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/player_action_next"
-            android:src="@drawable/ic_skip_next"
-            app:tint="@color/ov_text_primary" />
     </LinearLayout>
 
     <LinearLayout
@@ -146,10 +106,47 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/playback_controls"
+            android:layout_width="match_parent"
+            android:layout_height="54dp"
+            android:layout_marginTop="2dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btn_prev"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_previous"
+                android:src="@drawable/ic_skip_previous"
+                app:tint="@color/ov_text_primary" />
+
+            <ImageButton
+                android:id="@+id/btn_play"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="20dp"
+                android:background="@drawable/bg_player_primary_button"
+                android:contentDescription="@string/player_action_play"
+                android:src="@drawable/ic_play"
+                app:tint="@color/ov_text_primary" />
+
+            <ImageButton
+                android:id="@+id/btn_next"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/player_action_next"
+                android:src="@drawable/ic_skip_next"
+                app:tint="@color/ov_text_primary" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/tool_row"
             android:layout_width="match_parent"
             android:layout_height="42dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingEnd="0dp">
@@ -221,19 +218,5 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:tint="@color/ov_text_secondary" />
-
-    <ImageButton
-        android:id="@+id/btn_play_center"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:background="@drawable/bg_player_primary_button"
-        android:contentDescription="@string/player_action_play"
-        android:src="@drawable/ic_play"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:tint="@color/ov_text_primary" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

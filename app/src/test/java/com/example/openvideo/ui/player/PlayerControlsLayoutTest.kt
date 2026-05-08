@@ -25,16 +25,33 @@ class PlayerControlsLayoutTest {
         }
     }
 
+    @Test
+    fun playbackButtonsSitBelowProgressInsteadOfCenterOverlay() {
+        listOf("layout", "layout-land").forEach { layoutDir ->
+            val source = String(Files.readAllBytes(playerControlsSource(layoutDir)))
+            val bottomPanel = source.substringAfter("""android:id="@+id/bottom_panel"""")
+            val afterProgress = bottomPanel.substringAfter("""android:id="@+id/progress_row"""")
+            val beforeToolRow = afterProgress.substringBefore("""android:id="@+id/tool_row"""")
+
+            assertFalse(
+                "$layoutDir should not define a center overlay play button",
+                source.contains("@+id/btn_play_center")
+            )
+            assertTrue("$layoutDir should keep previous below the progress row", beforeToolRow.contains("@+id/btn_prev"))
+            assertTrue("$layoutDir should keep play below the progress row", beforeToolRow.contains("@+id/btn_play"))
+            assertTrue("$layoutDir should keep next below the progress row", beforeToolRow.contains("@+id/btn_next"))
+        }
+    }
+
     private fun boundControlIds(): List<String> = listOf(
         "controls_container",
         "top_bar",
         "top_scrim",
         "bottom_scrim",
-        "center_controls",
         "bottom_panel",
+        "playback_controls",
         "tool_row",
         "btn_play",
-        "btn_play_center",
         "btn_prev",
         "btn_next",
         "btn_settings",

@@ -3,13 +3,16 @@ package com.example.openvideo.ui.player
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
 import android.widget.CheckBox
 import android.widget.CompoundButton
+import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -20,9 +23,14 @@ import android.widget.TextView
 import android.widget.Toast
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
+import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.AudioChannel
+import com.example.openvideo.core.prefs.DoubleTapAction
+import com.example.openvideo.core.prefs.GestureAction
+import com.example.openvideo.core.prefs.LongPressAction
+import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -75,8 +83,11 @@ class PlayerSettingsDialog(
             val bounds = PlayerSettingsLayoutPolicy.panelBounds(width, height)
             setLayout(bounds.width, bounds.height)
             setGravity(PlayerSettingsLayoutPolicy.panelGravity(width, height))
-            setDimAmount(0.55f)
+            setDimAmount(0.30f)
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                setBackgroundBlurRadius(dp(28))
+            }
             setBackgroundDrawableResource(android.R.color.transparent)
         }
 
@@ -193,13 +204,8 @@ class PlayerSettingsDialog(
 
     private fun handlePrimaryClick(item: PrimaryItem) {
         when (item.page) {
-            SettingsPage.AUDIO,
-            SettingsPage.SUBTITLE,
-            SettingsPage.ASPECT,
-            SettingsPage.DISPLAY,
-            SettingsPage.MORE -> showDetailPage(item.page, context.getString(item.titleRes))
             SettingsPage.SHARE -> shareVideoTitle()
-            else -> showUnavailable()
+            else -> showDetailPage(item.page, context.getString(item.titleRes))
         }
     }
 
@@ -216,8 +222,14 @@ class PlayerSettingsDialog(
             SettingsPage.SUBTITLE -> buildSubtitlePage()
             SettingsPage.ASPECT -> buildAspectPage()
             SettingsPage.DISPLAY -> buildDisplayPage()
+            SettingsPage.PLAYLIST -> buildPlaylistPage()
+            SettingsPage.STREAM -> buildStreamPage()
+            SettingsPage.INFO -> buildInfoPage()
+            SettingsPage.CUT -> buildCutPage()
+            SettingsPage.BOOKMARK -> buildBookmarkPage()
+            SettingsPage.TUTORIAL -> buildTutorialPage()
             SettingsPage.MORE -> buildMorePage()
-            else -> buildUnavailablePage()
+            SettingsPage.SHARE -> shareVideoTitle()
         }
         primaryPage.visibility = View.GONE
         detailPage.visibility = View.VISIBLE
@@ -226,18 +238,26 @@ class PlayerSettingsDialog(
     private fun buildAudioPage() {
         addRadioRow(
             title = context.getString(R.string.player_sheet_audio_track_english),
-            checked = true
-        ) {}
+            checked = !playerPrefs.audioMuted
+        ) {
+            playerPrefs.audioMuted = false
+            playerManager.setMuted(false)
+            rebuildCurrentDetail(SettingsPage.AUDIO, context.getString(R.string.player_sheet_audio_track))
+        }
         addRadioRow(
             title = context.getString(R.string.player_sheet_disable),
-            checked = false,
-            enabled = false
-        ) {}
+            checked = playerPrefs.audioMuted
+        ) {
+            playerPrefs.audioMuted = true
+            playerManager.setMuted(true)
+            rebuildCurrentDetail(SettingsPage.AUDIO, context.getString(R.string.player_sheet_audio_track))
+        }
         addCheckboxRow(
             title = context.getString(R.string.player_sheet_software_audio_decoder),
             checked = playerPrefs.softwareAudioDecoder
         ) { checked ->
             playerPrefs.softwareAudioDecoder = checked
+            viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
         }
         addSwitchRow(
             parent = detailContainer,
@@ -282,9 +302,11 @@ class PlayerSettingsDialog(
             title = context.getString(R.string.player_sheet_subtitle_delay),
             min = -5000,
             maxValue = 5000,
-            value = 0,
+            value = playerPrefs.subtitleDelayMs,
             label = { "${it}ms" }
-        ) {}
+        ) { value ->
+            playerPrefs.subtitleDelayMs = value
+        }
         addSeekRow(
             title = context.getString(R.string.settings_subtitle_size),
             min = 12,
@@ -341,7 +363,7 @@ class PlayerSettingsDialog(
             label = { "$it%" }
         ) { value ->
             playerPrefs.brightnessAdjustment = value
-            playerManager.setBrightness(value / 100f)
+            applyVideoAdjustmentsFromPrefs()
         }
         addSeekRow(
             title = context.getString(R.string.player_sheet_contrast),
@@ -351,7 +373,7 @@ class PlayerSettingsDialog(
             label = { "$it%" }
         ) { value ->
             playerPrefs.contrastAdjustment = value
-            playerManager.setContrast(value / 100f)
+            applyVideoAdjustmentsFromPrefs()
         }
         addSeekRow(
             title = context.getString(R.string.player_sheet_saturation),
@@ -361,13 +383,14 @@ class PlayerSettingsDialog(
             label = { "$it%" }
         ) { value ->
             playerPrefs.saturationAdjustment = value
+            applyVideoAdjustmentsFromPrefs()
         }
         addChoiceRow(
             title = context.getString(R.string.settings_rotation),
-            value = "${playerPrefs.rotation}°",
-            options = listOf("0°", "90°", "180°", "270°")
+            value = "${playerPrefs.rotation}\u00B0",
+            options = listOf("0\u00B0", "90\u00B0", "180\u00B0", "270\u00B0")
         ) { selected ->
-            playerPrefs.rotation = selected.removeSuffix("°").toIntOrNull() ?: 0
+            playerPrefs.rotation = selected.removeSuffix("\u00B0").toIntOrNull() ?: 0
         }
         addSwitchRow(
             parent = detailContainer,
@@ -402,6 +425,165 @@ class PlayerSettingsDialog(
         }
     }
 
+    private fun buildPlaylistPage() {
+        addActionRow("Add current video") {
+            viewModel.addCurrentVideoToDefaultPlaylist()
+        }
+        addChoiceRow(
+            title = context.getString(R.string.settings_loop_mode),
+            value = loopModeLabel(playerPrefs.loopMode),
+            options = LoopMode.entries.map(::loopModeLabel)
+        ) { selected ->
+            val mode = LoopMode.entries.firstOrNull { loopModeLabel(it) == selected } ?: LoopMode.LIST
+            playerPrefs.loopMode = mode
+            viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
+        }
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_auto_play_next),
+            checked = playerPrefs.autoPlayNext
+        ) { checked ->
+            playerPrefs.autoPlayNext = checked
+        }
+        addChoiceRow(
+            title = context.getString(R.string.settings_playback_speed),
+            value = "${playerPrefs.speed}x",
+            options = playbackSpeedOptions
+        ) { selected ->
+            setPlaybackSpeed(selected)
+        }
+        addChoiceRow(
+            title = context.getString(R.string.settings_seek_interval),
+            value = "${playerPrefs.seekInterval}s",
+            options = listOf("5s", "10s", "15s", "30s")
+        ) { selected ->
+            playerPrefs.seekInterval = selected.removeSuffix("s").toIntOrNull() ?: 10
+        }
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_remember_progress),
+            checked = playerPrefs.rememberProgress
+        ) { checked ->
+            playerPrefs.rememberProgress = checked
+        }
+    }
+
+    private fun buildStreamPage() {
+        addActionRow("Open network stream") {
+            showStreamInput()
+        }
+        if (playerPrefs.lastStreamUrl.isNotBlank()) {
+            addActionRow("Play last stream") {
+                playStreamUrl(playerPrefs.lastStreamUrl)
+            }
+            addInfoRow("Last URL", playerPrefs.lastStreamUrl)
+        } else {
+            addInfoRow("Last URL", "None")
+        }
+    }
+
+    private fun buildInfoPage() {
+        val state = viewModel.uiState.value
+        addInfoRow("Title", state.title.ifBlank { context.getString(R.string.app_name) })
+        addInfoRow("Position", formatTime(playerManager.currentPosition))
+        addInfoRow("Duration", formatTime(playerManager.duration))
+        addInfoRow("Speed", "${state.speed}x")
+        addInfoRow("Aspect", aspectLabel(playerPrefs.aspectRatio))
+        addInfoRow("Source", viewModel.currentVideoSource().ifBlank { "None" })
+    }
+
+    private fun buildCutPage() {
+        addInfoRow("Start", formatSavedTime(playerPrefs.clipStartMs))
+        addInfoRow("End", formatSavedTime(playerPrefs.clipEndMs))
+        addActionRow("Set clip start") {
+            playerPrefs.clipStartMs = playerManager.currentPosition
+            rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
+        }
+        addActionRow("Set clip end") {
+            playerPrefs.clipEndMs = playerManager.currentPosition
+            rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
+        }
+        addSwitchRow(
+            parent = detailContainer,
+            title = "Loop clip preview",
+            checked = playerPrefs.clipLoopPreview
+        ) { checked ->
+            playerPrefs.clipLoopPreview = checked
+        }
+        addActionRow("Export clip") {
+            exportClip()
+        }
+        addActionRow("Clear clip points") {
+            playerPrefs.clipStartMs = -1L
+            playerPrefs.clipEndMs = -1L
+            playerPrefs.clipLoopPreview = false
+            rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
+        }
+    }
+
+    private fun buildBookmarkPage() {
+        val bookmark = playerPrefs.bookmarkPositionMs
+        addInfoRow("Bookmark", formatSavedTime(bookmark))
+        addActionRow("Save current position") {
+            playerPrefs.bookmarkPositionMs = playerManager.currentPosition
+            rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
+        }
+        if (bookmark >= 0L) {
+            addActionRow("Jump to bookmark") {
+                viewModel.seekTo(bookmark)
+                dismiss()
+            }
+            addActionRow("Clear bookmark") {
+                playerPrefs.bookmarkPositionMs = -1L
+                rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
+            }
+        } else {
+            addDisabledRow("Jump to bookmark")
+            addDisabledRow("Clear bookmark")
+        }
+    }
+
+    private fun buildTutorialPage() {
+        addActionRow("Apply MX Player gestures") {
+            playerPrefs.leftVerticalGesture = GestureAction.BRIGHTNESS
+            playerPrefs.rightVerticalGesture = GestureAction.VOLUME
+            playerPrefs.horizontalSwipeAction = GestureAction.SEEK
+            playerPrefs.doubleTapAction = DoubleTapAction.FORWARD
+            playerPrefs.longPressAction = LongPressAction.SPEED
+            rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+        }
+        addActionRow("Apply play/pause gestures") {
+            playerPrefs.doubleTapAction = DoubleTapAction.PLAY_PAUSE
+            playerPrefs.longPressAction = LongPressAction.SPEED
+            rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+        }
+        addChoiceRow(
+            title = context.getString(R.string.settings_double_tap_action),
+            value = doubleTapLabel(playerPrefs.doubleTapAction),
+            options = DoubleTapAction.entries.map(::doubleTapLabel)
+        ) { selected ->
+            DoubleTapAction.entries.firstOrNull { doubleTapLabel(it) == selected }?.let {
+                playerPrefs.doubleTapAction = it
+            }
+        }
+        addChoiceRow(
+            title = "Long press action",
+            value = longPressLabel(playerPrefs.longPressAction),
+            options = LongPressAction.entries.map(::longPressLabel)
+        ) { selected ->
+            LongPressAction.entries.firstOrNull { longPressLabel(it) == selected }?.let {
+                playerPrefs.longPressAction = it
+            }
+        }
+        addSwitchRow(
+            parent = detailContainer,
+            title = "Edge swipe back",
+            checked = playerPrefs.edgeSwipeBack
+        ) { checked ->
+            playerPrefs.edgeSwipeBack = checked
+        }
+    }
+
     private fun buildMorePage() {
         addSwitchRow(
             parent = detailContainer,
@@ -413,11 +595,23 @@ class PlayerSettingsDialog(
         addChoiceRow(
             title = context.getString(R.string.settings_playback_speed),
             value = "${playerPrefs.speed}x",
-            options = listOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
+            options = playbackSpeedOptions
         ) { selected ->
-            val speed = selected.removeSuffix("x").toFloatOrNull() ?: 1f
-            playerPrefs.speed = speed
-            viewModel.setSpeed(speed, PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch))
+            setPlaybackSpeed(selected)
+        }
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_keep_screen_on),
+            checked = playerPrefs.keepScreenOn
+        ) { checked ->
+            playerPrefs.keepScreenOn = checked
+        }
+        addChoiceRow(
+            title = context.getString(R.string.settings_controls_auto_hide),
+            value = if (playerPrefs.controlsAutoHide == 0) "Off" else "${playerPrefs.controlsAutoHide}s",
+            options = listOf("Off", "3s", "5s", "8s")
+        ) { selected ->
+            playerPrefs.controlsAutoHide = selected.removeSuffix("s").toIntOrNull() ?: 0
         }
         addActionRow(context.getString(R.string.settings_reset_defaults)) {
             playerPrefs.resetToDefaults()
@@ -426,13 +620,168 @@ class PlayerSettingsDialog(
         }
     }
 
-    private fun buildUnavailablePage() {
-        detailContainer.addView(TextView(context).apply {
-            text = context.getString(R.string.player_sheet_not_available)
-            setTextColor(Color.rgb(176, 176, 176))
-            textSize = 15f
-            setPadding(0, dp(24), 0, dp(24))
+    private fun addInfoRow(title: String, value: String) {
+        detailContainer.addView(LinearLayout(context).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            minimumHeight = dp(52)
+            addView(TextView(context).apply {
+                text = title
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(TextView(context).apply {
+                text = value
+                setTextColor(Color.rgb(176, 176, 176))
+                textSize = 14f
+                gravity = Gravity.END
+                maxLines = 2
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
         })
+        addDivider(detailContainer)
+    }
+
+    private fun exportClip() {
+        val startMs = playerPrefs.clipStartMs
+        val endMs = playerPrefs.clipEndMs
+        if (startMs < 0L || endMs <= startMs) {
+            Toast.makeText(context, "Set valid clip points first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        viewModel.exportClip(startMs, endMs) { success, path ->
+            Toast.makeText(
+                context,
+                if (success) "Clip exported: $path" else "Clip export failed",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun addDisabledRow(title: String) {
+        detailContainer.addView(TextView(context).apply {
+            text = title
+            setTextColor(Color.rgb(85, 85, 85))
+            textSize = 15f
+            gravity = Gravity.CENTER_VERTICAL
+            minHeight = dp(52)
+        })
+        addDivider(detailContainer)
+    }
+
+    private fun showStreamInput() {
+        val popup = BottomSheetDialog(context)
+        val input = EditText(context).apply {
+            setText(playerPrefs.lastStreamUrl)
+            hint = "https://example.com/video.mp4"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.rgb(176, 176, 176))
+        }
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            background = context.getDrawable(R.drawable.bg_player_settings_sheet)
+            setPadding(dp(20), dp(18), dp(20), dp(20))
+            addView(TextView(context).apply {
+                text = context.getString(R.string.player_sheet_stream)
+                setTextColor(Color.WHITE)
+                textSize = 18f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            })
+            addView(input, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(12)
+            })
+            addView(TextView(context).apply {
+            text = "Play"
+                setTextColor(context.getColor(R.color.ov_accent_blue))
+                textSize = 16f
+                gravity = Gravity.CENTER
+                minHeight = dp(48)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener {
+                    val url = input.text?.toString().orEmpty().trim()
+                    if (url.isNotBlank()) {
+                        playStreamUrl(url)
+                        popup.dismiss()
+                    }
+                }
+            }, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(12)
+            })
+        }
+        popup.setContentView(container)
+        popup.show()
+    }
+
+    private fun playStreamUrl(url: String) {
+        playerPrefs.lastStreamUrl = url
+        viewModel.playStream(url)
+        dismiss()
+    }
+
+    private fun setPlaybackSpeed(selected: String) {
+        val speed = selected.removeSuffix("x").toFloatOrNull() ?: 1f
+        playerPrefs.speed = speed
+        viewModel.setSpeed(speed, PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch))
+    }
+
+    private fun applyVideoAdjustmentsFromPrefs() {
+        playerManager.applyVideoAdjustments(
+            playerPrefs.brightnessAdjustment / 100f,
+            playerPrefs.contrastAdjustment / 100f,
+            playerPrefs.saturationAdjustment / 100f
+        )
+    }
+
+    private val playbackSpeedOptions = listOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
+
+    private fun loopModeLabel(value: LoopMode): String = when (value) {
+        LoopMode.OFF -> context.getString(R.string.settings_loop_off)
+        LoopMode.SINGLE -> context.getString(R.string.settings_loop_single)
+        LoopMode.LIST -> context.getString(R.string.settings_loop_list)
+    }
+
+    private fun aspectLabel(value: AspectRatio): String = when (value) {
+        AspectRatio.FIT -> context.getString(R.string.player_sheet_fit_screen)
+        AspectRatio.FILL -> context.getString(R.string.player_sheet_fill_screen)
+        AspectRatio.CROP -> context.getString(R.string.settings_ratio_crop)
+        AspectRatio.STRETCH -> context.getString(R.string.settings_ratio_stretch)
+        AspectRatio.RATIO_4_3 -> context.getString(R.string.settings_ratio_4_3)
+        AspectRatio.RATIO_16_9 -> context.getString(R.string.settings_ratio_16_9)
+    }
+
+    private fun doubleTapLabel(value: DoubleTapAction): String = when (value) {
+        DoubleTapAction.PLAY_PAUSE -> context.getString(R.string.settings_double_tap_pause)
+        DoubleTapAction.FORWARD -> context.getString(R.string.settings_double_tap_forward)
+        DoubleTapAction.BACKWARD -> context.getString(R.string.settings_double_tap_backward)
+        DoubleTapAction.NONE -> context.getString(R.string.settings_double_tap_none)
+    }
+
+    private fun longPressLabel(value: LongPressAction): String = when (value) {
+        LongPressAction.SPEED -> context.getString(R.string.settings_double_tap_playback)
+        LongPressAction.NONE -> context.getString(R.string.settings_double_tap_none)
+    }
+
+    private fun formatSavedTime(ms: Long): String =
+        if (ms >= 0L) formatTime(ms) else "None"
+
+    private fun formatTime(ms: Long): String {
+        val safeMs = ms.coerceAtLeast(0L)
+        val totalSec = safeMs / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
+        else String.format("%02d:%02d", m, s)
     }
 
     private fun addAspectRow(title: String, ratio: AspectRatio) {
@@ -659,7 +1008,7 @@ class PlayerSettingsDialog(
     }
 
     private fun shareVideoTitle() {
-        val title = viewModel.uiState.value.title.ifBlank { context.getString(R.string.app_name) }
+        val title = viewModel.currentVideoShareText().ifBlank { context.getString(R.string.app_name) }
         context.startActivity(
             Intent.createChooser(
                 Intent(Intent.ACTION_SEND).apply {
@@ -669,10 +1018,6 @@ class PlayerSettingsDialog(
                 context.getString(R.string.player_sheet_share)
             )
         )
-    }
-
-    private fun showUnavailable() {
-        Toast.makeText(context, R.string.player_sheet_not_available, Toast.LENGTH_SHORT).show()
     }
 
     private fun progressStyleLabel(value: String): String = when (value) {
@@ -694,10 +1039,10 @@ class PlayerSettingsDialog(
 
     private val subtitleColorOptions: Array<SubtitleColorOption> by lazy {
         arrayOf(
-            SubtitleColorOption("白色", 0xFFFFFFFF.toInt()),
-            SubtitleColorOption("黄色", 0xFFFFEB3B.toInt()),
-            SubtitleColorOption("绿色", 0xFF8BC34A.toInt()),
-            SubtitleColorOption("蓝色", 0xFF64B5F6.toInt())
+            SubtitleColorOption("White", 0xFFFFFFFF.toInt()),
+            SubtitleColorOption("Yellow", 0xFFFFEB3B.toInt()),
+            SubtitleColorOption("Green", 0xFF8BC34A.toInt()),
+            SubtitleColorOption("Blue", 0xFF64B5F6.toInt())
         )
     }
 

@@ -2,20 +2,23 @@ package com.example.openvideo.core.subtitle
 
 import android.content.Context
 import android.net.Uri
+import com.example.openvideo.core.prefs.PlayerPrefs
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
+import java.nio.charset.Charset
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class SubtitleLoader @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val playerPrefs: PlayerPrefs
 ) {
 
     fun loadFromFile(file: File): List<SubtitleItem> {
         if (!file.exists()) return emptyList()
 
-        val charset = CharsetDetector.detect(file)
+        val charset = charsetForPreference(file)
         val content = file.readText(charset)
 
         return when (file.extension.lowercase()) {
@@ -29,7 +32,8 @@ class SubtitleLoader @Inject constructor(
     fun loadFromUri(uri: Uri): List<SubtitleItem> {
         return try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return emptyList()
-            val content = inputStream.bufferedReader().readText()
+            val charset = charsetForPreference(null)
+            val content = inputStream.bufferedReader(charset).readText()
             inputStream.close()
 
             val ext = getExtensionFromUri(uri)
@@ -61,5 +65,15 @@ class SubtitleLoader @Inject constructor(
         val path = uri.path ?: return ""
         val dotIndex = path.lastIndexOf('.')
         return if (dotIndex >= 0) path.substring(dotIndex + 1).lowercase() else ""
+    }
+
+    private fun charsetForPreference(file: File?): Charset {
+        val value = playerPrefs.subtitleEncoding
+        if (value == "auto") {
+            return file?.let(CharsetDetector::detect) ?: Charsets.UTF_8
+        }
+        return runCatching { Charset.forName(value) }.getOrElse {
+            file?.let(CharsetDetector::detect) ?: Charsets.UTF_8
+        }
     }
 }

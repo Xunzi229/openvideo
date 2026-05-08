@@ -3,6 +3,10 @@ package com.example.openvideo.core.player
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
+import android.media.MediaCodec
+import android.media.MediaExtractor
+import android.media.MediaFormat
+import android.media.MediaMuxer
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
@@ -21,6 +25,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
+import androidx.media3.effect.RgbMatrix
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -30,6 +35,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import android.provider.MediaStore
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.ByteBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -129,6 +135,10 @@ class PlayerManager @Inject constructor(
         }
     }
 
+    fun setMuted(muted: Boolean) {
+        player?.volume = if (muted) 0f else 1f
+    }
+
     fun applyDecodeMode(mode: DecodeMode) {
         decodeMode = mode
         // Software vs hardware decode is device-dependent; ExoPlayer selects decoders automatically.
@@ -171,6 +181,41 @@ class PlayerManager @Inject constructor(
         activeEffects.removeAll { it is Contrast }
         activeEffects.add(Contrast(value))
         applyEffects()
+    }
+
+    fun applyVideoAdjustments(
+        brightness: Float,
+        contrast: Float,
+        saturation: Float
+    ) {
+        activeEffects.removeAll { it is Brightness || it is Contrast || it is RgbMatrix }
+        if (brightness != 0f) {
+            activeEffects.add(Brightness(brightness))
+        }
+        if (contrast != 0f) {
+            activeEffects.add(Contrast(contrast))
+        }
+        if (saturation != 0f) {
+            activeEffects.add(saturationMatrix(saturation))
+        }
+        applyEffects()
+    }
+
+    private fun saturationMatrix(value: Float): RgbMatrix {
+        val scale = (1f + value).coerceAtLeast(0f)
+        val inverse = 1f - scale
+        val red = 0.213f * inverse
+        val green = 0.715f * inverse
+        val blue = 0.072f * inverse
+        val matrix = floatArrayOf(
+            red + scale, green, blue, 0f,
+            red, green + scale, blue, 0f,
+            red, green, blue + scale, 0f,
+            0f, 0f, 0f, 1f
+        )
+        return object : RgbMatrix {
+            override fun getMatrix(presentationTimeUs: Long, useHdr: Boolean): FloatArray = matrix
+        }
     }
 
     fun setRotation(degrees: Float) {
@@ -273,6 +318,87 @@ class PlayerManager @Inject constructor(
         }
     }
 
+    fun exportClip(sourceUri: Uri, startMs: Long, endMs: Long, callback: (Boolean, String?) -> Unit) {
+        Thread {
+            val result = runCatching {
+                if (startMs < 0L || endMs <= startMs) return@runCatching null
+                val source = context.contentResolver.openFileDescriptor(sourceUri, "r") ?: return@runCatching null
+                source.use { descriptor ->
+                    val extractor = MediaExtractor()
+                    val muxer: MediaMuxer
+                    val outputFile = clipOutputFile()
+                    try {
+                        extractor.setDataSource(descriptor.fileDescriptor)
+                        muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+                    } catch (error: Exception) {
+                        extractor.release()
+                        throw error
+                    }
+
+                    val trackMap = mutableMapOf<Int, Int>()
+                    for (trackIndex in 0 until extractor.trackCount) {
+                        val format = extractor.getTrackFormat(trackIndex)
+                        val mime = format.getString(MediaFormat.KEY_MIME).orEmpty()
+                        if (mime.startsWith("video/") || mime.startsWith("audio/")) {
+                            extractor.selectTrack(trackIndex)
+                            trackMap[trackIndex] = muxer.addTrack(format)
+                        }
+                    }
+                    if (trackMap.isEmpty()) {
+                        muxer.release()
+                        extractor.release()
+                        return@runCatching null
+                    }
+
+                    val startUs = startMs * 1000L
+                    val endUs = endMs * 1000L
+                    val buffer = ByteBuffer.allocate(CLIP_BUFFER_BYTES)
+                    val info = MediaCodec.BufferInfo()
+
+                    muxer.start()
+                    extractor.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+                    var muxerStarted = true
+                    try {
+                        while (true) {
+                            val trackIndex = extractor.sampleTrackIndex
+                            if (trackIndex < 0) break
+                            val sampleTimeUs = extractor.sampleTime
+                            if (sampleTimeUs > endUs) break
+                            val outputTrack = trackMap[trackIndex]
+                            if (outputTrack != null) {
+                                buffer.clear()
+                                val sampleSize = extractor.readSampleData(buffer, 0)
+                                if (sampleSize < 0) break
+                                info.set(
+                                    0,
+                                    sampleSize,
+                                    (sampleTimeUs - startUs).coerceAtLeast(0L),
+                                    extractor.sampleFlags
+                                )
+                                muxer.writeSampleData(outputTrack, buffer, info)
+                            }
+                            extractor.advance()
+                        }
+                    } finally {
+                        runCatching {
+                            if (muxerStarted) {
+                                muxer.stop()
+                                muxerStarted = false
+                            }
+                        }
+                        muxer.release()
+                        extractor.release()
+                    }
+                    outputFile.absolutePath
+                }
+            }.getOrNull()
+
+            Handler(Looper.getMainLooper()).post {
+                callback(result != null, result)
+            }
+        }.start()
+    }
+
     private fun saveScreenshot(bitmap: Bitmap, callback: (Boolean, String?) -> Unit) {
         val name = "screenshot_${System.currentTimeMillis()}.jpg"
         try {
@@ -314,7 +440,14 @@ class PlayerManager @Inject constructor(
         }
     }
 
+    private fun clipOutputFile(): File {
+        val dir = File(context.getExternalFilesDir(Environment.DIRECTORY_MOVIES), "OpenVideo")
+        if (!dir.exists()) dir.mkdirs()
+        return File(dir, "clip_${System.currentTimeMillis()}.mp4")
+    }
+
     private companion object {
         const val VOLUME_BOOST_MILLIBELS = 600
+        const val CLIP_BUFFER_BYTES = 1024 * 1024
     }
 }

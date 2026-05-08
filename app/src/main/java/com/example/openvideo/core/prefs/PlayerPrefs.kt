@@ -118,6 +118,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getInt(KEY_AUDIO_DELAY, 0)
         set(value) = putInt(KEY_AUDIO_DELAY, value)
 
+    var audioMuted: Boolean
+        get() = getBoolean(KEY_AUDIO_MUTED, false)
+        set(value) = putBoolean(KEY_AUDIO_MUTED, value)
+
     // ── 字幕 ──
 
     var subtitleSize: Int
@@ -139,6 +143,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
     var subtitleEncoding: String
         get() = getString(KEY_SUBTITLE_ENCODING, "auto")
         set(value) = putString(KEY_SUBTITLE_ENCODING, value)
+
+    var subtitleDelayMs: Int
+        get() = getInt(KEY_SUBTITLE_DELAY_MS, 0)
+        set(value) = putInt(KEY_SUBTITLE_DELAY_MS, value)
 
     // 外挂字幕 URI（由设置覆盖层写入，播放器可读取并加载）
     var externalSubtitleUri: String
@@ -205,6 +213,26 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_AUDIO_SYNC_ENABLED, true)
         set(value) = putBoolean(KEY_AUDIO_SYNC_ENABLED, value)
 
+    var lastStreamUrl: String
+        get() = getString(KEY_LAST_STREAM_URL, "")
+        set(value) = putString(KEY_LAST_STREAM_URL, value)
+
+    var clipStartMs: Long
+        get() = getLong(KEY_CLIP_START_MS, -1L)
+        set(value) = putLong(KEY_CLIP_START_MS, value)
+
+    var clipEndMs: Long
+        get() = getLong(KEY_CLIP_END_MS, -1L)
+        set(value) = putLong(KEY_CLIP_END_MS, value)
+
+    var clipLoopPreview: Boolean
+        get() = getBoolean(KEY_CLIP_LOOP_PREVIEW, false)
+        set(value) = putBoolean(KEY_CLIP_LOOP_PREVIEW, value)
+
+    var bookmarkPositionMs: Long
+        get() = getLong(KEY_BOOKMARK_POSITION_MS, -1L)
+        set(value) = putLong(KEY_BOOKMARK_POSITION_MS, value)
+
     fun resetToDefaults() {
         prefs.edit().clear().apply()
     }
@@ -244,12 +272,14 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_VOLUME_BOOST = "volume_boost"
         private const val KEY_AUDIO_CHANNEL = "audio_channel"
         private const val KEY_AUDIO_DELAY = "audio_delay"
+        private const val KEY_AUDIO_MUTED = "audio_muted"
 
         // 字幕
         private const val KEY_SUBTITLE_SIZE = "subtitle_size"
         private const val KEY_SUBTITLE_COLOR = "subtitle_color"
         private const val KEY_SUBTITLE_BG = "subtitle_bg"
         private const val KEY_SUBTITLE_ENCODING = "subtitle_encoding"
+        private const val KEY_SUBTITLE_DELAY_MS = "subtitle_delay_ms"
         // Exposed constant for external subtitle URI so other components can reference it
         const val KEY_EXTERNAL_SUBTITLE = "external_subtitle_uri"
         private const val KEY_SUBTITLE_POSITION = "subtitle_position"
@@ -271,6 +301,11 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SUBTITLES_ENABLED = "subtitles_enabled"
         private const val KEY_SOFTWARE_AUDIO_DECODER = "software_audio_decoder"
         private const val KEY_AUDIO_SYNC_ENABLED = "audio_sync_enabled"
+        private const val KEY_LAST_STREAM_URL = "last_stream_url"
+        private const val KEY_CLIP_START_MS = "clip_start_ms"
+        private const val KEY_CLIP_END_MS = "clip_end_ms"
+        private const val KEY_CLIP_LOOP_PREVIEW = "clip_loop_preview"
+        private const val KEY_BOOKMARK_POSITION_MS = "bookmark_position_ms"
 
         fun requiresImmediatePlayerApply(key: String?): Boolean {
             return key in setOf(
@@ -289,10 +324,12 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
                 KEY_VOLUME_BOOST,
                 KEY_AUDIO_CHANNEL,
                 KEY_AUDIO_DELAY,
+                KEY_AUDIO_MUTED,
                 KEY_SUBTITLES_ENABLED,
                 KEY_SUBTITLE_SIZE,
                 KEY_SUBTITLE_COLOR,
                 KEY_SUBTITLE_BG,
+                KEY_SUBTITLE_DELAY_MS,
                 KEY_SUBTITLE_POSITION,
                 KEY_CONTROLS_AUTO_HIDE
             )

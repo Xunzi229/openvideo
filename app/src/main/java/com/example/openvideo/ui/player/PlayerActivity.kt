@@ -66,11 +66,9 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var topBar: View
     private lateinit var topScrim: View
     private lateinit var bottomScrim: View
-    private lateinit var centerControls: View
     private lateinit var bottomPanel: View
     private lateinit var toolRow: View
     private lateinit var btnPlay: ImageButton
-    private lateinit var btnPlayCenter: ImageButton
     private lateinit var btnPrev: ImageButton
     private lateinit var btnNext: ImageButton
     private lateinit var btnSettings: ImageButton
@@ -117,6 +115,7 @@ class PlayerActivity : AppCompatActivity() {
                 }
 
                 applyIntroOutroSkip(state.currentPosition, state.duration)
+                applyClipPreviewLoop(state.currentPosition)
 
                 // Update subtitle
                 val subtitle = if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else ""
@@ -247,7 +246,14 @@ class PlayerActivity : AppCompatActivity() {
         )
         viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
         viewModel.setVolumeBoost(playerPrefs.volumeBoost)
+        playerManager.setMuted(playerPrefs.audioMuted)
+        playerManager.applyVideoAdjustments(
+            playerPrefs.brightnessAdjustment / 100f,
+            playerPrefs.contrastAdjustment / 100f,
+            playerPrefs.saturationAdjustment / 100f
+        )
         playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f
+        bottomPanel.alpha = playerPrefs.controlsOpacity / 100f
 
         if (playerPrefs.keepScreenOn) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -346,11 +352,9 @@ class PlayerActivity : AppCompatActivity() {
         topBar = findViewById(R.id.top_bar)
         topScrim = findViewById(R.id.top_scrim)
         bottomScrim = findViewById(R.id.bottom_scrim)
-        centerControls = findViewById(R.id.center_controls)
         bottomPanel = findViewById(R.id.bottom_panel)
         toolRow = findViewById(R.id.tool_row)
         btnPlay = findViewById(R.id.btn_play)
-        btnPlayCenter = findViewById(R.id.btn_play_center)
         btnPrev = findViewById(R.id.btn_prev)
         btnNext = findViewById(R.id.btn_next)
         btnSettings = findViewById(R.id.btn_settings)
@@ -375,7 +379,6 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun setupControls() {
         btnPlay.setOnClickListener { togglePlayPauseAndSyncIcon() }
-        btnPlayCenter.setOnClickListener { togglePlayPauseAndSyncIcon() }
         btnBack.setOnClickListener { finishPlayer() }
 
         btnPrev.setOnClickListener { viewModel.seekBackward() }
@@ -765,8 +768,6 @@ class PlayerActivity : AppCompatActivity() {
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
         val icon = PlayerControlState.playPauseIcon(isPlaying)
         btnPlay.setImageResource(icon)
-        btnPlayCenter.setImageResource(icon)
-        btnPlayCenter.visibility = View.GONE
     }
 
     private fun togglePlayPauseAndSyncIcon() {
@@ -820,10 +821,8 @@ class PlayerActivity : AppCompatActivity() {
         topScrim.visibility = chromeVisibility
         bottomScrim.visibility = chromeVisibility
         topBar.visibility = chromeVisibility
-        centerControls.visibility = chromeVisibility
         bottomPanel.visibility = chromeVisibility
         toolRow.visibility = chromeVisibility
-        btnPlayCenter.visibility = View.GONE
         btnLock.visibility = if (visibility.lockButtonVisible) View.VISIBLE else View.GONE
         btnLock.isSelected = visibility.lockButtonSelected
         if (visibility.lockButtonSelected) {
@@ -1033,6 +1032,15 @@ class PlayerActivity : AppCompatActivity() {
             IntroOutroSkipPolicy.Kind.OUTRO -> hasSkippedOutro = true
         }
         viewModel.seekTo(target.positionMs)
+    }
+
+    private fun applyClipPreviewLoop(currentPositionMs: Long) {
+        if (!playerPrefs.clipLoopPreview) return
+        val startMs = playerPrefs.clipStartMs
+        val endMs = playerPrefs.clipEndMs
+        if (startMs >= 0L && endMs > startMs && currentPositionMs >= endMs) {
+            viewModel.seekTo(startMs)
+        }
     }
 
     private fun isInPipModeCompat(): Boolean {

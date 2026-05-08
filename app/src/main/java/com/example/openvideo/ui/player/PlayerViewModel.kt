@@ -125,8 +125,60 @@ class PlayerViewModel @Inject constructor(
     fun getCurrentSubtitle(): String {
         val state = _uiState.value
         if (state.subtitles.isEmpty()) return ""
-        val pos = state.currentPosition
+        val pos = state.currentPosition + playerPrefs.subtitleDelayMs
         return state.subtitles.find { pos in it.startTimeMs..it.endTimeMs }?.text ?: ""
+    }
+
+    fun playStream(streamUrl: String) {
+        val uri = Uri.parse(streamUrl)
+        videoId = streamUrl.hashCode().toLong()
+        videoUri = uri
+        videoPath = streamUrl
+        pendingRestorePosition = null
+        _uiState.value = _uiState.value.copy(
+            title = uri.lastPathSegment?.takeIf { it.isNotBlank() } ?: streamUrl,
+            currentPosition = 0,
+            duration = 0,
+            subtitles = emptyList()
+        )
+        playerManager.setMediaUri(uri)
+    }
+
+    fun currentVideoSource(): String =
+        videoPath.ifBlank { videoUri?.toString().orEmpty() }
+
+    fun currentVideoShareText(): String {
+        val source = currentVideoSource()
+        val title = _uiState.value.title.ifBlank { source }
+        return listOf(title, source).filter { it.isNotBlank() }.joinToString("\n")
+    }
+
+    fun addCurrentVideoToDefaultPlaylist() {
+        viewModelScope.launch {
+            val uri = videoUri ?: return@launch
+            repository.addToQuickPlaylist(
+                VideoItem(
+                    id = videoId,
+                    title = _uiState.value.title.ifBlank { uri.lastPathSegment.orEmpty() },
+                    path = videoPath.ifBlank { uri.toString() },
+                    uri = uri,
+                    duration = playerManager.duration,
+                    size = 0,
+                    width = 0,
+                    height = 0,
+                    dateAdded = 0,
+                    thumbnailUri = null
+                )
+            )
+        }
+    }
+
+    fun exportClip(startMs: Long, endMs: Long, callback: (Boolean, String?) -> Unit) {
+        val uri = videoUri ?: run {
+            callback(false, null)
+            return
+        }
+        playerManager.exportClip(uri, startMs, endMs, callback)
     }
 
     fun setDecodeMode(mode: DecodeMode) {

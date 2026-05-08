@@ -22,6 +22,13 @@ abstract class PrefsManager(context: Context, prefsName: String) {
         prefs.edit().putInt(key, value).apply()
     }
 
+    protected fun getLong(key: String, default: Long): Long =
+        prefs.getLong(key, default)
+
+    protected fun putLong(key: String, value: Long) {
+        prefs.edit().putLong(key, value).apply()
+    }
+
     protected fun getFloat(key: String, default: Float): Float =
         prefs.getFloat(key, default)
 

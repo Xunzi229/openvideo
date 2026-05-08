@@ -5,10 +5,14 @@ import com.example.openvideo.data.local.FavoriteDao
 import com.example.openvideo.data.local.FavoriteEntity
 import com.example.openvideo.data.local.HistoryDao
 import com.example.openvideo.data.local.HistoryEntity
+import com.example.openvideo.data.local.PlaylistDao
+import com.example.openvideo.data.local.PlaylistEntity
+import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.data.scanner.VideoScanner
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -16,7 +20,8 @@ import javax.inject.Singleton
 class VideoRepository @Inject constructor(
     private val videoScanner: VideoScanner,
     private val historyDao: HistoryDao,
-    private val favoriteDao: FavoriteDao
+    private val favoriteDao: FavoriteDao,
+    private val playlistDao: PlaylistDao
 ) {
 
     fun scanLocalVideos(): Flow<List<VideoItem>> = videoScanner.scanVideos()
@@ -62,6 +67,23 @@ class VideoRepository @Inject constructor(
 
     suspend fun isFavorite(videoId: Long): Boolean = favoriteDao.isFavorite(videoId)
 
+    suspend fun addToQuickPlaylist(video: VideoItem): Long {
+        val playlist = playlistDao.getAll().first().firstOrNull { it.name == QUICK_PLAYLIST_NAME }
+        val playlistId = playlist?.id ?: playlistDao.insert(PlaylistEntity(name = QUICK_PLAYLIST_NAME))
+        val position = playlistDao.getVideoCount(playlistId)
+        playlistDao.insertVideo(
+            PlaylistVideoEntity(
+                playlistId = playlistId,
+                videoId = video.id,
+                videoTitle = video.title,
+                videoPath = video.path,
+                videoDuration = video.duration,
+                position = position
+            )
+        )
+        return playlistId
+    }
+
     fun deleteVideo(video: VideoItem): Boolean {
         return videoScanner.deleteVideo(video.uri)
     }
@@ -72,5 +94,9 @@ class VideoRepository @Inject constructor(
 
     fun createDeleteRequest(videos: List<VideoItem>): PendingIntent? {
         return videoScanner.createDeleteRequest(videos.map { it.uri })
+    }
+
+    private companion object {
+        const val QUICK_PLAYLIST_NAME = "Quick Playlist"
     }
 }
