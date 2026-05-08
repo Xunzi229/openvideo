@@ -12,9 +12,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingStart="18dp"
+        android:paddingStart="12dp"
         android:paddingTop="14dp"
-        android:paddingEnd="18dp"
+        android:paddingEnd="12dp"
         android:paddingBottom="18dp">
 
         <View
@@ -74,9 +74,9 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingStart="18dp"
+        android:paddingStart="12dp"
         android:paddingTop="16dp"
-        android:paddingEnd="18dp"
+        android:paddingEnd="12dp"
         android:paddingBottom="18dp"
         android:visibility="gone">
 

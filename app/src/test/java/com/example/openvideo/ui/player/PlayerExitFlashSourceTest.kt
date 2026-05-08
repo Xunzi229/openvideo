@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -9,7 +10,7 @@ import java.nio.file.Paths
 class PlayerExitFlashSourceTest {
 
     @Test
-    fun playerExitDetachesSurfaceBeforeFinishing() {
+    fun playerExitHidesSurfaceWithoutSynchronouslyDetachingPlayerView() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val finishPlayer = source
             .substringAfter("private fun finishPlayer() {")
@@ -32,8 +33,8 @@ class PlayerExitFlashSourceTest {
             "Exit should prepare a non-black frame before calling finish",
             finishPlayer.indexOf("preparePlayerExitFrame()") in 0 until finishPlayer.indexOf("finish()")
         )
-        assertTrue(
-            "Exit preparation should detach PlayerView from ExoPlayer before the window transition",
+        assertFalse(
+            "Exit preparation should avoid PlayerView.setPlayer(null); Media3 can block detaching SurfaceView and throw ExoTimeoutException on some devices",
             prepareExit.contains("playerView.player = null")
         )
         assertTrue(

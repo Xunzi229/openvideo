@@ -81,11 +81,12 @@ class PlayerSettingsDialog(
         window?.apply {
             val width = context.resources.displayMetrics.widthPixels
             val height = context.resources.displayMetrics.heightPixels
-            val bounds = PlayerSettingsLayoutPolicy.panelBounds(width, height)
+            val density = context.resources.displayMetrics.density
+            val bounds = PlayerSettingsLayoutPolicy.panelBounds(width, height, density)
             setLayout(bounds.width, bounds.height)
             setGravity(PlayerSettingsLayoutPolicy.panelGravity(width, height))
             attributes = attributes.apply {
-                x = PlayerSettingsLayoutPolicy.landscapeMarginPx(width, height)
+                x = PlayerSettingsLayoutPolicy.landscapeMarginPx(width, height, density)
             }
             setDimAmount(0.18f)
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
@@ -127,15 +128,15 @@ class PlayerSettingsDialog(
         val cell = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            minimumHeight = dp(86)
+            minimumHeight = dp(74)
             isClickable = true
             isFocusable = true
-            setPadding(4, 6, 4, 4)
+            setPadding(1, 4, 1, 2)
             layoutParams = GridLayout.LayoutParams().apply {
                 width = 0
                 height = GridLayout.LayoutParams.WRAP_CONTENT
                 columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                setMargins(dp(4), dp(4), dp(4), dp(4))
+                setMargins(dp(1), dp(2), dp(1), dp(2))
             }
             setOnClickListener { handlePrimaryClick(item) }
         }

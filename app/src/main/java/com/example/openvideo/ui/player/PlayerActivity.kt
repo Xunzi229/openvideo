@@ -897,7 +897,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun preparePlayerExitFrame() {
         if (!this::playerView.isInitialized) return
         playerView.animate().cancel()
-        playerView.player = null
+        // Do not detach PlayerView here: Media3 may block while detaching SurfaceView
+        // and throw ExoTimeoutException on some devices during Activity finish.
         playerView.visibility = View.INVISIBLE
         if (this::playerRoot.isInitialized) {
             playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.ov_bg_base))

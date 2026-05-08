@@ -141,6 +141,18 @@ class PlayerSettingsDialogTest {
         assertTrue("Landscape panel needs a soft glass edge.", landscapeSheet.contains("#2EFFFFFF"))
     }
 
+    @Test
+    fun playerSettingsGridUsesCompactSpacing() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val layout = String(Files.readAllBytes(playerSettingsLayout()))
+
+        assertTrue(layout.contains("android:paddingStart=\"12dp\""))
+        assertTrue(layout.contains("android:paddingEnd=\"12dp\""))
+        assertTrue(dialogSource.contains("minimumHeight = dp(74)"))
+        assertTrue(dialogSource.contains("setPadding(1, 4, 1, 2)"))
+        assertTrue(dialogSource.contains("setMargins(dp(1), dp(2), dp(1), dp(2))"))
+    }
+
     private fun playerSettingsDialogSource(): Path {
         val relativePath = Paths.get(
             "src",

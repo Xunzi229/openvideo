@@ -65,18 +65,28 @@ object PlayerOrientationPolicy {
 }
 
 object PlayerSettingsLayoutPolicy {
-    private const val LANDSCAPE_MARGIN_PX = 32
-    private const val LANDSCAPE_MAX_WIDTH_PX = 520
-    private const val LANDSCAPE_WIDTH_RATIO = 0.34f
+    private const val LANDSCAPE_MARGIN_DP = 3
+    private const val LANDSCAPE_GRID_COLUMNS = 4
+    private const val LANDSCAPE_GRID_CELL_WIDTH_DP = 104
+    private const val LANDSCAPE_GRID_COLUMN_GAP_DP = 0.1
+    private const val LANDSCAPE_HORIZONTAL_PADDING_DP = 0.3
 
     fun dialogBounds(screenWidth: Int, screenHeight: Int): DialogBounds =
         panelBounds(screenWidth, screenHeight)
 
-    fun panelBounds(screenWidth: Int, screenHeight: Int): DialogBounds =
+    fun panelBounds(screenWidth: Int, screenHeight: Int, density: Float = 1f): DialogBounds =
         if (screenWidth > screenHeight) {
-            val marginPx = landscapeMarginPx(screenWidth, screenHeight)
+            val marginPx = landscapeMarginPx(screenWidth, screenHeight, density)
+            val gridWidth = landscapeContentWidth(
+                columnCount = LANDSCAPE_GRID_COLUMNS,
+                cellWidthDp = LANDSCAPE_GRID_CELL_WIDTH_DP,
+                columnGapDp = LANDSCAPE_GRID_COLUMN_GAP_DP,
+                horizontalPaddingDp = LANDSCAPE_HORIZONTAL_PADDING_DP,
+                density = density
+            )
+            val availableWidth = screenWidth - marginPx * 2
             DialogBounds(
-                width = (screenWidth * LANDSCAPE_WIDTH_RATIO).toInt().coerceAtMost(LANDSCAPE_MAX_WIDTH_PX),
+                width = gridWidth.coerceAtMost(availableWidth),
                 height = screenHeight - marginPx * 2
             )
         } else {
@@ -89,8 +99,27 @@ object PlayerSettingsLayoutPolicy {
     fun panelGravity(screenWidth: Int, screenHeight: Int): Int =
         if (screenWidth > screenHeight) Gravity.END or Gravity.CENTER_VERTICAL else Gravity.BOTTOM
 
-    fun landscapeMarginPx(screenWidth: Int, screenHeight: Int): Int =
-        if (screenWidth > screenHeight) LANDSCAPE_MARGIN_PX else 0
+    fun landscapeMarginPx(screenWidth: Int, screenHeight: Int, density: Float = 1f): Int =
+        if (screenWidth > screenHeight) dpToPx(LANDSCAPE_MARGIN_DP, density) else 0
+
+    fun landscapeContentWidth(
+        columnCount: Int,
+        cellWidthDp: Number,
+        columnGapDp: Number,
+        horizontalPaddingDp: Number,
+        density: Float
+    ): Int {
+        val safeColumnCount = columnCount.coerceAtLeast(1)
+        val cellWidthPx = dpToPx(cellWidthDp, density)
+        val columnGapPx = dpToPx(columnGapDp, density)
+        val horizontalPaddingPx = dpToPx(horizontalPaddingDp, density)
+        val cellsWidth = safeColumnCount * cellWidthPx
+        val gapsWidth = (safeColumnCount - 1) * columnGapPx
+        return cellsWidth + gapsWidth + horizontalPaddingPx * 2
+    }
+
+    private fun dpToPx(value: Number, density: Float): Int =
+        (value.toFloat() * density.coerceAtLeast(1f)).toInt()
 
     fun navigationNeedsScroll(
         availableHeightDp: Int,
