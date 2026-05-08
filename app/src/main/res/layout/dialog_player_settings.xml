@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/settings_panel_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_player_settings_sheet"
-    android:clipToOutline="true">
+    android:clipToOutline="true"
+    android:elevation="20dp">
 
     <LinearLayout
         android:id="@+id/settings_primary_page"
@@ -31,13 +33,17 @@
             android:textStyle="bold" />
 
         <ScrollView
+            android:id="@+id/settings_primary_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="16dp"
             android:layout_weight="1"
             android:fillViewport="false"
             android:overScrollMode="ifContentScrolls"
-            android:scrollbars="none">
+            android:scrollbarSize="2dp"
+            android:scrollbarThumbVertical="@drawable/bg_player_settings_scrollbar_thumb"
+            android:scrollbarTrackVertical="@android:color/transparent"
+            android:scrollbars="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -103,12 +109,16 @@
         </LinearLayout>
 
         <ScrollView
+            android:id="@+id/settings_detail_scroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_marginTop="8dp"
             android:layout_weight="1"
             android:overScrollMode="ifContentScrolls"
-            android:scrollbars="none">
+            android:scrollbarSize="2dp"
+            android:scrollbarThumbVertical="@drawable/bg_player_settings_scrollbar_thumb"
+            android:scrollbarTrackVertical="@android:color/transparent"
+            android:scrollbars="vertical">
 
             <LinearLayout
                 android:id="@+id/settings_detail_container"
@@ -117,4 +127,13 @@
                 android:orientation="vertical" />
         </ScrollView>
     </LinearLayout>
+
+    <View
+        android:id="@+id/settings_bottom_fade"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_player_settings_bottom_fade"
+        android:clickable="false"
+        android:focusable="false" />
 </FrameLayout>

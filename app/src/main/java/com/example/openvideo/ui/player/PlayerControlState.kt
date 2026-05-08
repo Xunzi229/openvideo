@@ -65,14 +65,19 @@ object PlayerOrientationPolicy {
 }
 
 object PlayerSettingsLayoutPolicy {
+    private const val LANDSCAPE_MARGIN_PX = 32
+    private const val LANDSCAPE_MAX_WIDTH_PX = 520
+    private const val LANDSCAPE_WIDTH_RATIO = 0.34f
+
     fun dialogBounds(screenWidth: Int, screenHeight: Int): DialogBounds =
         panelBounds(screenWidth, screenHeight)
 
     fun panelBounds(screenWidth: Int, screenHeight: Int): DialogBounds =
         if (screenWidth > screenHeight) {
+            val marginPx = landscapeMarginPx(screenWidth, screenHeight)
             DialogBounds(
-                width = (screenWidth * 0.36f).toInt(),
-                height = screenHeight
+                width = (screenWidth * LANDSCAPE_WIDTH_RATIO).toInt().coerceAtMost(LANDSCAPE_MAX_WIDTH_PX),
+                height = screenHeight - marginPx * 2
             )
         } else {
             DialogBounds(
@@ -82,7 +87,10 @@ object PlayerSettingsLayoutPolicy {
         }
 
     fun panelGravity(screenWidth: Int, screenHeight: Int): Int =
-        if (screenWidth > screenHeight) Gravity.END else Gravity.BOTTOM
+        if (screenWidth > screenHeight) Gravity.END or Gravity.CENTER_VERTICAL else Gravity.BOTTOM
+
+    fun landscapeMarginPx(screenWidth: Int, screenHeight: Int): Int =
+        if (screenWidth > screenHeight) LANDSCAPE_MARGIN_PX else 0
 
     fun navigationNeedsScroll(
         availableHeightDp: Int,

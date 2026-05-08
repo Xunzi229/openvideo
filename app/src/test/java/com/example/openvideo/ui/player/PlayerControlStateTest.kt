@@ -62,9 +62,12 @@ class PlayerControlStateTest {
     fun settingsPanelUsesRightDrawerInLandscape() {
         val bounds = PlayerSettingsLayoutPolicy.panelBounds(screenWidth = 1920, screenHeight = 1080)
 
-        assertEquals(691, bounds.width)
-        assertEquals(1080, bounds.height)
-        assertEquals(android.view.Gravity.END, PlayerSettingsLayoutPolicy.panelGravity(screenWidth = 1920, screenHeight = 1080))
+        assertEquals(520, bounds.width)
+        assertEquals(1016, bounds.height)
+        assertEquals(
+            android.view.Gravity.END or android.view.Gravity.CENTER_VERTICAL,
+            PlayerSettingsLayoutPolicy.panelGravity(screenWidth = 1920, screenHeight = 1080)
+        )
     }
 
     @Test

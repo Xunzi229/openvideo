@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -42,7 +43,7 @@ class PlayerSettingsDialog(
     private val viewModel: PlayerViewModel,
     private val playerPrefs: PlayerPrefs,
     private val onRequestPickSubtitle: () -> Unit = {}
-) : BottomSheetDialog(context) {
+) : Dialog(context) {
 
     private val primaryItems by lazy {
         listOf(
@@ -83,12 +84,17 @@ class PlayerSettingsDialog(
             val bounds = PlayerSettingsLayoutPolicy.panelBounds(width, height)
             setLayout(bounds.width, bounds.height)
             setGravity(PlayerSettingsLayoutPolicy.panelGravity(width, height))
-            setDimAmount(0.30f)
+            attributes = attributes.apply {
+                x = PlayerSettingsLayoutPolicy.landscapeMarginPx(width, height)
+            }
+            setDimAmount(0.18f)
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                setBackgroundBlurRadius(dp(28))
+                setBackgroundBlurRadius(dp(18))
             }
             setBackgroundDrawableResource(android.R.color.transparent)
+            decorView.setPadding(0, 0, 0, 0)
+            decorView.elevation = dp(20).toFloat()
         }
 
         runCatching {

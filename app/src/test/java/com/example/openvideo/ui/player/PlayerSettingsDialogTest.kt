@@ -13,7 +13,8 @@ class PlayerSettingsDialogTest {
     fun playerSettingsUseImmersiveInPlayerSheetInsteadOfSettingsPage() {
         val source = String(Files.readAllBytes(playerSettingsDialogSource()))
 
-        assertTrue(source.contains("BottomSheetDialog"))
+        assertTrue(source.contains(": Dialog(context)"))
+        assertFalse(source.contains(": BottomSheetDialog(context)"))
         assertTrue(source.contains("setCanceledOnTouchOutside(true)"))
         assertTrue(source.contains("setupPrimaryGrid()"))
         assertTrue(source.contains("showDetailPage("))
@@ -101,18 +102,43 @@ class PlayerSettingsDialogTest {
             assertTrue("Glass sheet should keep a subtle glass edge.", sheet.contains("<stroke"))
             assertTrue(
                 "Glass sheet should include translucent colors so the video remains visible.",
-                listOf("#8F", "#99", "#A6", "#AA", "#B3").any { sheet.contains(it, ignoreCase = true) }
+                listOf("#66", "#73", "#80", "#8F", "#99", "#A6", "#AA", "#B3").any {
+                    sheet.contains(it, ignoreCase = true)
+                }
             )
         }
 
         assertTrue(
             "Android 12+ devices should blur the playing video behind the sheet.",
-            dialogSource.contains("setBackgroundBlurRadius(")
+            dialogSource.contains("setBackgroundBlurRadius(dp(18))")
+                || dialogSource.contains("setBackgroundBlurRadius(dp(20))")
         )
         assertTrue(
             "The dim overlay should be light enough to preserve the playing video.",
-            dialogSource.contains("setDimAmount(0.30f)")
+            dialogSource.contains("setDimAmount(0.18f)")
         )
+    }
+
+    @Test
+    fun playerSettingsSheetLooksLikeAFloatingRightGlassPanel() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val layout = String(Files.readAllBytes(playerSettingsLayout()))
+        val landscapeSheet = String(Files.readAllBytes(playerSettingsLandscapeSheetDrawable()))
+
+        assertTrue(dialogSource.contains("PlayerSettingsLayoutPolicy.landscapeMarginPx("))
+        assertTrue(dialogSource.contains("attributes = attributes.apply"))
+        assertTrue(dialogSource.contains("x = PlayerSettingsLayoutPolicy.landscapeMarginPx"))
+        assertTrue(dialogSource.contains("decorView.elevation = dp(20).toFloat()"))
+
+        assertTrue(layout.contains("android:elevation=\"20dp\""))
+        assertTrue(layout.contains("android:scrollbarThumbVertical=\"@drawable/bg_player_settings_scrollbar_thumb\""))
+        assertTrue(layout.contains("@+id/settings_primary_scroll"))
+        assertTrue(layout.contains("@+id/settings_detail_scroll"))
+        assertTrue(layout.contains("@drawable/bg_player_settings_bottom_fade"))
+
+        assertTrue("Landscape glass panel should have large rounded corners.", landscapeSheet.contains("android:radius=\"28dp\""))
+        assertTrue("Landscape glass panel should be highly translucent.", landscapeSheet.contains("#7312161E"))
+        assertTrue("Landscape panel needs a soft glass edge.", landscapeSheet.contains("#2EFFFFFF"))
     }
 
     private fun playerSettingsDialogSource(): Path {
