@@ -36,7 +36,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.media3.ui.R as Media3UiR
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.PlaybackService
@@ -271,6 +273,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         setPlayerResizeMode()
+        applyPlayerContentAspectRatio()
         playerView.rotation = playerPrefs.rotation.toFloat()
         playerView.scaleX = if (playerPrefs.mirror) -1f else 1f
 
@@ -548,6 +551,7 @@ class PlayerActivity : AppCompatActivity() {
                     width = videoSize.width,
                     height = videoSize.height
                 )
+                applyPlayerContentAspectRatio()
             }
         }
         viewModel.player?.addListener(playerListener!!)
@@ -1013,6 +1017,27 @@ class PlayerActivity : AppCompatActivity() {
     @OptIn(UnstableApi::class)
     private fun setPlayerResizeMode() {
         playerView.resizeMode = PlayerViewSettings.resizeModeFor(playerPrefs.aspectRatio)
+    }
+
+    /**
+     * 16:9 / 4:3 等需在 [AspectRatioFrameLayout] 上设置目标宽高比；仅 resizeMode 与 FIT 相同则不会生效。
+     * 在 PlayerView 更新视频比例之后调用（本 Activity 的 [Player.Listener] 注册在其后）。
+     */
+    @OptIn(UnstableApi::class)
+    private fun applyPlayerContentAspectRatio() {
+        if (!this::playerView.isInitialized) return
+        val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
+            ?: return
+        val forced = PlayerViewSettings.forcedContentAspectRatio(playerPrefs.aspectRatio)
+        if (forced != null) {
+            contentFrame.setAspectRatio(forced)
+            return
+        }
+        val vs = viewModel.player?.videoSize ?: return
+        val w = vs.width
+        val h = vs.height
+        val ratio = if (h == 0 || w == 0) 0f else (w * vs.pixelWidthHeightRatio) / h
+        contentFrame.setAspectRatio(ratio)
     }
 
     @OptIn(UnstableApi::class)

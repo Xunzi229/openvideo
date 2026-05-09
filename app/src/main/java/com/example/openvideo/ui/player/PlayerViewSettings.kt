@@ -18,4 +18,11 @@ object PlayerViewSettings {
             AspectRatio.CROP -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
         }
     }
+
+    /** When non-null, [AspectRatioFrameLayout.setAspectRatio] must use this (not only video DAR). */
+    fun forcedContentAspectRatio(aspectRatio: AspectRatio): Float? = when (aspectRatio) {
+        AspectRatio.RATIO_16_9 -> 16f / 9f
+        AspectRatio.RATIO_4_3 -> 4f / 3f
+        else -> null
+    }
 }
