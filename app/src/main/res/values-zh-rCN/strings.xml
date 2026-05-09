@@ -301,6 +301,15 @@
     <string name="settings_section_about">关于</string>
     <string name="settings_version">版本号</string>
     <string name="settings_project_repo">项目地址</string>
+    <string name="settings_check_update">检查更新</string>
+    <string name="settings_already_latest">当前已是最新版本</string>
+    <string name="settings_update_check_failed">无法检查更新</string>
+    <string name="settings_update_no_apk_asset">最新 Release 中未找到 APK</string>
+    <string name="settings_update_no_checksum_browser">Release 未附带校验文件，改为用浏览器下载对应架构 APK。</string>
+    <string name="settings_update_download_failed">下载失败，已改为浏览器打开。</string>
+    <string name="settings_update_sha_mismatch">SHA-256 校验不一致，已取消安装。</string>
+    <string name="settings_update_allow_install_or_browser">需要允许安装未知应用；已改为浏览器下载。</string>
+    <string name="settings_update_install_failed_browser">无法唤起安装器；已改为浏览器打开。</string>
     <string name="settings_license">开源许可</string>
 
     <!-- Playlist -->
@@ -341,6 +350,18 @@
     <string name="player_action_pip">画中画</string>
     <string name="player_action_fullscreen">全屏</string>
     <string name="player_action_lock">锁定</string>
+    <string name="player_video_list_title">列表</string>
+    <string name="player_portrait_speed">倍速</string>
+    <string name="player_portrait_quality">清晰度</string>
+    <string name="player_portrait_episodes">选集</string>
+    <string name="player_portrait_subtitles">字幕</string>
+    <string name="player_portrait_more">更多</string>
+    <string name="player_quality_local_single">本地文件为单一清晰度</string>
+    <string name="player_pick_speed">播放速度</string>
+    <string name="player_land_seek_jump_back">按间隔快退</string>
+    <string name="player_land_seek_jump_forward">按间隔快进</string>
+    <string name="player_land_cast">投屏（敬请期待）</string>
+    <string name="player_land_tv">TV</string>
 
     <!-- Dialogs -->
     <string name="dialog_delete_title">删除视频</string>

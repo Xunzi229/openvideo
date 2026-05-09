@@ -9,7 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class SettingsFragment : Fragment() {
 
-    private val viewModel: SettingsViewModel by viewModels()
+    private val viewModel: SettingsViewModel by activityViewModels()
 
     companion object {
         private val PROJECT_REPO_URI: Uri = Uri.parse("https://github.com/Xunzi229/openvideo")
@@ -111,6 +111,11 @@ class SettingsFragment : Fragment() {
             startActivity(Intent(requireContext(), OssLicensesMenuActivity::class.java))
         }
 
+        val updateBadgeDot = view.findViewById<View>(R.id.update_badge_dot)
+        view.findViewById<View>(R.id.row_check_update).setOnClickListener {
+            viewModel.onCheckUpdateClick(requireContext())
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
@@ -118,6 +123,11 @@ class SettingsFragment : Fragment() {
                 }
                 launch {
                     viewModel.historyCount.collect { tvHistoryCount.text = it.toString() }
+                }
+                launch {
+                    viewModel.updateBadgeVisible.collect { visible ->
+                        updateBadgeDot.visibility = if (visible) View.VISIBLE else View.GONE
+                    }
                 }
             }
         }

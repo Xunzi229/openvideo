@@ -48,24 +48,28 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="@dimen/ov_space_lg"
-        android:background="@drawable/bg_elevated_card_strong"
+        android:padding="0dp"
+        android:background="@android:color/transparent"
         android:visibility="gone"
+        android:layout_marginStart="14dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.38">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_brightness"
-            app:tint="@color/ov_icon_default" />
+            app:tint="#FFFFFFFF" />
 
         <ProgressBar
             android:id="@+id/brightness_progress"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content"
+            android:layout_width="4dp"
+            android:layout_height="170dp"
+            android:layout_marginTop="16dp"
+            android:progressDrawable="@drawable/progress_land_brightness_vertical"
             android:max="100" />
 
     </LinearLayout>
@@ -77,24 +81,28 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:padding="@dimen/ov_space_lg"
-        android:background="@drawable/bg_elevated_card_strong"
+        android:padding="0dp"
+        android:background="@android:color/transparent"
         android:visibility="gone"
+        android:layout_marginEnd="14dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.38">
 
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_volume"
-            app:tint="@color/ov_icon_default" />
+            app:tint="#FFFFFFFF" />
 
         <ProgressBar
             android:id="@+id/volume_progress"
             style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="100dp"
-            android:layout_height="wrap_content"
+            android:layout_width="4dp"
+            android:layout_height="170dp"
+            android:layout_marginTop="16dp"
+            android:progressDrawable="@drawable/progress_land_brightness_vertical"
             android:max="100" />
 
     </LinearLayout>

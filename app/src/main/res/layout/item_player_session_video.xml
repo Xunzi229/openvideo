@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="72dp"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="8dp">
+
+    <ImageView
+        android:id="@+id/iv_thumbnail"
+        android:layout_width="96dp"
+        android:layout_height="54dp"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop" />
+
+    <TextView
+        android:id="@+id/tv_title"
+        style="@style/Widget.OpenVideo.PlayerSettings.RowTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="2" />
+</LinearLayout>

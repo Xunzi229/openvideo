@@ -301,6 +301,15 @@
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
     <string name="settings_project_repo">Project repository</string>
+    <string name="settings_check_update">Check for updates</string>
+    <string name="settings_already_latest">You\'re on the latest version</string>
+    <string name="settings_update_check_failed">Could not check for updates</string>
+    <string name="settings_update_no_apk_asset">No APK found in the latest release</string>
+    <string name="settings_update_no_checksum_browser">No checksum file in release; opening browser for your ABI APK.</string>
+    <string name="settings_update_download_failed">Download failed; opening browser instead.</string>
+    <string name="settings_update_sha_mismatch">SHA-256 mismatch; download cancelled.</string>
+    <string name="settings_update_allow_install_or_browser">Install permission required; opening browser instead.</string>
+    <string name="settings_update_install_failed_browser">Could not start installer; opening browser instead.</string>
     <string name="settings_license">Open source licenses</string>
 
     <!-- Playlist -->
@@ -341,6 +350,18 @@
     <string name="player_action_pip">Picture-in-picture</string>
     <string name="player_action_fullscreen">Fullscreen</string>
     <string name="player_action_lock">Lock</string>
+    <string name="player_video_list_title">List</string>
+    <string name="player_portrait_speed">Speed</string>
+    <string name="player_portrait_quality">Quality</string>
+    <string name="player_portrait_episodes">Episodes</string>
+    <string name="player_portrait_subtitles">Subtitles</string>
+    <string name="player_portrait_more">More</string>
+    <string name="player_quality_local_single">Local file has a single stream</string>
+    <string name="player_pick_speed">Playback speed</string>
+    <string name="player_land_seek_jump_back">Rewind one seek interval</string>
+    <string name="player_land_seek_jump_forward">Forward one seek interval</string>
+    <string name="player_land_cast">Cast (coming soon)</string>
+    <string name="player_land_tv">TV</string>
 
     <!-- Dialogs -->
     <string name="dialog_delete_title">Delete video</string>

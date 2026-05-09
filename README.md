@@ -36,6 +36,14 @@ Release builds apply R8 minification; ensure signing is configured for your rele
 
 Open-source licenses for bundled libraries are generated at build time (Google OSS Licenses plugin) and can be opened from **Settings → Open source licenses**.
 
+## UI design (reference)
+
+Static mockups in `design/` illustrate the intended player chrome (overlay bars, semi-transparent controls, accent blue progress). These are layout references, not screenshots of the running app.
+
+| Landscape | Portrait |
+|-----------|----------|
+| ![Landscape player UI reference](design/横屏播放界面.png) | ![Portrait player UI reference](design/竖屏播放界面.png) |
+
 ## Contributing
 
 Issues and pull requests are welcome. Please keep changes focused and match existing code style.

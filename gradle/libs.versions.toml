@@ -19,7 +19,7 @@ window = "1.2.0"
 androidxMedia = "1.7.0"
 securityCrypto = "1.1.0-alpha06"
 junit = "4.13.2"
-ossLicensesPlugin = "0.10.6"
+ossLicensesPlugin = "0.11.0"
 playServicesOssLicenses = "17.1.0"
 [libraries]
 # AndroidX Core

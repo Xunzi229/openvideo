@@ -26,6 +26,7 @@ import com.example.openvideo.ui.home.HomeViewModel
 import com.example.openvideo.ui.home.VideoGridAdapter
 import com.example.openvideo.ui.home.VideoOptionsSheet
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -51,6 +52,9 @@ class FolderVideosFragment : Fragment() {
 
     private val folderKey: String by lazy { requireArguments().getString(ARG_FOLDER_KEY).orEmpty() }
     private val folderName: String by lazy { requireArguments().getString(ARG_FOLDER_NAME).orEmpty() }
+
+    /** 当前文件夹下列表快照（用于播放器「列表」会话队列）。 */
+    private var folderVideosSnapshot: List<VideoItem> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -85,6 +89,7 @@ class FolderVideosFragment : Fragment() {
                     val folderVideos = videos.filter {
                         VideoFolderGrouper.folderKey(it.path) == folderKey
                     }
+                    folderVideosSnapshot = folderVideos
                     adapter.submitList(folderVideos)
                     emptyView.visibility = if (folderVideos.isEmpty()) View.VISIBLE else View.GONE
                     recyclerView.visibility = if (folderVideos.isEmpty()) View.GONE else View.VISIBLE
@@ -95,6 +100,7 @@ class FolderVideosFragment : Fragment() {
 
     private fun openPlayer(video: VideoItem) {
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+            putSessionQueue(folderVideosSnapshot)
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)

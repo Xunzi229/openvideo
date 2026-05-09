@@ -17,6 +17,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.local.HistoryEntity
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.putSessionQueue
+import com.example.openvideo.ui.player.toSessionVideoItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -24,6 +26,8 @@ import kotlinx.coroutines.launch
 class HistoryFragment : Fragment() {
 
     private val viewModel: HistoryViewModel by viewModels()
+
+    private var historySnapshot: List<HistoryEntity> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -46,7 +50,9 @@ class HistoryFragment : Fragment() {
 
         // Simple history list adapter
         val adapter = HistoryAdapter { entity ->
+            val queue = historySnapshot.map { it.toSessionVideoItem() }
             val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+                putSessionQueue(queue)
                 putExtra("video_uri", entity.path)
                 putExtra("video_title", entity.title)
                 putExtra("video_id", entity.videoId)
@@ -58,6 +64,7 @@ class HistoryFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.history.collect { list ->
+                    historySnapshot = list
                     adapter.submitList(list)
                     emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                     recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE

@@ -11,9 +11,11 @@ import com.example.openvideo.core.subtitle.SubtitleItem
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class PlayerUiState(
@@ -45,6 +47,16 @@ class PlayerViewModel @Inject constructor(
     private var videoPath: String = ""
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
+
+    private val _sessionQueue = MutableStateFlow<List<VideoItem>>(emptyList())
+    val sessionQueue: StateFlow<List<VideoItem>> = _sessionQueue
+
+    /** 当前正在播放的条目 id（与会话列表高亮一致）。 */
+    val playingVideoId: Long get() = videoId
+
+    fun setSessionQueue(videos: List<VideoItem>) {
+        _sessionQueue.value = videos
+    }
 
     fun initialize(uri: Uri, title: String, id: Long, path: String = "") {
         videoId = id
@@ -197,23 +209,54 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun saveHistory() {
+        viewModelScope.launch { persistCurrentPlaybackProgress() }
+    }
+
+    private suspend fun persistCurrentPlaybackProgress() {
+        val uri = videoUri ?: return
+        repository.saveHistory(
+            VideoItem(
+                id = videoId,
+                title = _uiState.value.title,
+                path = videoPath.ifBlank { uri.toString() },
+                uri = uri,
+                duration = playerManager.duration,
+                size = 0,
+                width = 0,
+                height = 0,
+                dateAdded = 0,
+                thumbnailUri = null
+            ),
+            playerManager.currentPosition
+        )
+    }
+
+    /**
+     * 在同一会话队列中切换到其它视频（保存当前进度后加载新媒体）。
+     */
+    fun switchToVideo(item: VideoItem, onSwitched: () -> Unit = {}) {
         viewModelScope.launch {
-            videoUri?.let { uri ->
-                repository.saveHistory(
-                    VideoItem(
-                        id = videoId,
-                        title = _uiState.value.title,
-                        path = videoPath.ifBlank { uri.toString() },
-                        uri = uri,
-                        duration = playerManager.duration,
-                        size = 0,
-                        width = 0,
-                        height = 0,
-                        dateAdded = 0,
-                        thumbnailUri = null
-                    ),
-                    playerManager.currentPosition
+            persistCurrentPlaybackProgress()
+            withContext(Dispatchers.Main.immediate) {
+                videoId = item.id
+                videoUri = item.uri
+                videoPath = item.path
+                pendingRestorePosition = null
+                _uiState.value = _uiState.value.copy(
+                    title = item.title,
+                    subtitles = emptyList(),
+                    currentPosition = 0,
+                    duration = 0
                 )
+                playerManager.setMediaUri(item.uri)
+            }
+            val isFav = repository.isFavorite(item.id)
+            _uiState.value = _uiState.value.copy(isFavorite = isFav)
+            if (playerPrefs.rememberProgress) {
+                restorePosition(item.id)
+            }
+            withContext(Dispatchers.Main.immediate) {
+                onSwitched()
             }
         }
     }

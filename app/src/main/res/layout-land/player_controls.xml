@@ -1,15 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 横屏稿比例：顶/底渐变高度约 13% / 24%；左右边距约屏宽 2.2%；左侧亮度胶囊 + 锁；右侧倍速/比例/PiP；底栏列表 + 居中运输控件 + 全屏。 -->
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/controls_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_land_top_scrim_bottom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.13" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_land_bottom_scrim_top"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.76" />
+
     <View
         android:id="@+id/top_scrim"
         android:layout_width="0dp"
-        android:layout_height="96dp"
-        android:background="@drawable/bg_player_top_scrim"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_land_top_scrim"
+        app:layout_constraintBottom_toTopOf="@id/guideline_land_top_scrim_bottom"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -17,20 +34,22 @@
     <View
         android:id="@+id/bottom_scrim"
         android:layout_width="0dp"
-        android:layout_height="178dp"
-        android:background="@drawable/bg_player_bottom_scrim"
+        android:layout_height="0dp"
+        android:background="@drawable/bg_land_bottom_scrim"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/guideline_land_bottom_scrim_top" />
 
     <LinearLayout
         android:id="@+id/top_bar"
         android:layout_width="0dp"
-        android:layout_height="44dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="24dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="14dp"
+        android:layout_marginEnd="16dp"
         android:gravity="center_vertical"
+        android:minHeight="48dp"
         android:orientation="horizontal"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -49,22 +68,92 @@
             android:id="@+id/tv_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/ov_space_md"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/ov_text_primary"
             android:textSize="17sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_land_resolution_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:background="@drawable/bg_land_resolution_badge"
+            android:paddingStart="8dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="3dp"
+            android:text="4K"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <ImageButton
+            android:id="@+id/btn_land_cast"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_land_cast"
+            android:src="@drawable/ic_stream"
+            android:visibility="visible"
+            app:tint="@color/ov_text_primary" />
+
+        <TextView
+            android:id="@+id/tv_land_tv_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_tv_badge_outline"
+            android:text="@string/player_land_tv"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="visible" />
+
+        <ImageButton
+            android:id="@+id/btn_screenshot"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_action_screenshot"
+            android:src="@drawable/ic_screenshot"
+            app:tint="@color/ov_text_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_ab_loop"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_action_ab_loop"
+            android:src="@drawable/ic_ab_loop"
+            app:tint="@color/ov_text_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/player_action_settings"
+            android:src="@drawable/ic_more_vert"
+            app:tint="@color/ov_text_primary" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/bottom_panel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="32dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="14dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="16dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -73,14 +162,15 @@
         <LinearLayout
             android:id="@+id/progress_row"
             android:layout_width="match_parent"
-            android:layout_height="30dp"
+            android:layout_height="32dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/tv_current_time"
-                android:layout_width="48dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="40dp"
                 android:text="00:00"
                 android:textColor="@color/ov_text_primary"
                 android:textSize="13sp" />
@@ -88,135 +178,214 @@
             <SeekBar
                 android:id="@+id/seek_bar"
                 android:layout_width="0dp"
-                android:layout_height="30dp"
-                android:layout_marginHorizontal="@dimen/ov_space_md"
+                android:layout_height="32dp"
+                android:layout_marginHorizontal="12dp"
                 android:layout_weight="1"
-                android:progressBackgroundTint="#55B4BDCA"
+                android:paddingStart="0dp"
+                android:paddingEnd="0dp"
+                android:progressBackgroundTint="#40FFFFFF"
                 android:progressTint="@color/ov_accent_blue"
+                android:splitTrack="false"
                 android:thumbTint="@color/ov_text_primary" />
 
             <TextView
                 android:id="@+id/tv_total_time"
-                android:layout_width="48dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="end"
+                android:minWidth="40dp"
                 android:text="00:00"
                 android:textColor="@color/ov_text_primary"
                 android:textSize="13sp" />
         </LinearLayout>
 
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/playback_controls"
             android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:layout_marginTop="2dp"
-            android:gravity="center"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="56dp">
 
-            <ImageButton
-                android:id="@+id/btn_prev"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+            <LinearLayout
+                android:id="@+id/btn_video_list"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_action_previous"
-                android:src="@drawable/ic_skip_previous"
-                app:tint="@color/ov_text_primary" />
+                android:clickable="true"
+                android:contentDescription="@string/player_video_list_title"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingEnd="8dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-            <ImageButton
-                android:id="@+id/btn_play"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:layout_marginHorizontal="20dp"
-                android:background="@drawable/bg_player_primary_button"
-                android:contentDescription="@string/player_action_play"
-                android:src="@drawable/ic_play"
-                app:tint="@color/ov_text_primary" />
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_playlist"
+                    app:tint="@color/ov_text_primary" />
 
-            <ImageButton
-                android:id="@+id/btn_next"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_action_next"
-                android:src="@drawable/ic_skip_next"
-                app:tint="@color/ov_text_primary" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/player_video_list_title"
+                    android:textColor="@color/ov_text_primary"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/tool_row"
-            android:layout_width="match_parent"
-            android:layout_height="42dp"
-            android:layout_marginTop="2dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingEnd="0dp">
+            <LinearLayout
+                android:id="@+id/land_transport_center"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-            <ImageButton
-                android:id="@+id/btn_settings"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_action_settings"
-                android:src="@drawable/ic_settings"
-                app:tint="@color/ov_text_secondary" />
+                <ImageButton
+                    android:id="@+id/btn_land_seek_back"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/player_land_seek_jump_back"
+                    android:src="@drawable/ic_land_seek_back"
+                    app:tint="@color/ov_text_primary" />
 
-            <ImageButton
-                android:id="@+id/btn_screenshot"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_marginStart="12dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_action_screenshot"
-                android:src="@drawable/ic_screenshot"
-                app:tint="@color/ov_text_secondary" />
+                <ImageButton
+                    android:id="@+id/btn_prev"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/player_action_previous"
+                    android:src="@drawable/ic_skip_previous"
+                    app:tint="@color/ov_text_primary" />
 
-            <ImageButton
-                android:id="@+id/btn_ab_loop"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_marginStart="12dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_action_ab_loop"
-                android:src="@drawable/ic_ab_loop"
-                app:tint="@color/ov_text_secondary" />
+                <ImageButton
+                    android:id="@+id/btn_play"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:layout_marginHorizontal="18dp"
+                    android:background="@drawable/bg_player_primary_button"
+                    android:contentDescription="@string/player_action_play"
+                    android:src="@drawable/ic_play"
+                    app:tint="@color/ov_text_primary" />
 
-            <ImageButton
-                android:id="@+id/btn_pip"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_marginStart="12dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/player_action_pip"
-                android:src="@drawable/ic_pip"
-                app:tint="@color/ov_text_secondary" />
+                <ImageButton
+                    android:id="@+id/btn_next"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/player_action_next"
+                    android:src="@drawable/ic_skip_next"
+                    app:tint="@color/ov_text_primary" />
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
+                <ImageButton
+                    android:id="@+id/btn_land_seek_forward"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/player_land_seek_jump_forward"
+                    android:src="@drawable/ic_land_seek_forward"
+                    app:tint="@color/ov_text_primary" />
+            </LinearLayout>
 
             <ImageButton
                 android:id="@+id/btn_fullscreen"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/player_action_fullscreen"
                 android:src="@drawable/ic_fullscreen"
-                app:tint="@color/ov_text_secondary" />
-        </LinearLayout>
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/ov_text_primary" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <View
+            android:id="@+id/tool_row"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ImageButton
         android:id="@+id/btn_lock"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:layout_marginStart="18dp"
+        android:layout_marginStart="22dp"
         android:background="@drawable/bg_player_lock_button"
         android:contentDescription="@string/player_action_lock"
         android:src="@drawable/ic_lock"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.5"
         app:tint="@color/ov_text_secondary" />
+
+    <LinearLayout
+        android:id="@+id/land_right_float_column"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="20dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.38">
+
+        <TextView
+            android:id="@+id/tv_land_speed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_player_speed_pill"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:minWidth="56dp"
+            android:text="1.0x"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btn_land_aspect"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_player_lock_button"
+            android:contentDescription="@string/player_sheet_aspect_ratio"
+            android:src="@drawable/ic_aspect_ratio"
+            app:tint="@color/ov_text_secondary" />
+
+        <ImageButton
+            android:id="@+id/btn_land_pip_float"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_player_lock_button"
+            android:contentDescription="@string/player_action_pip"
+            android:src="@drawable/ic_pip"
+            app:tint="@color/ov_text_secondary" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btn_pip"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:contentDescription="@string/player_action_pip"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

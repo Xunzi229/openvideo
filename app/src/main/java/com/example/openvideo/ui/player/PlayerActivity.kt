@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -18,6 +19,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
@@ -28,7 +30,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.isVisible
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -48,6 +53,8 @@ import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
+import com.example.openvideo.ui.settings.DefaultPlayerSettings
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -74,10 +81,9 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var btnPlay: ImageButton
     private lateinit var btnPrev: ImageButton
     private lateinit var btnNext: ImageButton
-    private lateinit var btnSettings: ImageButton
-    private lateinit var btnScreenshot: ImageButton
-    private lateinit var btnAbLoop: ImageButton
-    private lateinit var btnPip: ImageButton
+    private var btnScreenshot: ImageButton? = null
+    private var btnAbLoop: ImageButton? = null
+    private var btnPip: ImageButton? = null
     private lateinit var btnLock: ImageButton
     private lateinit var btnFullscreen: ImageButton
     private lateinit var btnBack: ImageButton
@@ -92,6 +98,19 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var brightnessProgress: ProgressBar
     private lateinit var volumeIndicator: View
     private lateinit var volumeProgress: ProgressBar
+
+    /** 横屏布局专有：底部工具栏「列表」入口。 */
+    private var btnVideoList: View? = null
+
+    /** 横屏右侧浮层（倍速 / 比例 / 画中画）。 */
+    private var landRightFloatColumn: View? = null
+
+    private val landscapeGeometryListener =
+        View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                applyLandscapePlayerGeometry()
+            }
+        }
 
     private val handler = Handler(Looper.getMainLooper())
     private var controlsVisible = true
@@ -108,6 +127,8 @@ class PlayerActivity : AppCompatActivity() {
                 seekBar.progress = seekBarState.progress
                 tvCurrentTime.text = formatTime(state.currentPosition)
                 tvTotalTime.text = formatTime(state.duration)
+                findViewById<TextView>(R.id.tv_land_speed)?.text =
+                    landSpeedLabel(playerPrefs.speed)
                 saveProgressPeriodically(state.currentPosition)
 
                 // AB Loop logic
@@ -204,13 +225,16 @@ class PlayerActivity : AppCompatActivity() {
 
         startupTrace.record("activity_created")
         viewModel.initialize(Uri.parse(uriString), title, id, videoPath)
+        viewModel.setSessionQueue(intent.sessionVideoQueue())
         startupTrace.record("player_initialized")
 
         playerView.player = viewModel.player
         setupControls()
+        refreshSessionListButtonVisibility()
         startupTrace.record("player_view_attached")
         tvTitle.text = title
         applyPlayerSettings()
+        updateLandResolutionBadge()
 
         loadSubtitlesAsync(uriString, videoPath)
 
@@ -244,6 +268,8 @@ class PlayerActivity : AppCompatActivity() {
         if (playerPrefs.rememberProgress) {
             viewModel.restorePosition(id)
         }
+
+        controlsContainer.post { applyLandscapePlayerGeometry() }
     }
 
     private fun applyPlayerSettings() {
@@ -372,7 +398,6 @@ class PlayerActivity : AppCompatActivity() {
         btnPlay = findViewById(R.id.btn_play)
         btnPrev = findViewById(R.id.btn_prev)
         btnNext = findViewById(R.id.btn_next)
-        btnSettings = findViewById(R.id.btn_settings)
         btnScreenshot = findViewById(R.id.btn_screenshot)
         btnAbLoop = findViewById(R.id.btn_ab_loop)
         btnPip = findViewById(R.id.btn_pip)
@@ -390,6 +415,91 @@ class PlayerActivity : AppCompatActivity() {
         brightnessProgress = findViewById(R.id.brightness_progress)
         volumeIndicator = findViewById(R.id.volume_indicator)
         volumeProgress = findViewById(R.id.volume_progress)
+        btnVideoList = findViewById(R.id.btn_video_list)
+        landRightFloatColumn = findViewById(R.id.land_right_float_column)
+        controlsContainer.addOnLayoutChangeListener(landscapeGeometryListener)
+    }
+
+    private fun updateLandResolutionBadge() {
+        val w = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
+        findViewById<TextView>(R.id.tv_land_resolution_badge)?.visibility =
+            if (w >= 3840) View.VISIBLE else View.GONE
+    }
+
+    private fun landSpeedLabel(speed: Float): String {
+        val s = DefaultPlayerSettings.supportedSpeedOrDefault(speed)
+        val t = if (s % 1f == 0f) s.toInt().toString() else s.toString()
+        return "${t}x"
+    }
+
+    private fun refreshSessionListButtonVisibility() {
+        val q = viewModel.sessionQueue.value
+        val show = q.size > 1
+        btnVideoList?.isVisible = show
+        findViewById<View>(R.id.portrait_btn_episodes)?.isVisible = show
+    }
+
+    private fun showSessionVideoListPanel() {
+        val queue = viewModel.sessionQueue.value
+        if (queue.size <= 1) return
+        handler.removeCallbacks(hideControlsRunnable)
+        PlayerVideoListDialog(
+            context = this,
+            playerPrefs = playerPrefs,
+            videos = queue,
+            playingVideoId = viewModel.playingVideoId,
+            onPick = { item ->
+                viewModel.switchToVideo(item) {
+                    currentVideoUriString = item.uri.toString()
+                    currentVideoPath = item.path
+                    tvTitle.text = item.title
+                    loadSubtitlesAsync(item.uri.toString(), item.path)
+                    applyPlayerSettings()
+                    scheduleHideControls()
+                }
+            }
+        ).apply {
+            setOnDismissListener { scheduleHideControls() }
+        }.show()
+    }
+
+    /** 与横屏齿轮按钮相同：弹出播放器设置。竖屏底栏「更多」亦指向此处。 */
+    private fun openPlayerSettingsDialog() {
+        handler.removeCallbacks(hideControlsRunnable)
+        val dialog = PlayerSettingsDialog(
+            context = this,
+            playerManager = playerManager,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            onScreenBrightnessChanged = ::applyScreenBrightness,
+            onRequestPickSubtitle = {
+                pickSubtitleLauncher.launch(arrayOf("*/*"))
+            },
+            onPlayerPrefsReset = ::applyPlayerSettings
+        )
+        dialog.setOnDismissListener {
+            applyPlayerSettings()
+            scheduleHideControls()
+        }
+        dialog.show()
+    }
+
+    private fun showSpeedPickerDialog() {
+        val speeds = DefaultPlayerSettings.supportedSpeeds
+        val labels = speeds.map { s -> "${s}x" }.toTypedArray()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.player_pick_speed)
+            .setItems(labels) { _, which ->
+                val s = speeds[which]
+                playerPrefs.speed = s
+                viewModel.setSpeed(
+                    s,
+                    PlayerPlaybackSettings.pitchFor(s, playerPrefs.speedPreservePitch)
+                )
+                findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(s)
+                scheduleHideControls()
+            }
+            .show()
     }
 
     private fun setupControls() {
@@ -399,29 +509,61 @@ class PlayerActivity : AppCompatActivity() {
         btnPrev.setOnClickListener { viewModel.seekBackward() }
         btnNext.setOnClickListener { viewModel.seekForward() }
 
-        btnSettings.setOnClickListener {
-            // Keep chrome visible behind the dimmed panel so display prefs (e.g. controls opacity)
-            // apply immediately via SharedPreferences listener; cancel pending auto-hide while sheet is open.
-            handler.removeCallbacks(hideControlsRunnable)
-            val dialog = PlayerSettingsDialog(
-                context = this,
-                playerManager = playerManager,
-                viewModel = viewModel,
-                playerPrefs = playerPrefs,
-                onScreenBrightnessChanged = ::applyScreenBrightness,
-                onRequestPickSubtitle = {
-                    pickSubtitleLauncher.launch(arrayOf("*/*"))
-                },
-                onPlayerPrefsReset = ::applyPlayerSettings
-            )
-            dialog.setOnDismissListener {
-                applyPlayerSettings()
-                scheduleHideControls()
-            }
-            dialog.show()
+        btnVideoList?.setOnClickListener {
+            showSessionVideoListPanel()
         }
 
-        btnScreenshot.setOnClickListener {
+        findViewById<View>(R.id.btn_settings)?.setOnClickListener {
+            openPlayerSettingsDialog()
+        }
+
+        findViewById<View>(R.id.portrait_btn_more)?.setOnClickListener {
+            openPlayerSettingsDialog()
+        }
+
+        findViewById<View>(R.id.portrait_btn_speed)?.setOnClickListener {
+            showSpeedPickerDialog()
+        }
+
+        findViewById<View>(R.id.btn_land_seek_back)?.setOnClickListener {
+            viewModel.seekBackward()
+        }
+
+        findViewById<View>(R.id.btn_land_seek_forward)?.setOnClickListener {
+            viewModel.seekForward()
+        }
+
+        findViewById<TextView>(R.id.tv_land_speed)?.setOnClickListener {
+            showSpeedPickerDialog()
+        }
+
+        findViewById<View>(R.id.btn_land_aspect)?.setOnClickListener {
+            openPlayerSettingsDialog()
+        }
+
+        findViewById<View>(R.id.btn_land_pip_float)?.setOnClickListener {
+            enterPipModeIfSupported()
+        }
+
+        findViewById<View>(R.id.btn_land_cast)?.setOnClickListener {
+            Toast.makeText(this, R.string.player_land_cast, Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<View>(R.id.portrait_btn_quality)?.setOnClickListener {
+            Toast.makeText(this, R.string.player_quality_local_single, Toast.LENGTH_SHORT).show()
+            scheduleHideControls()
+        }
+
+        findViewById<View>(R.id.portrait_btn_episodes)?.setOnClickListener {
+            showSessionVideoListPanel()
+        }
+
+        findViewById<View>(R.id.portrait_btn_subtitles)?.setOnClickListener {
+            pickSubtitleLauncher.launch(arrayOf("*/*"))
+            scheduleHideControls()
+        }
+
+        btnScreenshot?.setOnClickListener {
             val videoView = videoRenderView()
             if (videoView != null) {
                 playerManager.takeScreenshot(videoView) { success, path ->
@@ -436,24 +578,24 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
 
-        btnAbLoop.setOnClickListener {
+        btnAbLoop?.setOnClickListener {
             when (abLoopState) {
                 AbLoopState.IDLE -> {
                     abLoopPointA = playerManager.currentPosition
                     abLoopState = AbLoopState.POINT_A_SET
-                    btnAbLoop.setColorFilter(android.graphics.Color.YELLOW)
+                    btnAbLoop?.setColorFilter(android.graphics.Color.YELLOW)
                     android.widget.Toast.makeText(this, getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)), android.widget.Toast.LENGTH_SHORT).show()
                 }
                 AbLoopState.POINT_A_SET -> {
                     abLoopPointB = playerManager.currentPosition
                     if (abLoopPointB > abLoopPointA) {
                         abLoopState = AbLoopState.LOOPING
-                        btnAbLoop.setColorFilter(android.graphics.Color.GREEN)
+                        btnAbLoop?.setColorFilter(android.graphics.Color.GREEN)
                         android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
                     } else {
                         abLoopState = AbLoopState.IDLE
                         abLoopPointA = -1
-                        btnAbLoop.clearColorFilter()
+                        btnAbLoop?.clearColorFilter()
                         android.widget.Toast.makeText(this, getString(R.string.player_ab_point_b_error), android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -461,7 +603,7 @@ class PlayerActivity : AppCompatActivity() {
                     abLoopState = AbLoopState.IDLE
                     abLoopPointA = -1
                     abLoopPointB = -1
-                    btnAbLoop.clearColorFilter()
+                    btnAbLoop?.clearColorFilter()
                     android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_cancelled), android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
@@ -475,7 +617,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
 
-        btnPip.setOnClickListener { enterPipModeIfSupported() }
+        btnPip?.setOnClickListener { enterPipModeIfSupported() }
 
         btnLock.setOnClickListener {
             toggleScreenLock()
@@ -651,8 +793,9 @@ class PlayerActivity : AppCompatActivity() {
                     if (isHorizontalSwipe) {
                         when (playerPrefs.horizontalSwipeAction) {
                             GestureAction.SEEK -> handleSeekGesture(dx)
-                            GestureAction.BRIGHTNESS -> handleBrightnessGestureHorizontal(dx)
-                            GestureAction.VOLUME -> handleVolumeGestureHorizontal(dx)
+                            // 亮度/音量仅支持上下滑动触发；左右滑动不再处理这两项
+                            GestureAction.BRIGHTNESS -> {}
+                            GestureAction.VOLUME -> {}
                             GestureAction.NONE -> {}
                         }
                     } else if (isVerticalSwipe) {
@@ -767,6 +910,75 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 按屏宽/屏高比例微调横屏控件边距与运输区按钮尺寸（对齐 design/横屏播放界面 稿）。
+     */
+    private fun applyLandscapePlayerGeometry() {
+        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) return
+        val root = controlsContainer
+        val w = root.width
+        val h = root.height
+        if (w <= 0 || h <= 0) return
+        val dm = resources.displayMetrics.density
+
+        fun xp(r: Float) = (w * r).toInt()
+        fun yp(r: Float) = (h * r).toInt()
+
+        topBar.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            marginStart = xp(0.022f)
+            marginEnd = xp(0.022f)
+            topMargin = yp(0.028f)
+        }
+        bottomPanel.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            marginStart = xp(0.022f)
+            marginEnd = xp(0.022f)
+            bottomMargin = yp(0.032f)
+        }
+        btnLock.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            marginStart = xp(0.026f)
+            topMargin = 0
+            bottomMargin = 0
+            verticalBias = 0.5f
+        }
+        landRightFloatColumn?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            marginEnd = xp(0.022f)
+        }
+
+        val iconSide = (w * 0.049f).coerceIn(40f * dm, 52f * dm).toInt()
+        val playSide = (w * 0.060f).coerceIn(52f * dm, 64f * dm).toInt()
+        val transportGap = (w * 0.02f).coerceIn(14f * dm, 22f * dm).toInt()
+        val innerGap = (w * 0.009f).coerceIn(6f * dm, 12f * dm).toInt()
+
+        listOf(
+            R.id.btn_land_seek_back,
+            R.id.btn_prev,
+            R.id.btn_next,
+            R.id.btn_land_seek_forward
+        ).forEach { id ->
+            findViewById<View>(id)?.updateLayoutParams<LinearLayout.LayoutParams> {
+                width = iconSide
+                height = iconSide
+            }
+        }
+        findViewById<View>(R.id.btn_fullscreen)?.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            width = iconSide
+            height = iconSide
+        }
+        findViewById<View>(R.id.btn_play)?.updateLayoutParams<LinearLayout.LayoutParams> {
+            width = playSide
+            height = playSide
+            marginStart = transportGap
+            marginEnd = transportGap
+        }
+        findViewById<View>(R.id.btn_prev)?.updateLayoutParams<LinearLayout.LayoutParams> {
+            marginStart = innerGap
+        }
+        findViewById<View>(R.id.btn_next)?.updateLayoutParams<LinearLayout.LayoutParams> {
+            marginEnd = innerGap
+        }
+
+    }
+
     private fun setWindowBrightness(brightness: Float) {
         val layoutParams = window.attributes
         layoutParams.screenBrightness = brightness
@@ -865,6 +1077,7 @@ class PlayerActivity : AppCompatActivity() {
         topBar.visibility = chromeVisibility
         bottomPanel.visibility = chromeVisibility
         toolRow.visibility = chromeVisibility
+        landRightFloatColumn?.visibility = chromeVisibility
         btnLock.visibility = if (visibility.lockButtonVisible) View.VISIBLE else View.GONE
         btnLock.isSelected = visibility.lockButtonSelected
         if (visibility.lockButtonSelected) {
@@ -969,6 +1182,40 @@ class PlayerActivity : AppCompatActivity() {
         val s = totalSec % 60
         return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
         else String.format("%02d:%02d", m, s)
+    }
+
+    /**
+     * Manifest 使用了 configChanges（方向切换不重建 Activity），
+     * 因此这里需要手动重绑布局，才能正确命中 layout-land/player_controls.xml。
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        rebindControlsForConfiguration()
+    }
+
+    private fun rebindControlsForConfiguration() {
+        if (this::controlsContainer.isInitialized) {
+            controlsContainer.removeOnLayoutChangeListener(landscapeGeometryListener)
+        }
+
+        enterImmersiveMode()
+        setContentView(R.layout.activity_player)
+        initViews()
+        initGestures()
+        initBrightnessAndVolume()
+
+        playerView.player = viewModel.player
+        setupControls()
+        refreshSessionListButtonVisibility()
+        tvTitle.text = viewModel.uiState.value.title
+        applyPlayerSettings()
+        updateLandResolutionBadge()
+        syncPlayPauseIcon()
+
+        controlsContainer.alpha = if (controlsVisible) controlsChromeMaxAlpha() else 0f
+        controlsContainer.visibility = if (controlsVisible) View.VISIBLE else View.GONE
+        applyControlVisibility()
+        controlsContainer.post { applyLandscapePlayerGeometry() }
     }
 
     override fun onResume() {

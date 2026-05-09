@@ -1,6 +1,7 @@
 package com.example.openvideo.ui
 
 import android.os.Bundle
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.openvideo.R
@@ -10,6 +11,7 @@ import com.example.openvideo.ui.home.HomeFragment
 import com.example.openvideo.ui.local.LocalFolderFragment
 import com.example.openvideo.ui.playlist.PlaylistFragment
 import com.example.openvideo.ui.settings.SettingsFragment
+import com.example.openvideo.ui.settings.SettingsViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -19,9 +21,13 @@ class MainActivity : AppCompatActivity() {
     var breakpoint: ScreenBreakpoint = ScreenBreakpoint.COMPACT
         private set
 
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        settingsViewModel.checkForAppUpdateSilently()
 
         breakpoint = WindowSizeHelper.computeBreakpoint(this)
 

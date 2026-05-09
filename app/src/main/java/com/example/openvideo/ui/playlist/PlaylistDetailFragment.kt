@@ -15,7 +15,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.putSessionQueue
+import com.example.openvideo.ui.player.toSessionVideoItem
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -29,6 +32,8 @@ class PlaylistDetailFragment : Fragment() {
     private lateinit var adapter: PlaylistVideoAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
+
+    private var playlistVideosSnapshot: List<PlaylistVideoEntity> = emptyList()
 
     companion object {
         fun newInstance(playlistId: Long, playlistName: String): PlaylistDetailFragment {
@@ -69,7 +74,9 @@ class PlaylistDetailFragment : Fragment() {
 
         adapter = PlaylistVideoAdapter(
             onClick = { video ->
+                val queue = playlistVideosSnapshot.map { it.toSessionVideoItem() }
                 val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+                    putSessionQueue(queue)
                     putExtra("video_uri", video.videoPath)
                     putExtra("video_title", video.videoTitle)
                     putExtra("video_id", video.videoId)
@@ -88,7 +95,8 @@ class PlaylistDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.getPlaylistVideos(playlistId).collect { list ->
-                    adapter.submitList(list)
+                    playlistVideosSnapshot = list.sortedBy { it.position }
+                    adapter.submitList(playlistVideosSnapshot)
                     emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                     recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
                 }

@@ -53,6 +53,11 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_GITHUB_UPDATE_BADGE, false)
         set(value) = putBoolean(KEY_GITHUB_UPDATE_BADGE, value)
 
+    /** Preferred APK or release page URL from last successful newer-than-local check. */
+    var githubPendingDownloadUrl: String
+        get() = getString(KEY_GITHUB_PENDING_DOWNLOAD_URL, "")
+        set(value) = putString(KEY_GITHUB_PENDING_DOWNLOAD_URL, value)
+
     companion object {
         private const val PREFS_NAME = "app_settings"
 
@@ -74,5 +79,6 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SORT_ASC = "sort_asc"
         private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"
         private const val KEY_GITHUB_UPDATE_BADGE = "github_update_badge_visible"
+        private const val KEY_GITHUB_PENDING_DOWNLOAD_URL = "github_pending_download_url"
     }
 }

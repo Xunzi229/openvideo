@@ -32,6 +32,7 @@ import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -236,6 +237,7 @@ class HomeFragment : Fragment() {
 
     private fun openPlayer(video: VideoItem) {
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
+            putSessionQueue(viewModel.videos.value)
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)
