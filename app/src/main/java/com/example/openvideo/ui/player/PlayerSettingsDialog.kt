@@ -1063,13 +1063,11 @@ class PlayerSettingsDialog(
                 textSize = 14f
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.CENTER_VERTICAL
+                gravity = Gravity.END or Gravity.CENTER_VERTICAL
                 setPadding(dp(12), dp(5), dp(12), dp(5))
                 background = context.getDrawable(R.drawable.bg_player_settings_value)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
+                // Width must be bounded or ellipsize is ignored and long values overlap the title.
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.42f).apply {
                     gravity = Gravity.CENTER_VERTICAL
                 }
             })
@@ -1113,13 +1111,10 @@ class PlayerSettingsDialog(
                 textSize = 14f
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.CENTER_VERTICAL
+                gravity = Gravity.END or Gravity.CENTER_VERTICAL
                 setPadding(dp(12), dp(5), dp(12), dp(5))
                 background = context.getDrawable(R.drawable.bg_player_settings_value)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.42f).apply {
                     gravity = Gravity.CENTER_VERTICAL
                 }
             })
