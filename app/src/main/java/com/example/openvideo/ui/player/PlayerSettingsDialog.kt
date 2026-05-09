@@ -557,7 +557,7 @@ class PlayerSettingsDialog(
     }
 
     private fun buildTutorialPage() {
-        addActionRow("Apply MX Player gestures") {
+        addActionRow(context.getString(R.string.player_sheet_tutorial_apply_mx)) {
             playerPrefs.leftVerticalGesture = GestureAction.BRIGHTNESS
             playerPrefs.rightVerticalGesture = GestureAction.VOLUME
             playerPrefs.horizontalSwipeAction = GestureAction.SEEK
@@ -565,35 +565,57 @@ class PlayerSettingsDialog(
             playerPrefs.longPressAction = LongPressAction.SPEED
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
-        addActionRow("Apply play/pause gestures") {
+        addActionRow(context.getString(R.string.player_sheet_tutorial_apply_play_pause)) {
             playerPrefs.doubleTapAction = DoubleTapAction.PLAY_PAUSE
             playerPrefs.longPressAction = LongPressAction.SPEED
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
-        addChoiceRow(
+        addActionRow(
             title = context.getString(R.string.settings_double_tap_action),
-            value = doubleTapLabel(playerPrefs.doubleTapAction),
-            options = DoubleTapAction.entries.map(::doubleTapLabel)
-        ) { selected ->
-            DoubleTapAction.entries.firstOrNull { doubleTapLabel(it) == selected }?.let {
-                playerPrefs.doubleTapAction = it
-            }
+            value = doubleTapLabel(playerPrefs.doubleTapAction)
+        ) {
+            showDoubleTapActionPage()
         }
-        addChoiceRow(
-            title = "Long press action",
-            value = longPressLabel(playerPrefs.longPressAction),
-            options = LongPressAction.entries.map(::longPressLabel)
-        ) { selected ->
-            LongPressAction.entries.firstOrNull { longPressLabel(it) == selected }?.let {
-                playerPrefs.longPressAction = it
-            }
+        addActionRow(
+            title = context.getString(R.string.settings_long_press_action),
+            value = longPressLabel(playerPrefs.longPressAction)
+        ) {
+            showLongPressActionPage()
         }
         addSwitchRow(
             parent = detailContainer,
-            title = "Edge swipe back",
+            title = context.getString(R.string.settings_edge_swipe_back),
             checked = playerPrefs.edgeSwipeBack
         ) { checked ->
             playerPrefs.edgeSwipeBack = checked
+        }
+    }
+
+    private fun showDoubleTapActionPage() {
+        detailTitle.text = context.getString(R.string.settings_double_tap_action)
+        detailContainer.removeAllViews()
+        DoubleTapAction.entries.forEach { action ->
+            addRadioRow(
+                title = doubleTapLabel(action),
+                checked = playerPrefs.doubleTapAction == action
+            ) {
+                playerPrefs.doubleTapAction = action
+                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+            }
+        }
+    }
+
+    private fun showLongPressActionPage() {
+        detailTitle.text = context.getString(R.string.settings_long_press_action)
+        detailContainer.removeAllViews()
+        LongPressAction.entries.forEach { action ->
+            addRadioRow(
+                title = longPressLabel(action),
+                checked = playerPrefs.longPressAction == action
+            ) {
+                playerPrefs.longPressAction = action
+                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+            }
         }
     }
 
@@ -884,6 +906,32 @@ class PlayerSettingsDialog(
             isClickable = true
             isFocusable = true
             setOnClickListener { onClick() }
+        })
+        addDivider(detailContainer)
+    }
+
+    private fun addActionRow(title: String, value: String, onClick: () -> Unit) {
+        detailContainer.addView(LinearLayout(context).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL
+            minimumHeight = dp(54)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+            addView(TextView(context).apply {
+                text = title
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(TextView(context).apply {
+                text = value
+                setTextColor(context.getColor(R.color.ov_accent_blue))
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setPadding(dp(12), dp(5), dp(12), dp(5))
+                background = context.getDrawable(R.drawable.bg_player_settings_value)
+            })
         })
         addDivider(detailContainer)
     }

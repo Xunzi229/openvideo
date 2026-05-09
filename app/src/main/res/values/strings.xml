@@ -99,6 +99,10 @@
     <string name="settings_double_tap_pause">暂停/播放</string>
     <string name="settings_double_tap_playback">倍速播放</string>
     <string name="settings_double_tap_none">无动作</string>
+    <string name="settings_long_press_action">长按动作</string>
+    <string name="settings_edge_swipe_back">边缘滑动返回</string>
+    <string name="player_sheet_tutorial_apply_mx">应用 MX Player 手势</string>
+    <string name="player_sheet_tutorial_apply_play_pause">应用播放/暂停手势</string>
 
     <!-- 画面设置 -->
     <string name="settings_group_display">画面设置</string>

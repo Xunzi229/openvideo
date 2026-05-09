@@ -237,6 +237,50 @@ class PlayerSettingsDialogTest {
         }
     }
 
+    @Test
+    fun tutorialSettingsUseChineseTextAndNestedDetailPages() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val tutorialBlock = dialogSource
+            .substringAfter("private fun buildTutorialPage()")
+            .substringBefore("\n    private fun buildMorePage()")
+
+        listOf(
+            "Apply MX Player gestures",
+            "Apply play/pause gestures",
+            "Long press action",
+            "Edge swipe back"
+        ).forEach { english ->
+            assertFalse("Tutorial page should not mix English UI text: $english", tutorialBlock.contains(english))
+        }
+
+        assertTrue(tutorialBlock.contains("R.string.player_sheet_tutorial_apply_mx"))
+        assertTrue(tutorialBlock.contains("R.string.player_sheet_tutorial_apply_play_pause"))
+        assertTrue(tutorialBlock.contains("R.string.settings_long_press_action"))
+        assertTrue(tutorialBlock.contains("R.string.settings_edge_swipe_back"))
+        assertTrue(tutorialBlock.contains("showDoubleTapActionPage()"))
+        assertTrue(tutorialBlock.contains("showLongPressActionPage()"))
+    }
+
+    @Test
+    fun tutorialChoicePagesStayInsidePlayerSettingsPanel() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val doubleTapPage = dialogSource
+            .substringAfter("private fun showDoubleTapActionPage()")
+            .substringBefore("\n    private fun showLongPressActionPage()")
+        val longPressPage = dialogSource
+            .substringAfter("private fun showLongPressActionPage()")
+            .substringBefore("\n    private fun buildMorePage()")
+
+        listOf(doubleTapPage, longPressPage).forEach { page ->
+            assertTrue(page.contains("detailTitle.text"))
+            assertTrue(page.contains("detailContainer.removeAllViews()"))
+            assertTrue(page.contains("addRadioRow("))
+            assertTrue(page.contains("rebuildCurrentDetail(SettingsPage.TUTORIAL"))
+            assertFalse(page.contains("showChoicePopup("))
+            assertFalse(page.contains("BottomSheetDialog("))
+        }
+    }
+
     private fun playerSettingsDialogSource(): Path {
         val relativePath = Paths.get(
             "src",
