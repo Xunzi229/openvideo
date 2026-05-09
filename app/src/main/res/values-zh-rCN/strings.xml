@@ -300,6 +300,7 @@
     <string name="settings_clear_history">清除播放历史</string>
     <string name="settings_section_about">关于</string>
     <string name="settings_version">版本号</string>
+    <string name="settings_project_repo">项目地址</string>
     <string name="settings_license">开源许可</string>
 
     <!-- Playlist -->

@@ -1,5 +1,7 @@
 package com.example.openvideo.ui.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -13,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AspectRatio
+import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -21,6 +24,10 @@ import kotlinx.coroutines.launch
 class SettingsFragment : Fragment() {
 
     private val viewModel: SettingsViewModel by viewModels()
+
+    companion object {
+        private val PROJECT_REPO_URI: Uri = Uri.parse("https://github.com/Xunzi229/openvideo")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -93,6 +100,15 @@ class SettingsFragment : Fragment() {
                 .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearHistory() }
                 .setNegativeButton(R.string.action_cancel, null)
                 .show()
+        }
+
+        view.findViewById<View>(R.id.row_project_repo).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, PROJECT_REPO_URI))
+        }
+
+        view.findViewById<View>(R.id.row_license).setOnClickListener {
+            OssLicensesMenuActivity.setActivityTitle(getString(R.string.settings_license))
+            startActivity(Intent(requireContext(), OssLicensesMenuActivity::class.java))
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

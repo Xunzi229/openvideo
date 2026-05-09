@@ -298,6 +298,31 @@
             android:layout_marginStart="16dp"
             android:background="@color/ov_divider" />
 
+        <!-- Project repository -->
+        <LinearLayout
+            android:id="@+id/row_project_repo"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_project_repo"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:layout_marginStart="16dp"
+            android:background="@color/ov_divider" />
+
         <!-- Open Source License -->
         <LinearLayout
             android:id="@+id/row_license"

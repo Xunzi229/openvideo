@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.gms.oss.licenses)
 }
 
 android {
@@ -79,6 +80,9 @@ dependencies {
     // Window (WindowSizeClass)
     implementation(libs.androidx.window)
     implementation(libs.androidx.security.crypto)
+
+    // Open-source licenses (generated from Gradle dependencies at build time)
+    implementation(libs.play.services.oss.licenses)
 
     testImplementation(libs.junit)
 }

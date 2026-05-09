@@ -300,6 +300,7 @@
     <string name="settings_clear_history">Clear watch history</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version</string>
+    <string name="settings_project_repo">Project repository</string>
     <string name="settings_license">Open source licenses</string>
 
     <!-- Playlist -->

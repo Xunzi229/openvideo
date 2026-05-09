@@ -40,6 +40,19 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_SORT_ASC, false)
         set(value) = putBoolean(KEY_SORT_ASC, value)
 
+    /** Last successful GitHub release API check (epoch ms). */
+    var lastGitHubReleaseCheckMs: Long
+        get() = getLong(KEY_LAST_GITHUB_RELEASE_CHECK_MS, 0L)
+        set(value) = putLong(KEY_LAST_GITHUB_RELEASE_CHECK_MS, value)
+
+    /**
+     * True when last check found a release newer than the installed app.
+     * Shown as a badge next to "Check for updates" (no dialog).
+     */
+    var githubUpdateBadgeVisible: Boolean
+        get() = getBoolean(KEY_GITHUB_UPDATE_BADGE, false)
+        set(value) = putBoolean(KEY_GITHUB_UPDATE_BADGE, value)
+
     companion object {
         private const val PREFS_NAME = "app_settings"
 
@@ -59,5 +72,7 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_VIEW_MODE = "view_mode"
         private const val KEY_SORT_FIELD = "sort_field"
         private const val KEY_SORT_ASC = "sort_asc"
+        private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"
+        private const val KEY_GITHUB_UPDATE_BADGE = "github_update_badge_visible"
     }
 }

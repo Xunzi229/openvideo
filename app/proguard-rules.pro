@@ -15,6 +15,9 @@
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
 
+# Google OSS Licenses (dependency license texts are in assets; keep UI entry points)
+-keep class com.google.android.gms.oss.licenses.** { *; }
+
 # Hilt
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
