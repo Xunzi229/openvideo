@@ -216,6 +216,7 @@
     <string name="player_settings_info_title">Title</string>
     <string name="player_settings_info_position">Position</string>
     <string name="player_settings_info_duration">Duration</string>
+    <string name="player_settings_info_resolution">Resolution</string>
     <string name="player_settings_info_speed">Speed</string>
     <string name="player_settings_info_aspect">Aspect</string>
     <string name="player_settings_info_source">Source</string>

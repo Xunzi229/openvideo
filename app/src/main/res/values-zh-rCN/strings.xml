@@ -216,6 +216,7 @@
     <string name="player_settings_info_title">标题</string>
     <string name="player_settings_info_position">播放位置</string>
     <string name="player_settings_info_duration">总时长</string>
+    <string name="player_settings_info_resolution">分辨率</string>
     <string name="player_settings_info_speed">播放速度</string>
     <string name="player_settings_info_aspect">画面比例</string>
     <string name="player_settings_info_source">视频来源</string>

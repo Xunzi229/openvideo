@@ -26,6 +26,8 @@ import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
@@ -39,6 +41,7 @@ import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.switchmaterial.SwitchMaterial
+import kotlin.math.round
 
 class PlayerSettingsDialog(
     context: Context,
@@ -786,11 +789,23 @@ class PlayerSettingsDialog(
                 state.title.ifBlank { context.getString(R.string.app_name) },
             context.getString(R.string.player_settings_info_position) to formatTime(playerManager.currentPosition),
             context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration),
+            context.getString(R.string.player_settings_info_resolution) to videoResolutionLabel(),
             context.getString(R.string.player_settings_info_speed) to playbackSpeedLabelFor(state.speed),
             context.getString(R.string.player_settings_info_aspect) to aspectLabel(playerPrefs.aspectRatio),
             context.getString(R.string.player_settings_info_source) to
                 viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
         )
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun videoResolutionLabel(): String {
+        val vs = viewModel.player?.videoSize
+            ?: return context.getString(R.string.player_settings_value_none)
+        val h = vs.height
+        val w = vs.width
+        if (w <= 0 || h <= 0) return context.getString(R.string.player_settings_value_none)
+        val displayW = round(w * vs.pixelWidthHeightRatio.toDouble()).toInt().coerceAtLeast(1)
+        return "${displayW}x$h"
     }
 
     private fun copyVideoInfoToClipboard() {
