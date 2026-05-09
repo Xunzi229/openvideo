@@ -391,26 +391,16 @@ class PlayerSettingsDialog(
                 }
             }
         }
-        addActionRow(
+        addCheckboxRow(
             title = context.getString(R.string.player_sheet_software_audio_decoder),
-            value = if (playerPrefs.softwareAudioDecoder) {
-                context.getString(R.string.player_sheet_enable)
-            } else {
-                context.getString(R.string.player_sheet_disable)
-            }
-        ) {
-            openNestedDetailScreen(context.getString(R.string.player_sheet_software_audio_decoder)) {
-                addCheckboxRow(
-                    title = context.getString(R.string.player_sheet_software_audio_decoder),
-                    checked = playerPrefs.softwareAudioDecoder
-                ) { checked ->
-                    playerPrefs.softwareAudioDecoder = checked
-                    viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
-                }
-            }
+            checked = playerPrefs.softwareAudioDecoder
+        ) { checked ->
+            playerPrefs.softwareAudioDecoder = checked
+            viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.player_sheet_enable),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.player_sheet_enable),
             checked = !playerPrefs.pauseOnExit
         ) { checked ->
             playerPrefs.pauseOnExit = !checked
@@ -438,28 +428,18 @@ class PlayerSettingsDialog(
                 }
             }
         }
-        addActionRow(
+        addCheckboxRow(
             title = context.getString(R.string.player_sheet_av_sync),
-            value = if (playerPrefs.audioSyncEnabled) {
-                context.getString(R.string.player_sheet_enable)
-            } else {
-                context.getString(R.string.player_sheet_disable)
-            }
-        ) {
-            openNestedDetailScreen(context.getString(R.string.player_sheet_av_sync)) {
-                addCheckboxRow(
-                    title = context.getString(R.string.player_sheet_av_sync),
-                    checked = playerPrefs.audioSyncEnabled
-                ) { checked ->
-                    playerPrefs.audioSyncEnabled = checked
-                }
-            }
+            checked = playerPrefs.audioSyncEnabled
+        ) { checked ->
+            playerPrefs.audioSyncEnabled = checked
         }
     }
 
     private fun buildSubtitlePage() {
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.player_sheet_subtitle_switch),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.player_sheet_subtitle_switch),
             checked = playerPrefs.subtitlesEnabled
         ) { checked ->
             playerPrefs.subtitlesEnabled = checked
@@ -468,7 +448,7 @@ class PlayerSettingsDialog(
             dismiss()
             onRequestPickSubtitle()
         }
-        addSeekNavigateRow(
+        addSeekRow(
             title = context.getString(R.string.player_sheet_subtitle_delay),
             min = -5000,
             maxValue = 5000,
@@ -478,7 +458,7 @@ class PlayerSettingsDialog(
         ) { value ->
             playerPrefs.subtitleDelayMs = value
         }
-        addSeekNavigateRow(
+        addSeekRow(
             title = context.getString(R.string.settings_subtitle_size),
             min = 12,
             maxValue = 36,
@@ -532,7 +512,7 @@ class PlayerSettingsDialog(
     }
 
     private fun buildDisplayPage() {
-        addSeekNavigateRow(
+        addSeekRow(
             title = context.getString(R.string.player_sheet_brightness),
             min = 0,
             maxValue = 100,
@@ -542,7 +522,7 @@ class PlayerSettingsDialog(
             playerPrefs.brightnessAdjustment = value
             onScreenBrightnessChanged(value)
         }
-        addSeekNavigateRow(
+        addSeekRow(
             title = context.getString(R.string.player_sheet_contrast),
             min = -100,
             maxValue = 100,
@@ -553,7 +533,7 @@ class PlayerSettingsDialog(
             playerPrefs.contrastAdjustment = value
             applyVideoAdjustmentsFromPrefs()
         }
-        addSeekNavigateRow(
+        addSeekRow(
             title = context.getString(R.string.player_sheet_saturation),
             min = -100,
             maxValue = 100,
@@ -572,8 +552,9 @@ class PlayerSettingsDialog(
             playerPrefs.rotation = rotationDegrees.firstOrNull { rotationLabel(it) == selected }
                 ?: playerPrefs.rotation
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.settings_mirror),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_mirror),
             checked = playerPrefs.mirror
         ) { checked ->
             playerPrefs.mirror = checked
@@ -593,7 +574,7 @@ class PlayerSettingsDialog(
                 else -> "default"
             }
         }
-        addSeekNavigateRow(
+        addSeekRow(
             title = context.getString(R.string.player_sheet_controls_opacity),
             min = 30,
             maxValue = 100,
@@ -618,8 +599,9 @@ class PlayerSettingsDialog(
             playerPrefs.loopMode = mode
             viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.settings_auto_play_next),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_auto_play_next),
             checked = playerPrefs.autoPlayNext
         ) { checked ->
             playerPrefs.autoPlayNext = checked
@@ -638,8 +620,9 @@ class PlayerSettingsDialog(
         ) { selected ->
             setSeekIntervalFromChoiceLabel(selected)
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.settings_remember_progress),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_remember_progress),
             checked = playerPrefs.rememberProgress
         ) { checked ->
             playerPrefs.rememberProgress = checked
@@ -647,8 +630,27 @@ class PlayerSettingsDialog(
     }
 
     private fun buildStreamPage() {
-        addActionRow(context.getString(R.string.player_settings_open_network_stream)) {
-            showStreamInput()
+        val streamInput = EditText(context).apply {
+            setText(playerPrefs.lastStreamUrl)
+            hint = context.getString(R.string.player_settings_stream_url_hint)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
+            setSingleLine(true)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.rgb(176, 176, 176))
+        }
+        detailContainer.addView(
+            streamInput,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(4)
+            }
+        )
+        addDivider(detailContainer)
+        addAccentActionRow(detailContainer, context.getString(R.string.player_action_play)) {
+            val url = streamInput.text?.toString().orEmpty().trim()
+            if (url.isNotBlank()) playStreamUrl(url)
         }
         if (playerPrefs.lastStreamUrl.isNotBlank()) {
             addActionRow(context.getString(R.string.player_settings_play_last_stream)) {
@@ -714,8 +716,9 @@ class PlayerSettingsDialog(
             playerPrefs.clipEndMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.player_settings_clip_loop_preview),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.player_settings_clip_loop_preview),
             checked = playerPrefs.clipLoopPreview
         ) { checked ->
             playerPrefs.clipLoopPreview = checked
@@ -779,8 +782,9 @@ class PlayerSettingsDialog(
         ) {
             showLongPressActionPage()
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.settings_edge_swipe_back),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_edge_swipe_back),
             checked = playerPrefs.edgeSwipeBack
         ) { checked ->
             playerPrefs.edgeSwipeBack = checked
@@ -816,8 +820,9 @@ class PlayerSettingsDialog(
     }
 
     private fun buildMorePage() {
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.settings_skip_intro_outro),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_skip_intro_outro),
             checked = playerPrefs.skipIntroOutro
         ) { checked ->
             playerPrefs.skipIntroOutro = checked
@@ -829,8 +834,9 @@ class PlayerSettingsDialog(
         ) { selected ->
             setPlaybackSpeedFromChoiceLabel(selected)
         }
-        addSwitchNavigateRow(
-            rowTitle = context.getString(R.string.settings_keep_screen_on),
+        addSwitchRow(
+            parent = detailContainer,
+            title = context.getString(R.string.settings_keep_screen_on),
             checked = playerPrefs.keepScreenOn
         ) { checked ->
             playerPrefs.keepScreenOn = checked
@@ -903,33 +909,6 @@ class PlayerSettingsDialog(
             minHeight = dp(52)
         })
         addDivider(detailContainer)
-    }
-
-    private fun showStreamInput() {
-        val input = EditText(context).apply {
-            setText(playerPrefs.lastStreamUrl)
-            hint = context.getString(R.string.player_settings_stream_url_hint)
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            setSingleLine(true)
-            setTextColor(Color.WHITE)
-            setHintTextColor(Color.rgb(176, 176, 176))
-        }
-        openNestedDetailScreen(context.getString(R.string.player_sheet_stream)) {
-            detailContainer.addView(
-                input,
-                LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    topMargin = dp(4)
-                }
-            )
-            addDivider(detailContainer)
-            addAccentActionRow(detailContainer, context.getString(R.string.player_action_play)) {
-                val url = input.text?.toString().orEmpty().trim()
-                if (url.isNotBlank()) playStreamUrl(url)
-            }
-        }
     }
 
     private fun playStreamUrl(url: String) {
@@ -1013,44 +992,6 @@ class PlayerSettingsDialog(
 
     private fun rebuildCurrentDetail(page: SettingsPage, title: String) {
         showDetailPage(page, title)
-    }
-
-    private fun addSwitchNavigateRow(
-        rowTitle: String,
-        checked: Boolean,
-        onChanged: (Boolean) -> Unit
-    ) {
-        val summary = if (checked) {
-            context.getString(R.string.player_sheet_enable)
-        } else {
-            context.getString(R.string.player_sheet_disable)
-        }
-        addActionRow(rowTitle, summary) {
-            openNestedDetailScreen(rowTitle) {
-                addSwitchRow(
-                    parent = detailContainer,
-                    title = rowTitle,
-                    checked = checked,
-                    onChanged = onChanged
-                )
-            }
-        }
-    }
-
-    private fun addSeekNavigateRow(
-        title: String,
-        min: Int,
-        maxValue: Int,
-        value: Int,
-        label: (Int) -> String,
-        commitOnStop: Boolean = false,
-        onChanged: (Int) -> Unit
-    ) {
-        addActionRow(title, label(value)) {
-            openNestedDetailScreen(title) {
-                addSeekRow(title, min, maxValue, value, label, commitOnStop, onChanged)
-            }
-        }
     }
 
     private fun addSwitchRow(
