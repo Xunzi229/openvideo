@@ -4,6 +4,10 @@
 
 OpenVideo 是一款使用 Kotlin 开发的 Android 视频播放器。面向较新的 Android 版本，采用 Media3（ExoPlayer）作为播放内核，提供可自定义的播放界面、播放列表、播放历史与本地设置等功能。
 
+解决问题:
+1. 市面上的播放器能用的丑、不丑的要钱
+2. 所以我通过AI自己手撸一个自己喜欢的播放器
+
 ## 环境要求
 
 - Android Studio Koala 或更高版本（或兼容的 Gradle / AGP 配置）

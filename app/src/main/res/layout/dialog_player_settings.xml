@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/settings_panel_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -93,7 +94,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/player_action_back"
                 android:src="@drawable/ic_arrow_back"
-                android:tint="#FFFFFFFF" />
+                app:tint="#FFFFFFFF" />
 
             <TextView
                 android:id="@+id/settings_detail_title"
@@ -152,7 +153,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/player_action_back"
                 android:src="@drawable/ic_arrow_back"
-                android:tint="#FFFFFFFF" />
+                app:tint="#FFFFFFFF" />
 
             <TextView
                 android:id="@+id/settings_subdetail_title"

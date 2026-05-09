@@ -791,19 +791,9 @@ class PlayerActivity : AppCompatActivity() {
                     }
 
                     if (isHorizontalSwipe) {
-                        when (playerPrefs.horizontalSwipeAction) {
-                            GestureAction.SEEK -> handleSeekGesture(dx)
-                            // 亮度/音量仅支持上下滑动触发；左右滑动不再处理这两项
-                            GestureAction.BRIGHTNESS -> {}
-                            GestureAction.VOLUME -> {}
-                            GestureAction.NONE -> {}
-                        }
+                        handleHorizontalSwipeAction(dx)
                     } else if (isVerticalSwipe) {
-                        val action = when (swipeSide) {
-                            SwipeSide.LEFT -> playerPrefs.leftVerticalGesture
-                            SwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
-                            SwipeSide.NONE -> GestureAction.NONE
-                        }
+                        val action = resolveVerticalGestureAction(swipeSide)
                         when (action) {
                             GestureAction.BRIGHTNESS -> handleBrightnessGesture(dy)
                             GestureAction.VOLUME -> handleVolumeGesture(dy)
@@ -825,11 +815,7 @@ class PlayerActivity : AppCompatActivity() {
                     if (isHorizontalSwipe && playerPrefs.horizontalSwipeAction == GestureAction.SEEK) {
                         applySeekGesture()
                     } else if (isVerticalSwipe) {
-                        val verticalAction = when (swipeSide) {
-                            SwipeSide.LEFT -> playerPrefs.leftVerticalGesture
-                            SwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
-                            SwipeSide.NONE -> GestureAction.NONE
-                        }
+                        val verticalAction = resolveVerticalGestureAction(swipeSide)
                         if (verticalAction == GestureAction.SEEK) {
                             applySeekGesture()
                         }
@@ -854,6 +840,23 @@ class PlayerActivity : AppCompatActivity() {
         2 -> 50
         else -> 40
     }
+
+    private fun handleHorizontalSwipeAction(dx: Float) {
+        when (playerPrefs.horizontalSwipeAction) {
+            GestureAction.SEEK -> handleSeekGesture(dx)
+            // 亮度/音量仅支持上下滑动触发；左右滑动不再处理这两项
+            GestureAction.BRIGHTNESS -> {}
+            GestureAction.VOLUME -> {}
+            GestureAction.NONE -> {}
+        }
+    }
+
+    private fun resolveVerticalGestureAction(side: SwipeSide): GestureAction =
+        when (side) {
+            SwipeSide.LEFT -> playerPrefs.leftVerticalGesture
+            SwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
+            SwipeSide.NONE -> GestureAction.NONE
+        }
 
     private fun handleSeekGesture(dx: Float) {
         val seekMs = (dx / resources.displayMetrics.widthPixels * 60_000).toLong()

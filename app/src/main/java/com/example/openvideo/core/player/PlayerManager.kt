@@ -383,11 +383,18 @@ class PlayerManager @Inject constructor(
                                 buffer.clear()
                                 val sampleSize = extractor.readSampleData(buffer, 0)
                                 if (sampleSize < 0) break
+                                var bufferFlags = 0
+                                if ((extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
+                                    bufferFlags = bufferFlags or MediaCodec.BUFFER_FLAG_KEY_FRAME
+                                }
+                                if ((extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_PARTIAL_FRAME) != 0) {
+                                    bufferFlags = bufferFlags or MediaCodec.BUFFER_FLAG_PARTIAL_FRAME
+                                }
                                 info.set(
                                     0,
                                     sampleSize,
                                     (sampleTimeUs - startUs).coerceAtLeast(0L),
-                                    extractor.sampleFlags
+                                    bufferFlags
                                 )
                                 muxer.writeSampleData(outputTrack, buffer, info)
                             }
