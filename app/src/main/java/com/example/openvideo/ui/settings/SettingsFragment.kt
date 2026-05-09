@@ -53,7 +53,7 @@ class SettingsFragment : Fragment() {
             val langs = listOf("system", "zh", "en")
             val next = (langs.indexOf(viewModel.language) + 1) % langs.size
             viewModel.setLanguage(langs[next])
-            updateLanguageLabel(tvLanguage)
+            requireActivity().recreate()
         }
 
         view.findViewById<View>(R.id.row_default_ratio).setOnClickListener {

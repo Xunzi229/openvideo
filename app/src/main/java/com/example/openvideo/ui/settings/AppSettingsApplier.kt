@@ -9,9 +9,11 @@ object AppSettingsApplier {
 
     fun apply(appPrefs: AppPrefs) {
         AppCompatDelegate.setDefaultNightMode(nightModeFor(appPrefs.themeMode))
-        AppCompatDelegate.setApplicationLocales(
-            LocaleListCompat.forLanguageTags(languageTagsFor(appPrefs.language))
-        )
+        when (appPrefs.language) {
+            "zh" -> AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("zh-CN"))
+            "en" -> AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
+            else -> AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+        }
     }
 
     fun nightModeFor(themeMode: ThemeMode): Int {
@@ -22,9 +24,10 @@ object AppSettingsApplier {
         }
     }
 
+    /** BCP-47 tags for tests and logging; empty means follow system. */
     fun languageTagsFor(language: String): String {
         return when (language) {
-            "zh" -> "zh"
+            "zh" -> "zh-CN"
             "en" -> "en"
             else -> ""
         }

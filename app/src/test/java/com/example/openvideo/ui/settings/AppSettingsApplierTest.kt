@@ -26,7 +26,7 @@ class AppSettingsApplierTest {
     @Test
     fun mapsLanguageToApplicationLocaleTags() {
         assertEquals("", AppSettingsApplier.languageTagsFor("system"))
-        assertEquals("zh", AppSettingsApplier.languageTagsFor("zh"))
+        assertEquals("zh-CN", AppSettingsApplier.languageTagsFor("zh"))
         assertEquals("en", AppSettingsApplier.languageTagsFor("en"))
         assertEquals("", AppSettingsApplier.languageTagsFor("unsupported"))
     }
