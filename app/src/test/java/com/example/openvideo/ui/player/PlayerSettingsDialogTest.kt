@@ -154,21 +154,6 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
-    fun progressBarStyleUsesNavigateRowAndSubdetailChoicePage() {
-        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
-        val displayBlock = dialogSource
-            .substringAfter("private fun buildDisplayPage()")
-            .substringBefore("private fun buildPlaylistPage()")
-        assertTrue(displayBlock.contains("addDetailNavigateRow("))
-        assertTrue(displayBlock.contains("R.string.player_sheet_progress_style"))
-        assertTrue(displayBlock.contains("showChoicePopup("))
-        assertTrue(
-            "Closing choice subdetail should refresh display summaries via hideSubDetailPage.",
-            String(Files.readAllBytes(playerSettingsDialogSource())).contains("populateDetailBody")
-        )
-    }
-
-    @Test
     fun brightnessSettingUsesScreenBrightnessInsteadOfVideoEffects() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val brightnessBlock = dialogSource
@@ -192,7 +177,7 @@ class PlayerSettingsDialogTest {
             .substringBefore("title = context.getString(R.string.player_sheet_saturation)")
         val saturationBlock = dialogSource
             .substringAfter("title = context.getString(R.string.player_sheet_saturation)")
-            .substringBefore("addChoiceNavigateRow(\r\n            choiceTitle = context.getString(R.string.settings_rotation)")
+            .substringBefore("addChoiceRow(\r\n            title = context.getString(R.string.settings_rotation)")
 
         listOf(contrastBlock, saturationBlock).forEach { block ->
             assertTrue(block.contains("commitOnStop = true"))
@@ -306,10 +291,11 @@ class PlayerSettingsDialogTest {
             .substringBefore("\n    private fun buildMorePage()")
 
         listOf(doubleTapPage, longPressPage).forEach { page ->
-            assertTrue(page.contains("showSubDetailPage(title)"))
-            assertTrue(page.contains("addRadioRow(") && page.contains("container,"))
-            assertTrue(page.contains("hideSubDetailPage()"))
-            assertFalse(page.contains("detailContainer.removeAllViews()"))
+            assertTrue(page.contains("detailTitle.text"))
+            assertTrue(page.contains("detailContainer.removeAllViews()"))
+            assertTrue(page.contains("addRadioRow("))
+            assertTrue(page.contains("rebuildCurrentDetail(SettingsPage.TUTORIAL"))
+            assertFalse(page.contains("showChoicePopup("))
             assertFalse(page.contains("BottomSheetDialog("))
         }
     }
