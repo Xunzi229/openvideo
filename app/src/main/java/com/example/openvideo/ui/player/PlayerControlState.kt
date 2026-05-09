@@ -64,6 +64,14 @@ object PlayerOrientationPolicy {
     }
 }
 
+object PlayerDisplayAdjustment {
+    fun screenBrightnessFor(adjustmentPercent: Int): Float {
+        if (adjustmentPercent == 0) return -1f
+        return (adjustmentPercent.coerceIn(1, 100) / 100f)
+            .coerceIn(0.01f, 1f)
+    }
+}
+
 object PlayerSettingsLayoutPolicy {
     private const val LANDSCAPE_MARGIN_DP = 3
     private const val LANDSCAPE_GRID_COLUMNS = 4

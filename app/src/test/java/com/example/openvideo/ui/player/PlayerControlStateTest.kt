@@ -42,6 +42,20 @@ class PlayerControlStateTest {
     }
 
     @Test
+    fun screenBrightnessAdjustmentMapsZeroToSystemDefault() {
+        assertEquals(-1f, PlayerDisplayAdjustment.screenBrightnessFor(0))
+    }
+
+    @Test
+    fun screenBrightnessAdjustmentMapsSliderRangeToSafeWindowBrightness() {
+        assertEquals(0.01f, PlayerDisplayAdjustment.screenBrightnessFor(-100))
+        assertEquals(0.01f, PlayerDisplayAdjustment.screenBrightnessFor(1))
+        assertEquals(0.5f, PlayerDisplayAdjustment.screenBrightnessFor(50))
+        assertEquals(1f, PlayerDisplayAdjustment.screenBrightnessFor(100))
+        assertEquals(1f, PlayerDisplayAdjustment.screenBrightnessFor(140))
+    }
+
+    @Test
     fun playerStartsInLandscape() {
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE, PlayerOrientationPolicy.defaultOrientation())
     }

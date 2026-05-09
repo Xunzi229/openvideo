@@ -45,13 +45,16 @@ class PlayerAudioSettingsSheet : BaseSettingsSheet() {
             updateChannelText()
         }
 
-        sbDelay.progress = playerPrefs.audioDelay
+        var pendingAudioDelay = playerPrefs.audioDelay
+        sbDelay.progress = pendingAudioDelay
         sbDelay.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) playerPrefs.audioDelay = progress
+                if (fromUser) pendingAudioDelay = progress
             }
             override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {
+                playerPrefs.audioDelay = pendingAudioDelay
+            }
         })
     }
 }

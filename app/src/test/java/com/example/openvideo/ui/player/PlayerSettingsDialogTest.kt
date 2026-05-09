@@ -153,6 +153,90 @@ class PlayerSettingsDialogTest {
         assertTrue(dialogSource.contains("setMargins(dp(1), dp(2), dp(1), dp(2))"))
     }
 
+    @Test
+    fun brightnessSettingUsesScreenBrightnessInsteadOfVideoEffects() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val brightnessBlock = dialogSource
+            .substringAfter("title = context.getString(R.string.player_sheet_brightness)")
+            .substringBefore("title = context.getString(R.string.player_sheet_contrast)")
+
+        assertTrue(brightnessBlock.contains("onScreenBrightnessChanged(value)"))
+        assertTrue(brightnessBlock.contains("min = 0"))
+        assertTrue(brightnessBlock.contains("context.getString(R.string.settings_theme_system)"))
+        assertFalse(
+            "Dragging brightness should not repeatedly reconfigure Media3 video effects.",
+            brightnessBlock.contains("applyVideoAdjustmentsFromPrefs()")
+        )
+    }
+
+    @Test
+    fun contrastAndSaturationApplyVideoEffectsOnlyWhenDraggingStops() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val contrastBlock = dialogSource
+            .substringAfter("title = context.getString(R.string.player_sheet_contrast)")
+            .substringBefore("title = context.getString(R.string.player_sheet_saturation)")
+        val saturationBlock = dialogSource
+            .substringAfter("title = context.getString(R.string.player_sheet_saturation)")
+            .substringBefore("addChoiceRow(\r\n            title = context.getString(R.string.settings_rotation)")
+
+        listOf(contrastBlock, saturationBlock).forEach { block ->
+            assertTrue(block.contains("commitOnStop = true"))
+            assertTrue(block.contains("applyVideoAdjustmentsFromPrefs()"))
+        }
+
+        val seekRow = dialogSource
+            .substringAfter("private fun addSeekRow(")
+            .substringBefore("\n    private fun showChoicePopup")
+        assertTrue(seekRow.contains("commitOnStop: Boolean = false"))
+        assertTrue(seekRow.contains("pendingValue"))
+        assertTrue(seekRow.contains("if (!commitOnStop) onChanged(next)"))
+        assertTrue(seekRow.contains("override fun onStopTrackingTouch"))
+        assertTrue(seekRow.contains("onChanged(pendingValue)"))
+    }
+
+    @Test
+    fun preferenceBackedSeekRowsCommitOnStopUnlessTheyAreSafeWindowBrightness() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+
+        listOf(
+            "R.string.player_sheet_subtitle_delay",
+            "R.string.settings_subtitle_size",
+            "R.string.player_sheet_contrast",
+            "R.string.player_sheet_saturation",
+            "R.string.player_sheet_controls_opacity"
+        ).forEach { title ->
+            val block = dialogSource
+                .substringAfter("title = context.getString($title)")
+                .substringBefore(") { value ->")
+            assertTrue(
+                "$title should not write preferences continuously while the SeekBar is being dragged.",
+                block.contains("commitOnStop = true")
+            )
+        }
+    }
+
+    @Test
+    fun legacySettingsSheetsDoNotWritePreferencesContinuouslyWhileDragging() {
+        listOf(
+            legacySettingsSource("PlayerAudioSettingsSheet.kt"),
+            legacySettingsSource("PlayerSubtitleSettingsSheet.kt"),
+            legacySettingsSource("PlayerSubtitleSettingsActivity.kt")
+        ).forEach { sourcePath ->
+            val source = String(Files.readAllBytes(sourcePath))
+            val seekListeners = source.split("setOnSeekBarChangeListener")
+                .drop(1)
+                .map { it.substringBefore("})") }
+            seekListeners.forEach { listener ->
+                assertTrue(
+                    "${sourcePath.fileName} should update prefs from onStopTrackingTouch instead of every onProgressChanged tick.",
+                    listener.contains("onStopTrackingTouch") &&
+                        !listener.substringAfter("onProgressChanged").substringBefore("override fun onStartTrackingTouch")
+                            .contains("playerPrefs.")
+                )
+            }
+        }
+    }
+
     private fun playerSettingsDialogSource(): Path {
         val relativePath = Paths.get(
             "src",
@@ -164,6 +248,24 @@ class PlayerSettingsDialogTest {
             "ui",
             "player",
             "PlayerSettingsDialog.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun legacySettingsSource(fileName: String): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            fileName
         )
         return sequenceOf(
             relativePath,

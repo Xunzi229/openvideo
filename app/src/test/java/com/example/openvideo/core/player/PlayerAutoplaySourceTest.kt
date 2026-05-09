@@ -24,6 +24,21 @@ class PlayerAutoplaySourceTest {
         )
     }
 
+    @Test
+    fun videoAdjustmentsAreSkippedWhenValuesHaveNotChanged() {
+        val source = String(Files.readAllBytes(playerManagerSource()))
+        val method = source.substringAfter("fun applyVideoAdjustments(")
+            .substringBefore("\n    private fun saturationMatrix")
+
+        assertTrue(
+            "Video adjustments should avoid repeatedly calling setVideoEffects for identical values.",
+            source.contains("lastVideoAdjustments")
+                && method.contains("val nextAdjustments = VideoAdjustments(")
+                && method.contains("if (lastVideoAdjustments == nextAdjustments) return")
+                && method.contains("lastVideoAdjustments = nextAdjustments")
+        )
+    }
+
     private fun playerManagerSource(): Path {
         val relativePath = Paths.get(
             "src",

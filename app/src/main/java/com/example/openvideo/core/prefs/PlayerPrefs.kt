@@ -261,7 +261,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_MIRROR = "mirror"
         private const val KEY_AUTO_ORIENTATION = "auto_orientation_by_video"
         private const val KEY_VIDEO_DISPLAY_ENABLED = "video_display_enabled"
-        private const val KEY_BRIGHTNESS_ADJUSTMENT = "brightness_adjustment"
+        const val KEY_BRIGHTNESS_ADJUSTMENT = "brightness_adjustment"
         private const val KEY_CONTRAST_ADJUSTMENT = "contrast_adjustment"
         private const val KEY_SATURATION_ADJUSTMENT = "saturation_adjustment"
         private const val KEY_PROGRESS_STYLE = "progress_style"
@@ -316,9 +316,6 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
                 KEY_ROTATION,
                 KEY_MIRROR,
                 KEY_VIDEO_DISPLAY_ENABLED,
-                KEY_BRIGHTNESS_ADJUSTMENT,
-                KEY_CONTRAST_ADJUSTMENT,
-                KEY_SATURATION_ADJUSTMENT,
                 KEY_CONTROLS_OPACITY,
                 KEY_SPEED_PRESERVE_PITCH,
                 KEY_VOLUME_BOOST,

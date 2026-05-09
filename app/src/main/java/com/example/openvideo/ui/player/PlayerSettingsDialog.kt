@@ -42,6 +42,7 @@ class PlayerSettingsDialog(
     private val playerManager: PlayerManager,
     private val viewModel: PlayerViewModel,
     private val playerPrefs: PlayerPrefs,
+    private val onScreenBrightnessChanged: (Int) -> Unit = {},
     private val onRequestPickSubtitle: () -> Unit = {}
 ) : Dialog(context) {
 
@@ -310,7 +311,8 @@ class PlayerSettingsDialog(
             min = -5000,
             maxValue = 5000,
             value = playerPrefs.subtitleDelayMs,
-            label = { "${it}ms" }
+            label = { "${it}ms" },
+            commitOnStop = true
         ) { value ->
             playerPrefs.subtitleDelayMs = value
         }
@@ -319,7 +321,8 @@ class PlayerSettingsDialog(
             min = 12,
             maxValue = 36,
             value = playerPrefs.subtitleSize,
-            label = { "${it}sp" }
+            label = { "${it}sp" },
+            commitOnStop = true
         ) { value ->
             playerPrefs.subtitleSize = value
         }
@@ -364,20 +367,21 @@ class PlayerSettingsDialog(
     private fun buildDisplayPage() {
         addSeekRow(
             title = context.getString(R.string.player_sheet_brightness),
-            min = -100,
+            min = 0,
             maxValue = 100,
             value = playerPrefs.brightnessAdjustment,
-            label = { "$it%" }
+            label = { if (it == 0) context.getString(R.string.settings_theme_system) else "$it%" }
         ) { value ->
             playerPrefs.brightnessAdjustment = value
-            applyVideoAdjustmentsFromPrefs()
+            onScreenBrightnessChanged(value)
         }
         addSeekRow(
             title = context.getString(R.string.player_sheet_contrast),
             min = -100,
             maxValue = 100,
             value = playerPrefs.contrastAdjustment,
-            label = { "$it%" }
+            label = { "$it%" },
+            commitOnStop = true
         ) { value ->
             playerPrefs.contrastAdjustment = value
             applyVideoAdjustmentsFromPrefs()
@@ -387,7 +391,8 @@ class PlayerSettingsDialog(
             min = -100,
             maxValue = 100,
             value = playerPrefs.saturationAdjustment,
-            label = { "$it%" }
+            label = { "$it%" },
+            commitOnStop = true
         ) { value ->
             playerPrefs.saturationAdjustment = value
             applyVideoAdjustmentsFromPrefs()
@@ -426,7 +431,8 @@ class PlayerSettingsDialog(
             min = 30,
             maxValue = 100,
             value = playerPrefs.controlsOpacity,
-            label = { "$it%" }
+            label = { "$it%" },
+            commitOnStop = true
         ) { value ->
             playerPrefs.controlsOpacity = value
         }
@@ -743,7 +749,7 @@ class PlayerSettingsDialog(
 
     private fun applyVideoAdjustmentsFromPrefs() {
         playerManager.applyVideoAdjustments(
-            playerPrefs.brightnessAdjustment / 100f,
+            0f,
             playerPrefs.contrastAdjustment / 100f,
             playerPrefs.saturationAdjustment / 100f
         )
@@ -924,6 +930,7 @@ class PlayerSettingsDialog(
         maxValue: Int,
         value: Int,
         label: (Int) -> String,
+        commitOnStop: Boolean = false,
         onChanged: (Int) -> Unit
     ) {
         val row = LinearLayout(context).apply {
@@ -951,16 +958,20 @@ class PlayerSettingsDialog(
             progress = (value - min).coerceIn(0, maxValue - min)
             progressTintList = context.getColorStateList(R.color.ov_accent_blue)
             thumbTintList = context.getColorStateList(R.color.ov_accent_blue)
+            var pendingValue = value.coerceIn(min, maxValue)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     if (!fromUser) return
                     val next = min + progress
+                    pendingValue = next
                     valueView.text = label(next)
-                    onChanged(next)
+                    if (!commitOnStop) onChanged(next)
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-                override fun onStopTrackingTouch(seekBar: SeekBar) = Unit
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    if (commitOnStop) onChanged(pendingValue)
+                }
             })
         })
         detailContainer.addView(row)

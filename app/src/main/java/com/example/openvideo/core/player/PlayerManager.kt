@@ -170,14 +170,17 @@ class PlayerManager @Inject constructor(
 
     // P1: Video Filters
     private val activeEffects = mutableListOf<androidx.media3.common.Effect>()
+    private var lastVideoAdjustments: VideoAdjustments? = null
 
     fun setBrightness(value: Float) {
+        lastVideoAdjustments = null
         activeEffects.removeAll { it is Brightness }
         activeEffects.add(Brightness(value))
         applyEffects()
     }
 
     fun setContrast(value: Float) {
+        lastVideoAdjustments = null
         activeEffects.removeAll { it is Contrast }
         activeEffects.add(Contrast(value))
         applyEffects()
@@ -188,6 +191,9 @@ class PlayerManager @Inject constructor(
         contrast: Float,
         saturation: Float
     ) {
+        val nextAdjustments = VideoAdjustments(brightness, contrast, saturation)
+        if (lastVideoAdjustments == nextAdjustments) return
+        lastVideoAdjustments = nextAdjustments
         activeEffects.removeAll { it is Brightness || it is Contrast || it is RgbMatrix }
         if (brightness != 0f) {
             activeEffects.add(Brightness(brightness))
@@ -219,12 +225,14 @@ class PlayerManager @Inject constructor(
     }
 
     fun setRotation(degrees: Float) {
+        lastVideoAdjustments = null
         activeEffects.removeAll { it is ScaleAndRotateTransformation }
         activeEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees).build())
         applyEffects()
     }
 
     fun clearEffects() {
+        lastVideoAdjustments = null
         activeEffects.clear()
         player?.setVideoEffects(emptyList())
     }
@@ -232,6 +240,12 @@ class PlayerManager @Inject constructor(
     private fun applyEffects() {
         player?.setVideoEffects(activeEffects.toList())
     }
+
+    private data class VideoAdjustments(
+        val brightness: Float,
+        val contrast: Float,
+        val saturation: Float
+    )
 
     // P1: Equalizer
     private var equalizer: Equalizer? = null

@@ -52,14 +52,17 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         val currentSize = playerPrefs.subtitleSize
         sbSize.progress = (currentSize - 14) / 2
         tvSize.text = "${currentSize}sp"
+        var pendingSubtitleSize = currentSize
         sbSize.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 val size = 14 + progress * 2
                 tvSize.text = "${size}sp"
-                if (fromUser) playerPrefs.subtitleSize = size
+                if (fromUser) pendingSubtitleSize = size
             }
             override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {
+                playerPrefs.subtitleSize = pendingSubtitleSize
+            }
         })
 
         val subtitleBgStyles = SubtitleBgStyle.entries.toTypedArray()
@@ -78,13 +81,16 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             updateBgText()
         }
 
-        sbPosition.progress = (playerPrefs.subtitlePosition * 100).toInt()
+        var pendingSubtitlePosition = playerPrefs.subtitlePosition
+        sbPosition.progress = (pendingSubtitlePosition * 100).toInt()
         sbPosition.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) playerPrefs.subtitlePosition = progress / 100f
+                if (fromUser) pendingSubtitlePosition = progress / 100f
             }
             override fun onStartTrackingTouch(sb: SeekBar) {}
-            override fun onStopTrackingTouch(sb: SeekBar) {}
+            override fun onStopTrackingTouch(sb: SeekBar) {
+                playerPrefs.subtitlePosition = pendingSubtitlePosition
+            }
         })
 
         val encodings = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")

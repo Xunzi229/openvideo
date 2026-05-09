@@ -224,6 +224,10 @@ class PlayerActivity : AppCompatActivity() {
                     loadSubtitlesAsync(uri, currentVideoPath, showToast = true)
                 }
             }
+            if (key == PlayerPrefs.KEY_BRIGHTNESS_ADJUSTMENT) {
+                applyScreenBrightness(playerPrefs.brightnessAdjustment)
+                scheduleHideControls()
+            }
             if (PlayerPrefs.requiresImmediatePlayerApply(key)) {
                 applyPlayerSettings()
                 scheduleHideControls()
@@ -248,10 +252,11 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.setVolumeBoost(playerPrefs.volumeBoost)
         playerManager.setMuted(playerPrefs.audioMuted)
         playerManager.applyVideoAdjustments(
-            playerPrefs.brightnessAdjustment / 100f,
+            0f,
             playerPrefs.contrastAdjustment / 100f,
             playerPrefs.saturationAdjustment / 100f
         )
+        applyScreenBrightness(playerPrefs.brightnessAdjustment)
         playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f
         bottomPanel.alpha = playerPrefs.controlsOpacity / 100f
 
@@ -386,9 +391,16 @@ class PlayerActivity : AppCompatActivity() {
 
         btnSettings.setOnClickListener {
             hideControls()
-            val dialog = PlayerSettingsDialog(this, playerManager, viewModel, playerPrefs) {
-                pickSubtitleLauncher.launch(arrayOf("*/*"))
-            }
+            val dialog = PlayerSettingsDialog(
+                context = this,
+                playerManager = playerManager,
+                viewModel = viewModel,
+                playerPrefs = playerPrefs,
+                onScreenBrightnessChanged = ::applyScreenBrightness,
+                onRequestPickSubtitle = {
+                    pickSubtitleLauncher.launch(arrayOf("*/*"))
+                }
+            )
             dialog.setOnDismissListener {
                 applyPlayerSettings()
                 scheduleHideControls()
@@ -717,9 +729,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleBrightnessGesture(dy: Float) {
         currentBrightness =
             (brightnessGestureAnchor - dy / resources.displayMetrics.heightPixels).coerceIn(0.01f, 1f)
-        val layoutParams = window.attributes
-        layoutParams.screenBrightness = currentBrightness
-        window.attributes = layoutParams
+        setWindowBrightness(currentBrightness)
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessIndicator.visibility = View.VISIBLE
     }
@@ -727,11 +737,26 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleBrightnessGestureHorizontal(dx: Float) {
         currentBrightness =
             (brightnessGestureAnchor + dx / resources.displayMetrics.widthPixels).coerceIn(0.01f, 1f)
-        val layoutParams = window.attributes
-        layoutParams.screenBrightness = currentBrightness
-        window.attributes = layoutParams
+        setWindowBrightness(currentBrightness)
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessIndicator.visibility = View.VISIBLE
+    }
+
+    private fun applyScreenBrightness(adjustmentPercent: Int) {
+        val brightness = PlayerDisplayAdjustment.screenBrightnessFor(adjustmentPercent)
+        setWindowBrightness(brightness)
+        if (brightness >= 0f) {
+            currentBrightness = brightness
+            if (this::brightnessProgress.isInitialized) {
+                brightnessProgress.progress = (brightness * 100).toInt()
+            }
+        }
+    }
+
+    private fun setWindowBrightness(brightness: Float) {
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = brightness
+        window.attributes = layoutParams
     }
 
     private fun handleVolumeGesture(dy: Float) {
