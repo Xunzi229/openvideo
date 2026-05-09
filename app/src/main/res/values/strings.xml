@@ -202,6 +202,9 @@
     <string name="player_sheet_saturation">Saturation</string>
     <string name="player_sheet_progress_style">Progress bar style</string>
     <string name="player_sheet_controls_opacity">Controls opacity</string>
+    <string name="player_sheet_settings_panel_opacity">Settings panel opacity</string>
+    <string name="player_sheet_settings_backdrop_dim">Backdrop dim</string>
+    <string name="player_sheet_settings_backdrop_blur">Backdrop blur</string>
     <string name="player_sheet_default">Default</string>
     <string name="player_sheet_modern">Modern</string>
     <string name="player_sheet_thin">Thin</string>

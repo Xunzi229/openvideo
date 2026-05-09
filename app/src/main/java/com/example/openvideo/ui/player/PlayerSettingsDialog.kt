@@ -134,6 +134,7 @@ class PlayerSettingsDialog(
     private lateinit var subdetailPage: View
     private lateinit var subdetailTitle: TextView
     private lateinit var subdetailContainer: LinearLayout
+    private lateinit var settingsPanelRoot: View
 
     private data class DetailBackState(val page: SettingsPage, val title: String)
 
@@ -170,11 +171,7 @@ class PlayerSettingsDialog(
             attributes = attributes.apply {
                 x = PlayerSettingsLayoutPolicy.landscapeMarginPx(width, height, density)
             }
-            setDimAmount(0.18f)
-            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                setBackgroundBlurRadius(dp(18))
-            }
+            applySheetWindowBackdrop()
             setBackgroundDrawableResource(android.R.color.transparent)
             decorView.setPadding(0, 0, 0, 0)
             decorView.elevation = dp(20).toFloat()
@@ -190,6 +187,8 @@ class PlayerSettingsDialog(
             subdetailPage = requireView(R.id.settings_subdetail_page)
             subdetailTitle = requireView(R.id.settings_subdetail_title)
             subdetailContainer = requireView(R.id.settings_subdetail_container)
+            settingsPanelRoot = requireView(R.id.settings_panel_root)
+            applySettingsSheetOpacity()
 
             requireView<ImageButton>(R.id.settings_detail_back).setOnClickListener {
                 if (detailBackStack.isNotEmpty()) popDetailNested() else showPrimaryPage()
@@ -203,6 +202,12 @@ class PlayerSettingsDialog(
         }.onFailure { error ->
             CrashLogger.logPlayerError(context, error)
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        applySettingsSheetOpacity()
+        applySheetWindowBackdrop()
     }
 
     private fun setupPrimaryGrid() {
@@ -294,6 +299,29 @@ class PlayerSettingsDialog(
             checked = playerPrefs.rememberProgress
         ) { checked ->
             playerPrefs.rememberProgress = checked
+        }
+    }
+
+    /**
+     * 滑块存的是「不透明度」百分比：100%=完全不透明，0%=最透明。
+     * `alpha` 与不透明度一致，不与「透明度」反向。
+     */
+    private fun panelAlphaFromStoredOpacityPercent(percent: Int): Float =
+        percent.coerceIn(0, 100) / 100f
+
+    private fun applySettingsSheetOpacity() {
+        if (!::settingsPanelRoot.isInitialized) return
+        settingsPanelRoot.alpha = panelAlphaFromStoredOpacityPercent(playerPrefs.settingsPanelOpacity)
+    }
+
+    private fun applySheetWindowBackdrop() {
+        window?.apply {
+            setDimAmount(playerPrefs.settingsSheetBackdropDimPercent.coerceIn(0, 100) / 100f)
+            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val blurDp = playerPrefs.settingsSheetBackdropBlurDp.coerceIn(0, 64)
+                setBackgroundBlurRadius(if (blurDp > 0) dp(blurDp) else 0)
+            }
         }
     }
 
@@ -497,18 +525,13 @@ class PlayerSettingsDialog(
     }
 
     private fun buildAspectPage() {
-        val aspectTitle = context.getString(R.string.player_sheet_aspect_ratio)
-        addActionRow(aspectTitle, aspectLabel(playerPrefs.aspectRatio)) {
-            openNestedDetailScreen(aspectTitle) {
-                addAspectRow(context.getString(R.string.player_sheet_fit_screen), AspectRatio.FIT)
-                addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
-                addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
-                addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
-                addAspectRow(context.getString(R.string.player_sheet_original_ratio), AspectRatio.FIT)
-                addAspectRow(context.getString(R.string.settings_ratio_crop), AspectRatio.CROP)
-                addAspectRow(context.getString(R.string.settings_ratio_stretch), AspectRatio.STRETCH)
-            }
-        }
+        addAspectRow(context.getString(R.string.player_sheet_fit_screen), AspectRatio.FIT)
+        addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
+        addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
+        addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
+        addAspectRow(context.getString(R.string.player_sheet_original_ratio), AspectRatio.FIT)
+        addAspectRow(context.getString(R.string.settings_ratio_crop), AspectRatio.CROP)
+        addAspectRow(context.getString(R.string.settings_ratio_stretch), AspectRatio.STRETCH)
     }
 
     private fun buildDisplayPage() {
@@ -583,6 +606,28 @@ class PlayerSettingsDialog(
             commitOnStop = true
         ) { value ->
             playerPrefs.controlsOpacity = value
+        }
+        addSeekRow(
+            title = context.getString(R.string.player_sheet_settings_backdrop_dim),
+            min = 0,
+            maxValue = 100,
+            value = playerPrefs.settingsSheetBackdropDimPercent,
+            label = { "$it%" },
+            commitOnStop = false
+        ) { value ->
+            playerPrefs.settingsSheetBackdropDimPercent = value
+            applySheetWindowBackdrop()
+        }
+        addSeekRow(
+            title = context.getString(R.string.player_sheet_settings_backdrop_blur),
+            min = 0,
+            maxValue = 64,
+            value = playerPrefs.settingsSheetBackdropBlurDp,
+            label = { "${it}dp" },
+            commitOnStop = false
+        ) { value ->
+            playerPrefs.settingsSheetBackdropBlurDp = value
+            applySheetWindowBackdrop()
         }
     }
 
@@ -757,6 +802,7 @@ class PlayerSettingsDialog(
     }
 
     private fun buildTutorialPage() {
+        /*
         addActionRow(context.getString(R.string.player_sheet_tutorial_apply_mx)) {
             playerPrefs.leftVerticalGesture = GestureAction.BRIGHTNESS
             playerPrefs.rightVerticalGesture = GestureAction.VOLUME
@@ -770,6 +816,7 @@ class PlayerSettingsDialog(
             playerPrefs.longPressAction = LongPressAction.SPEED
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
+        */
         addActionRow(
             title = context.getString(R.string.settings_double_tap_action),
             value = doubleTapLabel(playerPrefs.doubleTapAction)
@@ -849,11 +896,24 @@ class PlayerSettingsDialog(
             playerPrefs.controlsAutoHide = controlsAutoHideChoiceList()
                 .firstOrNull { context.getString(it.second) == selected }?.first ?: 0
         }
+        addSeekRow(
+            title = context.getString(R.string.player_sheet_settings_panel_opacity),
+            min = 0,
+            maxValue = 100,
+            value = playerPrefs.settingsPanelOpacity,
+            label = { "$it%" },
+            commitOnStop = false
+        ) { value ->
+            playerPrefs.settingsPanelOpacity = value
+            applySettingsSheetOpacity()
+        }
         addActionRow(context.getString(R.string.settings_reset_defaults)) {
             playerPrefs.resetToDefaults()
             onPlayerPrefsReset()
             showPrimaryPage()
             setupPrimarySwitches()
+            applySettingsSheetOpacity()
+            applySheetWindowBackdrop()
         }
     }
 
@@ -1173,6 +1233,7 @@ class PlayerSettingsDialog(
         value: Int,
         label: (Int) -> String,
         commitOnStop: Boolean = false,
+        parent: LinearLayout = detailContainer,
         onChanged: (Int) -> Unit
     ) {
         val row = LinearLayout(context).apply {
@@ -1232,8 +1293,8 @@ class PlayerSettingsDialog(
                 }
             })
         })
-        detailContainer.addView(row)
-        addDivider(detailContainer)
+        parent.addView(row)
+        addDivider(parent)
     }
 
     private fun addDivider(parent: LinearLayout) {

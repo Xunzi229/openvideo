@@ -100,6 +100,43 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getInt(KEY_CONTROLS_OPACITY, 85)
         set(value) = putInt(KEY_CONTROLS_OPACITY, value)
 
+    /**
+     * 播放器设置面板（含二级、三级页）滑块：**数值表示不透明度（实心程度）**。
+     * - **100**：完全不透明（透明度最低；不能再更不透明）
+     * - **0**：最透明（可视作原先语境下的「100% 透明度」）
+     * 默认 100。视图 `alpha = settingsPanelOpacity / 100f`。
+     */
+    var settingsPanelOpacity: Int
+        get() = when {
+            prefs.contains(KEY_SETTINGS_PANEL_OPACITY) ->
+                prefs.getInt(KEY_SETTINGS_PANEL_OPACITY, 100).coerceIn(0, 100)
+            prefs.contains(KEY_SETTINGS_SHEET_TRANSPARENCY_LEGACY) -> {
+                val t = prefs.getInt(KEY_SETTINGS_SHEET_TRANSPARENCY_LEGACY, 100).coerceIn(0, 100)
+                (100 - t).coerceIn(0, 100)
+            }
+            prefs.contains(KEY_SETTINGS_SHEET_OPACITY_LEGACY) ->
+                prefs.getInt(KEY_SETTINGS_SHEET_OPACITY_LEGACY, 100).coerceIn(0, 100)
+            else -> 100
+        }
+        set(value) {
+            val v = value.coerceIn(0, 100)
+            prefs.edit()
+                .putInt(KEY_SETTINGS_PANEL_OPACITY, v)
+                .remove(KEY_SETTINGS_SHEET_TRANSPARENCY_LEGACY)
+                .remove(KEY_SETTINGS_SHEET_OPACITY_LEGACY)
+                .apply()
+        }
+
+    /** 设置面板窗口背后压暗：0–100，对应 `Window.setDimAmount(value/100f)`，默认 40 */
+    var settingsSheetBackdropDimPercent: Int
+        get() = getInt(KEY_SETTINGS_SHEET_BACKDROP_DIM, 40)
+        set(value) = putInt(KEY_SETTINGS_SHEET_BACKDROP_DIM, value.coerceIn(0, 100))
+
+    /** 设置面板窗口背景模糊半径（dp），0=关闭；默认 18；仅 Android 12+ `setBackgroundBlurRadius` 生效 */
+    var settingsSheetBackdropBlurDp: Int
+        get() = getInt(KEY_SETTINGS_SHEET_BACKDROP_BLUR_DP, 18)
+        set(value) = putInt(KEY_SETTINGS_SHEET_BACKDROP_BLUR_DP, value.coerceIn(0, 64))
+
     // ── 声音 ──
 
     var speedPreservePitch: Boolean
@@ -267,6 +304,13 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SATURATION_ADJUSTMENT = "saturation_adjustment"
         private const val KEY_PROGRESS_STYLE = "progress_style"
         private const val KEY_CONTROLS_OPACITY = "controls_opacity"
+        private const val KEY_SETTINGS_PANEL_OPACITY = "settings_panel_opacity"
+        /** 旧版：存的是「透明度」且 alpha=1-T/100，迁移为新语义（越大越不透明） */
+        private const val KEY_SETTINGS_SHEET_TRANSPARENCY_LEGACY = "settings_sheet_transparency"
+        /** 更早：存的是不透明度，与新语义一致 */
+        private const val KEY_SETTINGS_SHEET_OPACITY_LEGACY = "settings_sheet_opacity"
+        private const val KEY_SETTINGS_SHEET_BACKDROP_DIM = "settings_sheet_backdrop_dim"
+        private const val KEY_SETTINGS_SHEET_BACKDROP_BLUR_DP = "settings_sheet_backdrop_blur_dp"
 
         // 声音
         private const val KEY_SPEED_PRESERVE_PITCH = "speed_preserve_pitch"

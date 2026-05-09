@@ -202,6 +202,9 @@
     <string name="player_sheet_saturation">饱和度</string>
     <string name="player_sheet_progress_style">进度条样式</string>
     <string name="player_sheet_controls_opacity">控件透明度</string>
+    <string name="player_sheet_settings_panel_opacity">设置面板不透明度</string>
+    <string name="player_sheet_settings_backdrop_dim">背景压暗</string>
+    <string name="player_sheet_settings_backdrop_blur">背景模糊</string>
     <string name="player_sheet_default">默认</string>
     <string name="player_sheet_modern">现代</string>
     <string name="player_sheet_thin">极细</string>

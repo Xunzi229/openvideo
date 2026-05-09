@@ -98,24 +98,20 @@ class PlayerSettingsDialogTest {
                 "Settings sheet should not use the old near-opaque black background.",
                 sheet.contains("#F2000000", ignoreCase = true)
             )
-            assertTrue("Glass sheet should use a translucent gradient.", sheet.contains("<gradient"))
-            assertTrue("Glass sheet should keep a subtle glass edge.", sheet.contains("<stroke"))
             assertTrue(
-                "Glass sheet should include translucent colors so the video remains visible.",
-                listOf("#66", "#73", "#80", "#8F", "#99", "#A6", "#AA", "#B3").any {
-                    sheet.contains(it, ignoreCase = true)
-                }
+                "Settings sheet should use an opaque black fill.",
+                sheet.contains("<solid") && sheet.contains("#FF000000", ignoreCase = true)
             )
+            assertTrue("Settings sheet keeps rounded corners.", sheet.contains("android:radius=\"28dp\""))
         }
 
         assertTrue(
-            "Android 12+ devices should blur the playing video behind the sheet.",
-            dialogSource.contains("setBackgroundBlurRadius(dp(18))")
-                || dialogSource.contains("setBackgroundBlurRadius(dp(20))")
+            "Android 12+ blur radius is applied from prefs via applySheetWindowBackdrop.",
+            dialogSource.contains("applySheetWindowBackdrop") && dialogSource.contains("setBackgroundBlurRadius")
         )
         assertTrue(
-            "The dim overlay should be light enough to preserve the playing video.",
-            dialogSource.contains("setDimAmount(0.18f)")
+            "Dim strength comes from prefs.",
+            dialogSource.contains("settingsSheetBackdropDimPercent") && dialogSource.contains("setDimAmount")
         )
     }
 
@@ -136,9 +132,8 @@ class PlayerSettingsDialogTest {
         assertTrue(layout.contains("@+id/settings_detail_scroll"))
         assertTrue(layout.contains("@drawable/bg_player_settings_bottom_fade"))
 
-        assertTrue("Landscape glass panel should have large rounded corners.", landscapeSheet.contains("android:radius=\"28dp\""))
-        assertTrue("Landscape glass panel should be highly translucent.", landscapeSheet.contains("#7312161E"))
-        assertTrue("Landscape panel needs a soft glass edge.", landscapeSheet.contains("#2EFFFFFF"))
+        assertTrue("Landscape settings panel should have large rounded corners.", landscapeSheet.contains("android:radius=\"28dp\""))
+        assertTrue("Landscape settings panel should use opaque black.", landscapeSheet.contains("#FF000000"))
     }
 
     @Test

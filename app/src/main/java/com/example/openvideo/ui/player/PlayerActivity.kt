@@ -400,7 +400,9 @@ class PlayerActivity : AppCompatActivity() {
         btnNext.setOnClickListener { viewModel.seekForward() }
 
         btnSettings.setOnClickListener {
-            hideControls()
+            // Keep chrome visible behind the dimmed panel so display prefs (e.g. controls opacity)
+            // apply immediately via SharedPreferences listener; cancel pending auto-hide while sheet is open.
+            handler.removeCallbacks(hideControlsRunnable)
             val dialog = PlayerSettingsDialog(
                 context = this,
                 playerManager = playerManager,
