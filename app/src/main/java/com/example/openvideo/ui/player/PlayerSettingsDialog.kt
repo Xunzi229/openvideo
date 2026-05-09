@@ -8,6 +8,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.text.TextUtils
 import android.view.KeyEvent
 import android.text.InputType
 import android.view.Gravity
@@ -936,6 +937,7 @@ class PlayerSettingsDialog(
         onChanged: (Boolean) -> Unit
     ) {
         parent.addView(LinearLayout(context).apply {
+            isBaselineAligned = false
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
             minimumHeight = dp(52)
@@ -943,11 +945,23 @@ class PlayerSettingsDialog(
                 text = title
                 setTextColor(Color.WHITE)
                 textSize = 15f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+                includeFontPadding = false
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginEnd = dp(8)
+                }
             })
             addView(SwitchMaterial(context).apply {
                 isChecked = checked
                 setOnCheckedChangeListener { _: CompoundButton, value: Boolean -> onChanged(value) }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    marginStart = dp(8)
+                    gravity = Gravity.CENTER_VERTICAL
+                }
             })
         })
         addDivider(parent)
@@ -1025,6 +1039,7 @@ class PlayerSettingsDialog(
 
     private fun addActionRow(title: String, value: String, onClick: () -> Unit) {
         detailContainer.addView(LinearLayout(context).apply {
+            isBaselineAligned = false
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
             minimumHeight = dp(54)
@@ -1035,15 +1050,28 @@ class PlayerSettingsDialog(
                 text = title
                 setTextColor(Color.WHITE)
                 textSize = 15f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+                includeFontPadding = false
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginEnd = dp(8)
+                }
             })
             addView(TextView(context).apply {
                 text = value
                 setTextColor(context.getColor(R.color.ov_accent_blue))
                 textSize = 14f
-                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(12), dp(5), dp(12), dp(5))
                 background = context.getDrawable(R.drawable.bg_player_settings_value)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                }
             })
         })
         addDivider(detailContainer)
@@ -1056,6 +1084,7 @@ class PlayerSettingsDialog(
         onSelected: (String) -> Unit
     ) {
         detailContainer.addView(LinearLayout(context).apply {
+            isBaselineAligned = false
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
             minimumHeight = dp(54)
@@ -1071,15 +1100,28 @@ class PlayerSettingsDialog(
                 text = title
                 setTextColor(Color.WHITE)
                 textSize = 15f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+                includeFontPadding = false
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginEnd = dp(8)
+                }
             })
             addView(TextView(context).apply {
                 text = value
                 setTextColor(context.getColor(R.color.ov_accent_blue))
                 textSize = 14f
-                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(12), dp(5), dp(12), dp(5))
                 background = context.getDrawable(R.drawable.bg_player_settings_value)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                }
             })
         })
         addDivider(detailContainer)
@@ -1104,15 +1146,31 @@ class PlayerSettingsDialog(
             textSize = 14f
         }
         row.addView(LinearLayout(context).apply {
+            isBaselineAligned = false
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
             addView(TextView(context).apply {
                 text = title
                 setTextColor(Color.WHITE)
                 textSize = 15f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                maxLines = 2
+                ellipsize = TextUtils.TruncateAt.END
+                includeFontPadding = false
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginEnd = dp(8)
+                }
             })
-            addView(valueView)
+            addView(valueView.apply {
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                    marginStart = dp(8)
+                }
+            })
         })
         row.addView(SeekBar(context).apply {
             max = maxValue - min
