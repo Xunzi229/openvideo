@@ -1,6 +1,8 @@
 package com.example.openvideo.ui.player
 
 import android.app.Dialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -582,19 +584,31 @@ class PlayerSettingsDialog(
     }
 
     private fun buildInfoPage() {
+        videoInfoRows().forEach { (label, value) -> addInfoRow(label, value) }
+        addActionRow(context.getString(R.string.player_settings_info_copy)) {
+            copyVideoInfoToClipboard()
+        }
+    }
+
+    private fun videoInfoRows(): List<Pair<String, String>> {
         val state = viewModel.uiState.value
-        addInfoRow(
-            context.getString(R.string.player_settings_info_title),
-            state.title.ifBlank { context.getString(R.string.app_name) }
+        return listOf(
+            context.getString(R.string.player_settings_info_title) to
+                state.title.ifBlank { context.getString(R.string.app_name) },
+            context.getString(R.string.player_settings_info_position) to formatTime(playerManager.currentPosition),
+            context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration),
+            context.getString(R.string.player_settings_info_speed) to playbackSpeedLabelFor(state.speed),
+            context.getString(R.string.player_settings_info_aspect) to aspectLabel(playerPrefs.aspectRatio),
+            context.getString(R.string.player_settings_info_source) to
+                viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
         )
-        addInfoRow(context.getString(R.string.player_settings_info_position), formatTime(playerManager.currentPosition))
-        addInfoRow(context.getString(R.string.player_settings_info_duration), formatTime(playerManager.duration))
-        addInfoRow(context.getString(R.string.player_settings_info_speed), playbackSpeedLabelFor(state.speed))
-        addInfoRow(context.getString(R.string.player_settings_info_aspect), aspectLabel(playerPrefs.aspectRatio))
-        addInfoRow(
-            context.getString(R.string.player_settings_info_source),
-            viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
-        )
+    }
+
+    private fun copyVideoInfoToClipboard() {
+        val text = videoInfoRows().joinToString(separator = "\n") { "${it.first}: ${it.second}" }
+        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        cm.setPrimaryClip(ClipData.newPlainText("openvideo_video_info", text))
+        Toast.makeText(context, context.getString(R.string.player_settings_info_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun buildCutPage() {

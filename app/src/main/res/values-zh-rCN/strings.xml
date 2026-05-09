@@ -219,6 +219,8 @@
     <string name="player_settings_info_speed">播放速度</string>
     <string name="player_settings_info_aspect">画面比例</string>
     <string name="player_settings_info_source">视频来源</string>
+    <string name="player_settings_info_copy">复制视频信息</string>
+    <string name="player_settings_info_copied">已复制到剪贴板</string>
     <string name="player_settings_clip_start">开始点</string>
     <string name="player_settings_clip_end">结束点</string>
     <string name="player_settings_clip_set_start">设为开始点</string>

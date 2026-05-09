@@ -219,6 +219,8 @@
     <string name="player_settings_info_speed">Speed</string>
     <string name="player_settings_info_aspect">Aspect</string>
     <string name="player_settings_info_source">Source</string>
+    <string name="player_settings_info_copy">Copy video info</string>
+    <string name="player_settings_info_copied">Copied to clipboard</string>
     <string name="player_settings_clip_start">Start</string>
     <string name="player_settings_clip_end">End</string>
     <string name="player_settings_clip_set_start">Set start point</string>
