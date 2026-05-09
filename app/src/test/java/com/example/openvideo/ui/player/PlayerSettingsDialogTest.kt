@@ -154,6 +154,18 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun progressBarStyleUsesNavigateRowAndSubdetailChoicePage() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val displayBlock = dialogSource
+            .substringAfter("private fun buildDisplayPage()")
+            .substringBefore("private fun buildPlaylistPage()")
+        assertTrue(displayBlock.contains("addDetailNavigateRow("))
+        assertTrue(displayBlock.contains("R.string.player_sheet_progress_style"))
+        assertTrue(displayBlock.contains("showChoicePopup("))
+        assertTrue(displayBlock.contains("rebuildCurrentDetail(SettingsPage.DISPLAY"))
+    }
+
+    @Test
     fun brightnessSettingUsesScreenBrightnessInsteadOfVideoEffects() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val brightnessBlock = dialogSource

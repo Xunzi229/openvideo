@@ -499,19 +499,27 @@ class PlayerSettingsDialog(
         ) { checked ->
             playerPrefs.mirror = checked
         }
-        addChoiceRow(
-            title = context.getString(R.string.player_sheet_progress_style),
-            value = progressStyleLabel(playerPrefs.progressStyle),
-            options = listOf(
-                context.getString(R.string.player_sheet_default),
-                context.getString(R.string.player_sheet_modern),
-                context.getString(R.string.player_sheet_thin)
-            )
-        ) { selected ->
-            playerPrefs.progressStyle = when (selected) {
-                context.getString(R.string.player_sheet_modern) -> "modern"
-                context.getString(R.string.player_sheet_thin) -> "thin"
-                else -> "default"
+        val progressStyleTitle = context.getString(R.string.player_sheet_progress_style)
+        val progressStyleOptions = listOf(
+            context.getString(R.string.player_sheet_default),
+            context.getString(R.string.player_sheet_modern),
+            context.getString(R.string.player_sheet_thin)
+        )
+        addDetailNavigateRow(
+            title = progressStyleTitle,
+            summary = progressStyleLabel(playerPrefs.progressStyle)
+        ) {
+            showChoicePopup(
+                progressStyleTitle,
+                progressStyleOptions,
+                progressStyleLabel(playerPrefs.progressStyle)
+            ) { selected ->
+                playerPrefs.progressStyle = when (selected) {
+                    context.getString(R.string.player_sheet_modern) -> "modern"
+                    context.getString(R.string.player_sheet_thin) -> "thin"
+                    else -> "default"
+                }
+                rebuildCurrentDetail(SettingsPage.DISPLAY, context.getString(R.string.player_sheet_display))
             }
         }
         addSeekRow(
@@ -1035,6 +1043,32 @@ class PlayerSettingsDialog(
             }
         )
         addDivider(parent)
+    }
+
+    /** Full-width title + summary; opens subdetail flows without horizontal title/value overlap. */
+    private fun addDetailNavigateRow(title: String, summary: String, onClick: () -> Unit) {
+        detailContainer.addView(LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            minimumHeight = dp(54)
+            setPadding(0, dp(10), 0, dp(10))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+            addView(TextView(context).apply {
+                text = title
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                includeFontPadding = false
+            })
+            addView(TextView(context).apply {
+                text = summary
+                setTextColor(context.getColor(R.color.ov_accent_blue))
+                textSize = 14f
+                includeFontPadding = false
+                setPadding(0, dp(6), 0, 0)
+            })
+        })
+        addDivider(detailContainer)
     }
 
     private fun addActionRow(title: String, value: String, onClick: () -> Unit) {
