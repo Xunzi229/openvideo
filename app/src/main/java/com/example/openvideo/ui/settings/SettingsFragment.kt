@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.settings
 
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -49,11 +50,17 @@ class SettingsFragment : Fragment() {
             updateThemeLabel(tvTheme)
         }
 
-        view.findViewById<View>(R.id.row_language).setOnClickListener {
+        view.findViewById<View>(R.id.row_language).setOnClickListener { row ->
             val langs = listOf("system", "zh", "en")
-            val next = (langs.indexOf(viewModel.language) + 1) % langs.size
+            val current = langs.indexOf(viewModel.language).let { idx ->
+                if (idx >= 0) idx else 0
+            }
+            val next = (current + 1) % langs.size
             viewModel.setLanguage(langs[next])
-            requireActivity().recreate()
+            // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                row.post { requireActivity().recreate() }
+            }
         }
 
         view.findViewById<View>(R.id.row_default_ratio).setOnClickListener {

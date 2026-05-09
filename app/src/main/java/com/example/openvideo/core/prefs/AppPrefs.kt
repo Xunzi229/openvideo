@@ -9,8 +9,12 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         set(value) = putString(KEY_THEME_MODE, value.key)
 
     var language: String
-        get() = getString(KEY_LANGUAGE, "system")
-        set(value) = putString(KEY_LANGUAGE, value)
+        get() = normalizeLanguage(getString(KEY_LANGUAGE, "system"))
+        set(value) {
+            val v = normalizeLanguage(value)
+            // commit() so prefs + AppCompatDelegate see one canonical value before any recreate
+            prefs.edit().putString(KEY_LANGUAGE, v).commit()
+        }
 
     var defaultAspectRatio: AspectRatio
         get() = AspectRatio.fromKey(getString(KEY_DEFAULT_ASPECT_RATIO, "fit"))
@@ -41,6 +45,14 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
 
         private const val KEY_THEME_MODE = "theme_mode"
         private const val KEY_LANGUAGE = "language"
+
+        /** Canonical keys: system | zh | en. Unknown legacy values map to system so UI cycling stays stable. */
+        internal fun normalizeLanguage(raw: String): String = when (raw) {
+            "zh", "zh-CN", "zh-rCN", "zh_CN" -> "zh"
+            "en", "en-US", "en-rUS", "en_GB" -> "en"
+            "system" -> "system"
+            else -> "system"
+        }
         private const val KEY_DEFAULT_ASPECT_RATIO = "default_aspect_ratio"
         private const val KEY_DEFAULT_SPEED = "default_speed"
         private const val KEY_BRIGHTNESS = "brightness"
