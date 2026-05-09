@@ -262,6 +262,25 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun resetDefaultsInvokesCallbackSoActivityCanReapplyPrefs() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val moreBlock = dialogSource
+            .substringAfter("private fun buildMorePage()")
+            .substringBefore("\n    private fun ")
+
+        assertTrue(moreBlock.contains("playerPrefs.resetToDefaults()"))
+        assertTrue(moreBlock.contains("onPlayerPrefsReset()"))
+
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        assertTrue(activitySource.contains("onPlayerPrefsReset = ::applyPlayerSettings"))
+        assertTrue(
+            "applyPlayerSettings should sync aspect + decode from prefs (e.g. after reset).",
+            activitySource.contains("viewModel.setAspectRatio(playerPrefs.aspectRatio)")
+                && activitySource.contains("viewModel.setDecodeMode(")
+        )
+    }
+
+    @Test
     fun tutorialChoicePagesStayInsidePlayerSettingsPanel() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val doubleTapPage = dialogSource
@@ -324,6 +343,24 @@ class PlayerSettingsDialogTest {
             "res",
             "layout",
             "dialog_player_settings.xml"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerActivitySource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerActivity.kt"
         )
         return sequenceOf(
             relativePath,

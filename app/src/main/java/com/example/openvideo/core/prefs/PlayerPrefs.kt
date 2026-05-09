@@ -234,7 +234,8 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         set(value) = putLong(KEY_BOOKMARK_POSITION_MS, value)
 
     fun resetToDefaults() {
-        prefs.edit().clear().apply()
+        // commit() so the next read + Activity apply sees an empty store immediately
+        prefs.edit().clear().commit()
     }
 
     companion object {

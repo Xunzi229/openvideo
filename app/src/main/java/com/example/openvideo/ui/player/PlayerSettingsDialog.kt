@@ -45,7 +45,9 @@ class PlayerSettingsDialog(
     private val viewModel: PlayerViewModel,
     private val playerPrefs: PlayerPrefs,
     private val onScreenBrightnessChanged: (Int) -> Unit = {},
-    private val onRequestPickSubtitle: () -> Unit = {}
+    private val onRequestPickSubtitle: () -> Unit = {},
+    /** Invoked after [PlayerPrefs.resetToDefaults] so playback/UI re-sync from cleared prefs. */
+    private val onPlayerPrefsReset: () -> Unit = {}
 ) : Dialog(context) {
 
     private val primaryItems by lazy {
@@ -757,6 +759,7 @@ class PlayerSettingsDialog(
         }
         addActionRow(context.getString(R.string.settings_reset_defaults)) {
             playerPrefs.resetToDefaults()
+            onPlayerPrefsReset()
             showPrimaryPage()
             setupPrimarySwitches()
         }

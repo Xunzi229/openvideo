@@ -41,6 +41,7 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.R as Media3UiR
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
+import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlaybackService
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.GestureAction
@@ -246,6 +247,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyPlayerSettings() {
+        viewModel.setAspectRatio(playerPrefs.aspectRatio)
+        viewModel.setDecodeMode(if (playerPrefs.softwareAudioDecoder) DecodeMode.SOFT else DecodeMode.HARD)
         viewModel.setSpeed(
             playerPrefs.speed,
             PlayerPlaybackSettings.pitchFor(playerPrefs.speed, playerPrefs.speedPreservePitch)
@@ -406,7 +409,8 @@ class PlayerActivity : AppCompatActivity() {
                 onScreenBrightnessChanged = ::applyScreenBrightness,
                 onRequestPickSubtitle = {
                     pickSubtitleLauncher.launch(arrayOf("*/*"))
-                }
+                },
+                onPlayerPrefsReset = ::applyPlayerSettings
             )
             dialog.setOnDismissListener {
                 applyPlayerSettings()
