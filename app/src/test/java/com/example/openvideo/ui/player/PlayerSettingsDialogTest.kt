@@ -186,7 +186,7 @@ class PlayerSettingsDialogTest {
 
         val seekRow = dialogSource
             .substringAfter("private fun addSeekRow(")
-            .substringBefore("\n    private fun showChoicePopup")
+            .substringBefore("\n    private fun addDivider(parent: LinearLayout)")
         assertTrue(seekRow.contains("commitOnStop: Boolean = false"))
         assertTrue(seekRow.contains("pendingValue"))
         assertTrue(seekRow.contains("if (!commitOnStop) onChanged(next)"))
@@ -291,8 +291,7 @@ class PlayerSettingsDialogTest {
             .substringBefore("\n    private fun buildMorePage()")
 
         listOf(doubleTapPage, longPressPage).forEach { page ->
-            assertTrue(page.contains("detailTitle.text"))
-            assertTrue(page.contains("detailContainer.removeAllViews()"))
+            assertTrue(page.contains("openNestedDetailScreen("))
             assertTrue(page.contains("addRadioRow("))
             assertTrue(page.contains("rebuildCurrentDetail(SettingsPage.TUTORIAL"))
             assertFalse(page.contains("showChoicePopup("))

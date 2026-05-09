@@ -41,6 +41,7 @@ import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.switchmaterial.SwitchMaterial
+import java.util.ArrayDeque
 import kotlin.math.round
 
 class PlayerSettingsDialog(
@@ -134,20 +135,29 @@ class PlayerSettingsDialog(
     private lateinit var subdetailTitle: TextView
     private lateinit var subdetailContainer: LinearLayout
 
+    private data class DetailBackState(val page: SettingsPage, val title: String)
+
+    /** Nested screens inside [settings_detail_page] (same pattern as tutorial double-tap). */
+    private val detailBackStack = ArrayDeque<DetailBackState>()
+    private var currentRootDetailPage: SettingsPage? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.dialog_player_settings)
         setCanceledOnTouchOutside(true)
         setOnKeyListener { _, keyCode, event ->
-            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP &&
-                ::subdetailPage.isInitialized && subdetailPage.visibility == View.VISIBLE
-            ) {
-                hideSubDetailPage()
-                true
-            } else {
-                false
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP) {
+                if (::subdetailPage.isInitialized && subdetailPage.visibility == View.VISIBLE) {
+                    hideSubDetailPage()
+                    return@setOnKeyListener true
+                }
+                if (::detailPage.isInitialized && detailPage.visibility == View.VISIBLE && detailBackStack.isNotEmpty()) {
+                    popDetailNested()
+                    return@setOnKeyListener true
+                }
             }
+            false
         }
 
         window?.apply {
@@ -182,7 +192,7 @@ class PlayerSettingsDialog(
             subdetailContainer = requireView(R.id.settings_subdetail_container)
 
             requireView<ImageButton>(R.id.settings_detail_back).setOnClickListener {
-                showPrimaryPage()
+                if (detailBackStack.isNotEmpty()) popDetailNested() else showPrimaryPage()
             }
             requireView<ImageButton>(R.id.settings_subdetail_back).setOnClickListener {
                 hideSubDetailPage()
@@ -298,23 +308,15 @@ class PlayerSettingsDialog(
         primaryPage.visibility = View.VISIBLE
         detailPage.visibility = View.GONE
         subdetailPage.visibility = View.GONE
+        detailBackStack.clear()
+        currentRootDetailPage = null
     }
 
     private fun hideSubDetailPage() {
         subdetailPage.visibility = View.GONE
     }
 
-    private fun showSubDetailPage(title: String, build: (LinearLayout) -> Unit) {
-        subdetailTitle.text = title
-        subdetailContainer.removeAllViews()
-        build(subdetailContainer)
-        subdetailPage.visibility = View.VISIBLE
-    }
-
-    private fun showDetailPage(page: SettingsPage, title: String) {
-        hideSubDetailPage()
-        detailTitle.text = title
-        detailContainer.removeAllViews()
+    private fun populateDetailBody(page: SettingsPage) {
         when (page) {
             SettingsPage.AUDIO -> buildAudioPage()
             SettingsPage.SUBTITLE -> buildSubtitlePage()
@@ -327,67 +329,137 @@ class PlayerSettingsDialog(
             SettingsPage.BOOKMARK -> buildBookmarkPage()
             SettingsPage.TUTORIAL -> buildTutorialPage()
             SettingsPage.MORE -> buildMorePage()
-            SettingsPage.SHARE -> shareVideoTitle()
+            SettingsPage.SHARE -> Unit
         }
+    }
+
+    /** Opens a second-level screen (toolbar stays; title + list update like tutorial double-tap). */
+    private fun openNestedDetailScreen(subTitle: String, build: () -> Unit) {
+        val page = currentRootDetailPage ?: return
+        detailBackStack.addLast(DetailBackState(page, detailTitle.text.toString()))
+        detailTitle.text = subTitle
+        detailContainer.removeAllViews()
+        build()
+    }
+
+    private fun popDetailNested() {
+        hideSubDetailPage()
+        if (detailBackStack.isEmpty()) return
+        val prev = detailBackStack.removeLast()
+        detailTitle.text = prev.title
+        detailContainer.removeAllViews()
+        populateDetailBody(prev.page)
+    }
+
+    private fun showDetailPage(page: SettingsPage, title: String) {
+        hideSubDetailPage()
+        detailBackStack.clear()
+        currentRootDetailPage = page
+        detailTitle.text = title
+        detailContainer.removeAllViews()
+        populateDetailBody(page)
         primaryPage.visibility = View.GONE
         detailPage.visibility = View.VISIBLE
     }
 
     private fun buildAudioPage() {
-        addRadioRow(
-            title = context.getString(R.string.player_sheet_audio_track_english),
-            checked = !playerPrefs.audioMuted
+        val audioTitle = context.getString(R.string.player_sheet_audio_track)
+        addActionRow(
+            title = audioTitle,
+            value = if (playerPrefs.audioMuted) {
+                context.getString(R.string.player_sheet_disable)
+            } else {
+                context.getString(R.string.player_sheet_audio_track_english)
+            }
         ) {
-            playerPrefs.audioMuted = false
-            playerManager.setMuted(false)
-            rebuildCurrentDetail(SettingsPage.AUDIO, context.getString(R.string.player_sheet_audio_track))
+            openNestedDetailScreen(audioTitle) {
+                addRadioRow(
+                    title = context.getString(R.string.player_sheet_audio_track_english),
+                    checked = !playerPrefs.audioMuted
+                ) {
+                    playerPrefs.audioMuted = false
+                    playerManager.setMuted(false)
+                    detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
+                }
+                addRadioRow(
+                    title = context.getString(R.string.player_sheet_disable),
+                    checked = playerPrefs.audioMuted
+                ) {
+                    playerPrefs.audioMuted = true
+                    playerManager.setMuted(true)
+                    detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
+                }
+            }
         }
-        addRadioRow(
-            title = context.getString(R.string.player_sheet_disable),
-            checked = playerPrefs.audioMuted
-        ) {
-            playerPrefs.audioMuted = true
-            playerManager.setMuted(true)
-            rebuildCurrentDetail(SettingsPage.AUDIO, context.getString(R.string.player_sheet_audio_track))
-        }
-        addCheckboxRow(
+        addActionRow(
             title = context.getString(R.string.player_sheet_software_audio_decoder),
-            checked = playerPrefs.softwareAudioDecoder
-        ) { checked ->
-            playerPrefs.softwareAudioDecoder = checked
-            viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
+            value = if (playerPrefs.softwareAudioDecoder) {
+                context.getString(R.string.player_sheet_enable)
+            } else {
+                context.getString(R.string.player_sheet_disable)
+            }
+        ) {
+            openNestedDetailScreen(context.getString(R.string.player_sheet_software_audio_decoder)) {
+                addCheckboxRow(
+                    title = context.getString(R.string.player_sheet_software_audio_decoder),
+                    checked = playerPrefs.softwareAudioDecoder
+                ) { checked ->
+                    playerPrefs.softwareAudioDecoder = checked
+                    viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
+                }
+            }
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.player_sheet_enable),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.player_sheet_enable),
             checked = !playerPrefs.pauseOnExit
         ) { checked ->
             playerPrefs.pauseOnExit = !checked
         }
-        addRadioRow(
-            title = context.getString(R.string.player_sheet_stereo_mode),
-            checked = playerPrefs.audioChannel == AudioChannel.STEREO
+        val stereoTitle = context.getString(R.string.player_sheet_stereo_mode)
+        val syncTitle = context.getString(R.string.player_sheet_sync)
+        addActionRow(
+            title = stereoTitle,
+            value = if (playerPrefs.audioChannel == AudioChannel.STEREO) stereoTitle else syncTitle
         ) {
-            playerPrefs.audioChannel = AudioChannel.STEREO
+            openNestedDetailScreen(stereoTitle) {
+                addRadioRow(
+                    title = stereoTitle,
+                    checked = playerPrefs.audioChannel == AudioChannel.STEREO
+                ) {
+                    playerPrefs.audioChannel = AudioChannel.STEREO
+                    detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
+                }
+                addRadioRow(
+                    title = syncTitle,
+                    checked = playerPrefs.audioDelay == 0
+                ) {
+                    playerPrefs.audioDelay = 0
+                    detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
+                }
+            }
         }
-        addRadioRow(
-            title = context.getString(R.string.player_sheet_sync),
-            checked = playerPrefs.audioDelay == 0
-        ) {
-            playerPrefs.audioDelay = 0
-        }
-        addCheckboxRow(
+        addActionRow(
             title = context.getString(R.string.player_sheet_av_sync),
-            checked = playerPrefs.audioSyncEnabled
-        ) { checked ->
-            playerPrefs.audioSyncEnabled = checked
+            value = if (playerPrefs.audioSyncEnabled) {
+                context.getString(R.string.player_sheet_enable)
+            } else {
+                context.getString(R.string.player_sheet_disable)
+            }
+        ) {
+            openNestedDetailScreen(context.getString(R.string.player_sheet_av_sync)) {
+                addCheckboxRow(
+                    title = context.getString(R.string.player_sheet_av_sync),
+                    checked = playerPrefs.audioSyncEnabled
+                ) { checked ->
+                    playerPrefs.audioSyncEnabled = checked
+                }
+            }
         }
     }
 
     private fun buildSubtitlePage() {
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.player_sheet_subtitle_switch),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.player_sheet_subtitle_switch),
             checked = playerPrefs.subtitlesEnabled
         ) { checked ->
             playerPrefs.subtitlesEnabled = checked
@@ -396,7 +468,7 @@ class PlayerSettingsDialog(
             dismiss()
             onRequestPickSubtitle()
         }
-        addSeekRow(
+        addSeekNavigateRow(
             title = context.getString(R.string.player_sheet_subtitle_delay),
             min = -5000,
             maxValue = 5000,
@@ -406,7 +478,7 @@ class PlayerSettingsDialog(
         ) { value ->
             playerPrefs.subtitleDelayMs = value
         }
-        addSeekRow(
+        addSeekNavigateRow(
             title = context.getString(R.string.settings_subtitle_size),
             min = 12,
             maxValue = 36,
@@ -445,17 +517,22 @@ class PlayerSettingsDialog(
     }
 
     private fun buildAspectPage() {
-        addAspectRow(context.getString(R.string.player_sheet_fit_screen), AspectRatio.FIT)
-        addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
-        addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
-        addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
-        addAspectRow(context.getString(R.string.player_sheet_original_ratio), AspectRatio.FIT)
-        addAspectRow(context.getString(R.string.settings_ratio_crop), AspectRatio.CROP)
-        addAspectRow(context.getString(R.string.settings_ratio_stretch), AspectRatio.STRETCH)
+        val aspectTitle = context.getString(R.string.player_sheet_aspect_ratio)
+        addActionRow(aspectTitle, aspectLabel(playerPrefs.aspectRatio)) {
+            openNestedDetailScreen(aspectTitle) {
+                addAspectRow(context.getString(R.string.player_sheet_fit_screen), AspectRatio.FIT)
+                addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
+                addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
+                addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
+                addAspectRow(context.getString(R.string.player_sheet_original_ratio), AspectRatio.FIT)
+                addAspectRow(context.getString(R.string.settings_ratio_crop), AspectRatio.CROP)
+                addAspectRow(context.getString(R.string.settings_ratio_stretch), AspectRatio.STRETCH)
+            }
+        }
     }
 
     private fun buildDisplayPage() {
-        addSeekRow(
+        addSeekNavigateRow(
             title = context.getString(R.string.player_sheet_brightness),
             min = 0,
             maxValue = 100,
@@ -465,7 +542,7 @@ class PlayerSettingsDialog(
             playerPrefs.brightnessAdjustment = value
             onScreenBrightnessChanged(value)
         }
-        addSeekRow(
+        addSeekNavigateRow(
             title = context.getString(R.string.player_sheet_contrast),
             min = -100,
             maxValue = 100,
@@ -476,7 +553,7 @@ class PlayerSettingsDialog(
             playerPrefs.contrastAdjustment = value
             applyVideoAdjustmentsFromPrefs()
         }
-        addSeekRow(
+        addSeekNavigateRow(
             title = context.getString(R.string.player_sheet_saturation),
             min = -100,
             maxValue = 100,
@@ -495,9 +572,8 @@ class PlayerSettingsDialog(
             playerPrefs.rotation = rotationDegrees.firstOrNull { rotationLabel(it) == selected }
                 ?: playerPrefs.rotation
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_mirror),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.settings_mirror),
             checked = playerPrefs.mirror
         ) { checked ->
             playerPrefs.mirror = checked
@@ -517,7 +593,7 @@ class PlayerSettingsDialog(
                 else -> "default"
             }
         }
-        addSeekRow(
+        addSeekNavigateRow(
             title = context.getString(R.string.player_sheet_controls_opacity),
             min = 30,
             maxValue = 100,
@@ -542,9 +618,8 @@ class PlayerSettingsDialog(
             playerPrefs.loopMode = mode
             viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_auto_play_next),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.settings_auto_play_next),
             checked = playerPrefs.autoPlayNext
         ) { checked ->
             playerPrefs.autoPlayNext = checked
@@ -563,9 +638,8 @@ class PlayerSettingsDialog(
         ) { selected ->
             setSeekIntervalFromChoiceLabel(selected)
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_remember_progress),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.settings_remember_progress),
             checked = playerPrefs.rememberProgress
         ) { checked ->
             playerPrefs.rememberProgress = checked
@@ -640,9 +714,8 @@ class PlayerSettingsDialog(
             playerPrefs.clipEndMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.player_settings_clip_loop_preview),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.player_settings_clip_loop_preview),
             checked = playerPrefs.clipLoopPreview
         ) { checked ->
             playerPrefs.clipLoopPreview = checked
@@ -706,9 +779,8 @@ class PlayerSettingsDialog(
         ) {
             showLongPressActionPage()
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_edge_swipe_back),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.settings_edge_swipe_back),
             checked = playerPrefs.edgeSwipeBack
         ) { checked ->
             playerPrefs.edgeSwipeBack = checked
@@ -716,37 +788,36 @@ class PlayerSettingsDialog(
     }
 
     private fun showDoubleTapActionPage() {
-        detailTitle.text = context.getString(R.string.settings_double_tap_action)
-        detailContainer.removeAllViews()
-        DoubleTapAction.entries.forEach { action ->
-            addRadioRow(
-                title = doubleTapLabel(action),
-                checked = playerPrefs.doubleTapAction == action
-            ) {
-                playerPrefs.doubleTapAction = action
-                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+        openNestedDetailScreen(context.getString(R.string.settings_double_tap_action)) {
+            DoubleTapAction.entries.forEach { action ->
+                addRadioRow(
+                    title = doubleTapLabel(action),
+                    checked = playerPrefs.doubleTapAction == action
+                ) {
+                    playerPrefs.doubleTapAction = action
+                    rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+                }
             }
         }
     }
 
     private fun showLongPressActionPage() {
-        detailTitle.text = context.getString(R.string.settings_long_press_action)
-        detailContainer.removeAllViews()
-        LongPressAction.entries.forEach { action ->
-            addRadioRow(
-                title = longPressLabel(action),
-                checked = playerPrefs.longPressAction == action
-            ) {
-                playerPrefs.longPressAction = action
-                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+        openNestedDetailScreen(context.getString(R.string.settings_long_press_action)) {
+            LongPressAction.entries.forEach { action ->
+                addRadioRow(
+                    title = longPressLabel(action),
+                    checked = playerPrefs.longPressAction == action
+                ) {
+                    playerPrefs.longPressAction = action
+                    rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+                }
             }
         }
     }
 
     private fun buildMorePage() {
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_skip_intro_outro),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.settings_skip_intro_outro),
             checked = playerPrefs.skipIntroOutro
         ) { checked ->
             playerPrefs.skipIntroOutro = checked
@@ -758,9 +829,8 @@ class PlayerSettingsDialog(
         ) { selected ->
             setPlaybackSpeedFromChoiceLabel(selected)
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_keep_screen_on),
+        addSwitchNavigateRow(
+            rowTitle = context.getString(R.string.settings_keep_screen_on),
             checked = playerPrefs.keepScreenOn
         ) { checked ->
             playerPrefs.keepScreenOn = checked
@@ -844,8 +914,8 @@ class PlayerSettingsDialog(
             setTextColor(Color.WHITE)
             setHintTextColor(Color.rgb(176, 176, 176))
         }
-        showSubDetailPage(context.getString(R.string.player_sheet_stream)) { container ->
-            container.addView(
+        openNestedDetailScreen(context.getString(R.string.player_sheet_stream)) {
+            detailContainer.addView(
                 input,
                 LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -854,8 +924,8 @@ class PlayerSettingsDialog(
                     topMargin = dp(4)
                 }
             )
-            addDivider(container)
-            addAccentActionRow(container, context.getString(R.string.player_action_play)) {
+            addDivider(detailContainer)
+            addAccentActionRow(detailContainer, context.getString(R.string.player_action_play)) {
                 val url = input.text?.toString().orEmpty().trim()
                 if (url.isNotBlank()) playStreamUrl(url)
             }
@@ -943,6 +1013,44 @@ class PlayerSettingsDialog(
 
     private fun rebuildCurrentDetail(page: SettingsPage, title: String) {
         showDetailPage(page, title)
+    }
+
+    private fun addSwitchNavigateRow(
+        rowTitle: String,
+        checked: Boolean,
+        onChanged: (Boolean) -> Unit
+    ) {
+        val summary = if (checked) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+        addActionRow(rowTitle, summary) {
+            openNestedDetailScreen(rowTitle) {
+                addSwitchRow(
+                    parent = detailContainer,
+                    title = rowTitle,
+                    checked = checked,
+                    onChanged = onChanged
+                )
+            }
+        }
+    }
+
+    private fun addSeekNavigateRow(
+        title: String,
+        min: Int,
+        maxValue: Int,
+        value: Int,
+        label: (Int) -> String,
+        commitOnStop: Boolean = false,
+        onChanged: (Int) -> Unit
+    ) {
+        addActionRow(title, label(value)) {
+            openNestedDetailScreen(title) {
+                addSeekRow(title, min, maxValue, value, label, commitOnStop, onChanged)
+            }
+        }
     }
 
     private fun addSwitchRow(
@@ -1096,45 +1204,21 @@ class PlayerSettingsDialog(
         options: List<String>,
         onSelected: (String) -> Unit
     ) {
-        detailContainer.addView(LinearLayout(context).apply {
-            isBaselineAligned = false
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(54)
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                showChoicePopup(title, options, value) { selected ->
-                    onSelected(selected)
-                    (getChildAt(1) as? TextView)?.text = selected
+        addActionRow(title, value) {
+            openNestedDetailScreen(title) {
+                options.forEach { opt ->
+                    addRadioRow(
+                        title = opt,
+                        checked = opt == value
+                    ) {
+                        onSelected(opt)
+                        detailBackStack.lastOrNull()?.let { prev ->
+                            rebuildCurrentDetail(prev.page, prev.title)
+                        }
+                    }
                 }
             }
-            addView(TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                includeFontPadding = false
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginEnd = dp(8)
-                }
-            })
-            addView(TextView(context).apply {
-                text = value
-                setTextColor(context.getColor(R.color.ov_accent_blue))
-                textSize = 14f
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.END or Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(5), dp(12), dp(5))
-                background = context.getDrawable(R.drawable.bg_player_settings_value)
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.42f).apply {
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-            })
-        })
-        addDivider(detailContainer)
+        }
     }
 
     private fun addSeekRow(
@@ -1205,35 +1289,6 @@ class PlayerSettingsDialog(
         })
         detailContainer.addView(row)
         addDivider(detailContainer)
-    }
-
-    private fun showChoicePopup(
-        title: String,
-        options: List<String>,
-        selected: String,
-        onSelected: (String) -> Unit
-    ) {
-        showSubDetailPage(title) { container ->
-            options.forEach { option ->
-                container.addView(
-                    RadioButton(context).apply {
-                        text = option
-                        isChecked = option == selected
-                        buttonTintList = context.getColorStateList(R.color.nav_item_tint)
-                        setTextColor(
-                            if (option == selected) context.getColor(R.color.ov_accent_blue) else Color.WHITE
-                        )
-                        textSize = 15f
-                        minHeight = dp(52)
-                        setOnClickListener {
-                            onSelected(option)
-                            hideSubDetailPage()
-                        }
-                    }
-                )
-                addDivider(container)
-            }
-        }
     }
 
     private fun addDivider(parent: LinearLayout) {
