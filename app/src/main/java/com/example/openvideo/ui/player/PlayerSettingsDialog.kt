@@ -131,6 +131,9 @@ class PlayerSettingsDialog(
     private lateinit var subdetailTitle: TextView
     private lateinit var subdetailContainer: LinearLayout
 
+    /** Active settings category while detail page is visible; used to refresh summaries after closing subdetail. */
+    private var currentDetailPage: SettingsPage? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -295,10 +298,15 @@ class PlayerSettingsDialog(
         primaryPage.visibility = View.VISIBLE
         detailPage.visibility = View.GONE
         subdetailPage.visibility = View.GONE
+        currentDetailPage = null
     }
 
     private fun hideSubDetailPage() {
+        if (subdetailPage.visibility != View.VISIBLE) return
         subdetailPage.visibility = View.GONE
+        val page = currentDetailPage ?: return
+        detailContainer.removeAllViews()
+        populateDetailBody(page)
     }
 
     private fun showSubDetailPage(title: String, build: (LinearLayout) -> Unit) {
@@ -308,10 +316,7 @@ class PlayerSettingsDialog(
         subdetailPage.visibility = View.VISIBLE
     }
 
-    private fun showDetailPage(page: SettingsPage, title: String) {
-        hideSubDetailPage()
-        detailTitle.text = title
-        detailContainer.removeAllViews()
+    private fun populateDetailBody(page: SettingsPage) {
         when (page) {
             SettingsPage.AUDIO -> buildAudioPage()
             SettingsPage.SUBTITLE -> buildSubtitlePage()
@@ -324,30 +329,68 @@ class PlayerSettingsDialog(
             SettingsPage.BOOKMARK -> buildBookmarkPage()
             SettingsPage.TUTORIAL -> buildTutorialPage()
             SettingsPage.MORE -> buildMorePage()
-            SettingsPage.SHARE -> shareVideoTitle()
+            SettingsPage.SHARE -> Unit
         }
+    }
+
+    private fun showDetailPage(page: SettingsPage, title: String) {
+        subdetailPage.visibility = View.GONE
+        currentDetailPage = page
+        detailTitle.text = title
+        detailContainer.removeAllViews()
+        populateDetailBody(page)
         primaryPage.visibility = View.GONE
         detailPage.visibility = View.VISIBLE
     }
 
+    private fun audioSettingsSummary(): String {
+        val track = if (playerPrefs.audioMuted) {
+            context.getString(R.string.player_sheet_disable)
+        } else {
+            context.getString(R.string.player_sheet_audio_track_english)
+        }
+        val channel = if (playerPrefs.audioChannel == AudioChannel.STEREO) {
+            context.getString(R.string.player_sheet_stereo_mode)
+        } else {
+            context.getString(R.string.player_sheet_sync)
+        }
+        return "$track · $channel"
+    }
+
     private fun buildAudioPage() {
+        val pageTitle = context.getString(R.string.player_sheet_audio_track)
+        addDetailNavigateRow(pageTitle, audioSettingsSummary()) {
+            showSubDetailPage(pageTitle) { container ->
+                fun repaint() {
+                    container.removeAllViews()
+                    paintAudioSubdetail(container, ::repaint)
+                }
+                paintAudioSubdetail(container, ::repaint)
+            }
+        }
+    }
+
+    private fun paintAudioSubdetail(container: LinearLayout, repaint: () -> Unit) {
         addRadioRow(
+            container,
             title = context.getString(R.string.player_sheet_audio_track_english),
             checked = !playerPrefs.audioMuted
         ) {
             playerPrefs.audioMuted = false
             playerManager.setMuted(false)
-            rebuildCurrentDetail(SettingsPage.AUDIO, context.getString(R.string.player_sheet_audio_track))
+            repaint()
         }
         addRadioRow(
+            container,
             title = context.getString(R.string.player_sheet_disable),
             checked = playerPrefs.audioMuted
         ) {
             playerPrefs.audioMuted = true
             playerManager.setMuted(true)
-            rebuildCurrentDetail(SettingsPage.AUDIO, context.getString(R.string.player_sheet_audio_track))
+            repaint()
         }
         addCheckboxRow(
+            container,
             title = context.getString(R.string.player_sheet_software_audio_decoder),
             checked = playerPrefs.softwareAudioDecoder
         ) { checked ->
@@ -355,25 +398,30 @@ class PlayerSettingsDialog(
             viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
         }
         addSwitchRow(
-            parent = detailContainer,
+            parent = container,
             title = context.getString(R.string.player_sheet_enable),
             checked = !playerPrefs.pauseOnExit
         ) { checked ->
             playerPrefs.pauseOnExit = !checked
         }
         addRadioRow(
+            container,
             title = context.getString(R.string.player_sheet_stereo_mode),
             checked = playerPrefs.audioChannel == AudioChannel.STEREO
         ) {
             playerPrefs.audioChannel = AudioChannel.STEREO
+            repaint()
         }
         addRadioRow(
+            container,
             title = context.getString(R.string.player_sheet_sync),
             checked = playerPrefs.audioDelay == 0
         ) {
             playerPrefs.audioDelay = 0
+            repaint()
         }
         addCheckboxRow(
+            container,
             title = context.getString(R.string.player_sheet_av_sync),
             checked = playerPrefs.audioSyncEnabled
         ) { checked ->
@@ -381,40 +429,71 @@ class PlayerSettingsDialog(
         }
     }
 
+    private fun subtitleSwitchSummary(): String =
+        if (playerPrefs.subtitlesEnabled) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+
     private fun buildSubtitlePage() {
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.player_sheet_subtitle_switch),
-            checked = playerPrefs.subtitlesEnabled
-        ) { checked ->
-            playerPrefs.subtitlesEnabled = checked
+        val pageTitle = context.getString(R.string.player_sheet_subtitles)
+        addDetailNavigateRow(
+            context.getString(R.string.player_sheet_subtitle_switch),
+            subtitleSwitchSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.player_sheet_subtitle_switch)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.player_sheet_subtitle_switch),
+                    checked = playerPrefs.subtitlesEnabled
+                ) { checked ->
+                    playerPrefs.subtitlesEnabled = checked
+                }
+            }
         }
         addActionRow(context.getString(R.string.player_sheet_select_subtitle_file)) {
             dismiss()
             onRequestPickSubtitle()
         }
-        addSeekRow(
-            title = context.getString(R.string.player_sheet_subtitle_delay),
-            min = -5000,
-            maxValue = 5000,
-            value = playerPrefs.subtitleDelayMs,
-            label = { ms -> context.getString(R.string.player_settings_unit_ms, ms) },
-            commitOnStop = true
-        ) { value ->
-            playerPrefs.subtitleDelayMs = value
+        addDetailNavigateRow(
+            context.getString(R.string.player_sheet_subtitle_delay),
+            context.getString(R.string.player_settings_unit_ms, playerPrefs.subtitleDelayMs)
+        ) {
+            showSubDetailPage(context.getString(R.string.player_sheet_subtitle_delay)) { container ->
+                addSeekRow(
+                    parent = container,
+                    title = context.getString(R.string.player_sheet_subtitle_delay),
+                    min = -5000,
+                    maxValue = 5000,
+                    value = playerPrefs.subtitleDelayMs,
+                    label = { ms -> context.getString(R.string.player_settings_unit_ms, ms) },
+                    commitOnStop = true
+                ) { value ->
+                    playerPrefs.subtitleDelayMs = value
+                }
+            }
         }
-        addSeekRow(
-            title = context.getString(R.string.settings_subtitle_size),
-            min = 12,
-            maxValue = 36,
-            value = playerPrefs.subtitleSize,
-            label = { sp -> context.getString(R.string.player_settings_unit_sp, sp) },
-            commitOnStop = true
-        ) { value ->
-            playerPrefs.subtitleSize = value
+        addDetailNavigateRow(
+            context.getString(R.string.settings_subtitle_size),
+            context.getString(R.string.player_settings_unit_sp, playerPrefs.subtitleSize)
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_subtitle_size)) { container ->
+                addSeekRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_subtitle_size),
+                    min = 12,
+                    maxValue = 36,
+                    value = playerPrefs.subtitleSize,
+                    label = { sp -> context.getString(R.string.player_settings_unit_sp, sp) },
+                    commitOnStop = true
+                ) { value ->
+                    playerPrefs.subtitleSize = value
+                }
+            }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_subtitle_color),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_subtitle_color),
             value = context.getString(subtitleColorOptionFor(playerPrefs.subtitleColor).labelRes),
             options = subtitleColorOptions.map { context.getString(it.labelRes) }
         ) { selected ->
@@ -422,8 +501,8 @@ class PlayerSettingsDialog(
                 playerPrefs.subtitleColor = it.color
             }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_subtitle_bg),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_subtitle_bg),
             value = subtitleBgLabel(playerPrefs.subtitleBgStyle),
             options = subtitleBgOptions.map(::subtitleBgLabel)
         ) { selected ->
@@ -431,8 +510,8 @@ class PlayerSettingsDialog(
                 playerPrefs.subtitleBgStyle = it
             }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_subtitle_encoding),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_subtitle_encoding),
             value = subtitleEncodingLabel(playerPrefs.subtitleEncoding),
             options = subtitleEncodingOptions.map(::subtitleEncodingLabel)
         ) { selected ->
@@ -441,63 +520,127 @@ class PlayerSettingsDialog(
         }
     }
 
+    private fun aspectRatioChoiceRows(): List<Pair<String, AspectRatio>> = listOf(
+        context.getString(R.string.player_sheet_fit_screen) to AspectRatio.FIT,
+        context.getString(R.string.player_sheet_fill_screen) to AspectRatio.FILL,
+        context.getString(R.string.settings_ratio_16_9) to AspectRatio.RATIO_16_9,
+        context.getString(R.string.settings_ratio_4_3) to AspectRatio.RATIO_4_3,
+        context.getString(R.string.player_sheet_original_ratio) to AspectRatio.FIT,
+        context.getString(R.string.settings_ratio_crop) to AspectRatio.CROP,
+        context.getString(R.string.settings_ratio_stretch) to AspectRatio.STRETCH
+    )
+
     private fun buildAspectPage() {
-        addAspectRow(context.getString(R.string.player_sheet_fit_screen), AspectRatio.FIT)
-        addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
-        addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
-        addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
-        addAspectRow(context.getString(R.string.player_sheet_original_ratio), AspectRatio.FIT)
-        addAspectRow(context.getString(R.string.settings_ratio_crop), AspectRatio.CROP)
-        addAspectRow(context.getString(R.string.settings_ratio_stretch), AspectRatio.STRETCH)
+        val pageTitle = context.getString(R.string.player_sheet_aspect_ratio)
+        addDetailNavigateRow(pageTitle, aspectLabel(playerPrefs.aspectRatio)) {
+            showSubDetailPage(pageTitle) { container ->
+                aspectRatioChoiceRows().forEach { (label, ratio) ->
+                    addRadioRow(
+                        container,
+                        title = label,
+                        checked = playerPrefs.aspectRatio == ratio
+                    ) {
+                        playerPrefs.aspectRatio = ratio
+                        viewModel.setAspectRatio(ratio)
+                        hideSubDetailPage()
+                    }
+                }
+            }
+        }
     }
 
+    private fun brightnessSummary(): String =
+        if (playerPrefs.brightnessAdjustment == 0) {
+            context.getString(R.string.settings_theme_system)
+        } else {
+            "${playerPrefs.brightnessAdjustment}%"
+        }
+
+    private fun mirrorSummary(): String =
+        if (playerPrefs.mirror) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+
     private fun buildDisplayPage() {
-        addSeekRow(
-            title = context.getString(R.string.player_sheet_brightness),
-            min = 0,
-            maxValue = 100,
-            value = playerPrefs.brightnessAdjustment,
-            label = { if (it == 0) context.getString(R.string.settings_theme_system) else "$it%" }
-        ) { value ->
-            playerPrefs.brightnessAdjustment = value
-            onScreenBrightnessChanged(value)
+        addDetailNavigateRow(
+            context.getString(R.string.player_sheet_brightness),
+            brightnessSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.player_sheet_brightness)) { container ->
+                addSeekRow(
+                    parent = container,
+                    title = context.getString(R.string.player_sheet_brightness),
+                    min = 0,
+                    maxValue = 100,
+                    value = playerPrefs.brightnessAdjustment,
+                    label = { if (it == 0) context.getString(R.string.settings_theme_system) else "$it%" }
+                ) { value ->
+                    playerPrefs.brightnessAdjustment = value
+                    onScreenBrightnessChanged(value)
+                }
+            }
         }
-        addSeekRow(
-            title = context.getString(R.string.player_sheet_contrast),
-            min = -100,
-            maxValue = 100,
-            value = playerPrefs.contrastAdjustment,
-            label = { "$it%" },
-            commitOnStop = true
-        ) { value ->
-            playerPrefs.contrastAdjustment = value
-            applyVideoAdjustmentsFromPrefs()
+        addDetailNavigateRow(
+            context.getString(R.string.player_sheet_contrast),
+            "${playerPrefs.contrastAdjustment}%"
+        ) {
+            showSubDetailPage(context.getString(R.string.player_sheet_contrast)) { container ->
+                addSeekRow(
+                    parent = container,
+                    title = context.getString(R.string.player_sheet_contrast),
+                    min = -100,
+                    maxValue = 100,
+                    value = playerPrefs.contrastAdjustment,
+                    label = { "$it%" },
+                    commitOnStop = true
+                ) { value ->
+                    playerPrefs.contrastAdjustment = value
+                    applyVideoAdjustmentsFromPrefs()
+                }
+            }
         }
-        addSeekRow(
-            title = context.getString(R.string.player_sheet_saturation),
-            min = -100,
-            maxValue = 100,
-            value = playerPrefs.saturationAdjustment,
-            label = { "$it%" },
-            commitOnStop = true
-        ) { value ->
-            playerPrefs.saturationAdjustment = value
-            applyVideoAdjustmentsFromPrefs()
+        addDetailNavigateRow(
+            context.getString(R.string.player_sheet_saturation),
+            "${playerPrefs.saturationAdjustment}%"
+        ) {
+            showSubDetailPage(context.getString(R.string.player_sheet_saturation)) { container ->
+                addSeekRow(
+                    parent = container,
+                    title = context.getString(R.string.player_sheet_saturation),
+                    min = -100,
+                    maxValue = 100,
+                    value = playerPrefs.saturationAdjustment,
+                    label = { "$it%" },
+                    commitOnStop = true
+                ) { value ->
+                    playerPrefs.saturationAdjustment = value
+                    applyVideoAdjustmentsFromPrefs()
+                }
+            }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_rotation),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_rotation),
             value = rotationLabel(playerPrefs.rotation),
             options = rotationDegrees.map(::rotationLabel)
         ) { selected ->
             playerPrefs.rotation = rotationDegrees.firstOrNull { rotationLabel(it) == selected }
                 ?: playerPrefs.rotation
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_mirror),
-            checked = playerPrefs.mirror
-        ) { checked ->
-            playerPrefs.mirror = checked
+        addDetailNavigateRow(
+            context.getString(R.string.settings_mirror),
+            mirrorSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_mirror)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_mirror),
+                    checked = playerPrefs.mirror
+                ) { checked ->
+                    playerPrefs.mirror = checked
+                }
+            }
         }
         val progressStyleTitle = context.getString(R.string.player_sheet_progress_style)
         val progressStyleOptions = listOf(
@@ -519,27 +662,48 @@ class PlayerSettingsDialog(
                     context.getString(R.string.player_sheet_thin) -> "thin"
                     else -> "default"
                 }
-                rebuildCurrentDetail(SettingsPage.DISPLAY, context.getString(R.string.player_sheet_display))
             }
         }
-        addSeekRow(
-            title = context.getString(R.string.player_sheet_controls_opacity),
-            min = 30,
-            maxValue = 100,
-            value = playerPrefs.controlsOpacity,
-            label = { "$it%" },
-            commitOnStop = true
-        ) { value ->
-            playerPrefs.controlsOpacity = value
+        addDetailNavigateRow(
+            context.getString(R.string.player_sheet_controls_opacity),
+            "${playerPrefs.controlsOpacity}%"
+        ) {
+            showSubDetailPage(context.getString(R.string.player_sheet_controls_opacity)) { container ->
+                addSeekRow(
+                    parent = container,
+                    title = context.getString(R.string.player_sheet_controls_opacity),
+                    min = 30,
+                    maxValue = 100,
+                    value = playerPrefs.controlsOpacity,
+                    label = { "$it%" },
+                    commitOnStop = true
+                ) { value ->
+                    playerPrefs.controlsOpacity = value
+                }
+            }
         }
     }
+
+    private fun autoPlayNextSummary(): String =
+        if (playerPrefs.autoPlayNext) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+
+    private fun rememberProgressSummaryPlaylist(): String =
+        if (playerPrefs.rememberProgress) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
 
     private fun buildPlaylistPage() {
         addActionRow(context.getString(R.string.player_settings_add_current_to_playlist)) {
             viewModel.addCurrentVideoToDefaultPlaylist()
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_loop_mode),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_loop_mode),
             value = loopModeLabel(playerPrefs.loopMode),
             options = LoopMode.entries.map(::loopModeLabel)
         ) { selected ->
@@ -547,33 +711,47 @@ class PlayerSettingsDialog(
             playerPrefs.loopMode = mode
             viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_auto_play_next),
-            checked = playerPrefs.autoPlayNext
-        ) { checked ->
-            playerPrefs.autoPlayNext = checked
+        addDetailNavigateRow(
+            context.getString(R.string.settings_auto_play_next),
+            autoPlayNextSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_auto_play_next)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_auto_play_next),
+                    checked = playerPrefs.autoPlayNext
+                ) { checked ->
+                    playerPrefs.autoPlayNext = checked
+                }
+            }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_playback_speed),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_playback_speed),
             value = playbackSpeedLabelFor(playerPrefs.speed),
             options = speedChoices().map { context.getString(it.labelRes) }
         ) { selected ->
             setPlaybackSpeedFromChoiceLabel(selected)
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_seek_interval),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_seek_interval),
             value = seekIntervalLabelFor(playerPrefs.seekInterval),
             options = seekIntervalChoices().map { context.getString(it.labelRes) }
         ) { selected ->
             setSeekIntervalFromChoiceLabel(selected)
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_remember_progress),
-            checked = playerPrefs.rememberProgress
-        ) { checked ->
-            playerPrefs.rememberProgress = checked
+        addDetailNavigateRow(
+            context.getString(R.string.settings_remember_progress),
+            rememberProgressSummaryPlaylist()
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_remember_progress)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_remember_progress),
+                    checked = playerPrefs.rememberProgress
+                ) { checked ->
+                    playerPrefs.rememberProgress = checked
+                }
+            }
         }
     }
 
@@ -673,6 +851,27 @@ class PlayerSettingsDialog(
         }
     }
 
+    private fun skipIntroSummary(): String =
+        if (playerPrefs.skipIntroOutro) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+
+    private fun keepScreenOnSummary(): String =
+        if (playerPrefs.keepScreenOn) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+
+    private fun edgeSwipeBackSummary(): String =
+        if (playerPrefs.edgeSwipeBack) {
+            context.getString(R.string.player_sheet_enable)
+        } else {
+            context.getString(R.string.player_sheet_disable)
+        }
+
     private fun buildTutorialPage() {
         addActionRow(context.getString(R.string.player_sheet_tutorial_apply_mx)) {
             playerPrefs.leftVerticalGesture = GestureAction.BRIGHTNESS
@@ -687,79 +886,104 @@ class PlayerSettingsDialog(
             playerPrefs.longPressAction = LongPressAction.SPEED
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
-        addActionRow(
-            title = context.getString(R.string.settings_double_tap_action),
-            value = doubleTapLabel(playerPrefs.doubleTapAction)
+        addDetailNavigateRow(
+            context.getString(R.string.settings_double_tap_action),
+            doubleTapLabel(playerPrefs.doubleTapAction)
         ) {
             showDoubleTapActionPage()
         }
-        addActionRow(
-            title = context.getString(R.string.settings_long_press_action),
-            value = longPressLabel(playerPrefs.longPressAction)
+        addDetailNavigateRow(
+            context.getString(R.string.settings_long_press_action),
+            longPressLabel(playerPrefs.longPressAction)
         ) {
             showLongPressActionPage()
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_edge_swipe_back),
-            checked = playerPrefs.edgeSwipeBack
-        ) { checked ->
-            playerPrefs.edgeSwipeBack = checked
+        addDetailNavigateRow(
+            context.getString(R.string.settings_edge_swipe_back),
+            edgeSwipeBackSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_edge_swipe_back)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_edge_swipe_back),
+                    checked = playerPrefs.edgeSwipeBack
+                ) { checked ->
+                    playerPrefs.edgeSwipeBack = checked
+                }
+            }
         }
     }
 
     private fun showDoubleTapActionPage() {
-        detailTitle.text = context.getString(R.string.settings_double_tap_action)
-        detailContainer.removeAllViews()
-        DoubleTapAction.entries.forEach { action ->
-            addRadioRow(
-                title = doubleTapLabel(action),
-                checked = playerPrefs.doubleTapAction == action
-            ) {
-                playerPrefs.doubleTapAction = action
-                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+        val title = context.getString(R.string.settings_double_tap_action)
+        showSubDetailPage(title) { container ->
+            DoubleTapAction.entries.forEach { action ->
+                addRadioRow(
+                    container,
+                    title = doubleTapLabel(action),
+                    checked = playerPrefs.doubleTapAction == action
+                ) {
+                    playerPrefs.doubleTapAction = action
+                    hideSubDetailPage()
+                }
             }
         }
     }
 
     private fun showLongPressActionPage() {
-        detailTitle.text = context.getString(R.string.settings_long_press_action)
-        detailContainer.removeAllViews()
-        LongPressAction.entries.forEach { action ->
-            addRadioRow(
-                title = longPressLabel(action),
-                checked = playerPrefs.longPressAction == action
-            ) {
-                playerPrefs.longPressAction = action
-                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+        val title = context.getString(R.string.settings_long_press_action)
+        showSubDetailPage(title) { container ->
+            LongPressAction.entries.forEach { action ->
+                addRadioRow(
+                    container,
+                    title = longPressLabel(action),
+                    checked = playerPrefs.longPressAction == action
+                ) {
+                    playerPrefs.longPressAction = action
+                    hideSubDetailPage()
+                }
             }
         }
     }
 
     private fun buildMorePage() {
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_skip_intro_outro),
-            checked = playerPrefs.skipIntroOutro
-        ) { checked ->
-            playerPrefs.skipIntroOutro = checked
+        addDetailNavigateRow(
+            context.getString(R.string.settings_skip_intro_outro),
+            skipIntroSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_skip_intro_outro)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_skip_intro_outro),
+                    checked = playerPrefs.skipIntroOutro
+                ) { checked ->
+                    playerPrefs.skipIntroOutro = checked
+                }
+            }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_playback_speed),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_playback_speed),
             value = playbackSpeedLabelFor(playerPrefs.speed),
             options = speedChoices().map { context.getString(it.labelRes) }
         ) { selected ->
             setPlaybackSpeedFromChoiceLabel(selected)
         }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_keep_screen_on),
-            checked = playerPrefs.keepScreenOn
-        ) { checked ->
-            playerPrefs.keepScreenOn = checked
+        addDetailNavigateRow(
+            context.getString(R.string.settings_keep_screen_on),
+            keepScreenOnSummary()
+        ) {
+            showSubDetailPage(context.getString(R.string.settings_keep_screen_on)) { container ->
+                addSwitchRow(
+                    parent = container,
+                    title = context.getString(R.string.settings_keep_screen_on),
+                    checked = playerPrefs.keepScreenOn
+                ) { checked ->
+                    playerPrefs.keepScreenOn = checked
+                }
+            }
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_controls_auto_hide),
+        addChoiceNavigateRow(
+            choiceTitle = context.getString(R.string.settings_controls_auto_hide),
             value = controlsAutoHideLabel(playerPrefs.controlsAutoHide),
             options = controlsAutoHideChoiceList().map { (_, res) -> context.getString(res) }
         ) { selected ->
@@ -923,17 +1147,6 @@ class PlayerSettingsDialog(
         else String.format("%02d:%02d", m, s)
     }
 
-    private fun addAspectRow(title: String, ratio: AspectRatio) {
-        addRadioRow(
-            title = title,
-            checked = playerPrefs.aspectRatio == ratio
-        ) {
-            playerPrefs.aspectRatio = ratio
-            viewModel.setAspectRatio(ratio)
-            rebuildCurrentDetail(SettingsPage.ASPECT, context.getString(R.string.player_sheet_aspect_ratio))
-        }
-    }
-
     private fun rebuildCurrentDetail(page: SettingsPage, title: String) {
         showDetailPage(page, title)
     }
@@ -976,12 +1189,13 @@ class PlayerSettingsDialog(
     }
 
     private fun addRadioRow(
+        parent: LinearLayout,
         title: String,
         checked: Boolean,
         enabled: Boolean = true,
         onClick: () -> Unit
     ) {
-        detailContainer.addView(RadioButton(context).apply {
+        parent.addView(RadioButton(context).apply {
             text = title
             isChecked = checked
             isEnabled = enabled
@@ -991,16 +1205,17 @@ class PlayerSettingsDialog(
             minHeight = dp(52)
             setOnClickListener { if (enabled) onClick() }
         })
-        addDivider(detailContainer)
+        addDivider(parent)
     }
 
     private fun addCheckboxRow(
+        parent: LinearLayout,
         title: String,
         checked: Boolean,
         enabled: Boolean = true,
         onChanged: (Boolean) -> Unit
     ) {
-        detailContainer.addView(CheckBox(context).apply {
+        parent.addView(CheckBox(context).apply {
             text = title
             isChecked = checked
             isEnabled = enabled
@@ -1010,7 +1225,7 @@ class PlayerSettingsDialog(
             minHeight = dp(52)
             setOnCheckedChangeListener { _, value -> onChanged(value) }
         })
-        addDivider(detailContainer)
+        addDivider(parent)
     }
 
     private fun addActionRow(title: String, onClick: () -> Unit) {
@@ -1071,6 +1286,17 @@ class PlayerSettingsDialog(
         addDivider(detailContainer)
     }
 
+    private fun addChoiceNavigateRow(
+        choiceTitle: String,
+        value: String,
+        options: List<String>,
+        onSelected: (String) -> Unit
+    ) {
+        addDetailNavigateRow(choiceTitle, value) {
+            showChoicePopup(choiceTitle, options, value, onSelected)
+        }
+    }
+
     private fun addActionRow(title: String, value: String, onClick: () -> Unit) {
         detailContainer.addView(LinearLayout(context).apply {
             isBaselineAligned = false
@@ -1109,54 +1335,8 @@ class PlayerSettingsDialog(
         addDivider(detailContainer)
     }
 
-    private fun addChoiceRow(
-        title: String,
-        value: String,
-        options: List<String>,
-        onSelected: (String) -> Unit
-    ) {
-        detailContainer.addView(LinearLayout(context).apply {
-            isBaselineAligned = false
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(54)
-            isClickable = true
-            isFocusable = true
-            setOnClickListener {
-                showChoicePopup(title, options, value) { selected ->
-                    onSelected(selected)
-                    (getChildAt(1) as? TextView)?.text = selected
-                }
-            }
-            addView(TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                includeFontPadding = false
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginEnd = dp(8)
-                }
-            })
-            addView(TextView(context).apply {
-                text = value
-                setTextColor(context.getColor(R.color.ov_accent_blue))
-                textSize = 14f
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.END or Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(5), dp(12), dp(5))
-                background = context.getDrawable(R.drawable.bg_player_settings_value)
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.42f).apply {
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-            })
-        })
-        addDivider(detailContainer)
-    }
-
     private fun addSeekRow(
+        parent: LinearLayout,
         title: String,
         min: Int,
         maxValue: Int,
@@ -1222,8 +1402,8 @@ class PlayerSettingsDialog(
                 }
             })
         })
-        detailContainer.addView(row)
-        addDivider(detailContainer)
+        parent.addView(row)
+        addDivider(parent)
     }
 
     private fun showChoicePopup(
