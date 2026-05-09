@@ -17,7 +17,8 @@ class PlayerSettingsActivityIntegrationTest {
         assertTrue(source.contains("hideControls()"))
         assertTrue(source.contains("if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else \"\""))
         assertTrue(source.contains("playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f"))
-        assertTrue(source.contains("bottomPanel.alpha = playerPrefs.controlsOpacity / 100f"))
+        assertTrue(source.contains("controlsChromeMaxAlpha()"))
+        assertTrue(source.contains("controlsContainer.alpha = controlsChromeMaxAlpha()"))
         assertTrue(source.contains("playerManager.applyVideoAdjustments("))
     }
 

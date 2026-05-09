@@ -60,8 +60,8 @@ class PlayerExitFlashSourceTest {
                 root.contains("android:id=\"@+id/player_root\"")
             )
             assertTrue(
-                "PlayerView should keep SurfaceView rendering for high-bitrate and large-video compatibility",
-                playerView.contains("app:surface_type=\"surface_view\"")
+                "PlayerView should use TextureView so mirror and rotation apply to the decoded picture; exit still avoids synchronous Surface detach",
+                playerView.contains("app:surface_type=\"texture_view\"")
             )
         }
     }

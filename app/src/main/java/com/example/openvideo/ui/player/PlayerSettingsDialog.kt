@@ -6,6 +6,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
@@ -34,7 +35,6 @@ import com.example.openvideo.core.prefs.LongPressAction
 import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
-import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
 
 class PlayerSettingsDialog(
@@ -66,18 +66,81 @@ class PlayerSettingsDialog(
     private val subtitleBgOptions = SubtitleBgStyle.entries.toTypedArray()
     private val subtitleEncodingOptions = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
 
+    private data class SpeedChoice(val speed: Float, val labelRes: Int)
+
+    private fun speedChoices(): List<SpeedChoice> = listOf(
+        SpeedChoice(0.5f, R.string.settings_speed_0_5),
+        SpeedChoice(0.75f, R.string.settings_speed_0_75),
+        SpeedChoice(1f, R.string.settings_speed_1_0),
+        SpeedChoice(1.25f, R.string.settings_speed_1_25),
+        SpeedChoice(1.5f, R.string.settings_speed_1_5),
+        SpeedChoice(2f, R.string.settings_speed_2_0)
+    )
+
+    private fun playbackSpeedLabelFor(speed: Float): String =
+        speedChoices().firstOrNull { it.speed == speed }?.let { context.getString(it.labelRes) }
+            ?: context.getString(R.string.player_settings_speed_fallback, speed)
+
+    private data class SeekIntervalChoice(val seconds: Int, val labelRes: Int)
+
+    private fun seekIntervalChoices(): List<SeekIntervalChoice> = listOf(
+        SeekIntervalChoice(5, R.string.settings_seek_5s),
+        SeekIntervalChoice(10, R.string.settings_seek_10s),
+        SeekIntervalChoice(15, R.string.settings_seek_15s),
+        SeekIntervalChoice(30, R.string.settings_seek_30s)
+    )
+
+    private fun seekIntervalLabelFor(seconds: Int): String =
+        seekIntervalChoices().firstOrNull { it.seconds == seconds }?.let { context.getString(it.labelRes) }
+            ?: context.getString(R.string.player_settings_seek_interval_seconds, seconds)
+
+    private val rotationDegrees = listOf(0, 90, 180, 270)
+
+    private fun rotationLabel(deg: Int): String = when (deg) {
+        0 -> context.getString(R.string.settings_rotation_0)
+        90 -> context.getString(R.string.settings_rotation_90)
+        180 -> context.getString(R.string.settings_rotation_180)
+        270 -> context.getString(R.string.settings_rotation_270)
+        else -> context.getString(R.string.settings_rotation_0)
+    }
+
+    private fun controlsAutoHideChoiceList(): List<Pair<Int, Int>> = listOf(
+        0 to R.string.settings_hide_never,
+        3 to R.string.settings_hide_3s,
+        5 to R.string.settings_hide_5s,
+        8 to R.string.settings_hide_8s
+    )
+
+    private fun controlsAutoHideLabel(seconds: Int): String =
+        controlsAutoHideChoiceList().firstOrNull { it.first == seconds }?.let { (_, res) ->
+            context.getString(res)
+        } ?: context.getString(R.string.player_settings_seek_interval_seconds, seconds)
+
     private lateinit var primaryPage: View
     private lateinit var detailPage: View
     private lateinit var grid: GridLayout
     private lateinit var primarySwitches: LinearLayout
     private lateinit var detailTitle: TextView
     private lateinit var detailContainer: LinearLayout
+    private lateinit var subdetailPage: View
+    private lateinit var subdetailTitle: TextView
+    private lateinit var subdetailContainer: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.dialog_player_settings)
         setCanceledOnTouchOutside(true)
+        setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_BACK && event.action == KeyEvent.ACTION_UP &&
+                ::subdetailPage.isInitialized && subdetailPage.visibility == View.VISIBLE
+            ) {
+                hideSubDetailPage()
+                true
+            } else {
+                false
+            }
+        }
 
         window?.apply {
             val width = context.resources.displayMetrics.widthPixels
@@ -106,9 +169,15 @@ class PlayerSettingsDialog(
             primarySwitches = requireView(R.id.settings_switches)
             detailTitle = requireView(R.id.settings_detail_title)
             detailContainer = requireView(R.id.settings_detail_container)
+            subdetailPage = requireView(R.id.settings_subdetail_page)
+            subdetailTitle = requireView(R.id.settings_subdetail_title)
+            subdetailContainer = requireView(R.id.settings_subdetail_container)
 
             requireView<ImageButton>(R.id.settings_detail_back).setOnClickListener {
                 showPrimaryPage()
+            }
+            requireView<ImageButton>(R.id.settings_subdetail_back).setOnClickListener {
+                hideSubDetailPage()
             }
             setupPrimaryGrid()
             setupPrimarySwitches()
@@ -220,9 +289,22 @@ class PlayerSettingsDialog(
     private fun showPrimaryPage() {
         primaryPage.visibility = View.VISIBLE
         detailPage.visibility = View.GONE
+        subdetailPage.visibility = View.GONE
+    }
+
+    private fun hideSubDetailPage() {
+        subdetailPage.visibility = View.GONE
+    }
+
+    private fun showSubDetailPage(title: String, build: (LinearLayout) -> Unit) {
+        subdetailTitle.text = title
+        subdetailContainer.removeAllViews()
+        build(subdetailContainer)
+        subdetailPage.visibility = View.VISIBLE
     }
 
     private fun showDetailPage(page: SettingsPage, title: String) {
+        hideSubDetailPage()
         detailTitle.text = title
         detailContainer.removeAllViews()
         when (page) {
@@ -311,7 +393,7 @@ class PlayerSettingsDialog(
             min = -5000,
             maxValue = 5000,
             value = playerPrefs.subtitleDelayMs,
-            label = { "${it}ms" },
+            label = { ms -> context.getString(R.string.player_settings_unit_ms, ms) },
             commitOnStop = true
         ) { value ->
             playerPrefs.subtitleDelayMs = value
@@ -321,17 +403,17 @@ class PlayerSettingsDialog(
             min = 12,
             maxValue = 36,
             value = playerPrefs.subtitleSize,
-            label = { "${it}sp" },
+            label = { sp -> context.getString(R.string.player_settings_unit_sp, sp) },
             commitOnStop = true
         ) { value ->
             playerPrefs.subtitleSize = value
         }
         addChoiceRow(
             title = context.getString(R.string.settings_subtitle_color),
-            value = subtitleColorOptionFor(playerPrefs.subtitleColor).label,
-            options = subtitleColorOptions.map { it.label }
+            value = context.getString(subtitleColorOptionFor(playerPrefs.subtitleColor).labelRes),
+            options = subtitleColorOptions.map { context.getString(it.labelRes) }
         ) { selected ->
-            subtitleColorOptions.firstOrNull { it.label == selected }?.let {
+            subtitleColorOptions.firstOrNull { context.getString(it.labelRes) == selected }?.let {
                 playerPrefs.subtitleColor = it.color
             }
         }
@@ -399,10 +481,11 @@ class PlayerSettingsDialog(
         }
         addChoiceRow(
             title = context.getString(R.string.settings_rotation),
-            value = "${playerPrefs.rotation}\u00B0",
-            options = listOf("0\u00B0", "90\u00B0", "180\u00B0", "270\u00B0")
+            value = rotationLabel(playerPrefs.rotation),
+            options = rotationDegrees.map(::rotationLabel)
         ) { selected ->
-            playerPrefs.rotation = selected.removeSuffix("\u00B0").toIntOrNull() ?: 0
+            playerPrefs.rotation = rotationDegrees.firstOrNull { rotationLabel(it) == selected }
+                ?: playerPrefs.rotation
         }
         addSwitchRow(
             parent = detailContainer,
@@ -439,7 +522,7 @@ class PlayerSettingsDialog(
     }
 
     private fun buildPlaylistPage() {
-        addActionRow("Add current video") {
+        addActionRow(context.getString(R.string.player_settings_add_current_to_playlist)) {
             viewModel.addCurrentVideoToDefaultPlaylist()
         }
         addChoiceRow(
@@ -460,17 +543,17 @@ class PlayerSettingsDialog(
         }
         addChoiceRow(
             title = context.getString(R.string.settings_playback_speed),
-            value = "${playerPrefs.speed}x",
-            options = playbackSpeedOptions
+            value = playbackSpeedLabelFor(playerPrefs.speed),
+            options = speedChoices().map { context.getString(it.labelRes) }
         ) { selected ->
-            setPlaybackSpeed(selected)
+            setPlaybackSpeedFromChoiceLabel(selected)
         }
         addChoiceRow(
             title = context.getString(R.string.settings_seek_interval),
-            value = "${playerPrefs.seekInterval}s",
-            options = listOf("5s", "10s", "15s", "30s")
+            value = seekIntervalLabelFor(playerPrefs.seekInterval),
+            options = seekIntervalChoices().map { context.getString(it.labelRes) }
         ) { selected ->
-            playerPrefs.seekInterval = selected.removeSuffix("s").toIntOrNull() ?: 10
+            setSeekIntervalFromChoiceLabel(selected)
         }
         addSwitchRow(
             parent = detailContainer,
@@ -482,51 +565,60 @@ class PlayerSettingsDialog(
     }
 
     private fun buildStreamPage() {
-        addActionRow("Open network stream") {
+        addActionRow(context.getString(R.string.player_settings_open_network_stream)) {
             showStreamInput()
         }
         if (playerPrefs.lastStreamUrl.isNotBlank()) {
-            addActionRow("Play last stream") {
+            addActionRow(context.getString(R.string.player_settings_play_last_stream)) {
                 playStreamUrl(playerPrefs.lastStreamUrl)
             }
-            addInfoRow("Last URL", playerPrefs.lastStreamUrl)
+            addInfoRow(context.getString(R.string.player_settings_last_stream_url), playerPrefs.lastStreamUrl)
         } else {
-            addInfoRow("Last URL", "None")
+            addInfoRow(
+                context.getString(R.string.player_settings_last_stream_url),
+                context.getString(R.string.player_settings_value_none)
+            )
         }
     }
 
     private fun buildInfoPage() {
         val state = viewModel.uiState.value
-        addInfoRow("Title", state.title.ifBlank { context.getString(R.string.app_name) })
-        addInfoRow("Position", formatTime(playerManager.currentPosition))
-        addInfoRow("Duration", formatTime(playerManager.duration))
-        addInfoRow("Speed", "${state.speed}x")
-        addInfoRow("Aspect", aspectLabel(playerPrefs.aspectRatio))
-        addInfoRow("Source", viewModel.currentVideoSource().ifBlank { "None" })
+        addInfoRow(
+            context.getString(R.string.player_settings_info_title),
+            state.title.ifBlank { context.getString(R.string.app_name) }
+        )
+        addInfoRow(context.getString(R.string.player_settings_info_position), formatTime(playerManager.currentPosition))
+        addInfoRow(context.getString(R.string.player_settings_info_duration), formatTime(playerManager.duration))
+        addInfoRow(context.getString(R.string.player_settings_info_speed), playbackSpeedLabelFor(state.speed))
+        addInfoRow(context.getString(R.string.player_settings_info_aspect), aspectLabel(playerPrefs.aspectRatio))
+        addInfoRow(
+            context.getString(R.string.player_settings_info_source),
+            viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
+        )
     }
 
     private fun buildCutPage() {
-        addInfoRow("Start", formatSavedTime(playerPrefs.clipStartMs))
-        addInfoRow("End", formatSavedTime(playerPrefs.clipEndMs))
-        addActionRow("Set clip start") {
+        addInfoRow(context.getString(R.string.player_settings_clip_start), formatSavedTime(playerPrefs.clipStartMs))
+        addInfoRow(context.getString(R.string.player_settings_clip_end), formatSavedTime(playerPrefs.clipEndMs))
+        addActionRow(context.getString(R.string.player_settings_clip_set_start)) {
             playerPrefs.clipStartMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
         }
-        addActionRow("Set clip end") {
+        addActionRow(context.getString(R.string.player_settings_clip_set_end)) {
             playerPrefs.clipEndMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
         }
         addSwitchRow(
             parent = detailContainer,
-            title = "Loop clip preview",
+            title = context.getString(R.string.player_settings_clip_loop_preview),
             checked = playerPrefs.clipLoopPreview
         ) { checked ->
             playerPrefs.clipLoopPreview = checked
         }
-        addActionRow("Export clip") {
+        addActionRow(context.getString(R.string.player_settings_clip_export)) {
             exportClip()
         }
-        addActionRow("Clear clip points") {
+        addActionRow(context.getString(R.string.player_settings_clip_clear)) {
             playerPrefs.clipStartMs = -1L
             playerPrefs.clipEndMs = -1L
             playerPrefs.clipLoopPreview = false
@@ -536,23 +628,23 @@ class PlayerSettingsDialog(
 
     private fun buildBookmarkPage() {
         val bookmark = playerPrefs.bookmarkPositionMs
-        addInfoRow("Bookmark", formatSavedTime(bookmark))
-        addActionRow("Save current position") {
+        addInfoRow(context.getString(R.string.player_settings_bookmark_label), formatSavedTime(bookmark))
+        addActionRow(context.getString(R.string.player_settings_bookmark_save)) {
             playerPrefs.bookmarkPositionMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
         }
         if (bookmark >= 0L) {
-            addActionRow("Jump to bookmark") {
+            addActionRow(context.getString(R.string.player_settings_bookmark_jump)) {
                 viewModel.seekTo(bookmark)
                 dismiss()
             }
-            addActionRow("Clear bookmark") {
+            addActionRow(context.getString(R.string.player_settings_bookmark_clear)) {
                 playerPrefs.bookmarkPositionMs = -1L
                 rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
             }
         } else {
-            addDisabledRow("Jump to bookmark")
-            addDisabledRow("Clear bookmark")
+            addDisabledRow(context.getString(R.string.player_settings_bookmark_jump))
+            addDisabledRow(context.getString(R.string.player_settings_bookmark_clear))
         }
     }
 
@@ -629,10 +721,10 @@ class PlayerSettingsDialog(
         }
         addChoiceRow(
             title = context.getString(R.string.settings_playback_speed),
-            value = "${playerPrefs.speed}x",
-            options = playbackSpeedOptions
+            value = playbackSpeedLabelFor(playerPrefs.speed),
+            options = speedChoices().map { context.getString(it.labelRes) }
         ) { selected ->
-            setPlaybackSpeed(selected)
+            setPlaybackSpeedFromChoiceLabel(selected)
         }
         addSwitchRow(
             parent = detailContainer,
@@ -643,10 +735,11 @@ class PlayerSettingsDialog(
         }
         addChoiceRow(
             title = context.getString(R.string.settings_controls_auto_hide),
-            value = if (playerPrefs.controlsAutoHide == 0) "Off" else "${playerPrefs.controlsAutoHide}s",
-            options = listOf("Off", "3s", "5s", "8s")
+            value = controlsAutoHideLabel(playerPrefs.controlsAutoHide),
+            options = controlsAutoHideChoiceList().map { (_, res) -> context.getString(res) }
         ) { selected ->
-            playerPrefs.controlsAutoHide = selected.removeSuffix("s").toIntOrNull() ?: 0
+            playerPrefs.controlsAutoHide = controlsAutoHideChoiceList()
+                .firstOrNull { context.getString(it.second) == selected }?.first ?: 0
         }
         addActionRow(context.getString(R.string.settings_reset_defaults)) {
             playerPrefs.resetToDefaults()
@@ -682,13 +775,17 @@ class PlayerSettingsDialog(
         val startMs = playerPrefs.clipStartMs
         val endMs = playerPrefs.clipEndMs
         if (startMs < 0L || endMs <= startMs) {
-            Toast.makeText(context, "Set valid clip points first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.player_settings_toast_clip_need_points), Toast.LENGTH_SHORT).show()
             return
         }
         viewModel.exportClip(startMs, endMs) { success, path ->
             Toast.makeText(
                 context,
-                if (success) "Clip exported: $path" else "Clip export failed",
+                if (success) {
+                    context.getString(R.string.player_settings_toast_clip_exported, path)
+                } else {
+                    context.getString(R.string.player_settings_toast_clip_export_failed)
+                },
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -706,55 +803,30 @@ class PlayerSettingsDialog(
     }
 
     private fun showStreamInput() {
-        val popup = BottomSheetDialog(context)
         val input = EditText(context).apply {
             setText(playerPrefs.lastStreamUrl)
-            hint = "https://example.com/video.mp4"
+            hint = context.getString(R.string.player_settings_stream_url_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
             setSingleLine(true)
             setTextColor(Color.WHITE)
             setHintTextColor(Color.rgb(176, 176, 176))
         }
-        val container = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            background = context.getDrawable(R.drawable.bg_player_settings_sheet)
-            setPadding(dp(20), dp(18), dp(20), dp(20))
-            addView(TextView(context).apply {
-                text = context.getString(R.string.player_sheet_stream)
-                setTextColor(Color.WHITE)
-                textSize = 18f
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-            })
-            addView(input, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(12)
-            })
-            addView(TextView(context).apply {
-            text = "Play"
-                setTextColor(context.getColor(R.color.ov_accent_blue))
-                textSize = 16f
-                gravity = Gravity.CENTER
-                minHeight = dp(48)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    val url = input.text?.toString().orEmpty().trim()
-                    if (url.isNotBlank()) {
-                        playStreamUrl(url)
-                        popup.dismiss()
-                    }
+        showSubDetailPage(context.getString(R.string.player_sheet_stream)) { container ->
+            container.addView(
+                input,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = dp(4)
                 }
-            }, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(12)
-            })
+            )
+            addDivider(container)
+            addAccentActionRow(container, context.getString(R.string.player_action_play)) {
+                val url = input.text?.toString().orEmpty().trim()
+                if (url.isNotBlank()) playStreamUrl(url)
+            }
         }
-        popup.setContentView(container)
-        popup.show()
     }
 
     private fun playStreamUrl(url: String) {
@@ -763,10 +835,18 @@ class PlayerSettingsDialog(
         dismiss()
     }
 
-    private fun setPlaybackSpeed(selected: String) {
-        val speed = selected.removeSuffix("x").toFloatOrNull() ?: 1f
-        playerPrefs.speed = speed
-        viewModel.setSpeed(speed, PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch))
+    private fun setPlaybackSpeedFromChoiceLabel(selected: String) {
+        val choice = speedChoices().firstOrNull { context.getString(it.labelRes) == selected } ?: return
+        playerPrefs.speed = choice.speed
+        viewModel.setSpeed(
+            choice.speed,
+            PlayerPlaybackSettings.pitchFor(choice.speed, playerPrefs.speedPreservePitch)
+        )
+    }
+
+    private fun setSeekIntervalFromChoiceLabel(selected: String) {
+        val choice = seekIntervalChoices().firstOrNull { context.getString(it.labelRes) == selected } ?: return
+        playerPrefs.seekInterval = choice.seconds
     }
 
     private fun applyVideoAdjustmentsFromPrefs() {
@@ -776,8 +856,6 @@ class PlayerSettingsDialog(
             playerPrefs.saturationAdjustment / 100f
         )
     }
-
-    private val playbackSpeedOptions = listOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
 
     private fun loopModeLabel(value: LoopMode): String = when (value) {
         LoopMode.OFF -> context.getString(R.string.settings_loop_off)
@@ -807,7 +885,7 @@ class PlayerSettingsDialog(
     }
 
     private fun formatSavedTime(ms: Long): String =
-        if (ms >= 0L) formatTime(ms) else "None"
+        if (ms >= 0L) formatTime(ms) else context.getString(R.string.player_settings_value_none)
 
     private fun formatTime(ms: Long): String {
         val safeMs = ms.coerceAtLeast(0L)
@@ -897,17 +975,35 @@ class PlayerSettingsDialog(
     }
 
     private fun addActionRow(title: String, onClick: () -> Unit) {
-        detailContainer.addView(TextView(context).apply {
-            text = title
-            setTextColor(Color.WHITE)
-            textSize = 15f
-            gravity = Gravity.CENTER_VERTICAL
-            minHeight = dp(52)
-            isClickable = true
-            isFocusable = true
-            setOnClickListener { onClick() }
-        })
+        detailContainer.addView(
+            TextView(context).apply {
+                text = title
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                gravity = Gravity.CENTER_VERTICAL
+                minHeight = dp(52)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { onClick() }
+            }
+        )
         addDivider(detailContainer)
+    }
+
+    private fun addAccentActionRow(parent: LinearLayout, title: String, onClick: () -> Unit) {
+        parent.addView(
+            TextView(context).apply {
+                text = title
+                setTextColor(context.getColor(R.color.ov_accent_blue))
+                textSize = 15f
+                gravity = Gravity.CENTER_VERTICAL
+                minHeight = dp(52)
+                isClickable = true
+                isFocusable = true
+                setOnClickListener { onClick() }
+            }
+        )
+        addDivider(parent)
     }
 
     private fun addActionRow(title: String, value: String, onClick: () -> Unit) {
@@ -1032,35 +1128,27 @@ class PlayerSettingsDialog(
         selected: String,
         onSelected: (String) -> Unit
     ) {
-        val popup = BottomSheetDialog(context)
-        val list = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            background = context.getDrawable(R.drawable.bg_player_settings_sheet)
-            setPadding(dp(20), dp(16), dp(20), dp(20))
+        showSubDetailPage(title) { container ->
+            options.forEach { option ->
+                container.addView(
+                    RadioButton(context).apply {
+                        text = option
+                        isChecked = option == selected
+                        buttonTintList = context.getColorStateList(R.color.nav_item_tint)
+                        setTextColor(
+                            if (option == selected) context.getColor(R.color.ov_accent_blue) else Color.WHITE
+                        )
+                        textSize = 15f
+                        minHeight = dp(52)
+                        setOnClickListener {
+                            onSelected(option)
+                            hideSubDetailPage()
+                        }
+                    }
+                )
+                addDivider(container)
+            }
         }
-        list.addView(TextView(context).apply {
-            text = title
-            setTextColor(Color.WHITE)
-            textSize = 18f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setPadding(0, 0, 0, dp(12))
-        })
-        options.forEach { option ->
-            list.addView(RadioButton(context).apply {
-                text = option
-                isChecked = option == selected
-                buttonTintList = context.getColorStateList(R.color.nav_item_tint)
-                setTextColor(if (option == selected) context.getColor(R.color.ov_accent_blue) else Color.WHITE)
-                textSize = 15f
-                minHeight = dp(48)
-                setOnClickListener {
-                    onSelected(option)
-                    popup.dismiss()
-                }
-            })
-        }
-        popup.setContentView(list)
-        popup.show()
     }
 
     private fun addDivider(parent: LinearLayout) {
@@ -1101,14 +1189,14 @@ class PlayerSettingsDialog(
     private fun subtitleEncodingLabel(value: String): String =
         if (value == "auto") context.getString(R.string.settings_encoding_auto) else value
 
-    private data class SubtitleColorOption(val label: String, val color: Int)
+    private data class SubtitleColorOption(val labelRes: Int, val color: Int)
 
     private val subtitleColorOptions: Array<SubtitleColorOption> by lazy {
         arrayOf(
-            SubtitleColorOption("White", 0xFFFFFFFF.toInt()),
-            SubtitleColorOption("Yellow", 0xFFFFEB3B.toInt()),
-            SubtitleColorOption("Green", 0xFF8BC34A.toInt()),
-            SubtitleColorOption("Blue", 0xFF64B5F6.toInt())
+            SubtitleColorOption(R.string.player_settings_subtitle_color_white, 0xFFFFFFFF.toInt()),
+            SubtitleColorOption(R.string.player_settings_subtitle_color_yellow, 0xFFFFEB3B.toInt()),
+            SubtitleColorOption(R.string.player_settings_subtitle_color_green, 0xFF8BC34A.toInt()),
+            SubtitleColorOption(R.string.player_settings_subtitle_color_blue, 0xFF64B5F6.toInt())
         )
     }
 

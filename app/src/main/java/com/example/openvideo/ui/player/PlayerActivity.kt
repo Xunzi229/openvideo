@@ -258,7 +258,11 @@ class PlayerActivity : AppCompatActivity() {
         )
         applyScreenBrightness(playerPrefs.brightnessAdjustment)
         playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f
-        bottomPanel.alpha = playerPrefs.controlsOpacity / 100f
+        bottomPanel.alpha = 1f
+        if (controlsVisible) {
+            controlsContainer.animate().cancel()
+            controlsContainer.alpha = controlsChromeMaxAlpha()
+        }
 
         if (playerPrefs.keepScreenOn) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -811,10 +815,13 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.saveHistory()
     }
 
+    private fun controlsChromeMaxAlpha(): Float =
+        playerPrefs.controlsOpacity.coerceIn(0, 100) / 100f
+
     private fun showControls() {
         controlsVisible = true
         controlsContainer.animate().cancel()
-        controlsContainer.alpha = 1f
+        controlsContainer.alpha = controlsChromeMaxAlpha()
         controlsContainer.visibility = View.VISIBLE
         applyControlVisibility()
         scheduleHideControls()
@@ -833,7 +840,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun showLockedControls() {
         controlsVisible = true
         controlsContainer.animate().cancel()
-        controlsContainer.alpha = 1f
+        controlsContainer.alpha = controlsChromeMaxAlpha()
         controlsContainer.visibility = View.VISIBLE
         applyControlVisibility()
         handler.removeCallbacks(hideControlsRunnable)
@@ -882,14 +889,14 @@ class PlayerActivity : AppCompatActivity() {
             }
             controlsVisible = true
             controlsContainer.visibility = View.VISIBLE
-            controlsContainer.alpha = 1f
+            controlsContainer.alpha = controlsChromeMaxAlpha()
             applyControlVisibility()
             android.widget.Toast.makeText(this, getString(R.string.player_locked), android.widget.Toast.LENGTH_SHORT).show()
         } else {
             initGestures()
             controlsVisible = true
             controlsContainer.visibility = View.VISIBLE
-            controlsContainer.alpha = 1f
+            controlsContainer.alpha = controlsChromeMaxAlpha()
             applyControlVisibility()
             scheduleHideControls()
             android.widget.Toast.makeText(this, getString(R.string.player_unlocked), android.widget.Toast.LENGTH_SHORT).show()
@@ -902,7 +909,7 @@ class PlayerActivity : AppCompatActivity() {
         initGestures()
         controlsVisible = true
         controlsContainer.animate().cancel()
-        controlsContainer.alpha = 1f
+        controlsContainer.alpha = controlsChromeMaxAlpha()
         controlsContainer.visibility = View.VISIBLE
         applyControlVisibility()
         scheduleHideControls()
@@ -922,7 +929,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun preparePlayerExitFrame() {
         if (!this::playerView.isInitialized) return
         playerView.animate().cancel()
-        // Do not detach PlayerView here: Media3 may block while detaching SurfaceView
+        // Do not detach PlayerView here: Media3 may block while detaching the video surface
         // and throw ExoTimeoutException on some devices during Activity finish.
         playerView.visibility = View.INVISIBLE
         if (this::playerRoot.isInitialized) {
