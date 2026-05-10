@@ -116,7 +116,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
             }
             prefs.contains(KEY_SETTINGS_SHEET_OPACITY_LEGACY) ->
                 prefs.getInt(KEY_SETTINGS_SHEET_OPACITY_LEGACY, 100).coerceIn(0, 100)
-            else -> 100
+            else -> 60
         }
         set(value) {
             val v = value.coerceIn(0, 100)

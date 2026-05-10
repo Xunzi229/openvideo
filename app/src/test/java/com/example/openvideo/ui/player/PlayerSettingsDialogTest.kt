@@ -90,6 +90,7 @@ class PlayerSettingsDialogTest {
     @Test
     fun playerSettingsSheetUsesTransparentGlassOverVideo() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val prefsSource = String(Files.readAllBytes(playerPrefsSource()))
         val portraitSheet = String(Files.readAllBytes(playerSettingsSheetDrawable()))
         val landscapeSheet = String(Files.readAllBytes(playerSettingsLandscapeSheetDrawable()))
 
@@ -112,6 +113,10 @@ class PlayerSettingsDialogTest {
         assertTrue(
             "Dim strength comes from prefs.",
             dialogSource.contains("settingsSheetBackdropDimPercent") && dialogSource.contains("setDimAmount")
+        )
+        assertTrue(
+            "Player settings panel should default to 60% opacity when the user has not changed it.",
+            prefsSource.contains("else -> 60")
         )
     }
 
@@ -399,6 +404,24 @@ class PlayerSettingsDialogTest {
             "ui",
             "player",
             "PlayerViewModel.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerPrefsSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "core",
+            "prefs",
+            "PlayerPrefs.kt"
         )
         return sequenceOf(
             relativePath,
