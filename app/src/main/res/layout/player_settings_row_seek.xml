@@ -21,6 +21,6 @@
         android:layout_width="@dimen/ov_player_settings_value_width"
         android:layout_height="wrap_content"
         android:gravity="end"
-        android:textColor="@color/ov_text_secondary"
+        android:textColor="@color/player_text_secondary"
         android:textSize="14sp" />
 </LinearLayout>

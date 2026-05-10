@@ -13,7 +13,7 @@
             <shape android:shape="rectangle">
                 <size android:width="4dp" />
                 <corners android:radius="2dp" />
-                <solid android:color="@color/ov_accent_blue" />
+                <solid android:color="@color/player_accent" />
             </shape>
         </clip>
     </item>

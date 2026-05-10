@@ -8,9 +8,17 @@
     <color name="surface">@color/ov_bg_elevated</color>
     <color name="on_background">@color/ov_text_primary</color>
     <color name="on_surface">@color/ov_text_primary</color>
-    <color name="player_bg">@color/ov_bg_base</color>
-    <color name="control_bg">@color/ov_bg_overlay</color>
-    <color name="seekbar_progress">@color/ov_accent_blue</color>
-    <color name="text_secondary">@color/ov_text_secondary</color>
+    <color name="player_bg">#FF000000</color>
+    <color name="player_panel_bg">#D1080A12</color>
+    <color name="player_panel_bg_soft">#99080A12</color>
+    <color name="player_panel_border">#14FFFFFF</color>
+    <color name="player_icon">#B8FFFFFF</color>
+    <color name="player_title_primary">#F2FFFFFF</color>
+    <color name="player_title_normal">#D1FFFFFF</color>
+    <color name="player_text_secondary">#73FFFFFF</color>
+    <color name="player_accent">#FF4F8CFF</color>
+    <color name="control_bg">@color/player_panel_bg</color>
+    <color name="seekbar_progress">@color/player_accent</color>
+    <color name="text_secondary">@color/player_text_secondary</color>
     <color name="divider">@color/ov_divider</color>
 </resources>

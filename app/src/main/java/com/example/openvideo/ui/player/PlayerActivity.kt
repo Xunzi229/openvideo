@@ -30,6 +30,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
@@ -190,6 +191,7 @@ class PlayerActivity : AppCompatActivity() {
     private var hasReleasedPlayerForExit = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_YES
         super.onCreate(savedInstanceState)
         requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
             width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
@@ -445,7 +447,6 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(hideControlsRunnable)
         PlayerVideoListDialog(
             context = this,
-            playerPrefs = playerPrefs,
             videos = queue,
             playingVideoId = viewModel.playingVideoId,
             onPick = { item ->
@@ -583,14 +584,14 @@ class PlayerActivity : AppCompatActivity() {
                 AbLoopState.IDLE -> {
                     abLoopPointA = playerManager.currentPosition
                     abLoopState = AbLoopState.POINT_A_SET
-                    btnAbLoop?.setColorFilter(android.graphics.Color.YELLOW)
+                    btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
                     android.widget.Toast.makeText(this, getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)), android.widget.Toast.LENGTH_SHORT).show()
                 }
                 AbLoopState.POINT_A_SET -> {
                     abLoopPointB = playerManager.currentPosition
                     if (abLoopPointB > abLoopPointA) {
                         abLoopState = AbLoopState.LOOPING
-                        btnAbLoop?.setColorFilter(android.graphics.Color.GREEN)
+                        btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
                         android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
                     } else {
                         abLoopState = AbLoopState.IDLE
@@ -1084,7 +1085,7 @@ class PlayerActivity : AppCompatActivity() {
         btnLock.visibility = if (visibility.lockButtonVisible) View.VISIBLE else View.GONE
         btnLock.isSelected = visibility.lockButtonSelected
         if (visibility.lockButtonSelected) {
-            btnLock.setColorFilter(android.graphics.Color.RED)
+            btnLock.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
         } else {
             btnLock.clearColorFilter()
         }
@@ -1159,9 +1160,9 @@ class PlayerActivity : AppCompatActivity() {
         // and throw ExoTimeoutException on some devices during Activity finish.
         playerView.visibility = View.INVISIBLE
         if (this::playerRoot.isInitialized) {
-            playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.ov_bg_base))
+            playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.player_bg))
         }
-        window.setBackgroundDrawableResource(R.color.ov_bg_base)
+        window.setBackgroundDrawableResource(R.color.player_bg)
     }
 
     private fun releasePlayerAfterExit() {

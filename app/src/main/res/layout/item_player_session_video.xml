@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="?attr/selectableItemBackground"
+    android:background="@drawable/bg_player_touch"
     android:gravity="center_vertical"
     android:minHeight="72dp"
     android:orientation="horizontal"
@@ -20,11 +20,12 @@
 
     <TextView
         android:id="@+id/tv_title"
-        style="@style/Widget.OpenVideo.PlayerSettings.RowTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="10dp"
         android:layout_weight="1"
         android:ellipsize="end"
-        android:maxLines="2" />
+        android:maxLines="2"
+        android:textColor="@color/player_title_normal"
+        android:textSize="15sp" />
 </LinearLayout>

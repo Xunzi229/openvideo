@@ -15,6 +15,14 @@
     </style>
 
     <style name="Theme.OpenVideo.Player" parent="Theme.OpenVideo">
+        <item name="colorPrimary">@color/player_accent</item>
+        <item name="colorPrimaryVariant">@color/player_accent</item>
+        <item name="colorOnPrimary">@color/player_title_primary</item>
+        <item name="colorSecondary">@color/player_accent</item>
+        <item name="android:colorBackground">@color/player_bg</item>
+        <item name="colorSurface">@color/player_panel_bg</item>
+        <item name="colorOnBackground">@color/player_title_primary</item>
+        <item name="colorOnSurface">@color/player_title_primary</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowBackground">@color/player_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -37,7 +45,7 @@
         <item name="android:gravity">center_vertical</item>
         <item name="android:paddingStart">12dp</item>
         <item name="android:paddingEnd">12dp</item>
-        <item name="android:textColor">@color/ov_text_secondary</item>
+        <item name="android:textColor">@color/player_text_secondary</item>
         <item name="android:textSize">15sp</item>
     </style>
 
@@ -51,7 +59,7 @@
     <style name="Widget.OpenVideo.PlayerSettings.Content">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:background">@color/ov_bg_elevated_strong</item>
+        <item name="android:background">@color/player_panel_bg</item>
         <item name="android:orientation">vertical</item>
         <item name="android:padding">18dp</item>
     </style>
@@ -59,21 +67,21 @@
     <style name="Widget.OpenVideo.PlayerSettings.GroupTitle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">@color/ov_text_secondary</item>
+        <item name="android:textColor">@color/player_text_secondary</item>
         <item name="android:textSize">13sp</item>
     </style>
 
     <style name="Widget.OpenVideo.PlayerSettings.RowTitle">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
-        <item name="android:textColor">@color/ov_text_primary</item>
+        <item name="android:textColor">@color/player_title_normal</item>
         <item name="android:textSize">15sp</item>
     </style>
 
     <style name="Widget.OpenVideo.PlayerSettings.Radio">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">36dp</item>
-        <item name="android:textColor">@color/ov_text_primary</item>
+        <item name="android:textColor">@color/player_title_normal</item>
         <item name="android:textSize">15sp</item>
     </style>
 </resources>

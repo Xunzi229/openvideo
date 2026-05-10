@@ -247,7 +247,7 @@ class PlayerSettingsDialog(
         }
         iconWrap.addView(ImageView(context).apply {
             setImageResource(item.iconRes)
-            setColorFilter(context.getColor(if (item.page == SettingsPage.AUDIO) R.color.ov_accent_blue else android.R.color.white))
+            setColorFilter(context.getColor(if (item.page == SettingsPage.AUDIO) R.color.player_accent else android.R.color.white))
             layoutParams = LinearLayout.LayoutParams(dp(24), dp(24))
         })
 
@@ -255,7 +255,7 @@ class PlayerSettingsDialog(
         cell.addView(TextView(context).apply {
             text = context.getString(item.titleRes)
             gravity = Gravity.CENTER
-            setTextColor(context.getColor(if (item.page == SettingsPage.AUDIO) R.color.ov_accent_blue else android.R.color.white))
+            setTextColor(context.getColor(if (item.page == SettingsPage.AUDIO) R.color.player_accent else android.R.color.white))
             textSize = 12f
             maxLines = 1
             includeFontPadding = false
@@ -1101,7 +1101,7 @@ class PlayerSettingsDialog(
             text = title
             isChecked = checked
             isEnabled = enabled
-            buttonTintList = context.getColorStateList(R.color.nav_item_tint)
+            buttonTintList = context.getColorStateList(R.color.player_accent)
             setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
             textSize = 15f
             minHeight = dp(52)
@@ -1120,7 +1120,7 @@ class PlayerSettingsDialog(
             text = title
             isChecked = checked
             isEnabled = enabled
-            buttonTintList = context.getColorStateList(R.color.nav_item_tint)
+            buttonTintList = context.getColorStateList(R.color.player_accent)
             setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
             textSize = 15f
             minHeight = dp(52)
@@ -1149,7 +1149,7 @@ class PlayerSettingsDialog(
         parent.addView(
             TextView(context).apply {
                 text = title
-                setTextColor(context.getColor(R.color.ov_accent_blue))
+                setTextColor(context.getColor(R.color.player_accent))
                 textSize = 15f
                 gravity = Gravity.CENTER_VERTICAL
                 minHeight = dp(52)
@@ -1183,7 +1183,7 @@ class PlayerSettingsDialog(
             })
             addView(TextView(context).apply {
                 text = value
-                setTextColor(context.getColor(R.color.ov_accent_blue))
+                setTextColor(context.getColor(R.color.player_accent))
                 textSize = 14f
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
@@ -1242,7 +1242,7 @@ class PlayerSettingsDialog(
         }
         val valueView = TextView(context).apply {
             text = label(value)
-            setTextColor(context.getColor(R.color.ov_accent_blue))
+            setTextColor(context.getColor(R.color.player_accent))
             textSize = 14f
         }
         row.addView(LinearLayout(context).apply {
@@ -1275,8 +1275,8 @@ class PlayerSettingsDialog(
         row.addView(SeekBar(context).apply {
             max = maxValue - min
             progress = (value - min).coerceIn(0, maxValue - min)
-            progressTintList = context.getColorStateList(R.color.ov_accent_blue)
-            thumbTintList = context.getColorStateList(R.color.ov_accent_blue)
+            progressTintList = context.getColorStateList(R.color.player_accent)
+            thumbTintList = context.getColorStateList(R.color.player_accent)
             var pendingValue = value.coerceIn(min, maxValue)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {

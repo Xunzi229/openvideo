@@ -61,7 +61,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_brightness"
-            app:tint="#FFFFFFFF" />
+            app:tint="@color/player_icon" />
 
         <ProgressBar
             android:id="@+id/brightness_progress"
@@ -94,7 +94,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_volume"
-            app:tint="#FFFFFFFF" />
+            app:tint="@color/player_icon" />
 
         <ProgressBar
             android:id="@+id/volume_progress"
@@ -114,7 +114,7 @@
         android:layout_height="wrap_content"
         android:background="#AA000000"
         android:padding="12dp"
-        android:textColor="#FFFFFFFF"
+        android:textColor="@color/player_title_primary"
         android:textSize="18sp"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"

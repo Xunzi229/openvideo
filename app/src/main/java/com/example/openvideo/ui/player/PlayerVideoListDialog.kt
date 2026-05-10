@@ -19,7 +19,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.openvideo.R
-import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.data.model.VideoItem
 
 /**
@@ -27,7 +26,6 @@ import com.example.openvideo.data.model.VideoItem
  */
 class PlayerVideoListDialog(
     context: Context,
-    private val playerPrefs: PlayerPrefs,
     private val videos: List<VideoItem>,
     private val playingVideoId: Long,
     private val onPick: (VideoItem) -> Unit
@@ -65,13 +63,6 @@ class PlayerVideoListDialog(
             decorView.elevation = dp(20).toFloat()
         }
 
-        findViewById<TextView>(R.id.player_video_list_title).apply {
-            alpha = panelAlphaFromStoredOpacityPercent(playerPrefs.settingsPanelOpacity)
-        }
-
-        val root = findViewById<View>(R.id.player_video_list_root)
-        root.alpha = panelAlphaFromStoredOpacityPercent(playerPrefs.settingsPanelOpacity)
-
         val recycler = findViewById<RecyclerView>(R.id.player_video_list_recycler)
         recycler.layoutManager = LinearLayoutManager(context)
         recycler.adapter = SessionVideoAdapter(videos, playingVideoId) { item ->
@@ -86,23 +77,17 @@ class PlayerVideoListDialog(
     override fun onStart() {
         super.onStart()
         applyWindowBackdrop()
-        val root = findViewById<View>(R.id.player_video_list_root)
-        root.alpha = panelAlphaFromStoredOpacityPercent(playerPrefs.settingsPanelOpacity)
     }
 
     private fun applyWindowBackdrop() {
         window?.apply {
-            setDimAmount(playerPrefs.settingsSheetBackdropDimPercent.coerceIn(0, 100) / 100f)
+            setDimAmount(0.12f)
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val blurDp = playerPrefs.settingsSheetBackdropBlurDp.coerceIn(0, 64)
-                setBackgroundBlurRadius(if (blurDp > 0) dp(blurDp) else 0)
+                setBackgroundBlurRadius(dp(18))
             }
         }
     }
-
-    private fun panelAlphaFromStoredOpacityPercent(percent: Int): Float =
-        percent.coerceIn(0, 100) / 100f
 
     private fun dp(value: Int): Int =
         TypedValue.applyDimension(
@@ -143,7 +128,7 @@ class PlayerVideoListDialog(
             holder.text.setTextColor(
                 ContextCompat.getColor(
                     ctx,
-                    if (playing) R.color.ov_accent_blue else R.color.ov_text_primary
+                    if (playing) R.color.player_accent else R.color.player_title_normal
                 )
             )
             Glide.with(holder.thumb)

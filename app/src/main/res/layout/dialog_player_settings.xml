@@ -91,7 +91,7 @@
                 android:id="@+id/settings_detail_back"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:background="@drawable/bg_player_touch"
                 android:contentDescription="@string/player_action_back"
                 android:src="@drawable/ic_arrow_back"
                 app:tint="#FFFFFFFF" />
@@ -150,7 +150,7 @@
                 android:id="@+id/settings_subdetail_back"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
+                android:background="@drawable/bg_player_touch"
                 android:contentDescription="@string/player_action_back"
                 android:src="@drawable/ic_arrow_back"
                 app:tint="#FFFFFFFF" />

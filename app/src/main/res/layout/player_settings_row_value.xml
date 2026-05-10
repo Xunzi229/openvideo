@@ -18,6 +18,6 @@
         android:ellipsize="end"
         android:maxWidth="@dimen/ov_player_settings_row_value_max_width"
         android:maxLines="1"
-        android:textColor="@color/ov_text_secondary"
+        android:textColor="@color/player_text_secondary"
         android:textSize="15sp" />
 </LinearLayout>

@@ -3,7 +3,7 @@
     android:id="@+id/player_video_list_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_player_settings_sheet"
+    android:background="@drawable/bg_player_video_list_panel"
     android:clipToOutline="true"
     android:elevation="20dp">
 
@@ -28,7 +28,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/player_video_list_title"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/player_title_primary"
             android:textSize="18sp"
             android:textStyle="bold" />
 
