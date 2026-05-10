@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.openvideo"
         minSdk = 23
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.0.1"
+        versionCode = 2
+        versionName = "0.0.2"
     }
 
     buildTypes {
