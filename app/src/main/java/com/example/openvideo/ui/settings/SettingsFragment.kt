@@ -44,11 +44,13 @@ class SettingsFragment : Fragment() {
         val tvSpeed = view.findViewById<TextView>(R.id.tv_speed_value)
         val tvCacheSize = view.findViewById<TextView>(R.id.tv_cache_size)
         val tvHistoryCount = view.findViewById<TextView>(R.id.tv_history_count)
+        val tvVersion = view.findViewById<TextView>(R.id.tv_version)
 
         updateThemeLabel(tvTheme)
         updateLanguageLabel(tvLanguage)
         updateRatioLabel(tvRatio)
         updateSpeedLabel(tvSpeed)
+        tvVersion.text = viewModel.installedVersionName()
 
         view.findViewById<View>(R.id.row_theme).setOnClickListener {
             val modes = ThemeMode.entries

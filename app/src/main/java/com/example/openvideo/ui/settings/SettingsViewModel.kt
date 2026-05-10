@@ -222,7 +222,7 @@ class SettingsViewModel @Inject constructor(
         return String.format("%.1f MB", mb)
     }
 
-    private fun installedVersionName(): String {
+    fun installedVersionName(): String {
         val ctx = getApplication<Application>()
         return try {
             val info = if (Build.VERSION.SDK_INT >= 33) {
