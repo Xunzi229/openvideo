@@ -294,6 +294,32 @@ class PlayerSettingsDialogTest {
         }
     }
 
+    @Test
+    fun playbackSpeedUsesSeekBarRangeInsteadOfChoiceList() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val speedRow = dialogSource
+            .substringAfter("private fun addPlaybackSpeedSeekRow()")
+            .substringBefore("\n    private fun speedToProgress")
+
+        assertTrue(dialogSource.contains("private fun addPlaybackSpeedSeekRow("))
+        assertTrue(dialogSource.contains("SPEED_MIN = 0.5f"))
+        assertTrue(dialogSource.contains("SPEED_MAX = 5.0f"))
+        assertTrue(dialogSource.contains("SPEED_STEP = 0.25f"))
+        assertTrue(speedRow.contains("speedToProgress(playerPrefs.speed)"))
+        assertTrue(speedRow.contains("progressToSpeed(progress)"))
+        assertTrue(
+            "Speed changes should only apply when dragging stops to avoid rapid ExoPlayer reconfiguration.",
+            speedRow.contains("commitOnStop = true")
+        )
+
+        listOf("private fun buildPlaylistPage()", "private fun buildMorePage()").forEach { marker ->
+            val block = dialogSource.substringAfter(marker).substringBefore("\n    private fun ")
+            assertTrue("$marker should expose playback speed as a seek row", block.contains("addPlaybackSpeedSeekRow()"))
+        }
+
+        assertFalse(dialogSource.contains("setPlaybackSpeedFromChoiceLabel"))
+    }
+
     private fun playerSettingsDialogSource(): Path {
         val relativePath = Paths.get(
             "src",

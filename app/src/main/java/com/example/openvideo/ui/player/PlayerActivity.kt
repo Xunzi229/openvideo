@@ -189,6 +189,7 @@ class PlayerActivity : AppCompatActivity() {
     private var currentVideoPath: String = ""
     private var isFinishingPlayer = false
     private var hasReleasedPlayerForExit = false
+    private var isSwitchingQueueAfterEnded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_YES
@@ -669,6 +670,8 @@ class PlayerActivity : AppCompatActivity() {
                 if (playbackState == Player.STATE_READY) {
                     val state = viewModel.uiState.value
                     applyIntroOutroSkip(state.currentPosition, state.duration)
+                } else if (playbackState == Player.STATE_ENDED) {
+                    playNextQueueVideoAfterEnded()
                 }
             }
 
@@ -706,6 +709,30 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.player?.addListener(playerListener!!)
         syncPlayPauseIcon()
         applyControlVisibility()
+    }
+
+    private fun playNextQueueVideoAfterEnded() {
+        if (isSwitchingQueueAfterEnded) return
+        val queue = viewModel.sessionQueue.value
+        val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }
+        val nextIndex = PlayerQueueLoopPolicy.nextIndexAfterEnded(
+            currentIndex = currentIndex,
+            queueSize = queue.size,
+            loopMode = playerPrefs.loopMode
+        ) ?: return
+
+        isSwitchingQueueAfterEnded = true
+        viewModel.switchToVideo(queue[nextIndex]) {
+            isSwitchingQueueAfterEnded = false
+            currentVideoUriString = queue[nextIndex].uri.toString()
+            currentVideoPath = queue[nextIndex].path
+            tvTitle.text = queue[nextIndex].title
+            hasSkippedIntro = false
+            hasSkippedOutro = false
+            loadSubtitlesAsync(queue[nextIndex].uri.toString(), queue[nextIndex].path)
+            applyPlayerSettings()
+            scheduleHideControls()
+        }
     }
 
     @SuppressLint("ClickableViewAccessibility")

@@ -28,6 +28,7 @@ import androidx.media3.effect.Contrast
 import androidx.media3.effect.RgbMatrix
 import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.openvideo.core.prefs.AspectRatio
@@ -68,8 +69,11 @@ class PlayerManager @Inject constructor(
                 bufferingProfile.bufferForPlaybackAfterRebufferMs
             )
             .build()
+        val renderersFactory = DefaultRenderersFactory(context)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
 
         val player = ExoPlayer.Builder(context)
+            .setRenderersFactory(renderersFactory)
             .setTrackSelector(trackSelector!!)
             .setLoadControl(loadControl)
             .build()
@@ -119,7 +123,11 @@ class PlayerManager @Inject constructor(
     }
 
     fun setSpeed(speed: Float, pitch: Float = 1.0f) {
-        player?.playbackParameters = PlaybackParameters(speed, pitch)
+        player?.let {
+            val current = it.playbackParameters
+            if (current.speed == speed && current.pitch == pitch) return
+            it.playbackParameters = PlaybackParameters(speed, pitch)
+        }
     }
 
     fun setRepeatMode(repeatMode: Int) {

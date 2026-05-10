@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.openvideo"
         minSdk = 23
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.0.2"
+        versionCode = 3
+        versionName = "0.0.3"
     }
 
     buildTypes {
@@ -33,8 +33,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    packaging {
+        jniLibs {
+            keepDebugSymbols += "**/libffmpegJNI.so"
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
@@ -60,6 +68,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.effect)
+    implementation(libs.media3.ffmpeg.decoder)
     implementation(libs.androidx.media)
 
     // Hilt

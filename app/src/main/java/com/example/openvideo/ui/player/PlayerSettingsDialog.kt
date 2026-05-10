@@ -42,7 +42,12 @@ import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.switchmaterial.SwitchMaterial
 import java.util.ArrayDeque
+import java.util.Locale
 import kotlin.math.round
+
+private const val SPEED_MIN = 0.5f
+private const val SPEED_MAX = 5.0f
+private const val SPEED_STEP = 0.25f
 
 class PlayerSettingsDialog(
     context: Context,
@@ -75,20 +80,8 @@ class PlayerSettingsDialog(
     private val subtitleBgOptions = SubtitleBgStyle.entries.toTypedArray()
     private val subtitleEncodingOptions = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
 
-    private data class SpeedChoice(val speed: Float, val labelRes: Int)
-
-    private fun speedChoices(): List<SpeedChoice> = listOf(
-        SpeedChoice(0.5f, R.string.settings_speed_0_5),
-        SpeedChoice(0.75f, R.string.settings_speed_0_75),
-        SpeedChoice(1f, R.string.settings_speed_1_0),
-        SpeedChoice(1.25f, R.string.settings_speed_1_25),
-        SpeedChoice(1.5f, R.string.settings_speed_1_5),
-        SpeedChoice(2f, R.string.settings_speed_2_0)
-    )
-
     private fun playbackSpeedLabelFor(speed: Float): String =
-        speedChoices().firstOrNull { it.speed == speed }?.let { context.getString(it.labelRes) }
-            ?: context.getString(R.string.player_settings_speed_fallback, speed)
+        "${String.format(Locale.US, "%.2f", speed).trimEnd('0').trimEnd('.')}x"
 
     private data class SeekIntervalChoice(val seconds: Int, val labelRes: Int)
 
@@ -651,13 +644,7 @@ class PlayerSettingsDialog(
         ) { checked ->
             playerPrefs.autoPlayNext = checked
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_playback_speed),
-            value = playbackSpeedLabelFor(playerPrefs.speed),
-            options = speedChoices().map { context.getString(it.labelRes) }
-        ) { selected ->
-            setPlaybackSpeedFromChoiceLabel(selected)
-        }
+        addPlaybackSpeedSeekRow()
         addChoiceRow(
             title = context.getString(R.string.settings_seek_interval),
             value = seekIntervalLabelFor(playerPrefs.seekInterval),
@@ -719,17 +706,23 @@ class PlayerSettingsDialog(
 
     private fun videoInfoRows(): List<Pair<String, String>> {
         val state = viewModel.uiState.value
-        return listOf(
+        val rows = mutableListOf(
             context.getString(R.string.player_settings_info_title) to
                 state.title.ifBlank { context.getString(R.string.app_name) },
             context.getString(R.string.player_settings_info_position) to formatTime(playerManager.currentPosition),
-            context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration),
             context.getString(R.string.player_settings_info_resolution) to videoResolutionLabel(),
             context.getString(R.string.player_settings_info_speed) to playbackSpeedLabelFor(state.speed),
             context.getString(R.string.player_settings_info_aspect) to aspectLabel(playerPrefs.aspectRatio),
             context.getString(R.string.player_settings_info_source) to
                 viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
         )
+        PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
+            ?.mediaInfoRows(context, ::formatTime)
+            ?.let { rows += it }
+        if (rows.none { it.first == context.getString(R.string.player_settings_info_duration) }) {
+            rows += context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration)
+        }
+        return rows
     }
 
     @OptIn(UnstableApi::class)
@@ -874,13 +867,7 @@ class PlayerSettingsDialog(
         ) { checked ->
             playerPrefs.skipIntroOutro = checked
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_playback_speed),
-            value = playbackSpeedLabelFor(playerPrefs.speed),
-            options = speedChoices().map { context.getString(it.labelRes) }
-        ) { selected ->
-            setPlaybackSpeedFromChoiceLabel(selected)
-        }
+        addPlaybackSpeedSeekRow()
         addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.settings_keep_screen_on),
@@ -977,14 +964,30 @@ class PlayerSettingsDialog(
         dismiss()
     }
 
-    private fun setPlaybackSpeedFromChoiceLabel(selected: String) {
-        val choice = speedChoices().firstOrNull { context.getString(it.labelRes) == selected } ?: return
-        playerPrefs.speed = choice.speed
-        viewModel.setSpeed(
-            choice.speed,
-            PlayerPlaybackSettings.pitchFor(choice.speed, playerPrefs.speedPreservePitch)
-        )
+    private fun addPlaybackSpeedSeekRow() {
+        addSeekRow(
+            title = context.getString(R.string.settings_playback_speed),
+            min = 0,
+            maxValue = speedToProgress(SPEED_MAX),
+            value = speedToProgress(playerPrefs.speed),
+            label = { progress -> playbackSpeedLabelFor(progressToSpeed(progress)) },
+            commitOnStop = true
+        ) { progress ->
+            val speed = progressToSpeed(progress)
+            playerPrefs.speed = speed
+            viewModel.setSpeed(
+                speed,
+                PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch)
+            )
+        }
     }
+
+    private fun speedToProgress(speed: Float): Int =
+        round(((speed.coerceIn(SPEED_MIN, SPEED_MAX) - SPEED_MIN) / SPEED_STEP).toDouble()).toInt()
+
+    private fun progressToSpeed(progress: Int): Float =
+        (SPEED_MIN + progress.coerceIn(0, speedToProgress(SPEED_MAX)) * SPEED_STEP)
+            .coerceIn(SPEED_MIN, SPEED_MAX)
 
     private fun setSeekIntervalFromChoiceLabel(selected: String) {
         val choice = seekIntervalChoices().firstOrNull { context.getString(it.labelRes) == selected } ?: return

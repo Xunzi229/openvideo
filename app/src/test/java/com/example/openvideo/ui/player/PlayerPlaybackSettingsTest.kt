@@ -11,7 +11,7 @@ class PlayerPlaybackSettingsTest {
     fun mapsLoopModeToPlayerRepeatMode() {
         assertEquals(Player.REPEAT_MODE_OFF, PlayerPlaybackSettings.repeatModeFor(LoopMode.OFF))
         assertEquals(Player.REPEAT_MODE_ONE, PlayerPlaybackSettings.repeatModeFor(LoopMode.SINGLE))
-        assertEquals(Player.REPEAT_MODE_ALL, PlayerPlaybackSettings.repeatModeFor(LoopMode.LIST))
+        assertEquals(Player.REPEAT_MODE_OFF, PlayerPlaybackSettings.repeatModeFor(LoopMode.LIST))
     }
 
     @Test

@@ -9,7 +9,7 @@ object PlayerPlaybackSettings {
         return when (loopMode) {
             LoopMode.OFF -> Player.REPEAT_MODE_OFF
             LoopMode.SINGLE -> Player.REPEAT_MODE_ONE
-            LoopMode.LIST -> Player.REPEAT_MODE_ALL
+            LoopMode.LIST -> Player.REPEAT_MODE_OFF
         }
     }
 
