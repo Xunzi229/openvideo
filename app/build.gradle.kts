@@ -100,12 +100,6 @@ dependencies {
 // 在 debug 许可任务末尾用 release 的 raw 覆盖，避免单独 Copy 任务触发 Gradle 9 资源合并隐式依赖报错。
 afterEvaluate {
     tasks.named("debugOssLicensesTask").configure {
-        dependsOn(tasks.named("releaseOssLicensesTask"))
-        doLast {
-            copy {
-                from(layout.buildDirectory.dir("generated/res/releaseOssLicensesTask/raw"))
-                into(layout.buildDirectory.dir("generated/res/debugOssLicensesTask/raw"))
-            }
-        }
+        enabled = false
     }
 }
