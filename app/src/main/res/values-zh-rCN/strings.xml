@@ -172,7 +172,7 @@
     <string name="player_sheet_subtitles">字幕</string>
     <string name="player_sheet_aspect_ratio">长宽比</string>
     <string name="player_sheet_display">显示设置</string>
-    <string name="player_sheet_playlist">播放列表</string>
+    <string name="player_sheet_playlist">播放控制</string>
     <string name="player_sheet_stream">网络串流</string>
     <string name="player_sheet_info">视频信息</string>
     <string name="player_sheet_share">分享</string>
@@ -237,6 +237,11 @@
     <string name="player_settings_info_audio_dts_unsupported">当前音轨是 DTS/DCA，需要设备解码器或 FFmpeg 类软件解码支持；本机不支持时会出现有画面无声音。</string>
     <string name="player_settings_info_current_audio_track">当前音轨</string>
     <string name="player_settings_info_audio_decoder">音频解码器</string>
+    <string name="player_settings_info_audio_input_format">音频输入格式</string>
+    <string name="player_settings_info_ffmpeg_extension">FFmpeg 扩展</string>
+    <string name="player_settings_info_ffmpeg_available">可用</string>
+    <string name="player_settings_info_ffmpeg_unavailable">不可用</string>
+    <string name="player_settings_info_playback_error">播放错误</string>
     <string name="player_settings_audio_track_none">无音轨</string>
     <string name="player_settings_audio_track_unsupported">不支持</string>
     <string name="player_settings_audio_decoder_ffmpeg">优先使用 FFmpeg 扩展</string>

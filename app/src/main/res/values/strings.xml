@@ -172,7 +172,7 @@
     <string name="player_sheet_subtitles">Subtitles</string>
     <string name="player_sheet_aspect_ratio">Aspect</string>
     <string name="player_sheet_display">Display</string>
-    <string name="player_sheet_playlist">Playlist</string>
+    <string name="player_sheet_playlist">Playback</string>
     <string name="player_sheet_stream">Stream</string>
     <string name="player_sheet_info">Info</string>
     <string name="player_sheet_share">Share</string>
@@ -237,6 +237,11 @@
     <string name="player_settings_info_audio_dts_unsupported">DTS/DCA audio needs a device decoder or FFmpeg-style software decoder. If unsupported on this device, video may play without sound.</string>
     <string name="player_settings_info_current_audio_track">Current audio track</string>
     <string name="player_settings_info_audio_decoder">Audio decoder</string>
+    <string name="player_settings_info_audio_input_format">Audio input format</string>
+    <string name="player_settings_info_ffmpeg_extension">FFmpeg extension</string>
+    <string name="player_settings_info_ffmpeg_available">Available</string>
+    <string name="player_settings_info_ffmpeg_unavailable">Unavailable</string>
+    <string name="player_settings_info_playback_error">Playback error</string>
     <string name="player_settings_audio_track_none">No audio track</string>
     <string name="player_settings_audio_track_unsupported">Unsupported</string>
     <string name="player_settings_audio_decoder_ffmpeg">FFmpeg extension preferred</string>

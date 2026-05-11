@@ -50,10 +50,36 @@ class PlayerAudioTrackSelectionSourceTest {
         assertTrue(infoRows.contains("player_settings_info_audio_decoder"))
     }
 
+    @Test
+    fun phaseTwoRecordsRuntimeAudioDecoderDiagnostics() {
+        val managerSource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val dialogSource = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsDialog.kt")))
+        val strings = String(Files.readAllBytes(resFile("values", "strings.xml")))
+
+        assertTrue(managerSource.contains("addAnalyticsListener(audioDiagnosticsListener())"))
+        assertTrue(managerSource.contains("onAudioDecoderInitialized"))
+        assertTrue(managerSource.contains("onAudioInputFormatChanged"))
+        assertTrue(managerSource.contains("onPlayerError"))
+        assertTrue(managerSource.contains("isFfmpegExtensionAvailable"))
+        assertTrue(dialogSource.contains("viewModel.audioDiagnostics()"))
+        assertTrue(dialogSource.contains("player_settings_info_ffmpeg_extension"))
+        assertTrue(dialogSource.contains("player_settings_info_audio_input_format"))
+        assertTrue(dialogSource.contains("player_settings_info_playback_error"))
+        assertTrue(strings.contains("player_settings_info_ffmpeg_available"))
+    }
+
     private fun sourceFile(vararg parts: String): Path {
         val relativePath = parts.fold(Paths.get("src", "main", "java", "com", "example", "openvideo")) { path, part ->
             path.resolve(part)
         }
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun resFile(vararg parts: String): Path {
+        val relativePath = parts.fold(Paths.get("src", "main", "res")) { path, part -> path.resolve(part) }
         return sequenceOf(
             relativePath,
             Paths.get("app").resolve(relativePath)

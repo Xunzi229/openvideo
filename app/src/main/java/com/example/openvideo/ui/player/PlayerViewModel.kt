@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.openvideo.core.player.DecodeMode
+import com.example.openvideo.core.player.PlayerAudioDiagnostics
 import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.player.RenderMode
@@ -136,6 +137,9 @@ class PlayerViewModel @Inject constructor(
 
     fun selectedAudioTrack(): PlayerAudioTrackInfo? =
         audioTracks().firstOrNull { it.selected }
+
+    fun audioDiagnostics(): PlayerAudioDiagnostics =
+        playerManager.currentAudioDiagnostics()
 
     fun selectAudioTrack(track: PlayerAudioTrackInfo) {
         playerPrefs.audioMuted = false

@@ -3,6 +3,7 @@ package com.example.openvideo.ui.player
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -325,6 +326,16 @@ class PlayerSettingsDialogTest {
         assertFalse(dialogSource.contains("setPlaybackSpeedFromChoiceLabel"))
     }
 
+    @Test
+    fun playerSettingsPlaybackControlsEntryIsNotNamedPlaylist() {
+        val strings = String(Files.readAllBytes(stringsXml()), UTF_8)
+        val zhStrings = String(Files.readAllBytes(zhStringsXml()), UTF_8)
+
+        assertTrue(strings.contains("""<string name="player_sheet_playlist">Playback</string>"""))
+        assertTrue(zhStrings.contains("""<string name="player_sheet_playlist">播放控制</string>"""))
+        assertFalse(zhStrings.contains("""<string name="player_sheet_playlist">播放列表</string>"""))
+    }
+
     private fun playerSettingsDialogSource(): Path {
         val relativePath = Paths.get(
             "src",
@@ -451,6 +462,22 @@ class PlayerSettingsDialogTest {
             "drawable-land",
             "bg_player_settings_sheet.xml"
         )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun stringsXml(): Path {
+        val relativePath = Paths.get("src", "main", "res", "values", "strings.xml")
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun zhStringsXml(): Path {
+        val relativePath = Paths.get("src", "main", "res", "values-zh-rCN", "strings.xml")
         return sequenceOf(
             relativePath,
             Paths.get("app").resolve(relativePath)

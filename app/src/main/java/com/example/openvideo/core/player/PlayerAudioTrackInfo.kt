@@ -20,5 +20,20 @@ data class PlayerAudioTrackInfo(
                 normalized == "audio/vnd.dts.hd" ||
                 normalized.contains("dts") ||
                 normalized.contains("dca")
-        }
+    }
+}
+
+data class PlayerAudioDiagnostics(
+    val ffmpegExtensionAvailable: Boolean = false,
+    val lastDecoderName: String? = null,
+    val lastInputMimeType: String? = null,
+    val lastInputLanguage: String? = null,
+    val lastInputChannelCount: Int = 0,
+    val lastInputSampleRate: Int = 0,
+    val lastPlaybackError: String? = null
+) {
+    val isUsingFfmpegDecoder: Boolean
+        get() = lastDecoderName
+            ?.lowercase(Locale.US)
+            ?.contains("ffmpeg") == true
 }

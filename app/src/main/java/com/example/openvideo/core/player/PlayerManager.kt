@@ -19,11 +19,14 @@ import android.view.SurfaceView
 import android.view.TextureView
 import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.effect.Brightness
 import androidx.media3.effect.Contrast
 import androidx.media3.effect.RgbMatrix
@@ -31,6 +34,7 @@ import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -54,12 +58,16 @@ class PlayerManager @Inject constructor(
         private set
 
     private var trackSelector: DefaultTrackSelector? = null
+    private var audioDiagnostics = PlayerAudioDiagnostics()
 
     var decodeMode = DecodeMode.HARD
     var renderMode = RenderMode.SURFACE
     var aspectRatio = AspectRatio.FIT
 
     fun initialize(mediaUri: Uri? = null): ExoPlayer {
+        audioDiagnostics = PlayerAudioDiagnostics(
+            ffmpegExtensionAvailable = isFfmpegExtensionAvailable()
+        )
         trackSelector = DefaultTrackSelector(context)
         val bufferingProfile = PlayerBufferingPolicy.profileFor(mediaUri?.toString().orEmpty())
         val loadControl = DefaultLoadControl.Builder()
@@ -78,6 +86,7 @@ class PlayerManager @Inject constructor(
             .setTrackSelector(trackSelector!!)
             .setLoadControl(loadControl)
             .build()
+            .also { it.addAnalyticsListener(audioDiagnosticsListener()) }
 
         this.player = player
         return player
@@ -171,6 +180,8 @@ class PlayerManager @Inject constructor(
             .flatten()
     }
 
+    fun currentAudioDiagnostics(): PlayerAudioDiagnostics = audioDiagnostics
+
     fun selectAudioTrack(groupIndex: Int, trackIndex: Int) {
         val player = player ?: return
         val group = player.currentTracks.groups.getOrNull(groupIndex) ?: return
@@ -192,6 +203,55 @@ class PlayerManager @Inject constructor(
             .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
             .build()
         setMuted(true)
+    }
+
+    private fun audioDiagnosticsListener(): AnalyticsListener =
+        object : AnalyticsListener {
+            override fun onAudioDecoderInitialized(
+                eventTime: AnalyticsListener.EventTime,
+                decoderName: String,
+                initializedTimestampMs: Long,
+                initializationDurationMs: Long
+            ) {
+                audioDiagnostics = audioDiagnostics.copy(
+                    lastDecoderName = decoderName,
+                    lastPlaybackError = null
+                )
+            }
+
+            override fun onAudioInputFormatChanged(
+                eventTime: AnalyticsListener.EventTime,
+                format: Format,
+                decoderReuseEvaluation: DecoderReuseEvaluation?
+            ) {
+                audioDiagnostics = audioDiagnostics.copy(
+                    lastInputMimeType = format.sampleMimeType,
+                    lastInputLanguage = format.language,
+                    lastInputChannelCount = format.channelCount,
+                    lastInputSampleRate = format.sampleRate
+                )
+            }
+
+            override fun onPlayerError(
+                eventTime: AnalyticsListener.EventTime,
+                error: PlaybackException
+            ) {
+                audioDiagnostics = audioDiagnostics.copy(
+                    lastPlaybackError = "${error.errorCodeName}: ${error.message.orEmpty()}".trim()
+                )
+            }
+        }
+
+    private fun isFfmpegExtensionAvailable(): Boolean {
+        return FFMPEG_LIBRARY_CLASS_NAMES.any { className ->
+            runCatching {
+                val libraryClass = Class.forName(className)
+                val isAvailable = runCatching {
+                    libraryClass.getMethod("isAvailable").invoke(null) as? Boolean
+                }.getOrNull()
+                isAvailable ?: true
+            }.getOrDefault(false)
+        }
     }
 
     fun applyDecodeMode(mode: DecodeMode) {
@@ -525,5 +585,9 @@ class PlayerManager @Inject constructor(
     private companion object {
         const val VOLUME_BOOST_MILLIBELS = 600
         const val CLIP_BUFFER_BYTES = 1024 * 1024
+        val FFMPEG_LIBRARY_CLASS_NAMES = arrayOf(
+            "androidx.media3.decoder.ffmpeg.FfmpegLibrary",
+            "org.jellyfin.media3.ext.ffmpeg.FfmpegLibrary"
+        )
     }
 }

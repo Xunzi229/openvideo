@@ -31,6 +31,7 @@ import androidx.media3.common.util.UnstableApi
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
+import com.example.openvideo.core.player.PlayerAudioDiagnostics
 import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
@@ -737,10 +738,41 @@ class PlayerSettingsDialog(
                     else R.string.player_settings_audio_track_none
                 )
         }
+        rows += audioDiagnosticRows(viewModel.audioDiagnostics())
         if (rows.none { it.first == context.getString(R.string.player_settings_info_duration) }) {
             rows += context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration)
         }
         return rows
+    }
+
+    private fun audioDiagnosticRows(diagnostics: PlayerAudioDiagnostics): List<Pair<String, String>> {
+        val rows = mutableListOf<Pair<String, String>>()
+        rows += context.getString(R.string.player_settings_info_ffmpeg_extension) to context.getString(
+            if (diagnostics.ffmpegExtensionAvailable) {
+                R.string.player_settings_info_ffmpeg_available
+            } else {
+                R.string.player_settings_info_ffmpeg_unavailable
+            }
+        )
+        diagnostics.lastDecoderName?.takeIf { it.isNotBlank() }?.let { decoder ->
+            rows += context.getString(R.string.player_settings_info_audio_decoder) to decoder
+        }
+        audioInputFormatLabel(diagnostics)?.let { label ->
+            rows += context.getString(R.string.player_settings_info_audio_input_format) to label
+        }
+        diagnostics.lastPlaybackError?.takeIf { it.isNotBlank() }?.let { error ->
+            rows += context.getString(R.string.player_settings_info_playback_error) to error
+        }
+        return rows
+    }
+
+    private fun audioInputFormatLabel(diagnostics: PlayerAudioDiagnostics): String? {
+        val parts = mutableListOf<String>()
+        diagnostics.lastInputMimeType?.takeIf { it.isNotBlank() }?.let { parts += audioCodecLabel(it) }
+        diagnostics.lastInputLanguage?.takeIf { it.isNotBlank() && it != "und" }?.let { parts += it }
+        if (diagnostics.lastInputChannelCount > 0) parts += audioChannelLabel(diagnostics.lastInputChannelCount)
+        if (diagnostics.lastInputSampleRate > 0) parts += "${diagnostics.lastInputSampleRate} Hz"
+        return parts.takeIf { it.isNotEmpty() }?.joinToString(" / ")
     }
 
     private fun audioTrackLabel(track: PlayerAudioTrackInfo): String {
