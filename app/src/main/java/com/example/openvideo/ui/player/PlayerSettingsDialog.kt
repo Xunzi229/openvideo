@@ -31,6 +31,7 @@ import androidx.media3.common.util.UnstableApi
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
+import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.AudioChannel
@@ -385,29 +386,36 @@ class PlayerSettingsDialog(
 
     private fun buildAudioPage() {
         val audioTitle = context.getString(R.string.player_sheet_audio_track)
+        val audioTracks = viewModel.audioTracks()
+        val selectedAudioTrack = viewModel.selectedAudioTrack()
         addActionRow(
             title = audioTitle,
             value = if (playerPrefs.audioMuted) {
                 context.getString(R.string.player_sheet_disable)
             } else {
-                context.getString(R.string.player_sheet_audio_track_english)
+                selectedAudioTrack?.let(::audioTrackLabel)
+                    ?: context.getString(R.string.settings_audio_track_auto)
             }
         ) {
             openNestedDetailScreen(audioTitle) {
-                addRadioRow(
-                    title = context.getString(R.string.player_sheet_audio_track_english),
-                    checked = !playerPrefs.audioMuted
-                ) {
-                    playerPrefs.audioMuted = false
-                    playerManager.setMuted(false)
-                    detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
+                if (audioTracks.isEmpty()) {
+                    addDisabledRow(context.getString(R.string.player_settings_audio_track_none))
+                }
+                audioTracks.forEach { track ->
+                    addRadioRow(
+                        title = audioTrackLabel(track),
+                        checked = !playerPrefs.audioMuted && track.selected,
+                        enabled = track.supported
+                    ) {
+                        viewModel.selectAudioTrack(track)
+                        detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
+                    }
                 }
                 addRadioRow(
                     title = context.getString(R.string.player_sheet_disable),
                     checked = playerPrefs.audioMuted
                 ) {
-                    playerPrefs.audioMuted = true
-                    playerManager.setMuted(true)
+                    viewModel.disableAudioTrack()
                     detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
                 }
             }
@@ -719,10 +727,54 @@ class PlayerSettingsDialog(
         PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
             ?.mediaInfoRows(context, ::formatTime)
             ?.let { rows += it }
+        viewModel.selectedAudioTrack()?.let { track ->
+            rows += context.getString(R.string.player_settings_info_current_audio_track) to audioTrackLabel(track)
+            rows += context.getString(R.string.player_settings_info_audio_decoder) to audioDecoderLabel(track)
+        } ?: run {
+            rows += context.getString(R.string.player_settings_info_current_audio_track) to
+                context.getString(
+                    if (playerPrefs.audioMuted) R.string.player_sheet_disable
+                    else R.string.player_settings_audio_track_none
+                )
+        }
         if (rows.none { it.first == context.getString(R.string.player_settings_info_duration) }) {
             rows += context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration)
         }
         return rows
+    }
+
+    private fun audioTrackLabel(track: PlayerAudioTrackInfo): String {
+        val parts = mutableListOf<String>()
+        parts += context.getString(R.string.player_settings_info_stream, track.groupIndex + 1)
+        parts += audioCodecLabel(track.mimeType)
+        track.language?.takeIf { it.isNotBlank() && it != "und" }?.let { parts += it }
+        if (track.channelCount > 0) parts += audioChannelLabel(track.channelCount)
+        if (track.sampleRate > 0) parts += "${track.sampleRate} Hz"
+        if (!track.supported) parts += context.getString(R.string.player_settings_audio_track_unsupported)
+        return parts.joinToString(" · ")
+    }
+
+    private fun audioDecoderLabel(track: PlayerAudioTrackInfo): String = when {
+        !track.supported -> context.getString(R.string.player_settings_audio_decoder_unsupported)
+        track.isDtsAudio -> context.getString(R.string.player_settings_audio_decoder_ffmpeg)
+        else -> context.getString(R.string.player_settings_audio_decoder_system)
+    }
+
+    private fun audioCodecLabel(mimeType: String): String = when (mimeType.lowercase(Locale.US)) {
+        "audio/mp4a-latm" -> "AAC"
+        "audio/ac3" -> "AC-3"
+        "audio/eac3" -> "E-AC-3"
+        "audio/vnd.dts" -> "DTS/DCA"
+        "audio/vnd.dts.hd" -> "DTS-HD"
+        else -> mimeType.ifBlank { context.getString(R.string.player_settings_info_type_audio) }
+    }
+
+    private fun audioChannelLabel(count: Int): String = when (count) {
+        1 -> "Mono"
+        2 -> "Stereo"
+        6 -> "5.1"
+        8 -> "7.1"
+        else -> "$count ch"
     }
 
     @OptIn(UnstableApi::class)

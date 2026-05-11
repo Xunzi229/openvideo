@@ -235,6 +235,13 @@
     <string name="player_settings_info_profile">Profile</string>
     <string name="player_settings_info_audio_compatibility">Audio compatibility</string>
     <string name="player_settings_info_audio_dts_unsupported">DTS/DCA audio needs a device decoder or FFmpeg-style software decoder. If unsupported on this device, video may play without sound.</string>
+    <string name="player_settings_info_current_audio_track">Current audio track</string>
+    <string name="player_settings_info_audio_decoder">Audio decoder</string>
+    <string name="player_settings_audio_track_none">No audio track</string>
+    <string name="player_settings_audio_track_unsupported">Unsupported</string>
+    <string name="player_settings_audio_decoder_ffmpeg">FFmpeg extension preferred</string>
+    <string name="player_settings_audio_decoder_system">System / Media3 decoder</string>
+    <string name="player_settings_audio_decoder_unsupported">No supported decoder</string>
     <string name="player_settings_info_type_video">Video</string>
     <string name="player_settings_info_type_audio">Audio</string>
     <string name="player_settings_info_type_subtitle">Subtitle</string>

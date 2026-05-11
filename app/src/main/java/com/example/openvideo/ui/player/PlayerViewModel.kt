@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.openvideo.core.player.DecodeMode
+import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.player.RenderMode
 import com.example.openvideo.core.prefs.AspectRatio
@@ -128,6 +129,22 @@ class PlayerViewModel @Inject constructor(
 
     fun setVolumeBoost(enabled: Boolean) {
         playerManager.setVolumeBoost(enabled)
+    }
+
+    fun audioTracks(): List<PlayerAudioTrackInfo> =
+        playerManager.currentAudioTracks()
+
+    fun selectedAudioTrack(): PlayerAudioTrackInfo? =
+        audioTracks().firstOrNull { it.selected }
+
+    fun selectAudioTrack(track: PlayerAudioTrackInfo) {
+        playerPrefs.audioMuted = false
+        playerManager.selectAudioTrack(track.groupIndex, track.trackIndex)
+    }
+
+    fun disableAudioTrack() {
+        playerPrefs.audioMuted = true
+        playerManager.disableAudioTrack()
     }
 
     fun setSubtitles(subtitles: List<SubtitleItem>) {
