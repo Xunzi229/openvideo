@@ -4,10 +4,16 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.security.MessageDigest
 import java.security.SecureRandom
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class PrivacyManager(private val context: Context) {
+@Singleton
+class PrivacyManager @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
     private val secureRandom = SecureRandom()
 

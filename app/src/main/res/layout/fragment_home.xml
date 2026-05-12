@@ -17,11 +17,21 @@
     <HorizontalScrollView
         android:id="@+id/filter_scroll"
         android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:scrollbars="none"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/tab_layout"
+        app:layout_constraintTop_toBottomOf="@id/category_scroll"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/folder_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            app:singleSelection="true" />
+    </HorizontalScrollView>
 
     <LinearLayout
         android:id="@+id/header_row"
@@ -145,7 +155,7 @@
         android:layout_marginEnd="16dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/category_scroll"
+        app:layout_constraintTop_toBottomOf="@id/filter_scroll"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 

@@ -1,16 +1,22 @@
 package com.example.openvideo.ui.home
 
 import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.example.openvideo.R
 import com.example.openvideo.data.model.VideoItem
 
@@ -48,6 +54,7 @@ class VideoGridAdapter(
         val duration: TextView = view.findViewById(R.id.tv_duration)
         val size: TextView? = view.findViewById(R.id.tv_size)
         val resolution: TextView? = view.findViewById(R.id.tv_resolution)
+        val thumbnailLoading: ProgressBar? = view.findViewById(R.id.thumbnail_loading)
         val moreBtn: View? = view.findViewById(R.id.btn_more)
         val checkBox: CheckBox? = view.findViewById(R.id.cb_select)
 
@@ -114,11 +121,42 @@ class VideoGridAdapter(
             if (isSelected) Color.argb(40, 33, 150, 243) else Color.TRANSPARENT
         )
 
+        holder.onLoadStarted()
         Glide.with(holder.thumbnail)
             .load(item.thumbnailUri)
             .centerCrop()
             .placeholder(R.drawable.ic_movie)
+            .fallback(R.drawable.ic_movie)
+            .error(R.drawable.ic_movie)
+            .listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?,
+                    model: Any?,
+                    target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    holder.onLoadCleared()
+                    return false
+                }
+
+                override fun onResourceReady(
+                    resource: Drawable,
+                    model: Any,
+                    target: Target<Drawable>?,
+                    dataSource: DataSource,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    holder.onLoadCleared()
+                    return false
+                }
+            })
             .into(holder.thumbnail)
+    }
+
+    override fun onViewRecycled(holder: ViewHolder) {
+        holder.onLoadCleared()
+        Glide.with(holder.thumbnail).clear(holder.thumbnail)
+        super.onViewRecycled(holder)
     }
 
     fun startMultiSelectMode() {
@@ -169,5 +207,13 @@ class VideoGridAdapter(
     private fun formatSize(bytes: Long): String {
         val mb = bytes / (1024.0 * 1024.0)
         return String.format("%.1f MB", mb)
+    }
+
+    private fun ViewHolder.onLoadStarted() {
+        thumbnailLoading?.visibility = View.VISIBLE
+    }
+
+    private fun ViewHolder.onLoadCleared() {
+        thumbnailLoading?.visibility = View.GONE
     }
 }

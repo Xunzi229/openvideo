@@ -31,9 +31,11 @@ import com.example.openvideo.R
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
+import com.example.openvideo.ui.local.VideoFolderSummary
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
@@ -54,9 +56,13 @@ class HomeFragment : Fragment() {
     private lateinit var chipAll: Chip
     private lateinit var chipRecent: Chip
     private lateinit var chipFavorite: Chip
+    private lateinit var filterScroll: View
+    private lateinit var folderGroup: ChipGroup
     private var actionMode: ActionMode? = null
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
     private var pendingJumpToTop = false
+    private var currentFolders: List<VideoFolderSummary> = emptyList()
+    private var currentSelectedFolderKey: String? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -99,6 +105,8 @@ class HomeFragment : Fragment() {
         chipAll = view.findViewById(R.id.chip_all)
         chipRecent = view.findViewById(R.id.chip_recent)
         chipFavorite = view.findViewById(R.id.chip_favorite)
+        filterScroll = view.findViewById(R.id.filter_scroll)
+        folderGroup = view.findViewById(R.id.folder_group)
         chipAll.setOnClickListener { switchCategory(HomeCategory.ALL) }
         chipRecent.setOnClickListener { switchCategory(HomeCategory.RECENT) }
         chipFavorite.setOnClickListener { switchCategory(HomeCategory.FAVORITES) }
@@ -171,6 +179,29 @@ class HomeFragment : Fragment() {
                 launch {
                     viewModel.category.collect { category ->
                         updateCategoryChips(category)
+                    }
+                }
+                launch {
+                    viewModel.folders.collect { folders ->
+                        currentFolders = folders
+                        bindFolderChips()
+                    }
+                }
+                launch {
+                    viewModel.selectedFolderKey.collect { folderKey ->
+                        currentSelectedFolderKey = folderKey
+                        bindFolderChips()
+                    }
+                }
+                launch {
+                    viewModel.emptyState.collect { state ->
+                        emptyView.text = when (state) {
+                            MediaLibraryEmptyState.LOADING -> getString(R.string.media_library_loading)
+                            MediaLibraryEmptyState.NO_MEDIA -> getString(R.string.no_videos)
+                            MediaLibraryEmptyState.FILTERED_BY_PRIVACY -> getString(R.string.media_library_empty_privacy)
+                            MediaLibraryEmptyState.FILTERED_BY_QUERY_OR_FOLDER -> getString(R.string.media_library_empty_filtered)
+                            MediaLibraryEmptyState.NONE -> getString(R.string.no_videos)
+                        }
                     }
                 }
             }
@@ -343,6 +374,55 @@ class HomeFragment : Fragment() {
             if (selected) R.color.ov_text_primary else R.color.ov_text_secondary
         )
         chip.isChecked = selected
+        chip.chipBackgroundColor = ColorStateList.valueOf(background)
+        chip.chipStrokeColor = ColorStateList.valueOf(stroke)
+        chip.setTextColor(text)
+    }
+
+    private fun bindFolderChips() {
+        filterScroll.visibility = if (currentFolders.size > 1) View.VISIBLE else View.GONE
+        folderGroup.removeAllViews()
+        folderGroup.addView(createFolderChip(
+            text = getString(R.string.home_filter_all_folders),
+            checked = currentSelectedFolderKey == null,
+            onClick = { viewModel.setFolderFilter(null) }
+        ))
+        currentFolders.forEach { folder ->
+            folderGroup.addView(createFolderChip(
+                text = getString(R.string.home_filter_folder_with_count, folder.name, folder.videoCount),
+                checked = currentSelectedFolderKey == folder.key,
+                onClick = { viewModel.setFolderFilter(folder.key) }
+            ))
+        }
+    }
+
+    private fun createFolderChip(text: String, checked: Boolean, onClick: () -> Unit): Chip {
+        return Chip(requireContext()).apply {
+            this.text = text
+            isCheckable = true
+            isChecked = checked
+            isSingleLine = true
+            checkedIcon = null
+            isCheckedIconVisible = false
+            setOnClickListener { onClick() }
+            chipStrokeWidth = resources.displayMetrics.density
+            bindFolderChipStyle(this, checked)
+        }
+    }
+
+    private fun bindFolderChipStyle(chip: Chip, selected: Boolean) {
+        val background = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.ov_accent_blue else R.color.ov_bg_elevated
+        )
+        val stroke = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.ov_accent_blue else R.color.ov_divider
+        )
+        val text = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.ov_text_primary else R.color.ov_text_secondary
+        )
         chip.chipBackgroundColor = ColorStateList.valueOf(background)
         chip.chipStrokeColor = ColorStateList.valueOf(stroke)
         chip.setTextColor(text)

@@ -12,14 +12,18 @@ import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.data.scanner.VideoDeleteResult
+import com.example.openvideo.ui.local.VideoFolderGrouper
+import com.example.openvideo.ui.local.VideoFolderSummary
 import com.example.openvideo.ui.playlist.PlaylistEditor
 import android.net.Uri
+import com.example.openvideo.ui.privacy.PrivacyManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -41,40 +45,56 @@ class HomeViewModel @Inject constructor(
     private val repository: VideoRepository,
     private val appPrefs: AppPrefs,
     private val playlistDao: PlaylistDao,
-    private val playlistEditor: PlaylistEditor
+    private val playlistEditor: PlaylistEditor,
+    private val privacyManager: PrivacyManager
 ) : ViewModel() {
 
     private val _videos = MutableStateFlow<List<VideoItem>>(emptyList())
+    private val _scannedVideoCount = MutableStateFlow(0)
+    private val _hiddenFilteredCount = MutableStateFlow(0)
+    private val _hiddenFolders = MutableStateFlow<List<String>>(emptyList())
     private val _searchQuery = MutableStateFlow("")
     private val _sortField = MutableStateFlow(sortFieldFromPrefs(appPrefs.sortField))
     private val _sortAsc = MutableStateFlow(appPrefs.sortAsc)
     private val _viewMode = MutableStateFlow(viewModeFromPrefs(appPrefs.viewMode))
     private val _category = MutableStateFlow(HomeCategory.ALL)
+    private val _selectedFolderKey = MutableStateFlow<String?>(null)
 
     val sortField: StateFlow<SortField> = _sortField
     val sortAsc: StateFlow<Boolean> = _sortAsc
     val viewMode: StateFlow<ViewMode> = _viewMode
     val category: StateFlow<HomeCategory> = _category
+    val selectedFolderKey: StateFlow<String?> = _selectedFolderKey
     val playlists: Flow<List<PlaylistEntity>> = playlistDao.getAll()
+
+    val folders: StateFlow<List<VideoFolderSummary>> = _videos
+        .map { videos -> VideoFolderGrouper.groupPaths(videos.map { it.path }) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val categoryVideos: Flow<List<VideoItem>> = combine(
         _videos,
         repository.getHistory(),
         repository.getFavorites(),
-        _category
-    ) { scanned, history, favorites, category ->
+        _category,
+        _hiddenFolders
+    ) { scanned, history, favorites, category, hiddenFolders ->
         when (category) {
             HomeCategory.ALL -> scanned
-            HomeCategory.RECENT -> videosFromHistory(scanned, history)
-            HomeCategory.FAVORITES -> videosFromFavorites(scanned, favorites)
+            HomeCategory.RECENT -> videosFromHistory(scanned, history, hiddenFolders)
+            HomeCategory.FAVORITES -> videosFromFavorites(scanned, favorites, hiddenFolders)
         }
     }
 
     val videos: StateFlow<List<VideoItem>> = combine(
-        categoryVideos, _searchQuery, _sortField, _sortAsc
-    ) { list, query, field, asc ->
-        val filtered = if (query.isBlank()) list
-        else list.filter { it.title.contains(query, ignoreCase = true) }
+        categoryVideos, _selectedFolderKey, _searchQuery, _sortField, _sortAsc
+    ) { list, selectedFolderKey, query, field, asc ->
+        val folderFiltered = MediaLibraryPolicy.visibleVideos(
+            videos = list,
+            hiddenFolders = emptyList(),
+            folderKey = selectedFolderKey
+        )
+        val filtered = if (query.isBlank()) folderFiltered
+        else folderFiltered.filter { it.title.contains(query, ignoreCase = true) }
         val sorted = when (field) {
             SortField.NAME -> if (asc) filtered.sortedBy { it.title.lowercase() } else filtered.sortedByDescending { it.title.lowercase() }
             SortField.SIZE -> if (asc) filtered.sortedBy { it.size } else filtered.sortedByDescending { it.size }
@@ -86,6 +106,20 @@ class HomeViewModel @Inject constructor(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    val emptyState: StateFlow<MediaLibraryEmptyState> = combine(
+        _isLoading,
+        _scannedVideoCount,
+        videos,
+        _hiddenFilteredCount
+    ) { isLoading, scannedCount, visibleVideos, hiddenFilteredCount ->
+        MediaLibraryPolicy.emptyState(
+            isLoading = isLoading,
+            scannedCount = scannedCount,
+            visibleCount = visibleVideos.size,
+            hiddenFilteredCount = hiddenFilteredCount
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MediaLibraryEmptyState.LOADING)
 
     init {
         loadVideos()
@@ -122,6 +156,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun setFolderFilter(folderKey: String?) {
+        _selectedFolderKey.value = folderKey
+    }
+
     private fun sortFieldFromPrefs(key: String): SortField {
         return when (key) {
             "name" -> SortField.NAME
@@ -139,13 +177,41 @@ class HomeViewModel @Inject constructor(
     }
 
     private var loadJob: kotlinx.coroutines.Job? = null
+    private var lastScanSignature: MediaScanSignature? = null
+    private var lastHiddenFolders: List<String> = emptyList()
 
     fun loadVideos() {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _isLoading.value = true
             repository.scanLocalVideos().collect { list ->
-                _videos.value = list
+                val signature = MediaScanSignature.fromVideos(list)
+                val hiddenFolders = privacyManager.getHiddenFolders()
+                val hiddenFoldersChanged = hiddenFolders != lastHiddenFolders
+                if (!MediaLibraryPolicy.shouldPublishScan(lastScanSignature, signature) && !hiddenFoldersChanged) {
+                    _isLoading.value = false
+                    return@collect
+                }
+                lastScanSignature = signature
+                lastHiddenFolders = hiddenFolders
+                _hiddenFolders.value = hiddenFolders
+                _scannedVideoCount.value = list.size
+                _hiddenFilteredCount.value = MediaLibraryPolicy.hiddenFilteredCount(
+                    list.map { it.path },
+                    hiddenFolders
+                )
+                val visibleVideos = MediaLibraryPolicy.visibleVideos(
+                    videos = list,
+                    hiddenFolders = hiddenFolders
+                )
+                val validFolderKey = MediaLibraryPolicy.validFolderKey(
+                    selectedFolderKey = _selectedFolderKey.value,
+                    folderKeys = VideoFolderGrouper.groupPaths(visibleVideos.map { it.path }).map { it.key }
+                )
+                if (validFolderKey != _selectedFolderKey.value) {
+                    _selectedFolderKey.value = validFolderKey
+                }
+                _videos.value = visibleVideos
                 _isLoading.value = false
             }
         }
@@ -208,27 +274,33 @@ class HomeViewModel @Inject constructor(
 
     private fun videosFromHistory(
         scanned: List<VideoItem>,
-        history: List<HistoryEntity>
+        history: List<HistoryEntity>,
+        hiddenFolders: List<String>
     ): List<VideoItem> {
         val scannedById = scanned.associateBy { it.id }
         return history
             .sortedByDescending { it.timestamp }
-            .map { item ->
+            .mapNotNull { item ->
                 scannedById[item.videoId]?.copy(dateAdded = item.timestamp / 1000)
-                    ?: item.toVideoItem()
+                    ?: item.toVideoItem().takeUnless { video ->
+                        MediaLibraryPolicy.isHiddenPath(video.path, hiddenFolders)
+                    }
             }
     }
 
     private fun videosFromFavorites(
         scanned: List<VideoItem>,
-        favorites: List<FavoriteEntity>
+        favorites: List<FavoriteEntity>,
+        hiddenFolders: List<String>
     ): List<VideoItem> {
         val scannedById = scanned.associateBy { it.id }
         return favorites
             .sortedByDescending { it.timestamp }
-            .map { item ->
+            .mapNotNull { item ->
                 scannedById[item.videoId]?.copy(dateAdded = item.timestamp / 1000)
-                    ?: item.toVideoItem()
+                    ?: item.toVideoItem().takeUnless { video ->
+                        MediaLibraryPolicy.isHiddenPath(video.path, hiddenFolders)
+                    }
             }
     }
 

@@ -280,6 +280,9 @@
     <!-- General -->
     <string name="refresh">Refresh</string>
     <string name="no_videos">No videos</string>
+    <string name="media_library_loading">Scanning videos...</string>
+    <string name="media_library_empty_privacy">Videos are hidden by private folders</string>
+    <string name="media_library_empty_filtered">No videos match the current filter</string>
     <string name="duration_format" formatted="false">%02d:%02d:%02d</string>
     <string name="size_format">%.1f MB</string>
     <string name="resolution_format" formatted="false">%dx%d</string>
@@ -287,6 +290,8 @@
     <string name="home_filter_all">All</string>
     <string name="home_filter_recent">Recent</string>
     <string name="home_filter_favorite">Favorites</string>
+    <string name="home_filter_all_folders">All folders</string>
+    <string name="home_filter_folder_with_count">%1$s (%2$d)</string>
     <string name="home_sort_by_modified">Modified time</string>
     <string name="sort_by_date">Date</string>
     <string name="sort_by_name">Name</string>
