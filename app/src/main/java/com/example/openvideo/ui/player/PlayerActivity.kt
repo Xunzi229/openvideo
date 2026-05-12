@@ -39,6 +39,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
@@ -73,6 +74,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var playerView: PlayerView
     private lateinit var playerRoot: View
+    private lateinit var firstFrameScrim: View
     private lateinit var controlsContainer: View
     private lateinit var topBar: View
     private lateinit var topScrim: View
@@ -174,6 +176,7 @@ class PlayerActivity : AppCompatActivity() {
     private var hasSkippedOutro = false
     private val startupTrace = PlayerStartupTrace()
     private var hasLoggedFirstFrame = false
+    private var isAwaitingFirstFrame = true
     private var lastHistorySavedPositionMs = 0L
 
     /** 单次手势起始亮度/音量（0–1），避免 MOVE 期间重复累加误差 */
@@ -232,6 +235,7 @@ class PlayerActivity : AppCompatActivity() {
         startupTrace.record("player_initialized")
 
         playerView.player = viewModel.player
+        firstFrameScrim.visibility = if (isAwaitingFirstFrame) View.VISIBLE else View.GONE
         setupControls()
         refreshSessionListButtonVisibility()
         startupTrace.record("player_view_attached")
@@ -392,6 +396,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun initViews() {
         playerRoot = findViewById(R.id.player_root)
         playerView = findViewById(R.id.player_view)
+        firstFrameScrim = findViewById(R.id.player_first_frame_scrim)
         controlsContainer = findViewById(R.id.controls_container)
         topBar = findViewById(R.id.top_bar)
         topScrim = findViewById(R.id.top_scrim)
@@ -451,6 +456,7 @@ class PlayerActivity : AppCompatActivity() {
             videos = queue,
             playingVideoId = viewModel.playingVideoId,
             onPick = { item ->
+                showFirstFrameScrim()
                 viewModel.switchToVideo(item) {
                     currentVideoUriString = item.uri.toString()
                     currentVideoPath = item.path
@@ -670,6 +676,7 @@ class PlayerActivity : AppCompatActivity() {
                 if (playbackState == Player.STATE_READY) {
                     val state = viewModel.uiState.value
                     applyIntroOutroSkip(state.currentPosition, state.duration)
+                    hideFirstFrameScrimForAudioOnly()
                 } else if (playbackState == Player.STATE_ENDED) {
                     playNextQueueVideoAfterEnded()
                 }
@@ -683,14 +690,16 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onRenderedFirstFrame() {
-                if (hasLoggedFirstFrame) return
-                hasLoggedFirstFrame = true
-                startupTrace.record("first_frame_rendered")
-                CrashLogger.logDiagnostic(
-                    this@PlayerActivity,
-                    "player_startup",
-                    startupTrace.format()
-                )
+                hideFirstFrameScrim()
+                if (!hasLoggedFirstFrame) {
+                    hasLoggedFirstFrame = true
+                    startupTrace.record("first_frame_rendered")
+                    CrashLogger.logDiagnostic(
+                        this@PlayerActivity,
+                        "player_startup",
+                        startupTrace.format()
+                    )
+                }
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -711,6 +720,28 @@ class PlayerActivity : AppCompatActivity() {
         applyControlVisibility()
     }
 
+    private fun showFirstFrameScrim() {
+        isAwaitingFirstFrame = true
+        if (!this::firstFrameScrim.isInitialized) return
+        firstFrameScrim.animate().cancel()
+        firstFrameScrim.alpha = 1f
+        firstFrameScrim.visibility = View.VISIBLE
+    }
+
+    private fun hideFirstFrameScrim() {
+        isAwaitingFirstFrame = false
+        if (!this::firstFrameScrim.isInitialized) return
+        firstFrameScrim.animate().cancel()
+        firstFrameScrim.visibility = View.GONE
+    }
+
+    private fun hideFirstFrameScrimForAudioOnly() {
+        if (!isAwaitingFirstFrame) return
+        val hasVideoTrack = viewModel.player?.currentTracks?.groups
+            ?.any { group -> group.type == C.TRACK_TYPE_VIDEO } == true
+        if (!hasVideoTrack) hideFirstFrameScrim()
+    }
+
     private fun playNextQueueVideoAfterEnded() {
         if (isSwitchingQueueAfterEnded) return
         val queue = viewModel.sessionQueue.value
@@ -722,6 +753,7 @@ class PlayerActivity : AppCompatActivity() {
         ) ?: return
 
         isSwitchingQueueAfterEnded = true
+        showFirstFrameScrim()
         viewModel.switchToVideo(queue[nextIndex]) {
             isSwitchingQueueAfterEnded = false
             currentVideoUriString = queue[nextIndex].uri.toString()
@@ -1236,6 +1268,7 @@ class PlayerActivity : AppCompatActivity() {
         initBrightnessAndVolume()
 
         playerView.player = viewModel.player
+        firstFrameScrim.visibility = if (isAwaitingFirstFrame) View.VISIBLE else View.GONE
         setupControls()
         refreshSessionListButtonVisibility()
         tvTitle.text = viewModel.uiState.value.title
