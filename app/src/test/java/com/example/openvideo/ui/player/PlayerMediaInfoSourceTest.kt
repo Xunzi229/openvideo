@@ -38,9 +38,28 @@ class PlayerMediaInfoSourceTest {
 
         assertTrue(mediaInfoSource.contains("audio/vnd.dts"))
         assertTrue(mediaInfoSource.contains("audio/vnd.dts.hd"))
+        assertTrue(mediaInfoSource.contains("audio/true-hd"))
         assertTrue(mediaInfoSource.contains("DTS"))
         assertTrue(mediaInfoSource.contains("DCA"))
         assertTrue(mediaInfoSource.contains("hasDtsAudio"))
+    }
+
+    @Test
+    fun infoPageFallsBackToTrackResolutionWhenPlayerVideoSizeIsNotReady() {
+        val dialogSource = String(Files.readAllBytes(sourceFile("PlayerSettingsDialog.kt")))
+        val infoRows = dialogSource
+            .substringAfter("private fun videoInfoRows()")
+            .substringBefore("\n    private fun audioDiagnosticRows")
+        val resolutionLabel = dialogSource
+            .substringAfter("private fun videoResolutionLabel(")
+            .substringBefore("\n    private fun copyVideoInfoToClipboard()")
+
+        assertTrue(infoRows.contains("val mediaInfo = PlayerMediaInfoReader.read"))
+        assertTrue(infoRows.contains("videoResolutionLabel(mediaInfo)"))
+        assertTrue(resolutionLabel.contains("mediaInfo?.tracks"))
+        assertTrue(resolutionLabel.contains("PlayerMediaTrack.Type.VIDEO"))
+        assertTrue(resolutionLabel.contains("track.width"))
+        assertTrue(resolutionLabel.contains("track.height"))
     }
 
     private fun sourceFile(fileName: String): Path {

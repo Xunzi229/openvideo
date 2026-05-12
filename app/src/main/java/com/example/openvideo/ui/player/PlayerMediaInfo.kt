@@ -20,6 +20,9 @@ data class PlayerMediaInfo(
 ) {
     val hasDtsAudio: Boolean
         get() = tracks.any { it.type == PlayerMediaTrack.Type.AUDIO && it.isDtsAudio }
+
+    val hasSpecialAudio: Boolean
+        get() = tracks.any { it.type == PlayerMediaTrack.Type.AUDIO && it.needsSoftwareAudioFallback }
 }
 
 data class PlayerMediaTrack(
@@ -43,8 +46,20 @@ data class PlayerMediaTrack(
             val normalized = mime.lowercase(Locale.US)
             return normalized == "audio/vnd.dts" ||
                 normalized == "audio/vnd.dts.hd" ||
+                normalized == "audio/vnd.dts.uhd" ||
+                normalized == "audio/x-dts" ||
                 normalized.contains("dts") ||
                 normalized.contains("dca")
+        }
+
+    val needsSoftwareAudioFallback: Boolean
+        get() {
+            val normalized = mime.lowercase(Locale.US)
+            return isDtsAudio ||
+                normalized == "audio/true-hd" ||
+                normalized == "audio/mlp" ||
+                normalized.contains("truehd") ||
+                normalized.contains("mlp")
         }
 }
 
@@ -178,7 +193,7 @@ fun PlayerMediaInfo.mediaInfoRows(
     tracks.forEach { track ->
         rows += track.mediaInfoRows(context)
     }
-    if (hasDtsAudio) {
+    if (hasSpecialAudio) {
         rows += context.getString(R.string.player_settings_info_audio_compatibility) to
             context.getString(R.string.player_settings_info_audio_dts_unsupported)
     }
@@ -235,6 +250,10 @@ private fun codecLabel(mime: String): String = when (mime.lowercase(Locale.US)) 
     "audio/eac3" -> "E-AC-3"
     "audio/vnd.dts" -> "DCA (DTS Coherent Acoustics)"
     "audio/vnd.dts.hd" -> "DTS-HD"
+    "audio/vnd.dts.uhd" -> "DTS-UHD"
+    "audio/x-dts" -> "DTS/DCA"
+    "audio/true-hd" -> "Dolby TrueHD"
+    "audio/mlp" -> "MLP"
     else -> mime
 }
 

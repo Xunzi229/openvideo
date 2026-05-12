@@ -234,13 +234,15 @@
     <string name="player_settings_info_language">Language</string>
     <string name="player_settings_info_profile">Profile</string>
     <string name="player_settings_info_audio_compatibility">Audio compatibility</string>
-    <string name="player_settings_info_audio_dts_unsupported">DTS/DCA audio needs a device decoder or FFmpeg-style software decoder. If unsupported on this device, video may play without sound.</string>
+    <string name="player_settings_info_audio_dts_unsupported">Special audio needs a device decoder or FFmpeg-style software decoder. If unsupported on this device, video may play without sound.</string>
     <string name="player_settings_info_current_audio_track">Current audio track</string>
     <string name="player_settings_info_audio_decoder">Audio decoder</string>
     <string name="player_settings_info_audio_input_format">Audio input format</string>
     <string name="player_settings_info_ffmpeg_extension">FFmpeg extension</string>
     <string name="player_settings_info_ffmpeg_available">Available</string>
     <string name="player_settings_info_ffmpeg_unavailable">Unavailable</string>
+    <string name="player_settings_info_audio_fallback_active">Software fallback active</string>
+    <string name="player_settings_info_audio_fallback_needed">Special audio detected; waiting for FFmpeg/software fallback</string>
     <string name="player_settings_info_playback_error">Playback error</string>
     <string name="player_settings_audio_track_none">No audio track</string>
     <string name="player_settings_audio_track_unsupported">Unsupported</string>

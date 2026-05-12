@@ -234,13 +234,15 @@
     <string name="player_settings_info_language">语言</string>
     <string name="player_settings_info_profile">配置</string>
     <string name="player_settings_info_audio_compatibility">音频兼容性</string>
-    <string name="player_settings_info_audio_dts_unsupported">当前音轨是 DTS/DCA，需要设备解码器或 FFmpeg 类软件解码支持；本机不支持时会出现有画面无声音。</string>
+    <string name="player_settings_info_audio_dts_unsupported">当前音轨是特殊音频，需要设备解码器或 FFmpeg 类软件解码支持；本机不支持时会出现有画面无声音。</string>
     <string name="player_settings_info_current_audio_track">当前音轨</string>
     <string name="player_settings_info_audio_decoder">音频解码器</string>
     <string name="player_settings_info_audio_input_format">音频输入格式</string>
     <string name="player_settings_info_ffmpeg_extension">FFmpeg 扩展</string>
     <string name="player_settings_info_ffmpeg_available">可用</string>
     <string name="player_settings_info_ffmpeg_unavailable">不可用</string>
+    <string name="player_settings_info_audio_fallback_active">软件兜底已启用</string>
+    <string name="player_settings_info_audio_fallback_needed">检测到特殊音频，等待 FFmpeg/软件兜底</string>
     <string name="player_settings_info_playback_error">播放错误</string>
     <string name="player_settings_audio_track_none">无音轨</string>
     <string name="player_settings_audio_track_unsupported">不支持</string>

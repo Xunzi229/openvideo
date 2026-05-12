@@ -715,17 +715,18 @@ class PlayerSettingsDialog(
 
     private fun videoInfoRows(): List<Pair<String, String>> {
         val state = viewModel.uiState.value
+        val mediaInfo = PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
         val rows = mutableListOf(
             context.getString(R.string.player_settings_info_title) to
                 state.title.ifBlank { context.getString(R.string.app_name) },
             context.getString(R.string.player_settings_info_position) to formatTime(playerManager.currentPosition),
-            context.getString(R.string.player_settings_info_resolution) to videoResolutionLabel(),
+            context.getString(R.string.player_settings_info_resolution) to videoResolutionLabel(mediaInfo),
             context.getString(R.string.player_settings_info_speed) to playbackSpeedLabelFor(state.speed),
             context.getString(R.string.player_settings_info_aspect) to aspectLabel(playerPrefs.aspectRatio),
             context.getString(R.string.player_settings_info_source) to
                 viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
         )
-        PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
+        mediaInfo
             ?.mediaInfoRows(context, ::formatTime)
             ?.let { rows += it }
         viewModel.selectedAudioTrack()?.let { track ->
@@ -760,6 +761,15 @@ class PlayerSettingsDialog(
         audioInputFormatLabel(diagnostics)?.let { label ->
             rows += context.getString(R.string.player_settings_info_audio_input_format) to label
         }
+        if (diagnostics.needsSoftwareAudioFallback) {
+            rows += context.getString(R.string.player_settings_info_audio_compatibility) to context.getString(
+                if (diagnostics.isUsingFfmpegDecoder) {
+                    R.string.player_settings_info_audio_fallback_active
+                } else {
+                    R.string.player_settings_info_audio_fallback_needed
+                }
+            )
+        }
         diagnostics.lastPlaybackError?.takeIf { it.isNotBlank() }?.let { error ->
             rows += context.getString(R.string.player_settings_info_playback_error) to error
         }
@@ -788,7 +798,7 @@ class PlayerSettingsDialog(
 
     private fun audioDecoderLabel(track: PlayerAudioTrackInfo): String = when {
         !track.supported -> context.getString(R.string.player_settings_audio_decoder_unsupported)
-        track.isDtsAudio -> context.getString(R.string.player_settings_audio_decoder_ffmpeg)
+        track.requiresSoftwareAudioFallback -> context.getString(R.string.player_settings_audio_decoder_ffmpeg)
         else -> context.getString(R.string.player_settings_audio_decoder_system)
     }
 
@@ -798,6 +808,10 @@ class PlayerSettingsDialog(
         "audio/eac3" -> "E-AC-3"
         "audio/vnd.dts" -> "DTS/DCA"
         "audio/vnd.dts.hd" -> "DTS-HD"
+        "audio/vnd.dts.uhd" -> "DTS-UHD"
+        "audio/x-dts" -> "DTS/DCA"
+        "audio/true-hd" -> "Dolby TrueHD"
+        "audio/mlp" -> "MLP"
         else -> mimeType.ifBlank { context.getString(R.string.player_settings_info_type_audio) }
     }
 
@@ -810,14 +824,24 @@ class PlayerSettingsDialog(
     }
 
     @OptIn(UnstableApi::class)
-    private fun videoResolutionLabel(): String {
+    private fun videoResolutionLabel(mediaInfo: PlayerMediaInfo?): String {
         val vs = viewModel.player?.videoSize
-            ?: return context.getString(R.string.player_settings_value_none)
-        val h = vs.height
-        val w = vs.width
-        if (w <= 0 || h <= 0) return context.getString(R.string.player_settings_value_none)
-        val displayW = round(w * vs.pixelWidthHeightRatio.toDouble()).toInt().coerceAtLeast(1)
-        return "${displayW}x$h"
+        if (vs != null) {
+            val h = vs.height
+            val w = vs.width
+            if (w > 0 && h > 0) {
+                val displayW = round(w * vs.pixelWidthHeightRatio.toDouble()).toInt().coerceAtLeast(1)
+                return "${displayW}x$h"
+            }
+        }
+        mediaInfo?.tracks
+            ?.firstOrNull { track ->
+                track.type == PlayerMediaTrack.Type.VIDEO &&
+                    track.width != null &&
+                    track.height != null
+            }
+            ?.let { track -> return "${track.width}x${track.height}" }
+        return context.getString(R.string.player_settings_value_none)
     }
 
     private fun copyVideoInfoToClipboard() {

@@ -80,6 +80,7 @@ class PlayerManager @Inject constructor(
             .build()
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            .setEnableDecoderFallback(true)
 
         val player = ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
@@ -228,7 +229,8 @@ class PlayerManager @Inject constructor(
                     lastInputMimeType = format.sampleMimeType,
                     lastInputLanguage = format.language,
                     lastInputChannelCount = format.channelCount,
-                    lastInputSampleRate = format.sampleRate
+                    lastInputSampleRate = format.sampleRate,
+                    lastInputNeedsSoftwareFallback = format.sampleMimeType.needsSoftwareAudioFallback()
                 )
             }
 
@@ -252,6 +254,20 @@ class PlayerManager @Inject constructor(
                 isAvailable ?: true
             }.getOrDefault(false)
         }
+    }
+
+    private fun String?.needsSoftwareAudioFallback(): Boolean {
+        val normalized = this?.lowercase() ?: return false
+        return normalized == "audio/vnd.dts" ||
+            normalized == "audio/vnd.dts.hd" ||
+            normalized == "audio/vnd.dts.uhd" ||
+            normalized == "audio/x-dts" ||
+            normalized == "audio/true-hd" ||
+            normalized == "audio/mlp" ||
+            normalized.contains("dts") ||
+            normalized.contains("dca") ||
+            normalized.contains("truehd") ||
+            normalized.contains("mlp")
     }
 
     fun applyDecodeMode(mode: DecodeMode) {

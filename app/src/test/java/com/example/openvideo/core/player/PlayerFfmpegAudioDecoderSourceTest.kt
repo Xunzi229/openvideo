@@ -24,7 +24,66 @@ class PlayerFfmpegAudioDecoderSourceTest {
 
         assertTrue(source.contains("DefaultRenderersFactory"))
         assertTrue(source.contains("EXTENSION_RENDERER_MODE_PREFER"))
+        assertTrue(source.contains("setEnableDecoderFallback(true)"))
         assertTrue(source.contains("setRenderersFactory(renderersFactory)"))
+    }
+
+    @Test
+    fun playerMarksSpecialAudioAsSoftwareFallbackCandidates() {
+        val trackInfoSource = String(Files.readAllBytes(sourceFile("PlayerAudioTrackInfo.kt")))
+        val mediaInfoSource = String(
+            Files.readAllBytes(
+                rootFile(
+                    "app",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "example",
+                    "openvideo",
+                    "ui",
+                    "player",
+                    "PlayerMediaInfo.kt"
+                )
+            )
+        )
+
+        listOf(
+            "audio/vnd.dts",
+            "audio/vnd.dts.hd",
+            "audio/true-hd",
+            "audio/mlp"
+        ).forEach { mime ->
+            assertTrue("Missing special audio mime in track info: $mime", trackInfoSource.contains(mime))
+            assertTrue("Missing special audio mime in media info: $mime", mediaInfoSource.contains(mime))
+        }
+        assertTrue(trackInfoSource.contains("requiresSoftwareAudioFallback"))
+        assertTrue(trackInfoSource.contains("needsSoftwareAudioFallback"))
+    }
+
+    @Test
+    fun audioDecoderLabelUsesSoftwareFallbackFlagForAllSpecialAudio() {
+        val dialogSource = String(
+            Files.readAllBytes(
+                rootFile(
+                    "app",
+                    "src",
+                    "main",
+                    "java",
+                    "com",
+                    "example",
+                    "openvideo",
+                    "ui",
+                    "player",
+                    "PlayerSettingsDialog.kt"
+                )
+            )
+        )
+        val decoderLabel = dialogSource
+            .substringAfter("private fun audioDecoderLabel(")
+            .substringBefore("\n    private fun audioCodecLabel")
+
+        assertTrue(decoderLabel.contains("track.requiresSoftwareAudioFallback"))
     }
 
     private fun sourceFile(fileName: String): Path =
