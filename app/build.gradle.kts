@@ -3,7 +3,6 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.gms.oss.licenses)
 }
 
 android {
@@ -14,8 +13,8 @@ android {
         applicationId = "com.example.openvideo"
         minSdk = 23
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.0.4"
+        versionCode = 5
+        versionName = "0.0.5"
     }
 
     buildTypes {
@@ -90,16 +89,9 @@ dependencies {
     implementation(libs.androidx.window)
     implementation(libs.androidx.security.crypto)
 
-    // Open-source licenses (generated from Gradle dependencies at build time)
+    // Open-source license viewer. License resources are packaged from src/main/res/raw.
     implementation(libs.play.services.oss.licenses)
 
     testImplementation(libs.junit)
 }
 
-// OSS 插件对可调试变体不写依赖列表，只生成占位项「Debug License Info」。
-// 在 debug 许可任务末尾用 release 的 raw 覆盖，避免单独 Copy 任务触发 Gradle 9 资源合并隐式依赖报错。
-afterEvaluate {
-    tasks.named("debugOssLicensesTask").configure {
-        enabled = false
-    }
-}
