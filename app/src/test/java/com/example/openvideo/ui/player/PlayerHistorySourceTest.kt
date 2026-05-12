@@ -72,6 +72,27 @@ class PlayerHistorySourceTest {
         )
     }
 
+    @Test
+    fun completedPlaybackIsPersistedAsStartPosition() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerViewModel.kt")))
+        val persistablePosition = source
+            .substringAfter("private fun currentPersistablePosition(): Long")
+            .substringBefore("\n    private fun currentHistoryVideoItem")
+        val saveHistory = source
+            .substringAfter("private suspend fun persistCurrentPlaybackProgress()")
+            .substringBefore("\n    private fun currentPersistablePosition")
+
+        assertTrue(
+            "Completed videos should save resume progress as 0 so reopening the same video starts from the beginning",
+            persistablePosition.contains("playerManager.playbackState == Player.STATE_ENDED") &&
+                persistablePosition.contains("0L")
+        )
+        assertTrue(
+            "All normal history saves should use the completed-playback-aware position helper",
+            saveHistory.contains("currentPersistablePosition()")
+        )
+    }
+
     private fun sourceFile(name: String): Path {
         val relativePath = Paths.get(
             "src",

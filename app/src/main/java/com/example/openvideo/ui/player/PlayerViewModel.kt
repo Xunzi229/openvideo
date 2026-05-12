@@ -3,6 +3,7 @@ package com.example.openvideo.ui.player
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.Player
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerAudioDiagnostics
 import com.example.openvideo.core.player.PlayerAudioTrackInfo
@@ -236,21 +237,27 @@ class PlayerViewModel @Inject constructor(
     private suspend fun persistCurrentPlaybackProgress() {
         val uri = videoUri ?: return
         repository.saveHistory(
-            VideoItem(
-                id = videoId,
-                title = _uiState.value.title,
-                path = videoPath.ifBlank { uri.toString() },
-                uri = uri,
-                duration = playerManager.duration,
-                size = 0,
-                width = 0,
-                height = 0,
-                dateAdded = 0,
-                thumbnailUri = null
-            ),
-            playerManager.currentPosition
+            currentHistoryVideoItem(uri),
+            currentPersistablePosition()
         )
     }
+
+    private fun currentPersistablePosition(): Long =
+        if (playerManager.playbackState == Player.STATE_ENDED) 0L else playerManager.currentPosition
+
+    private fun currentHistoryVideoItem(uri: Uri): VideoItem =
+        VideoItem(
+            id = videoId,
+            title = _uiState.value.title,
+            path = videoPath.ifBlank { uri.toString() },
+            uri = uri,
+            duration = playerManager.duration,
+            size = 0,
+            width = 0,
+            height = 0,
+            dateAdded = 0,
+            thumbnailUri = null
+        )
 
     /**
      * 在同一会话队列中切换到其它视频（保存当前进度后加载新媒体）。
@@ -287,18 +294,7 @@ class PlayerViewModel @Inject constructor(
             val uri = videoUri ?: return@launch
             val history = repository.getHistory(videoId)
             repository.saveHistory(
-                VideoItem(
-                    id = videoId,
-                    title = _uiState.value.title,
-                    path = videoPath.ifBlank { uri.toString() },
-                    uri = uri,
-                    duration = playerManager.duration,
-                    size = 0,
-                    width = 0,
-                    height = 0,
-                    dateAdded = 0,
-                    thumbnailUri = null
-                ),
+                currentHistoryVideoItem(uri),
                 history?.lastPosition ?: 0L
             )
         }
