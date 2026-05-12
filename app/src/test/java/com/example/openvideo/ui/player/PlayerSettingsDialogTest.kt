@@ -256,10 +256,12 @@ class PlayerSettingsDialogTest {
 
         assertTrue(tutorialBlock.contains("R.string.player_sheet_tutorial_apply_mx"))
         assertTrue(tutorialBlock.contains("R.string.player_sheet_tutorial_apply_play_pause"))
-        assertTrue(tutorialBlock.contains("R.string.settings_long_press_action"))
-        assertTrue(tutorialBlock.contains("R.string.settings_edge_swipe_back"))
-        assertTrue(tutorialBlock.contains("showDoubleTapActionPage()"))
-        assertTrue(tutorialBlock.contains("showLongPressActionPage()"))
+        assertTrue(tutorialBlock.contains("addActionRows(tutorialActionSpecs())"))
+        assertTrue(tutorialBlock.contains("addSwitchRows(tutorialSwitchSpecs(), detailContainer)"))
+        assertTrue(dialogSource.contains("R.string.settings_long_press_action"))
+        assertTrue(dialogSource.contains("R.string.settings_edge_swipe_back"))
+        assertTrue(dialogSource.contains("onClick = ::showDoubleTapActionPage"))
+        assertTrue(dialogSource.contains("onClick = ::showLongPressActionPage"))
     }
 
     @Test
@@ -269,8 +271,14 @@ class PlayerSettingsDialogTest {
             .substringAfter("private fun buildMorePage()")
             .substringBefore("\n    private fun ")
 
-        assertTrue(moreBlock.contains("playerPrefs.resetToDefaults()"))
-        assertTrue(moreBlock.contains("onPlayerPrefsReset()"))
+        assertTrue(moreBlock.contains("addActionRows(moreActionSpecs())"))
+        assertTrue(
+            "More page should keep skip intro/outro before speed, and keep-screen-on after speed.",
+            moreBlock.indexOf("moreIntroSwitchSpecs()") in 0 until moreBlock.indexOf("addPlaybackSpeedSeekRow()") &&
+                moreBlock.indexOf("addPlaybackSpeedSeekRow()") in 0 until moreBlock.indexOf("moreScreenSwitchSpecs()")
+        )
+        assertTrue(dialogSource.contains("playerPrefs.resetToDefaults()"))
+        assertTrue(dialogSource.contains("onPlayerPrefsReset()"))
 
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
         assertTrue(activitySource.contains("onPlayerPrefsReset = ::applyPlayerSettings"))

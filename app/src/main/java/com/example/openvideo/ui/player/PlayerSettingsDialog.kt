@@ -267,35 +267,35 @@ class PlayerSettingsDialog(
 
     private fun setupPrimarySwitches() {
         primarySwitches.removeAllViews()
-        addSwitchRow(
-            parent = primarySwitches,
+        addSwitchRows(primarySwitchSpecs(), primarySwitches)
+    }
+
+    private fun primarySwitchSpecs(): List<PlayerSettingsSwitchSpec> = listOf(
+        PlayerSettingsSwitchSpec(
             title = context.getString(R.string.player_sheet_video_display),
             checked = playerPrefs.videoDisplayEnabled
         ) { checked ->
             playerPrefs.videoDisplayEnabled = checked
-        }
-        addSwitchRow(
-            parent = primarySwitches,
+        },
+        PlayerSettingsSwitchSpec(
             title = context.getString(R.string.player_sheet_keyboard_shortcuts),
             checked = playerPrefs.keyboardShortcuts
         ) { checked ->
             playerPrefs.keyboardShortcuts = checked
-        }
-        addSwitchRow(
-            parent = primarySwitches,
+        },
+        PlayerSettingsSwitchSpec(
             title = context.getString(R.string.player_sheet_bg_playback),
             checked = playerPrefs.bgAudio
         ) { checked ->
             playerPrefs.bgAudio = checked
-        }
-        addSwitchRow(
-            parent = primarySwitches,
+        },
+        PlayerSettingsSwitchSpec(
             title = context.getString(R.string.player_sheet_remember_position),
             checked = playerPrefs.rememberProgress
         ) { checked ->
             playerPrefs.rememberProgress = checked
         }
-    }
+    )
 
     /**
      * 滑块存的是「不透明度」百分比：100%=完全不透明，0%=最透明。
@@ -918,25 +918,8 @@ class PlayerSettingsDialog(
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
         */
-        addActionRow(
-            title = context.getString(R.string.settings_double_tap_action),
-            value = doubleTapLabel(playerPrefs.doubleTapAction)
-        ) {
-            showDoubleTapActionPage()
-        }
-        addActionRow(
-            title = context.getString(R.string.settings_long_press_action),
-            value = longPressLabel(playerPrefs.longPressAction)
-        ) {
-            showLongPressActionPage()
-        }
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_edge_swipe_back),
-            checked = playerPrefs.edgeSwipeBack
-        ) { checked ->
-            playerPrefs.edgeSwipeBack = checked
-        }
+        addActionRows(tutorialActionSpecs())
+        addSwitchRows(tutorialSwitchSpecs(), detailContainer)
     }
 
     private fun showDoubleTapActionPage() {
@@ -968,21 +951,9 @@ class PlayerSettingsDialog(
     }
 
     private fun buildMorePage() {
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_skip_intro_outro),
-            checked = playerPrefs.skipIntroOutro
-        ) { checked ->
-            playerPrefs.skipIntroOutro = checked
-        }
+        addSwitchRows(moreIntroSwitchSpecs(), detailContainer)
         addPlaybackSpeedSeekRow()
-        addSwitchRow(
-            parent = detailContainer,
-            title = context.getString(R.string.settings_keep_screen_on),
-            checked = playerPrefs.keepScreenOn
-        ) { checked ->
-            playerPrefs.keepScreenOn = checked
-        }
+        addSwitchRows(moreScreenSwitchSpecs(), detailContainer)
         addChoiceRow(
             title = context.getString(R.string.settings_controls_auto_hide),
             value = controlsAutoHideLabel(playerPrefs.controlsAutoHide),
@@ -1002,7 +973,53 @@ class PlayerSettingsDialog(
             playerPrefs.settingsPanelOpacity = value
             applySettingsSheetOpacity()
         }
-        addActionRow(context.getString(R.string.settings_reset_defaults)) {
+        addActionRows(moreActionSpecs())
+    }
+
+    private fun tutorialActionSpecs(): List<PlayerSettingsActionSpec> = listOf(
+        PlayerSettingsActionSpec(
+            title = context.getString(R.string.settings_double_tap_action),
+            value = doubleTapLabel(playerPrefs.doubleTapAction),
+            onClick = ::showDoubleTapActionPage
+        ),
+        PlayerSettingsActionSpec(
+            title = context.getString(R.string.settings_long_press_action),
+            value = longPressLabel(playerPrefs.longPressAction),
+            onClick = ::showLongPressActionPage
+        )
+    )
+
+    private fun tutorialSwitchSpecs(): List<PlayerSettingsSwitchSpec> = listOf(
+        PlayerSettingsSwitchSpec(
+            title = context.getString(R.string.settings_edge_swipe_back),
+            checked = playerPrefs.edgeSwipeBack
+        ) { checked ->
+            playerPrefs.edgeSwipeBack = checked
+        }
+    )
+
+    private fun moreIntroSwitchSpecs(): List<PlayerSettingsSwitchSpec> = listOf(
+        PlayerSettingsSwitchSpec(
+            title = context.getString(R.string.settings_skip_intro_outro),
+            checked = playerPrefs.skipIntroOutro
+        ) { checked ->
+            playerPrefs.skipIntroOutro = checked
+        }
+    )
+
+    private fun moreScreenSwitchSpecs(): List<PlayerSettingsSwitchSpec> = listOf(
+        PlayerSettingsSwitchSpec(
+            title = context.getString(R.string.settings_keep_screen_on),
+            checked = playerPrefs.keepScreenOn
+        ) { checked ->
+            playerPrefs.keepScreenOn = checked
+        }
+    )
+
+    private fun moreActionSpecs(): List<PlayerSettingsActionSpec> = listOf(
+        PlayerSettingsActionSpec(
+            title = context.getString(R.string.settings_reset_defaults)
+        ) {
             playerPrefs.resetToDefaults()
             onPlayerPrefsReset()
             showPrimaryPage()
@@ -1010,7 +1027,7 @@ class PlayerSettingsDialog(
             applySettingsSheetOpacity()
             applySheetWindowBackdrop()
         }
-    }
+    )
 
     private fun addInfoRow(title: String, value: String) {
         detailContainer.addView(LinearLayout(context).apply {
@@ -1202,6 +1219,20 @@ class PlayerSettingsDialog(
         addDivider(parent)
     }
 
+    private fun addSwitchRows(
+        rows: List<PlayerSettingsSwitchSpec>,
+        parent: LinearLayout = detailContainer
+    ) {
+        rows.forEach { row ->
+            addSwitchRow(
+                parent = parent,
+                title = row.title,
+                checked = row.checked,
+                onChanged = row.onChanged
+            )
+        }
+    }
+
     private fun addRadioRow(
         title: String,
         checked: Boolean,
@@ -1254,6 +1285,16 @@ class PlayerSettingsDialog(
             }
         )
         addDivider(detailContainer)
+    }
+
+    private fun addActionRows(rows: List<PlayerSettingsActionSpec>) {
+        rows.forEach { row ->
+            if (row.value == null) {
+                addActionRow(row.title, row.onClick)
+            } else {
+                addActionRow(row.title, row.value, row.onClick)
+            }
+        }
     }
 
     private fun addAccentActionRow(parent: LinearLayout, title: String, onClick: () -> Unit) {

@@ -62,7 +62,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import kotlin.math.abs
 
 @AndroidEntryPoint
 class PlayerActivity : AppCompatActivity() {
@@ -190,8 +189,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener
     private var currentVideoUriString: String = ""
     private var currentVideoPath: String = ""
-    private var isFinishingPlayer = false
-    private var hasReleasedPlayerForExit = false
+    private var exitState = PlayerExitState()
     private var isSwitchingQueueAfterEnded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -814,8 +812,7 @@ class PlayerActivity : AppCompatActivity() {
         var isHorizontalSwipe = false
         var isVerticalSwipe = false
         var isEdgeSwipe = false
-        var swipeSide = SwipeSide.NONE
-        val edgeThreshold = resources.displayMetrics.widthPixels * 0.05f // 5% edge
+        var swipeSide = PlayerSwipeSide.NONE
         val gestureSlop = gestureSlopPx()
 
         gestureOverlay.setOnTouchListener { _, event ->
@@ -829,24 +826,18 @@ class PlayerActivity : AppCompatActivity() {
                     isVerticalSwipe = false
                     brightnessGestureAnchor = currentBrightness
                     volumeGestureAnchor = currentVolume
-                    isEdgeSwipe = event.x < edgeThreshold || event.x > resources.displayMetrics.widthPixels - edgeThreshold
-                    swipeSide = if (event.x < resources.displayMetrics.widthPixels / 2) {
-                        SwipeSide.LEFT
-                    } else {
-                        SwipeSide.RIGHT
-                    }
+                    isEdgeSwipe = PlayerGesturePolicy.isEdgeSwipe(event.x, resources.displayMetrics.widthPixels)
+                    swipeSide = PlayerGesturePolicy.swipeSide(event.x, resources.displayMetrics.widthPixels)
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.x - startX
                     val dy = event.y - startY
 
                     if (!isHorizontalSwipe && !isVerticalSwipe) {
-                        if (abs(dx) > gestureSlop || abs(dy) > gestureSlop) {
-                            if (abs(dx) > abs(dy)) {
-                                isHorizontalSwipe = true
-                            } else {
-                                isVerticalSwipe = true
-                            }
+                        when (PlayerGesturePolicy.dominantAxis(dx, dy, gestureSlop)) {
+                            PlayerSwipeAxis.HORIZONTAL -> isHorizontalSwipe = true
+                            PlayerSwipeAxis.VERTICAL -> isVerticalSwipe = true
+                            PlayerSwipeAxis.NONE -> {}
                         }
                     }
 
@@ -895,11 +886,8 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun gestureSlopPx(): Int = when (playerPrefs.gestureSensitivity) {
-        1 -> 60
-        2 -> 50
-        else -> 40
-    }
+    private fun gestureSlopPx(): Int =
+        PlayerGesturePolicy.gestureSlopPx(playerPrefs.gestureSensitivity)
 
     private fun handleHorizontalSwipeAction(dx: Float) {
         when (playerPrefs.horizontalSwipeAction) {
@@ -911,15 +899,15 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun resolveVerticalGestureAction(side: SwipeSide): GestureAction =
+    private fun resolveVerticalGestureAction(side: PlayerSwipeSide): GestureAction =
         when (side) {
-            SwipeSide.LEFT -> playerPrefs.leftVerticalGesture
-            SwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
-            SwipeSide.NONE -> GestureAction.NONE
+            PlayerSwipeSide.LEFT -> playerPrefs.leftVerticalGesture
+            PlayerSwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
+            PlayerSwipeSide.NONE -> GestureAction.NONE
         }
 
     private fun handleSeekGesture(dx: Float) {
-        val seekMs = (dx / resources.displayMetrics.widthPixels * 60_000).toLong()
+        val seekMs = PlayerGesturePolicy.horizontalSeekDeltaMs(dx, resources.displayMetrics.widthPixels)
         val state = viewModel.uiState.value
         val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
         pendingSeekTarget = target
@@ -928,7 +916,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun handleVerticalSeekGesture(dy: Float) {
-        val seekMs = (-dy / resources.displayMetrics.heightPixels * 60_000).toLong()
+        val seekMs = PlayerGesturePolicy.verticalSeekDeltaMs(dy, resources.displayMetrics.heightPixels)
         val state = viewModel.uiState.value
         val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
         pendingSeekTarget = target
@@ -948,7 +936,12 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun handleBrightnessGesture(dy: Float) {
         currentBrightness =
-            (brightnessGestureAnchor - dy / resources.displayMetrics.heightPixels).coerceIn(0.01f, 1f)
+            PlayerGesturePolicy.verticalLevel(
+                anchor = brightnessGestureAnchor,
+                dy = dy,
+                screenHeightPx = resources.displayMetrics.heightPixels,
+                min = 0.01f
+            )
         setWindowBrightness(currentBrightness)
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessIndicator.visibility = View.VISIBLE
@@ -956,7 +949,12 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun handleBrightnessGestureHorizontal(dx: Float) {
         currentBrightness =
-            (brightnessGestureAnchor + dx / resources.displayMetrics.widthPixels).coerceIn(0.01f, 1f)
+            PlayerGesturePolicy.horizontalLevel(
+                anchor = brightnessGestureAnchor,
+                dx = dx,
+                screenWidthPx = resources.displayMetrics.widthPixels,
+                min = 0.01f
+            )
         setWindowBrightness(currentBrightness)
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessIndicator.visibility = View.VISIBLE
@@ -1052,7 +1050,11 @@ class PlayerActivity : AppCompatActivity() {
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
         currentVolume =
-            (volumeGestureAnchor - dy / resources.displayMetrics.heightPixels).coerceIn(0f, 1f)
+            PlayerGesturePolicy.verticalLevel(
+                anchor = volumeGestureAnchor,
+                dy = dy,
+                screenHeightPx = resources.displayMetrics.heightPixels
+            )
         val volume = (currentVolume * maxVolume).toInt().coerceIn(0, maxVolume)
         audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
         volumeProgress.progress = (currentVolume * 100).toInt()
@@ -1063,7 +1065,11 @@ class PlayerActivity : AppCompatActivity() {
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
         currentVolume =
-            (volumeGestureAnchor + dx / resources.displayMetrics.widthPixels).coerceIn(0f, 1f)
+            PlayerGesturePolicy.horizontalLevel(
+                anchor = volumeGestureAnchor,
+                dx = dx,
+                screenWidthPx = resources.displayMetrics.widthPixels
+            )
         val volume = (currentVolume * maxVolume).toInt().coerceIn(0, maxVolume)
         audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
         volumeProgress.progress = (currentVolume * 100).toInt()
@@ -1094,14 +1100,13 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun saveProgressPeriodically(positionMs: Long) {
-        if (positionMs <= 0) return
-        if (abs(positionMs - lastHistorySavedPositionMs) < 5_000L) return
+        if (!PlaybackProgressPolicy.shouldSaveProgress(positionMs, lastHistorySavedPositionMs)) return
         lastHistorySavedPositionMs = positionMs
         viewModel.saveHistory()
     }
 
     private fun controlsChromeMaxAlpha(): Float =
-        playerPrefs.controlsOpacity.coerceIn(0, 100) / 100f
+        PlayerChromePolicy.maxChromeAlpha(playerPrefs.controlsOpacity)
 
     private fun showControls() {
         controlsVisible = true
@@ -1129,7 +1134,7 @@ class PlayerActivity : AppCompatActivity() {
         controlsContainer.visibility = View.VISIBLE
         applyControlVisibility()
         handler.removeCallbacks(hideControlsRunnable)
-        handler.postDelayed(hideControlsRunnable, 1_500)
+        handler.postDelayed(hideControlsRunnable, PlayerChromePolicy.lockedControlsHideDelayMs())
     }
 
     private fun applyControlVisibility() {
@@ -1152,8 +1157,8 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun scheduleHideControls() {
         handler.removeCallbacks(hideControlsRunnable)
-        val delay = playerPrefs.controlsAutoHide * 1000L
-        if (delay > 0) {
+        val delay = PlayerChromePolicy.autoHideDelayMs(playerPrefs.controlsAutoHide)
+        if (PlayerChromePolicy.shouldScheduleAutoHide(delay)) {
             handler.postDelayed(hideControlsRunnable, delay)
         }
     }
@@ -1202,8 +1207,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun finishPlayer() {
-        if (isFinishingPlayer) return
-        isFinishingPlayer = true
+        val decision = PlayerExitPolicy.requestFinish(exitState)
+        exitState = decision.nextState
+        if (!decision.shouldFinish) return
         preparePlayerExitFrame()
         finish()
         overridePendingTransition(0, 0)
@@ -1219,14 +1225,15 @@ class PlayerActivity : AppCompatActivity() {
         // and throw ExoTimeoutException on some devices during Activity finish.
         playerView.visibility = View.INVISIBLE
         if (this::playerRoot.isInitialized) {
-            playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.player_bg))
+            playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.ov_bg_base))
         }
-        window.setBackgroundDrawableResource(R.color.player_bg)
+        window.setBackgroundDrawableResource(R.color.ov_bg_base)
     }
 
     private fun releasePlayerAfterExit() {
-        if (hasReleasedPlayerForExit) return
-        hasReleasedPlayerForExit = true
+        val decision = PlayerExitPolicy.requestRelease(exitState)
+        exitState = decision.nextState
+        if (!decision.shouldRelease) return
         viewModel.release()
     }
 
@@ -1422,7 +1429,6 @@ class PlayerActivity : AppCompatActivity() {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
     }
 
-    private enum class SwipeSide { LEFT, RIGHT, NONE }
     private enum class AbLoopState { IDLE, POINT_A_SET, LOOPING }
 
     companion object {

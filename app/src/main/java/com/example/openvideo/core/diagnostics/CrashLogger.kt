@@ -2,6 +2,7 @@ package com.example.openvideo.core.diagnostics
 
 import android.content.Context
 import android.os.Build
+import com.example.openvideo.BuildConfig
 import java.io.File
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
@@ -14,11 +15,8 @@ import java.util.Locale
 
 object CrashLogger {
     private const val DIR_NAME = "crash_logs"
-    private const val FEISHU_WEBHOOK_URL =
-        "https://open.feishu.cn/open-apis/bot/v2/hook/023b593e-25a9-4fbe-809c-0191875826c9"
-    private const val REPORT_KEYWORD = "openvideo"
-    private const val FEISHU_CONNECT_TIMEOUT_MS = 5_000
-    private const val FEISHU_READ_TIMEOUT_MS = 5_000
+    private const val REMOTE_CONNECT_TIMEOUT_MS = 5_000
+    private const val REMOTE_READ_TIMEOUT_MS = 5_000
     private val timestampFormat = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US)
 
     fun install(context: Context) {
@@ -53,7 +51,9 @@ object CrashLogger {
             val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
             val log = buildLog(threadName, throwable)
             File(dir, fileName).writeText(log)
-            reportToFeishu(fileName, log)
+            if (BuildConfig.REMOTE_CRASH_REPORTING_ENABLED && BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()) {
+                reportRemotely(BuildConfig.FEISHU_WEBHOOK_URL, fileName, log)
+            }
         }
     }
 
@@ -82,19 +82,19 @@ object CrashLogger {
         }
     }
 
-    private fun reportToFeishu(title: String, log: String) {
+    private fun reportRemotely(webhookUrl: String, title: String, log: String) {
         Thread {
             runCatching {
-                val connection = (URL(FEISHU_WEBHOOK_URL).openConnection() as HttpURLConnection).apply {
+                val connection = (URL(webhookUrl).openConnection() as HttpURLConnection).apply {
                     requestMethod = "POST"
-                    connectTimeout = FEISHU_CONNECT_TIMEOUT_MS
-                    readTimeout = FEISHU_READ_TIMEOUT_MS
+                    connectTimeout = REMOTE_CONNECT_TIMEOUT_MS
+                    readTimeout = REMOTE_READ_TIMEOUT_MS
                     doOutput = true
                     setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 }
                 connection.outputStream.use { stream ->
                     OutputStreamWriter(stream, Charsets.UTF_8).use { writer ->
-                        writer.write(buildFeishuPayload(title, log))
+                        writer.write(buildRemotePayload(title, log))
                     }
                 }
                 runCatching { connection.inputStream.close() }
@@ -102,22 +102,21 @@ object CrashLogger {
                 connection.disconnect()
             }
         }.apply {
-            name = "openvideo-feishu-crash-report"
+            name = "openvideo-remote-crash-report"
             isDaemon = true
         }.start()
     }
 
-    private fun buildFeishuPayload(title: String, log: String): String {
+    private fun buildRemotePayload(title: String, log: String): String {
         val text = buildString {
-            append(REPORT_KEYWORD)
-            appendLine(" crash report")
+            appendLine("openvideo crash report")
             appendLine("title=$title")
-            append(trimForFeishu(log))
+            append(trimForRemote(log))
         }
         return """{"msg_type":"text","content":{"text":"${escapeJson(text)}"}}"""
     }
 
-    private fun trimForFeishu(value: String): String =
+    private fun trimForRemote(value: String): String =
         if (value.length <= 3_500) value else value.take(3_500) + "\n...truncated"
 
     private fun escapeJson(value: String): String {
@@ -134,4 +133,5 @@ object CrashLogger {
             }
         }
     }
+
 }

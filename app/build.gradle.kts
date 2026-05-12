@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -5,9 +7,23 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(::load)
+    }
+}
+
+fun String.asBuildConfigString(): String =
+    "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
 android {
     namespace = "com.example.openvideo"
     compileSdk = 35
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.example.openvideo"
@@ -15,6 +31,12 @@ android {
         targetSdk = 35
         versionCode = 5
         versionName = "0.0.5"
+
+        val feishuWebhookUrl = providers.environmentVariable("FEISHU_WEBHOOK_URL")
+            .orElse(localProperties.getProperty("FEISHU_WEBHOOK_URL", ""))
+            .get()
+        buildConfigField("String", "FEISHU_WEBHOOK_URL", feishuWebhookUrl.asBuildConfigString())
+        buildConfigField("Boolean", "REMOTE_CRASH_REPORTING_ENABLED", feishuWebhookUrl.isNotBlank().toString())
     }
 
     buildTypes {
@@ -94,4 +116,3 @@ dependencies {
 
     testImplementation(libs.junit)
 }
-
