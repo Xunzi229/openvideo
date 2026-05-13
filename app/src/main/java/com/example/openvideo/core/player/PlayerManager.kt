@@ -51,7 +51,7 @@ enum class RenderMode { SURFACE, TEXTURE }
 @Singleton
 @OptIn(UnstableApi::class)
 class PlayerManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
 
     var player: ExoPlayer? = null

@@ -34,7 +34,7 @@ sealed class VideoDeleteResult {
 
 @Singleton
 class VideoScanner @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) {
 
     fun scanVideos(): Flow<List<VideoItem>> = callbackFlow {
