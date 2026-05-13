@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -51,7 +52,9 @@ import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlaybackService
 import com.example.openvideo.core.player.PlayerManager
+import com.example.openvideo.core.prefs.DoubleTapAction
 import com.example.openvideo.core.prefs.GestureAction
+import com.example.openvideo.core.prefs.LongPressAction
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
@@ -118,6 +121,7 @@ class PlayerActivity : AppCompatActivity() {
     private var controlsVisible = true
     private var isActivityForeground = false
     private val hideControlsRunnable = Runnable { hideControls() }
+    private val hideGestureHudRunnable = Runnable { hideGestureHud() }
     private val updateRunnable = object : Runnable {
         override fun run() {
             if (!isSeeking) {
@@ -171,6 +175,9 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingSeekTarget: Long? = null
     private var playerListener: Player.Listener? = null
     private var isLongPressing = false
+    private var doubleTapSeekState: DoubleTapSeekState? = null
+    private var doubleTapSeekAnchorPositionMs: Long? = null
+    private var keepGestureHudAfterActionUp = false
     private var hasSkippedIntro = false
     private var hasSkippedOutro = false
     private val startupTrace = PlayerStartupTrace()
@@ -780,16 +787,10 @@ class PlayerActivity : AppCompatActivity() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 // P1: Double tap action from settings
                 when (playerPrefs.doubleTapAction) {
-                    com.example.openvideo.core.prefs.DoubleTapAction.PLAY_PAUSE -> viewModel.togglePlayPause()
-                    com.example.openvideo.core.prefs.DoubleTapAction.FORWARD -> {
-                        val ms = playerPrefs.seekInterval * 1000L
-                        viewModel.seekForward(ms)
-                    }
-                    com.example.openvideo.core.prefs.DoubleTapAction.BACKWARD -> {
-                        val ms = playerPrefs.seekInterval * 1000L
-                        viewModel.seekBackward(ms)
-                    }
-                    com.example.openvideo.core.prefs.DoubleTapAction.NONE -> {}
+                    DoubleTapAction.PLAY_PAUSE -> viewModel.togglePlayPause()
+                    DoubleTapAction.FORWARD -> handleDoubleTapSeek(PlayerSwipeSide.RIGHT)
+                    DoubleTapAction.BACKWARD -> handleDoubleTapSeek(PlayerSwipeSide.LEFT)
+                    DoubleTapAction.NONE -> {}
                 }
                 return true
             }
@@ -797,12 +798,13 @@ class PlayerActivity : AppCompatActivity() {
             override fun onLongPress(e: MotionEvent) {
                 // P1: Long press action from settings
                 when (playerPrefs.longPressAction) {
-                    com.example.openvideo.core.prefs.LongPressAction.SPEED -> {
+                    LongPressAction.SPEED -> {
                         isLongPressing = true
                         val speed = playerPrefs.longPressSpeed
                         viewModel.setSpeed(speed)
+                        showGestureHud(PlayerGestureHudPolicy.speed(speed), autoHide = false)
                     }
-                    com.example.openvideo.core.prefs.LongPressAction.NONE -> {}
+                    LongPressAction.NONE -> {}
                 }
             }
         })
@@ -871,9 +873,11 @@ class PlayerActivity : AppCompatActivity() {
                             applySeekGesture()
                         }
                     }
-                    seekIndicator.visibility = View.GONE
-                    brightnessIndicator.visibility = View.GONE
-                    volumeIndicator.visibility = View.GONE
+                    if (keepGestureHudAfterActionUp) {
+                        keepGestureHudAfterActionUp = false
+                    } else {
+                        hideGestureHud()
+                    }
 
                     // P1: Restore speed after long press
                     if (isLongPressing) {
@@ -906,13 +910,37 @@ class PlayerActivity : AppCompatActivity() {
             PlayerSwipeSide.NONE -> GestureAction.NONE
         }
 
+    private fun handleDoubleTapSeek(side: PlayerSwipeSide) {
+        if (side == PlayerSwipeSide.NONE) return
+
+        val intervalMs = playerPrefs.seekInterval * 1000L
+        val result = PlayerGestureHudPolicy.doubleTapSeek(
+            previous = doubleTapSeekState,
+            tapSide = side,
+            intervalMs = intervalMs,
+            nowMs = SystemClock.uptimeMillis()
+        )
+        doubleTapSeekState = result.nextState
+        keepGestureHudAfterActionUp = true
+
+        val state = viewModel.uiState.value
+        val anchorPosition = if (result.isAccumulated) {
+            doubleTapSeekAnchorPositionMs ?: state.currentPosition
+        } else {
+            state.currentPosition
+        }
+        doubleTapSeekAnchorPositionMs = anchorPosition
+        val target = PlayerTimeline.safeSeekTarget(anchorPosition, result.deltaMs, state.duration)
+        viewModel.seekTo(target)
+        showGestureHud(PlayerGestureHudPolicy.seek(target, state.duration, result.deltaMs))
+    }
+
     private fun handleSeekGesture(dx: Float) {
         val seekMs = PlayerGesturePolicy.horizontalSeekDeltaMs(dx, resources.displayMetrics.widthPixels)
         val state = viewModel.uiState.value
         val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
         pendingSeekTarget = target
-        seekIndicator.text = "${formatTime(target)} / ${formatTime(state.duration)}"
-        seekIndicator.visibility = View.VISIBLE
+        showGestureHud(PlayerGestureHudPolicy.seek(target, state.duration, seekMs), autoHide = false)
     }
 
     private fun handleVerticalSeekGesture(dy: Float) {
@@ -920,8 +948,7 @@ class PlayerActivity : AppCompatActivity() {
         val state = viewModel.uiState.value
         val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
         pendingSeekTarget = target
-        seekIndicator.text = "${formatTime(target)} / ${formatTime(state.duration)}"
-        seekIndicator.visibility = View.VISIBLE
+        showGestureHud(PlayerGestureHudPolicy.seek(target, state.duration, seekMs), autoHide = false)
     }
 
     private fun applySeekGesture() {
@@ -932,6 +959,26 @@ class PlayerActivity : AppCompatActivity() {
             viewModel.seekTo(PlayerTimeline.safeSeekTarget(0, target, state.duration))
             pendingSeekTarget = null
         }
+    }
+
+    private fun showGestureHud(hud: PlayerGestureHud, autoHide: Boolean = true) {
+        handler.removeCallbacks(hideGestureHudRunnable)
+        seekIndicator.text = if (hud.secondaryText.isBlank()) {
+            hud.primaryText
+        } else {
+            "${hud.primaryText}\n${hud.secondaryText}"
+        }
+        seekIndicator.visibility = View.VISIBLE
+        if (autoHide) {
+            handler.postDelayed(hideGestureHudRunnable, 800)
+        }
+    }
+
+    private fun hideGestureHud() {
+        handler.removeCallbacks(hideGestureHudRunnable)
+        seekIndicator.visibility = View.GONE
+        brightnessIndicator.visibility = View.GONE
+        volumeIndicator.visibility = View.GONE
     }
 
     private fun handleBrightnessGesture(dy: Float) {
@@ -945,6 +992,7 @@ class PlayerActivity : AppCompatActivity() {
         setWindowBrightness(currentBrightness)
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessIndicator.visibility = View.VISIBLE
+        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.BRIGHTNESS, currentBrightness), autoHide = false)
     }
 
     private fun handleBrightnessGestureHorizontal(dx: Float) {
@@ -958,6 +1006,7 @@ class PlayerActivity : AppCompatActivity() {
         setWindowBrightness(currentBrightness)
         brightnessProgress.progress = (currentBrightness * 100).toInt()
         brightnessIndicator.visibility = View.VISIBLE
+        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.BRIGHTNESS, currentBrightness), autoHide = false)
     }
 
     private fun applyScreenBrightness(adjustmentPercent: Int) {
@@ -1059,6 +1108,7 @@ class PlayerActivity : AppCompatActivity() {
         audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
         volumeProgress.progress = (currentVolume * 100).toInt()
         volumeIndicator.visibility = View.VISIBLE
+        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.VOLUME, currentVolume), autoHide = false)
     }
 
     private fun handleVolumeGestureHorizontal(dx: Float) {
@@ -1074,6 +1124,7 @@ class PlayerActivity : AppCompatActivity() {
         audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
         volumeProgress.progress = (currentVolume * 100).toInt()
         volumeIndicator.visibility = View.VISIBLE
+        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.VOLUME, currentVolume), autoHide = false)
     }
 
     private fun observeState() {
@@ -1212,10 +1263,19 @@ class PlayerActivity : AppCompatActivity() {
         if (!decision.shouldFinish) return
         preparePlayerExitFrame()
         finish()
-        overridePendingTransition(0, 0)
+        suppressExitTransition()
         handler.postDelayed({
             releasePlayerAfterExit()
         }, PLAYER_EXIT_RELEASE_DELAY_MS)
+    }
+
+    private fun suppressExitTransition() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, 0)
+        }
     }
 
     private fun preparePlayerExitFrame() {
@@ -1325,9 +1385,12 @@ class PlayerActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
-    override fun onPictureInPictureModeChanged(isInPipMode: Boolean, newConfig: android.content.res.Configuration) {
-        super.onPictureInPictureModeChanged(isInPipMode, newConfig)
-        if (isInPipMode) {
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: android.content.res.Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
             handler.removeCallbacks(hideControlsRunnable)
             controlsContainer.animate().cancel()
             controlsContainer.alpha = 0f
