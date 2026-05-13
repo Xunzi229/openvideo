@@ -54,4 +54,4 @@ Issues and pull requests are welcome. Please keep changes focused and match exis
 
 ## License
 
-See the repository license file if one is provided; third-party library licenses are listed in the in-app **Open source licenses** screen.
+OpenVideo is released under the MIT License. Third-party library licenses are listed in the in-app **Open source licenses** screen.

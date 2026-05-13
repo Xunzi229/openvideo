@@ -7,6 +7,9 @@
     <color name="ov_bg_elevated">#F2FFFFFF</color>
     <color name="ov_bg_elevated_strong">#FFFFFFFF</color>
     <color name="ov_bg_overlay">#CCFFFFFF</color>
+    <color name="ov_dialog_surface">#FFFFFFFF</color>
+    <color name="ov_dialog_scrim">#73030A14</color>
+    <color name="ov_dialog_stroke">#14111827</color>
 
     <color name="ov_accent_blue">#FF2F6FE4</color>
     <color name="ov_accent_blue_pressed">#FF2458B7</color>

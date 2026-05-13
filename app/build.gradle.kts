@@ -14,6 +14,25 @@ val localProperties = Properties().apply {
     }
 }
 
+val releaseStoreFile = providers.environmentVariable("OPENVIDEO_RELEASE_STORE_FILE")
+    .orElse(localProperties.getProperty("OPENVIDEO_RELEASE_STORE_FILE", ""))
+    .get()
+val releaseStorePassword = providers.environmentVariable("OPENVIDEO_RELEASE_STORE_PASSWORD")
+    .orElse(localProperties.getProperty("OPENVIDEO_RELEASE_STORE_PASSWORD", ""))
+    .get()
+val releaseKeyAlias = providers.environmentVariable("OPENVIDEO_RELEASE_KEY_ALIAS")
+    .orElse(localProperties.getProperty("OPENVIDEO_RELEASE_KEY_ALIAS", ""))
+    .get()
+val releaseKeyPassword = providers.environmentVariable("OPENVIDEO_RELEASE_KEY_PASSWORD")
+    .orElse(localProperties.getProperty("OPENVIDEO_RELEASE_KEY_PASSWORD", ""))
+    .get()
+val releaseSigningConfigured = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { it.isNotBlank() }
+
 fun String.asBuildConfigString(): String =
     "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
@@ -29,8 +48,8 @@ android {
         applicationId = "com.example.openvideo"
         minSdk = 23
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.0.5"
+        versionCode = providers.gradleProperty("VERSION_CODE").get().toInt()
+        versionName = providers.gradleProperty("VERSION_NAME").get()
 
         val feishuWebhookUrl = providers.environmentVariable("FEISHU_WEBHOOK_URL")
             .orElse(localProperties.getProperty("FEISHU_WEBHOOK_URL", ""))
@@ -39,9 +58,23 @@ android {
         buildConfigField("Boolean", "REMOTE_CRASH_REPORTING_ENABLED", feishuWebhookUrl.isNotBlank().toString())
     }
 
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

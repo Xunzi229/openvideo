@@ -9,6 +9,8 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnBackground">@color/on_background</item>
         <item name="colorOnSurface">@color/on_surface</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
         <item name="android:statusBarColor">@color/ov_bg_base</item>
         <item name="android:navigationBarColor">@color/ov_bg_base</item>
         <item name="android:windowLightStatusBar">false</item>

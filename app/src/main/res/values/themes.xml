@@ -9,6 +9,8 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnBackground">@color/on_background</item>
         <item name="colorOnSurface">@color/on_surface</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
         <item name="android:statusBarColor">@color/ov_bg_base</item>
         <item name="android:navigationBarColor">@color/ov_bg_base</item>
         <item name="android:windowLightStatusBar">false</item>
@@ -23,6 +25,8 @@
         <item name="colorSurface">@color/player_panel_bg</item>
         <item name="colorOnBackground">@color/player_title_primary</item>
         <item name="colorOnSurface">@color/player_title_primary</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowBackground">@color/player_bg</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
@@ -83,5 +87,53 @@
         <item name="android:layout_height">36dp</item>
         <item name="android:textColor">@color/player_title_normal</item>
         <item name="android:textSize">15sp</item>
+    </style>
+
+    <style name="ThemeOverlay.OpenVideo.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">@color/ov_dialog_surface</item>
+        <item name="colorOnSurface">@color/ov_text_primary</item>
+        <item name="colorPrimary">@color/ov_accent_blue</item>
+        <item name="android:colorAccent">@color/ov_accent_blue</item>
+        <item name="android:backgroundDimAmount">0.58</item>
+        <item name="scrimBackground">@color/ov_dialog_scrim</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.OpenVideo.Dialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/TextAppearance.OpenVideo.Dialog.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.OpenVideo.Dialog.Body</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.OpenVideo.Dialog.Button.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.OpenVideo.Dialog.Button.Negative</item>
+    </style>
+
+    <style name="ShapeAppearance.OpenVideo.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="TextAppearance.OpenVideo.Dialog.Title" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textColor">@color/ov_text_primary</item>
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.OpenVideo.Dialog.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textColor">@color/ov_text_secondary</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="Widget.OpenVideo.Dialog.Button" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:minWidth">72dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:textColor">@color/ov_accent_blue</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.OpenVideo.Dialog.Button.Positive" parent="Widget.OpenVideo.Dialog.Button" />
+
+    <style name="Widget.OpenVideo.Dialog.Button.Negative" parent="Widget.OpenVideo.Dialog.Button">
+        <item name="android:textColor">@color/ov_text_secondary</item>
     </style>
 </resources>

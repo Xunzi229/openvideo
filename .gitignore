@@ -22,5 +22,9 @@ local.properties
 .idea
 output
 .kotlin
-.github
-scripts
+*.jks
+*.keystore
+*.p12
+*.pem
+keys/
+release/
