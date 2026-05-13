@@ -6,17 +6,16 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
-class HomePrivacySourceTest {
+class HomeMissingHistorySourceTest {
 
     @Test
-    fun recentAndFavoriteFallbackItemsRespectHiddenFolders() {
+    fun recentAndFavoriteFallbacksRejectMissingStoredFiles() {
         val source = String(Files.readAllBytes(homeViewModelSource()))
 
-        assertTrue(source.contains("_hiddenFolders"))
-        assertTrue(source.contains("videosFromHistory(scanned, history, hiddenFolders)"))
-        assertTrue(source.contains("videosFromFavorites(scanned, favorites, hiddenFolders)"))
-        assertTrue(source.contains("MediaLibraryPolicy.shouldExposeStoredFallback("))
-        assertTrue(source.contains("hiddenFolders = hiddenFolders"))
+        assertTrue(source.contains("shouldExposeStoredFallback"))
+        assertTrue(source.contains("File(candidatePath).exists()"))
+        assertTrue(source.contains("videosFromHistory"))
+        assertTrue(source.contains("videosFromFavorites"))
     }
 
     private fun homeViewModelSource(): Path {

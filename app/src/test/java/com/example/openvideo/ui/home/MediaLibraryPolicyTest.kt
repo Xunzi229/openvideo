@@ -106,4 +106,22 @@ class MediaLibraryPolicyTest {
             )
         )
     }
+
+    @Test
+    fun missingStoredLocalFallbackIsNotVisible() {
+        assertFalse(
+            MediaLibraryPolicy.shouldExposeStoredFallback(
+                path = "/storage/emulated/0/Movies/deleted.mp4",
+                hiddenFolders = emptyList(),
+                localFileExists = { false }
+            )
+        )
+        assertTrue(
+            MediaLibraryPolicy.shouldExposeStoredFallback(
+                path = "/storage/emulated/0/Movies/existing.mp4",
+                hiddenFolders = emptyList(),
+                localFileExists = { true }
+            )
+        )
+    }
 }

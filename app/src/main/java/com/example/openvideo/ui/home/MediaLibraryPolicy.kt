@@ -71,6 +71,21 @@ object MediaLibraryPolicy {
         return selectedFolderKey.takeIf { it in folderKeys }
     }
 
+    fun shouldExposeStoredFallback(
+        path: String,
+        hiddenFolders: List<String>,
+        localFileExists: (String) -> Boolean
+    ): Boolean {
+        if (isHiddenPath(path, hiddenFolders)) return false
+        if (path.startsWith("content://")) return true
+
+        val candidatePath = when {
+            path.startsWith("file://") -> path.removePrefix("file://")
+            else -> path
+        }
+        return candidatePath.isNotBlank() && localFileExists(candidatePath)
+    }
+
     fun emptyState(
         isLoading: Boolean,
         scannedCount: Int,

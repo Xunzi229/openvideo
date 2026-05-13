@@ -282,8 +282,12 @@ class HomeViewModel @Inject constructor(
             .sortedByDescending { it.timestamp }
             .mapNotNull { item ->
                 scannedById[item.videoId]?.copy(dateAdded = item.timestamp / 1000)
-                    ?: item.toVideoItem().takeUnless { video ->
-                        MediaLibraryPolicy.isHiddenPath(video.path, hiddenFolders)
+                    ?: item.toVideoItem().takeIf { video ->
+                        MediaLibraryPolicy.shouldExposeStoredFallback(
+                            path = video.path,
+                            hiddenFolders = hiddenFolders,
+                            localFileExists = { candidatePath -> File(candidatePath).exists() }
+                        )
                     }
             }
     }
@@ -298,8 +302,12 @@ class HomeViewModel @Inject constructor(
             .sortedByDescending { it.timestamp }
             .mapNotNull { item ->
                 scannedById[item.videoId]?.copy(dateAdded = item.timestamp / 1000)
-                    ?: item.toVideoItem().takeUnless { video ->
-                        MediaLibraryPolicy.isHiddenPath(video.path, hiddenFolders)
+                    ?: item.toVideoItem().takeIf { video ->
+                        MediaLibraryPolicy.shouldExposeStoredFallback(
+                            path = video.path,
+                            hiddenFolders = hiddenFolders,
+                            localFileExists = { candidatePath -> File(candidatePath).exists() }
+                        )
                     }
             }
     }
