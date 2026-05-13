@@ -58,19 +58,47 @@ function Resolve-UnsignedApkPath([string] $repoRoot, [string] $manualPath) {
     throw "Cannot auto-find unsigned release apk. Please pass -UnsignedApkPath explicitly."
 }
 
-function Resolve-AppVersionName([string] $repoRoot) {
+function Resolve-AppVersionName([string] $repoRoot, [string] $artifactPath = "") {
+    if (-not [string]::IsNullOrWhiteSpace($artifactPath)) {
+        $metadataPath = Join-Path (Split-Path -Parent $artifactPath) "output-metadata.json"
+        if (Test-Path $metadataPath) {
+            try {
+                $meta = Get-Content $metadataPath -Raw | ConvertFrom-Json
+                if ($meta.elements) {
+                    $artifactName = Split-Path -Leaf $artifactPath
+                    $match = $meta.elements | Where-Object { $_.outputFile -eq $artifactName } | Select-Object -First 1
+                    if ($match -and $match.versionName) {
+                        return [string]$match.versionName
+                    }
+                }
+                if ($meta.applicationId -and $meta.variantName -and $meta.elements -and $meta.elements[0].versionName) {
+                    return [string]$meta.elements[0].versionName
+                }
+            } catch {
+                Write-Warning "Cannot parse output metadata for versionName: $metadataPath"
+            }
+        }
+    }
+
+    $gradleProperties = Join-Path $repoRoot "gradle.properties"
+    if (Test-Path $gradleProperties) {
+        $content = Get-Content $gradleProperties -Raw
+        $match = [regex]::Match($content, '(?m)^VERSION_NAME\s*=\s*(.+?)\s*$')
+        if ($match.Success) {
+            return $match.Groups[1].Value.Trim()
+        }
+    }
+
     $gradleFile = Join-Path $repoRoot "app\build.gradle.kts"
-    if (-not (Test-Path $gradleFile)) {
-        throw "Cannot find app build file: $gradleFile"
+    if (Test-Path $gradleFile) {
+        $source = Get-Content -Raw -Path $gradleFile
+        $match = [regex]::Match($source, 'versionName\s*=\s*"([^"]+)"')
+        if ($match.Success) {
+            return $match.Groups[1].Value
+        }
     }
 
-    $source = Get-Content -Raw -Path $gradleFile
-    $match = [regex]::Match($source, 'versionName\s*=\s*"([^"]+)"')
-    if (-not $match.Success) {
-        throw "Cannot read versionName from: $gradleFile"
-    }
-
-    return $match.Groups[1].Value
+    throw "Cannot resolve VERSION_NAME from output metadata, gradle.properties, or app build file."
 }
 
 function Find-ExistingKeystores([string] $repoRoot) {
@@ -182,7 +210,7 @@ $unsignedResolved = Resolve-UnsignedApkPath $repoRoot $UnsignedApkPath
 
 if ([string]::IsNullOrWhiteSpace($OutputApkPath)) {
     $dir = Split-Path -Parent $unsignedResolved
-    $versionName = Resolve-AppVersionName $repoRoot
+    $versionName = Resolve-AppVersionName $repoRoot $unsignedResolved
     $signedName = "openvideo-v{0}-app-release-signed.apk" -f $versionName
     $OutputApkPath = Join-Path $dir $signedName
 }
