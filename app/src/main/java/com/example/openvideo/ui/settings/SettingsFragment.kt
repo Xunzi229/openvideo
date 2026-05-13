@@ -66,6 +66,7 @@ class SettingsFragment : Fragment() {
             }
             val next = (current + 1) % langs.size
             viewModel.setLanguage(langs[next])
+            updateLanguageLabel(tvLanguage)
             // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 row.post { requireActivity().recreate() }

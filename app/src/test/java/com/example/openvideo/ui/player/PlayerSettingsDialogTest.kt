@@ -196,6 +196,22 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun playerSettingsRowsRefreshVisibleValuesImmediatelyAfterUserChanges() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val choiceRow = dialogSource
+            .substringAfter("private fun addChoiceRow(")
+            .substringBefore("\n    private fun addSeekRow(")
+        val seekRow = dialogSource
+            .substringAfter("private fun addSeekRow(")
+            .substringBefore("\n    private fun addDivider(parent: LinearLayout)")
+
+        assertTrue(choiceRow.contains("onSelected(opt)"))
+        assertTrue(choiceRow.contains("rebuildCurrentDetail(prev.page, prev.title)"))
+        assertTrue(seekRow.contains("valueView.text = label(next)"))
+        assertTrue(seekRow.indexOf("valueView.text = label(next)") < seekRow.indexOf("if (!commitOnStop) onChanged(next)"))
+    }
+
+    @Test
     fun preferenceBackedSeekRowsCommitOnStopUnlessTheyAreSafeWindowBrightness() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
 
