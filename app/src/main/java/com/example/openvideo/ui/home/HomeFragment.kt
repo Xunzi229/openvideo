@@ -45,8 +45,8 @@ import kotlinx.coroutines.launch
 class HomeFragment : Fragment() {
 
     private val viewModel: HomeViewModel by viewModels()
-    private lateinit var adapter: VideoGridAdapter
-    private lateinit var recyclerView: RecyclerView
+    private val adapters = mutableMapOf<HomeCategory, VideoGridAdapter>()
+    private val recyclerViews = mutableMapOf<HomeCategory, RecyclerView>()
     private lateinit var emptyView: TextView
     private lateinit var searchView: EditText
     private lateinit var sortLabel: TextView
@@ -60,9 +60,17 @@ class HomeFragment : Fragment() {
     private lateinit var folderGroup: ChipGroup
     private var actionMode: ActionMode? = null
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
-    private var pendingJumpToTop = false
+    private var pendingJumpToTopCategory: HomeCategory? = null
+    private var activeCategory = HomeCategory.ALL
+    private val categoryLists = mutableMapOf<HomeCategory, List<VideoItem>>()
     private var currentFolders: List<VideoFolderSummary> = emptyList()
     private var currentSelectedFolderKey: String? = null
+
+    private val activeAdapter: VideoGridAdapter
+        get() = adapters.getValue(activeCategory)
+
+    private val activeRecyclerView: RecyclerView
+        get() = recyclerViews.getValue(activeCategory)
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -88,7 +96,6 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        recyclerView = view.findViewById(R.id.recycler_videos)
         emptyView = view.findViewById(R.id.tv_empty)
         searchView = view.findViewById(R.id.search_view)
         searchView.visibility = View.VISIBLE
@@ -111,19 +118,10 @@ class HomeFragment : Fragment() {
         chipRecent.setOnClickListener { switchCategory(HomeCategory.RECENT) }
         chipFavorite.setOnClickListener { switchCategory(HomeCategory.FAVORITES) }
 
-        adapter = VideoGridAdapter(
-            onClick = { video -> openPlayer(video) },
-            onMoreOptions = { video, anchor -> showVideoOptions(video) },
-            onSelectionChanged = { selected ->
-                if (adapter.isMultiSelectMode) {
-                    actionMode?.title = getString(R.string.multi_select_count, selected.size)
-                }
-            },
-            onLongClick = { video -> startMultiSelectMode() }
-        )
-
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        recyclerView.adapter = adapter
+        initCategoryList(HomeCategory.ALL, view.findViewById(R.id.recycler_all_videos))
+        initCategoryList(HomeCategory.RECENT, view.findViewById(R.id.recycler_recent_videos))
+        initCategoryList(HomeCategory.FAVORITES, view.findViewById(R.id.recycler_favorite_videos))
+        showCategoryPage(HomeCategory.ALL)
 
         view.findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {
             checkPermissionAndLoad()
@@ -141,16 +139,40 @@ class HomeFragment : Fragment() {
         checkPermissionAndLoad()
     }
 
+    private fun initCategoryList(category: HomeCategory, recyclerView: RecyclerView) {
+        val adapter = VideoGridAdapter(
+            onClick = { video -> openPlayer(video) },
+            onMoreOptions = { video, _ -> showVideoOptions(video) },
+            onSelectionChanged = { selected ->
+                if (activeAdapter.isMultiSelectMode) {
+                    actionMode?.title = getString(R.string.multi_select_count, selected.size)
+                }
+            },
+            onLongClick = { video -> startMultiSelectMode(category) }
+        )
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.adapter = adapter
+        adapters[category] = adapter
+        recyclerViews[category] = recyclerView
+    }
+
     private fun observeVideos() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.videos.collect { list ->
-                        adapter.submitList(list) {
-                            jumpVideoListToTopIfNeeded()
-                        }
-                        emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
-                        recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+                    viewModel.allVideos.collect { list ->
+                        submitCategoryList(HomeCategory.ALL, list)
+                    }
+                }
+                launch {
+                    viewModel.recentVideos.collect { list ->
+                        submitCategoryList(HomeCategory.RECENT, list)
+                    }
+                }
+                launch {
+                    viewModel.favoriteVideos.collect { list ->
+                        submitCategoryList(HomeCategory.FAVORITES, list)
                     }
                 }
                 launch {
@@ -165,20 +187,25 @@ class HomeFragment : Fragment() {
                 }
                 launch {
                     viewModel.viewMode.collect { mode ->
-                        adapter.viewMode = mode
-                        val spanCount = if (mode == ViewMode.GRID) 2 else 1
-                        val lm = recyclerView.layoutManager
-                        if (lm is GridLayoutManager) {
-                            lm.spanCount = spanCount
-                        } else {
-                            recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
+                        adapters.values.forEach { adapter -> adapter.viewMode = mode }
+                        recyclerViews.values.forEach { recyclerView ->
+                            val spanCount = if (mode == ViewMode.GRID) 2 else 1
+                            val lm = recyclerView.layoutManager
+                            if (lm is GridLayoutManager) {
+                                lm.spanCount = spanCount
+                            } else {
+                                recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
+                            }
                         }
                         updateViewModeButtons(mode)
                     }
                 }
                 launch {
                     viewModel.category.collect { category ->
+                        activeCategory = category
                         updateCategoryChips(category)
+                        showCategoryPage(category)
+                        updateActiveEmptyState()
                     }
                 }
                 launch {
@@ -217,8 +244,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun switchCategory(category: HomeCategory) {
+        actionMode?.finish()
         viewModel.setCategory(category)
-        recyclerView.scrollToPosition(0)
     }
 
     private fun changeSortFieldAndScrollToTop() {
@@ -232,18 +259,40 @@ class HomeFragment : Fragment() {
     }
 
     private fun requestVideoListJumpToTop() {
-        pendingJumpToTop = true
+        pendingJumpToTopCategory = activeCategory
     }
 
-    private fun jumpVideoListToTopIfNeeded() {
-        if (!pendingJumpToTop) return
-        pendingJumpToTop = false
+    private fun jumpVideoListToTopIfNeeded(category: HomeCategory) {
+        if (pendingJumpToTopCategory != category) return
+        pendingJumpToTopCategory = null
+        val recyclerView = recyclerViews[category] ?: return
         val layoutManager = recyclerView.layoutManager
         if (layoutManager is LinearLayoutManager) {
             layoutManager.scrollToPositionWithOffset(0, 0)
         } else {
             recyclerView.scrollToPosition(0)
         }
+    }
+
+    private fun submitCategoryList(category: HomeCategory, list: List<VideoItem>) {
+        categoryLists[category] = list
+        adapters.getValue(category).submitList(list) {
+            jumpVideoListToTopIfNeeded(category)
+        }
+        if (category == activeCategory) updateActiveEmptyState()
+    }
+
+    private fun showCategoryPage(category: HomeCategory) {
+        recyclerViews.forEach { (pageCategory, recyclerView) ->
+            recyclerView.visibility = if (pageCategory == category) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun updateActiveEmptyState() {
+        val list = categoryLists[activeCategory].orEmpty()
+        val isEmpty = list.isEmpty()
+        emptyView.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        activeRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
 
     private fun hasVideoReadPermission(): Boolean {
@@ -267,8 +316,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun openPlayer(video: VideoItem) {
+        val queue = categoryLists[activeCategory].orEmpty().ifEmpty { listOf(video) }
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(viewModel.videos.value)
+            putSessionQueue(queue)
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)
@@ -277,6 +327,17 @@ class HomeFragment : Fragment() {
             putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
         }
         startActivity(intent)
+    }
+
+    override fun onDestroyView() {
+        actionMode?.finish()
+        recyclerViews.values.forEach { recyclerView ->
+            recyclerView.adapter = null
+        }
+        adapters.clear()
+        recyclerViews.clear()
+        categoryLists.clear()
+        super.onDestroyView()
     }
 
     private fun showVideoOptions(video: VideoItem) {
@@ -437,8 +498,9 @@ class HomeFragment : Fragment() {
             .show()
     }
 
-    private fun startMultiSelectMode() {
+    private fun startMultiSelectMode(category: HomeCategory) {
         if (actionMode != null) return
+        activeCategory = category
         actionMode = (requireActivity() as AppCompatActivity).startSupportActionMode(object : ActionMode.Callback {
             override fun onCreateActionMode(mode: ActionMode, menu: android.view.Menu): Boolean {
                 mode.menuInflater.inflate(R.menu.menu_multi_select, menu)
@@ -450,7 +512,7 @@ class HomeFragment : Fragment() {
             override fun onActionItemClicked(mode: ActionMode, item: android.view.MenuItem): Boolean {
                 return when (item.itemId) {
                     R.id.action_select_all -> {
-                        adapter.selectAll()
+                        activeAdapter.selectAll()
                         true
                     }
                     R.id.action_delete_selected -> {
@@ -458,8 +520,8 @@ class HomeFragment : Fragment() {
                         true
                     }
                     R.id.action_favorite_selected -> {
-                        adapter.getSelectedItems().forEach { viewModel.toggleFavorite(it) }
-                        adapter.exitMultiSelectMode()
+                        activeAdapter.getSelectedItems().forEach { viewModel.toggleFavorite(it) }
+                        activeAdapter.exitMultiSelectMode()
                         mode.finish()
                         true
                     }
@@ -468,20 +530,20 @@ class HomeFragment : Fragment() {
             }
 
             override fun onDestroyActionMode(mode: ActionMode) {
-                adapter.exitMultiSelectMode()
+                activeAdapter.exitMultiSelectMode()
                 actionMode = null
             }
         })
     }
 
     private fun confirmDeleteSelected() {
-        val selected = adapter.getSelectedItems()
+        val selected = activeAdapter.getSelectedItems()
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_batch_delete_title)
             .setMessage(getString(R.string.dialog_batch_delete_message, selected.size))
             .setPositiveButton(R.string.action_delete) { _, _ ->
                 deleteVideosWithSystemRequest(selected)
-                adapter.exitMultiSelectMode()
+                activeAdapter.exitMultiSelectMode()
                 actionMode?.finish()
             }
             .setNegativeButton(R.string.action_cancel, null)

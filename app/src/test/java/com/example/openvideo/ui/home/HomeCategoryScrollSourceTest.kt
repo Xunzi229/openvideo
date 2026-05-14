@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.home
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
@@ -18,13 +19,28 @@ class HomeCategoryScrollSourceTest {
     }
 
     @Test
-    fun categorySwitchScrollsRecyclerViewToTopEveryTime() {
+    fun categoryPagesUseIndependentRecyclerViewsAndAdapters() {
+        val fragmentSource = String(Files.readAllBytes(homeFragmentSource()))
+        val layoutSource = String(Files.readAllBytes(homeLayoutSource()))
+
+        assertTrue(layoutSource.contains("android:id=\"@+id/recycler_all_videos\""))
+        assertTrue(layoutSource.contains("android:id=\"@+id/recycler_recent_videos\""))
+        assertTrue(layoutSource.contains("android:id=\"@+id/recycler_favorite_videos\""))
+        assertTrue(fragmentSource.contains("private val adapters = mutableMapOf<HomeCategory, VideoGridAdapter>()"))
+        assertTrue(fragmentSource.contains("private val recyclerViews = mutableMapOf<HomeCategory, RecyclerView>()"))
+        assertTrue(fragmentSource.contains("initCategoryList(HomeCategory.ALL"))
+        assertTrue(fragmentSource.contains("initCategoryList(HomeCategory.RECENT"))
+        assertTrue(fragmentSource.contains("initCategoryList(HomeCategory.FAVORITES"))
+    }
+
+    @Test
+    fun categorySwitchDoesNotForceOtherPagesToTop() {
         val source = String(Files.readAllBytes(homeFragmentSource()))
         val method = source.substringAfter("private fun switchCategory(category: HomeCategory) {")
             .substringBefore("\n    private fun")
 
         assertTrue(method.contains("viewModel.setCategory(category)"))
-        assertTrue(method.contains("recyclerView.scrollToPosition(0)"))
+        assertFalse(method.contains("scrollToPosition"))
     }
 
     private fun homeFragmentSource(): Path {
@@ -38,6 +54,20 @@ class HomeCategoryScrollSourceTest {
             "ui",
             "home",
             "HomeFragment.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun homeLayoutSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "res",
+            "layout",
+            "fragment_home.xml"
         )
         return sequenceOf(
             relativePath,

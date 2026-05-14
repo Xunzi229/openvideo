@@ -71,22 +71,45 @@ class HomeViewModel @Inject constructor(
         .map { videos -> VideoFolderGrouper.groupPaths(videos.map { it.path }) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val categoryVideos: Flow<List<VideoItem>> = combine(
+    private val allCategoryVideos: Flow<List<VideoItem>> = combine(
         _videos,
-        repository.getHistory(),
-        repository.getFavorites(),
-        _category,
         _hiddenFolders
-    ) { scanned, history, favorites, category, hiddenFolders ->
-        when (category) {
-            HomeCategory.ALL -> scanned
-            HomeCategory.RECENT -> videosFromHistory(scanned, history, hiddenFolders)
-            HomeCategory.FAVORITES -> videosFromFavorites(scanned, favorites, hiddenFolders)
-        }
+    ) { scanned, _ ->
+        scanned
     }
 
+    private val recentCategoryVideos: Flow<List<VideoItem>> = combine(
+        _videos,
+        repository.getHistory(),
+        _hiddenFolders
+    ) { scanned, history, hiddenFolders ->
+        videosFromHistory(scanned, history, hiddenFolders)
+    }
+
+    private val favoriteCategoryVideos: Flow<List<VideoItem>> = combine(
+        _videos,
+        repository.getFavorites(),
+        _hiddenFolders
+    ) { scanned, favorites, hiddenFolders ->
+        videosFromFavorites(scanned, favorites, hiddenFolders)
+    }
+
+    val allVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(allCategoryVideos)
+    val recentVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(recentCategoryVideos)
+    val favoriteVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(favoriteCategoryVideos)
+
     val videos: StateFlow<List<VideoItem>> = combine(
-        categoryVideos, _selectedFolderKey, _searchQuery, _sortField, _sortAsc
+        allVideos, recentVideos, favoriteVideos, _category
+    ) { all, recent, favorites, category ->
+        when (category) {
+            HomeCategory.ALL -> all
+            HomeCategory.RECENT -> recent
+            HomeCategory.FAVORITES -> favorites
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private fun filteredSortedVideos(source: Flow<List<VideoItem>>): StateFlow<List<VideoItem>> = combine(
+        source, _selectedFolderKey, _searchQuery, _sortField, _sortAsc
     ) { list, selectedFolderKey, query, field, asc ->
         val folderFiltered = MediaLibraryPolicy.visibleVideos(
             videos = list,
@@ -148,12 +171,6 @@ class HomeViewModel @Inject constructor(
 
     fun setCategory(category: HomeCategory) {
         _category.value = category
-        if (category == HomeCategory.RECENT) {
-            _sortField.value = SortField.DATE
-            _sortAsc.value = false
-            appPrefs.sortField = SortField.DATE.name.lowercase()
-            appPrefs.sortAsc = false
-        }
     }
 
     fun setFolderFilter(folderKey: String?) {

@@ -27,24 +27,24 @@ class HomeSortControlSourceTest {
             .substringBefore("\n    private fun")
         val requestScroll = source.substringAfter("private fun requestVideoListJumpToTop() {")
             .substringBefore("\n    private fun")
-        val submit = source.substringAfter("adapter.submitList(list)")
-            .substringBefore("emptyView.visibility")
+        val submit = source.substringAfter("private fun submitCategoryList(")
+            .substringBefore("\n    private fun")
 
         assertTrue(changeField.contains("viewModel.cycleSortField()"))
         assertTrue(changeField.contains("requestVideoListJumpToTop()"))
         assertTrue(toggleOrder.contains("viewModel.toggleSortOrder()"))
         assertTrue(toggleOrder.contains("requestVideoListJumpToTop()"))
-        assertTrue(requestScroll.contains("pendingJumpToTop = true"))
-        assertTrue(submit.contains("jumpVideoListToTopIfNeeded()"))
+        assertTrue(requestScroll.contains("pendingJumpToTopCategory = activeCategory"))
+        assertTrue(submit.contains("jumpVideoListToTopIfNeeded(category)"))
     }
 
     @Test
     fun sortJumpToTopIsImmediateWithoutSmoothScrolling() {
         val source = String(Files.readAllBytes(sourceFile("java", "HomeFragment.kt")))
-        val jumpMethod = source.substringAfter("private fun jumpVideoListToTopIfNeeded() {")
+        val jumpMethod = source.substringAfter("private fun jumpVideoListToTopIfNeeded(category: HomeCategory) {")
             .substringBefore("\n    private fun")
 
-        assertTrue(jumpMethod.contains("pendingJumpToTop = false"))
+        assertTrue(jumpMethod.contains("pendingJumpToTopCategory = null"))
         assertTrue(jumpMethod.contains("scrollToPositionWithOffset(0, 0)"))
         assertFalse(
             "Sorting should jump immediately to the top instead of animating a long smooth scroll",

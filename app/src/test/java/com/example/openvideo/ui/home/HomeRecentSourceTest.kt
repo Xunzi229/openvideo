@@ -20,11 +20,11 @@ class HomeRecentSourceTest {
             .substringBefore(".stateIn")
 
         assertTrue(
-            "Recent category should reset to date sorting so latest playback appears first by default",
-            setCategoryBody.contains("if (category == HomeCategory.RECENT)")
-                && setCategoryBody.contains("_sortField.value = SortField.DATE")
-                && setCategoryBody.contains("_sortAsc.value = false")
+            "Recent category should only switch the active page and must not mutate global sort state",
+            setCategoryBody.contains("_category.value = category")
         )
+        assertFalse(setCategoryBody.contains("_sortField.value = SortField.DATE"))
+        assertFalse(setCategoryBody.contains("_sortAsc.value = false"))
         assertFalse(
             "Recent playback should still flow through normal sorting so asc/desc and sort-field controls work",
             videosCombineBody.contains("return@combine filtered")
