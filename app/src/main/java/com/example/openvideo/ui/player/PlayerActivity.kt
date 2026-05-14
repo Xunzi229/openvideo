@@ -239,6 +239,7 @@ class PlayerActivity : AppCompatActivity() {
         // remember current video info for external subtitle callback
         currentVideoUriString = uriString
         currentVideoPath = videoPath
+        val explicitStartPositionMs = intent.getLongExtra(EXTRA_START_POSITION_MS, 0L)
 
         // register prefs listener to auto-load external subtitle when set by the settings sheet
         settingsPrefs = getSharedPreferences("player_settings", Context.MODE_PRIVATE)
@@ -264,7 +265,7 @@ class PlayerActivity : AppCompatActivity() {
 
         // Restore playback position if remember_progress is on
         if (playerPrefs.rememberProgress) {
-            viewModel.restorePosition(id)
+            viewModel.restorePosition(id, explicitStartPositionMs)
         }
 
         controlsContainer.post { applyLandscapePlayerGeometry() }
@@ -1594,6 +1595,7 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
+        const val EXTRA_START_POSITION_MS = "start_position_ms"
         private const val PLAYER_EXIT_RELEASE_DELAY_MS = 250L
     }
 }

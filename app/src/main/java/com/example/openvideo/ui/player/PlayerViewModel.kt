@@ -92,11 +92,12 @@ class PlayerViewModel @Inject constructor(
         }
     }
 
-    fun restorePosition(videoId: Long) {
+    fun restorePosition(videoId: Long, fallbackPositionMs: Long = 0L) {
         viewModelScope.launch {
             val history = repository.getHistory(videoId)
-            if (history != null && history.lastPosition > 0) {
-                pendingRestorePosition = history.lastPosition
+            val restorePositionMs = history?.lastPosition?.takeIf { it > 0 } ?: fallbackPositionMs
+            if (restorePositionMs > 0) {
+                pendingRestorePosition = restorePositionMs
                 applyPendingRestore()
             }
         }
