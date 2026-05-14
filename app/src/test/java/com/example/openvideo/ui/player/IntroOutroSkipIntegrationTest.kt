@@ -12,8 +12,8 @@ class IntroOutroSkipIntegrationTest {
     fun playerActivityChecksIntroOutroSkipFromPositionUpdateLoop() {
         val source = String(Files.readAllBytes(playerActivitySource()))
 
-        assertTrue(source.contains("applyIntroOutroSkip(state.currentPosition, state.duration)"))
-        assertTrue(source.contains("IntroOutroSkipPolicy.skipTarget"))
+        assertTrue(source.contains("applyPlaybackTickSeek(state.currentPosition, state.duration)"))
+        assertTrue(source.contains("PlayerPlaybackTickPolicy.seekTarget"))
         assertTrue(source.contains("hasSkippedOutro"))
         assertTrue(source.contains("playerPrefs.outroSeconds"))
     }

@@ -157,6 +157,10 @@
     <string name="settings_action_none">无操作</string>
     <string name="settings_double_tap_forward">快进</string>
     <string name="settings_double_tap_backward">快退</string>
+    <string name="settings_gesture_preset_classic">预设：经典</string>
+    <string name="settings_gesture_preset_minimal">预设：极简</string>
+    <string name="settings_gesture_preset_binge">预设：追剧</string>
+    <string name="settings_gesture_preset_power_user">预设：高阶</string>
 
     <!-- 其他设置 -->
     <string name="settings_group_other">其他设置</string>

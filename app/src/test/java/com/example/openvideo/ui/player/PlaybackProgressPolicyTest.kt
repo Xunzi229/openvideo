@@ -51,4 +51,31 @@ class PlaybackProgressPolicyTest {
             )
         )
     }
+
+    @Test
+    fun tickKeepsLastSavedPositionWhenSkippingSave() {
+        val decision = PlaybackProgressPolicy.onPositionTick(
+            positionMs = 12_000,
+            lastSavedPositionMs = 10_000
+        )
+
+        assertFalse(decision.shouldSaveHistory)
+        assertTrue(decision.nextLastSavedPositionMs == 10_000L)
+    }
+
+    @Test
+    fun tickAdvancesLastSavedPositionWhenSaving() {
+        val decision = PlaybackProgressPolicy.onPositionTick(
+            positionMs = 15_000,
+            lastSavedPositionMs = 10_000
+        )
+
+        assertTrue(decision.shouldSaveHistory)
+        assertTrue(decision.nextLastSavedPositionMs == 15_000L)
+    }
+
+    @Test
+    fun newMediaResetsLastSavedPosition() {
+        assertTrue(PlaybackProgressPolicy.onNewMedia() == 0L)
+    }
 }

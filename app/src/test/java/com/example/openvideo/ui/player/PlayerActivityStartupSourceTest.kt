@@ -28,6 +28,10 @@ class PlayerActivityStartupSourceTest {
         assertTrue(source.contains("R.id.player_first_frame_scrim"))
         assertTrue(source.contains("private fun showFirstFrameScrim()"))
         assertTrue(source.contains("private fun hideFirstFrameScrim()"))
+        assertTrue(source.contains("private fun applyFirstFrameDecision(decision: PlayerFirstFrameDecision)"))
+        assertTrue(source.contains("PlayerFirstFramePolicy.onShowForNewMedia()"))
+        assertTrue(source.contains("PlayerFirstFramePolicy.onRenderedFirstFrame("))
+        assertTrue(source.contains("PlayerFirstFramePolicy.onReady("))
         assertTrue(source.contains("override fun onRenderedFirstFrame()"))
         assertTrue(source.contains("hideFirstFrameScrim()"))
         assertTrue(source.contains("showFirstFrameScrim()") && source.contains("viewModel.switchToVideo("))
@@ -42,6 +46,24 @@ class PlayerActivityStartupSourceTest {
                     layoutSource.indexOf("@+id/player_first_frame_scrim") < layoutSource.indexOf("@+id/gesture_overlay")
             )
         }
+    }
+
+    @Test
+    fun playerResetsProgressSaveCursorWhenSwitchingVideo() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+
+        assertTrue(source.contains("PlaybackProgressPolicy.onPositionTick("))
+        assertTrue(source.contains("lastHistorySavedPositionMs = decision.nextLastSavedPositionMs"))
+        assertTrue(source.contains("lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()"))
+    }
+
+    @Test
+    fun playerUsesSubtitlePresentationPolicyDuringPositionTicks() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+
+        assertTrue(source.contains("private fun applySubtitlePresentation()"))
+        assertTrue(source.contains("PlayerSubtitlePresentationPolicy.present("))
+        assertTrue(source.contains("tvSubtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE"))
     }
 
     private fun playerActivitySource(): Path {

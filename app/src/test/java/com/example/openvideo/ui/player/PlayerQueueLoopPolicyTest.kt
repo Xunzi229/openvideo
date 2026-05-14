@@ -13,18 +13,20 @@ class PlayerQueueLoopPolicyTest {
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = 0,
                 queueSize = 3,
+                autoPlayNext = true,
                 loopMode = LoopMode.OFF
             )
         )
     }
 
     @Test
-    fun playlistLoopAdvancesAndWrapsEvenWhenAutoPlayNextIsDisabled() {
+    fun playlistLoopAdvancesAndWrapsWhenAutoPlayNextIsEnabled() {
         assertEquals(
             1,
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = 0,
                 queueSize = 3,
+                autoPlayNext = true,
                 loopMode = LoopMode.LIST
             )
         )
@@ -33,6 +35,19 @@ class PlayerQueueLoopPolicyTest {
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = 2,
                 queueSize = 3,
+                autoPlayNext = true,
+                loopMode = LoopMode.LIST
+            )
+        )
+    }
+
+    @Test
+    fun playlistLoopDoesNotAdvanceWhenAutoPlayNextIsDisabled() {
+        assertNull(
+            PlayerQueueLoopPolicy.nextIndexAfterEnded(
+                currentIndex = 0,
+                queueSize = 3,
+                autoPlayNext = false,
                 loopMode = LoopMode.LIST
             )
         )
@@ -44,6 +59,7 @@ class PlayerQueueLoopPolicyTest {
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = 2,
                 queueSize = 3,
+                autoPlayNext = true,
                 loopMode = LoopMode.OFF
             )
         )
@@ -55,6 +71,7 @@ class PlayerQueueLoopPolicyTest {
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = 0,
                 queueSize = 3,
+                autoPlayNext = true,
                 loopMode = LoopMode.OFF
             )
         )
@@ -62,6 +79,7 @@ class PlayerQueueLoopPolicyTest {
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = 0,
                 queueSize = 1,
+                autoPlayNext = true,
                 loopMode = LoopMode.LIST
             )
         )
@@ -69,6 +87,7 @@ class PlayerQueueLoopPolicyTest {
             PlayerQueueLoopPolicy.nextIndexAfterEnded(
                 currentIndex = -1,
                 queueSize = 3,
+                autoPlayNext = true,
                 loopMode = LoopMode.LIST
             )
         )

@@ -31,8 +31,6 @@ data class DoubleTapSeekResult(
 )
 
 object PlayerGestureHudPolicy {
-    private const val DOUBLE_TAP_ACCUMULATE_TIMEOUT_MS = 650L
-
     fun seek(targetMs: Long, durationMs: Long, deltaMs: Long): PlayerGestureHud {
         val signedDelta = if (deltaMs >= 0) "+${formatTime(deltaMs)}" else "-${formatTime(-deltaMs)}"
         val duration = if (PlayerTimeline.hasSeekableDuration(durationMs)) formatTime(durationMs) else "--:--"
@@ -64,31 +62,13 @@ object PlayerGestureHudPolicy {
         intervalMs: Long,
         nowMs: Long
     ): DoubleTapSeekResult {
-        val direction = when (tapSide) {
-            PlayerSwipeSide.LEFT -> -1
-            PlayerSwipeSide.RIGHT -> 1
-            PlayerSwipeSide.NONE -> 0
-        }
-        val step = intervalMs.coerceAtLeast(0)
-        val canAccumulate = previous != null &&
-            direction != 0 &&
-            previous.side == tapSide &&
-            nowMs - previous.lastTapUptimeMs <= DOUBLE_TAP_ACCUMULATE_TIMEOUT_MS
-        val accumulated = when {
-            direction == 0 -> 0
-            canAccumulate -> previous!!.accumulatedMs + step
-            else -> step
-        }
-        val delta = accumulated * direction
+        val step = PlayerDoubleTapSeekPolicy.step(previous, tapSide, intervalMs, nowMs)
+        val accumulated = step.nextState.accumulatedMs
         return DoubleTapSeekResult(
-            deltaMs = delta,
-            hud = seek(targetMs = accumulated, durationMs = 0, deltaMs = delta).copy(secondaryText = ""),
-            nextState = DoubleTapSeekState(
-                side = tapSide,
-                accumulatedMs = accumulated,
-                lastTapUptimeMs = nowMs
-            ),
-            isAccumulated = canAccumulate
+            deltaMs = step.deltaMs,
+            hud = seek(targetMs = accumulated, durationMs = 0, deltaMs = step.deltaMs).copy(secondaryText = ""),
+            nextState = step.nextState,
+            isAccumulated = step.isAccumulated
         )
     }
 

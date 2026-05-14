@@ -157,6 +157,10 @@
     <string name="settings_action_none">None</string>
     <string name="settings_double_tap_forward">Seek forward</string>
     <string name="settings_double_tap_backward">Seek backward</string>
+    <string name="settings_gesture_preset_classic">Preset: Classic</string>
+    <string name="settings_gesture_preset_minimal">Preset: Minimal</string>
+    <string name="settings_gesture_preset_binge">Preset: Binge</string>
+    <string name="settings_gesture_preset_power_user">Preset: Power user</string>
 
     <!-- Other -->
     <string name="settings_group_other">Other</string>

@@ -54,7 +54,6 @@ import com.example.openvideo.core.player.PlaybackService
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.DoubleTapAction
 import com.example.openvideo.core.prefs.GestureAction
-import com.example.openvideo.core.prefs.LongPressAction
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
@@ -137,24 +136,8 @@ class PlayerActivity : AppCompatActivity() {
                     landSpeedLabel(playerPrefs.speed)
                 saveProgressPeriodically(state.currentPosition)
 
-                // AB Loop logic
-                if (abLoopState == AbLoopState.LOOPING && abLoopPointA >= 0 && abLoopPointB >= 0) {
-                    if (state.currentPosition >= abLoopPointB) {
-                        playerManager.seekTo(abLoopPointA)
-                    }
-                }
-
-                applyIntroOutroSkip(state.currentPosition, state.duration)
-                applyClipPreviewLoop(state.currentPosition)
-
-                // Update subtitle
-                val subtitle = if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else ""
-                if (subtitle.isNotEmpty()) {
-                    tvSubtitle.text = subtitle
-                    tvSubtitle.visibility = View.VISIBLE
-                } else {
-                    tvSubtitle.visibility = View.GONE
-                }
+                applyPlaybackTickSeek(state.currentPosition, state.duration)
+                applySubtitlePresentation()
             }
             handler.postDelayed(this, 500)
         }
@@ -166,13 +149,14 @@ class PlayerActivity : AppCompatActivity() {
     private var isSeeking = false
 
     // AB Loop state
-    private var abLoopState = AbLoopState.IDLE
+    private var abLoopState = PlayerAbLoopState.IDLE
     private var abLoopPointA: Long = -1
     private var abLoopPointB: Long = -1
 
     // Screen lock state
     private var isScreenLocked = false
     private var pendingSeekTarget: Long? = null
+    private var seekGestureAnchorPositionMs: Long? = null
     private var playerListener: Player.Listener? = null
     private var isLongPressing = false
     private var doubleTapSeekState: DoubleTapSeekState? = null
@@ -221,7 +205,9 @@ class PlayerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_player)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                finishPlayer()
+                val decision = PlayerLockGesturePolicy.onBackPressed(isScreenLocked)
+                if (decision.revealLockedControls) showLockedControls()
+                if (decision.finishPlayer) finishPlayer()
             }
         })
 
@@ -463,6 +449,7 @@ class PlayerActivity : AppCompatActivity() {
             onPick = { item ->
                 showFirstFrameScrim()
                 viewModel.switchToVideo(item) {
+                    resetPlaybackSessionForNewVideo()
                     currentVideoUriString = item.uri.toString()
                     currentVideoPath = item.path
                     tvTitle.text = item.title
@@ -592,34 +579,14 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnAbLoop?.setOnClickListener {
-            when (abLoopState) {
-                AbLoopState.IDLE -> {
-                    abLoopPointA = playerManager.currentPosition
-                    abLoopState = AbLoopState.POINT_A_SET
-                    btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
-                    android.widget.Toast.makeText(this, getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)), android.widget.Toast.LENGTH_SHORT).show()
-                }
-                AbLoopState.POINT_A_SET -> {
-                    abLoopPointB = playerManager.currentPosition
-                    if (abLoopPointB > abLoopPointA) {
-                        abLoopState = AbLoopState.LOOPING
-                        btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
-                        android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
-                    } else {
-                        abLoopState = AbLoopState.IDLE
-                        abLoopPointA = -1
-                        btnAbLoop?.clearColorFilter()
-                        android.widget.Toast.makeText(this, getString(R.string.player_ab_point_b_error), android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-                AbLoopState.LOOPING -> {
-                    abLoopState = AbLoopState.IDLE
-                    abLoopPointA = -1
-                    abLoopPointB = -1
-                    btnAbLoop?.clearColorFilter()
-                    android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_cancelled), android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
+            applyAbLoopResult(
+                PlayerAbLoopPolicy.onToggle(
+                    state = abLoopState,
+                    pointA = abLoopPointA,
+                    pointB = abLoopPointB,
+                    currentPositionMs = playerManager.currentPosition
+                )
+            )
         }
 
         btnFullscreen.setOnClickListener {
@@ -680,7 +647,7 @@ class PlayerActivity : AppCompatActivity() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
                     val state = viewModel.uiState.value
-                    applyIntroOutroSkip(state.currentPosition, state.duration)
+                    applyPlaybackTickSeek(state.currentPosition, state.duration)
                     hideFirstFrameScrimForAudioOnly()
                 } else if (playbackState == Player.STATE_ENDED) {
                     playNextQueueVideoAfterEnded()
@@ -725,26 +692,73 @@ class PlayerActivity : AppCompatActivity() {
         applyControlVisibility()
     }
 
+    private fun applyAbLoopResult(result: PlayerAbLoopResult) {
+        abLoopState = result.state
+        abLoopPointA = result.pointA
+        abLoopPointB = result.pointB
+
+        when (result.event) {
+            PlayerAbLoopEvent.POINT_A_SET -> {
+                btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
+                android.widget.Toast.makeText(
+                    this,
+                    getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
+            PlayerAbLoopEvent.LOOP_STARTED -> {
+                btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
+                android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
+            }
+            PlayerAbLoopEvent.INVALID_POINT_B -> {
+                btnAbLoop?.clearColorFilter()
+                android.widget.Toast.makeText(this, getString(R.string.player_ab_point_b_error), android.widget.Toast.LENGTH_SHORT).show()
+            }
+            PlayerAbLoopEvent.CANCELLED -> {
+                btnAbLoop?.clearColorFilter()
+                android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_cancelled), android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun showFirstFrameScrim() {
-        isAwaitingFirstFrame = true
-        if (!this::firstFrameScrim.isInitialized) return
-        firstFrameScrim.animate().cancel()
-        firstFrameScrim.alpha = 1f
-        firstFrameScrim.visibility = View.VISIBLE
+        applyFirstFrameDecision(PlayerFirstFramePolicy.onShowForNewMedia())
     }
 
     private fun hideFirstFrameScrim() {
-        isAwaitingFirstFrame = false
-        if (!this::firstFrameScrim.isInitialized) return
-        firstFrameScrim.animate().cancel()
-        firstFrameScrim.visibility = View.GONE
+        applyFirstFrameDecision(
+            PlayerFirstFramePolicy.onRenderedFirstFrame(
+                isAwaitingFirstFrame = isAwaitingFirstFrame
+            )
+        )
     }
 
     private fun hideFirstFrameScrimForAudioOnly() {
-        if (!isAwaitingFirstFrame) return
         val hasVideoTrack = viewModel.player?.currentTracks?.groups
             ?.any { group -> group.type == C.TRACK_TYPE_VIDEO } == true
-        if (!hasVideoTrack) hideFirstFrameScrim()
+        applyFirstFrameDecision(
+            PlayerFirstFramePolicy.onReady(
+                isAwaitingFirstFrame = isAwaitingFirstFrame,
+                hasVideoTrack = hasVideoTrack
+            )
+        )
+    }
+
+    private fun applyFirstFrameDecision(decision: PlayerFirstFrameDecision) {
+        isAwaitingFirstFrame = decision.nextAwaitingFirstFrame
+        if (!this::firstFrameScrim.isInitialized) return
+
+        when {
+            decision.showScrim -> {
+                firstFrameScrim.animate().cancel()
+                firstFrameScrim.alpha = 1f
+                firstFrameScrim.visibility = View.VISIBLE
+            }
+            decision.hideScrim -> {
+                firstFrameScrim.animate().cancel()
+                firstFrameScrim.visibility = View.GONE
+            }
+        }
     }
 
     private fun playNextQueueVideoAfterEnded() {
@@ -754,6 +768,7 @@ class PlayerActivity : AppCompatActivity() {
         val nextIndex = PlayerQueueLoopPolicy.nextIndexAfterEnded(
             currentIndex = currentIndex,
             queueSize = queue.size,
+            autoPlayNext = playerPrefs.autoPlayNext,
             loopMode = playerPrefs.loopMode
         ) ?: return
 
@@ -761,15 +776,32 @@ class PlayerActivity : AppCompatActivity() {
         showFirstFrameScrim()
         viewModel.switchToVideo(queue[nextIndex]) {
             isSwitchingQueueAfterEnded = false
+            resetPlaybackSessionForNewVideo()
             currentVideoUriString = queue[nextIndex].uri.toString()
             currentVideoPath = queue[nextIndex].path
             tvTitle.text = queue[nextIndex].title
-            hasSkippedIntro = false
-            hasSkippedOutro = false
             loadSubtitlesAsync(queue[nextIndex].uri.toString(), queue[nextIndex].path)
             applyPlayerSettings()
             scheduleHideControls()
         }
+    }
+
+    private fun resetPlaybackSessionForNewVideo() {
+        val reset = PlayerVideoSwitchPolicy.resetForNewVideo()
+        hasSkippedIntro = reset.hasSkippedIntro
+        hasSkippedOutro = reset.hasSkippedOutro
+        abLoopState = reset.abLoopState
+        abLoopPointA = reset.abLoopPointA
+        abLoopPointB = reset.abLoopPointB
+        pendingSeekTarget = reset.pendingSeekTarget
+        seekGestureAnchorPositionMs = reset.seekGestureAnchorPositionMs
+        doubleTapSeekState = reset.doubleTapSeekState
+        doubleTapSeekAnchorPositionMs = reset.doubleTapSeekAnchorPositionMs
+        keepGestureHudAfterActionUp = reset.keepGestureHudAfterActionUp
+        isAwaitingFirstFrame = reset.awaitFirstFrame
+        lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()
+        btnAbLoop?.clearColorFilter()
+        hideGestureHud()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -796,15 +828,15 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onLongPress(e: MotionEvent) {
-                // P1: Long press action from settings
-                when (playerPrefs.longPressAction) {
-                    LongPressAction.SPEED -> {
-                        isLongPressing = true
-                        val speed = playerPrefs.longPressSpeed
-                        viewModel.setSpeed(speed)
-                        showGestureHud(PlayerGestureHudPolicy.speed(speed), autoHide = false)
-                    }
-                    LongPressAction.NONE -> {}
+                val decision = PlayerLongPressPolicy.onPress(
+                    action = playerPrefs.longPressAction,
+                    requestedSpeed = playerPrefs.longPressSpeed,
+                    restoreSpeed = playerPrefs.speed
+                )
+                isLongPressing = decision.startLongPress
+                decision.targetSpeed?.let { speed ->
+                    viewModel.setSpeed(speed)
+                    showGestureHud(PlayerGestureHudPolicy.speed(speed), autoHide = false)
                 }
             }
         })
@@ -828,6 +860,8 @@ class PlayerActivity : AppCompatActivity() {
                     isVerticalSwipe = false
                     brightnessGestureAnchor = currentBrightness
                     volumeGestureAnchor = currentVolume
+                    pendingSeekTarget = null
+                    seekGestureAnchorPositionMs = viewModel.uiState.value.currentPosition
                     isEdgeSwipe = PlayerGesturePolicy.isEdgeSwipe(event.x, resources.displayMetrics.widthPixels)
                     swipeSide = PlayerGesturePolicy.swipeSide(event.x, resources.displayMetrics.widthPixels)
                 }
@@ -855,7 +889,7 @@ class PlayerActivity : AppCompatActivity() {
                         }
                     }
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP -> {
                     // P1: Edge swipe back
                     if (playerPrefs.edgeSwipeBack && isEdgeSwipe && isHorizontalSwipe) {
                         val dx = event.x - startX
@@ -880,14 +914,27 @@ class PlayerActivity : AppCompatActivity() {
                     }
 
                     // P1: Restore speed after long press
-                    if (isLongPressing) {
-                        isLongPressing = false
-                        viewModel.setSpeed(playerPrefs.speed)
-                    }
+                    releaseLongPressSpeed()
+                    seekGestureAnchorPositionMs = null
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    pendingSeekTarget = null
+                    seekGestureAnchorPositionMs = null
+                    hideGestureHud()
+                    releaseLongPressSpeed()
                 }
             }
             true
         }
+    }
+
+    private fun releaseLongPressSpeed() {
+        val release = PlayerLongPressPolicy.onRelease(
+            isLongPressing = isLongPressing,
+            restoreSpeed = playerPrefs.speed
+        )
+        isLongPressing = false
+        release.restoreSpeed?.let(viewModel::setSpeed)
     }
 
     private fun gestureSlopPx(): Int =
@@ -914,41 +961,50 @@ class PlayerActivity : AppCompatActivity() {
         if (side == PlayerSwipeSide.NONE) return
 
         val intervalMs = playerPrefs.seekInterval * 1000L
-        val result = PlayerGestureHudPolicy.doubleTapSeek(
+        val state = viewModel.uiState.value
+        val preview = PlayerDoubleTapSeekPolicy.preview(
             previous = doubleTapSeekState,
             tapSide = side,
             intervalMs = intervalMs,
-            nowMs = SystemClock.uptimeMillis()
+            nowMs = SystemClock.uptimeMillis(),
+            anchorPositionMs = doubleTapSeekAnchorPositionMs,
+            currentPositionMs = state.currentPosition,
+            durationMs = state.duration
         )
-        doubleTapSeekState = result.nextState
+        doubleTapSeekState = preview.nextState
         keepGestureHudAfterActionUp = true
+        doubleTapSeekAnchorPositionMs = preview.anchorPositionMs
 
-        val state = viewModel.uiState.value
-        val anchorPosition = if (result.isAccumulated) {
-            doubleTapSeekAnchorPositionMs ?: state.currentPosition
-        } else {
-            state.currentPosition
+        if (preview.seekable) {
+            viewModel.seekTo(preview.targetMs)
         }
-        doubleTapSeekAnchorPositionMs = anchorPosition
-        val target = PlayerTimeline.safeSeekTarget(anchorPosition, result.deltaMs, state.duration)
-        viewModel.seekTo(target)
-        showGestureHud(PlayerGestureHudPolicy.seek(target, state.duration, result.deltaMs))
+        showGestureHud(PlayerGestureHudPolicy.seek(preview.targetMs, state.duration, preview.deltaMs))
     }
 
     private fun handleSeekGesture(dx: Float) {
-        val seekMs = PlayerGesturePolicy.horizontalSeekDeltaMs(dx, resources.displayMetrics.widthPixels)
         val state = viewModel.uiState.value
-        val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
-        pendingSeekTarget = target
-        showGestureHud(PlayerGestureHudPolicy.seek(target, state.duration, seekMs), autoHide = false)
+        val preview = PlayerSeekGesturePolicy.horizontalPreview(
+            anchorPositionMs = seekGestureAnchorPositionMs ?: state.currentPosition,
+            dx = dx,
+            screenWidthPx = resources.displayMetrics.widthPixels,
+            durationMs = state.duration,
+            sensitivity = playerPrefs.gestureSensitivity
+        )
+        pendingSeekTarget = preview.targetMs.takeIf { preview.seekable }
+        showGestureHud(PlayerGestureHudPolicy.seek(preview.targetMs, state.duration, preview.deltaMs), autoHide = false)
     }
 
     private fun handleVerticalSeekGesture(dy: Float) {
-        val seekMs = PlayerGesturePolicy.verticalSeekDeltaMs(dy, resources.displayMetrics.heightPixels)
         val state = viewModel.uiState.value
-        val target = PlayerTimeline.safeSeekTarget(state.currentPosition, seekMs, state.duration)
-        pendingSeekTarget = target
-        showGestureHud(PlayerGestureHudPolicy.seek(target, state.duration, seekMs), autoHide = false)
+        val preview = PlayerSeekGesturePolicy.verticalPreview(
+            anchorPositionMs = seekGestureAnchorPositionMs ?: state.currentPosition,
+            dy = dy,
+            screenHeightPx = resources.displayMetrics.heightPixels,
+            durationMs = state.duration,
+            sensitivity = playerPrefs.gestureSensitivity
+        )
+        pendingSeekTarget = preview.targetMs.takeIf { preview.seekable }
+        showGestureHud(PlayerGestureHudPolicy.seek(preview.targetMs, state.duration, preview.deltaMs), autoHide = false)
     }
 
     private fun applySeekGesture() {
@@ -958,6 +1014,7 @@ class PlayerActivity : AppCompatActivity() {
         pendingSeekTarget?.let { target ->
             viewModel.seekTo(PlayerTimeline.safeSeekTarget(0, target, state.duration))
             pendingSeekTarget = null
+            seekGestureAnchorPositionMs = null
         }
     }
 
@@ -982,29 +1039,27 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun handleBrightnessGesture(dy: Float) {
-        currentBrightness =
-            PlayerGesturePolicy.verticalLevel(
-                anchor = brightnessGestureAnchor,
-                dy = dy,
-                screenHeightPx = resources.displayMetrics.heightPixels,
-                min = 0.01f
-            )
+        val adjustment = PlayerLevelAdjustmentPolicy.verticalBrightness(
+            anchor = brightnessGestureAnchor,
+            dy = dy,
+            screenHeightPx = resources.displayMetrics.heightPixels
+        )
+        currentBrightness = adjustment.level
         setWindowBrightness(currentBrightness)
-        brightnessProgress.progress = (currentBrightness * 100).toInt()
+        brightnessProgress.progress = adjustment.progressPercent
         brightnessIndicator.visibility = View.VISIBLE
         showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.BRIGHTNESS, currentBrightness), autoHide = false)
     }
 
     private fun handleBrightnessGestureHorizontal(dx: Float) {
-        currentBrightness =
-            PlayerGesturePolicy.horizontalLevel(
-                anchor = brightnessGestureAnchor,
-                dx = dx,
-                screenWidthPx = resources.displayMetrics.widthPixels,
-                min = 0.01f
-            )
+        val adjustment = PlayerLevelAdjustmentPolicy.horizontalBrightness(
+            anchor = brightnessGestureAnchor,
+            dx = dx,
+            screenWidthPx = resources.displayMetrics.widthPixels
+        )
+        currentBrightness = adjustment.level
         setWindowBrightness(currentBrightness)
-        brightnessProgress.progress = (currentBrightness * 100).toInt()
+        brightnessProgress.progress = adjustment.progressPercent
         brightnessIndicator.visibility = View.VISIBLE
         showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.BRIGHTNESS, currentBrightness), autoHide = false)
     }
@@ -1098,15 +1153,15 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleVolumeGesture(dy: Float) {
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-        currentVolume =
-            PlayerGesturePolicy.verticalLevel(
-                anchor = volumeGestureAnchor,
-                dy = dy,
-                screenHeightPx = resources.displayMetrics.heightPixels
-            )
-        val volume = (currentVolume * maxVolume).toInt().coerceIn(0, maxVolume)
-        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
-        volumeProgress.progress = (currentVolume * 100).toInt()
+        val adjustment = PlayerLevelAdjustmentPolicy.verticalVolume(
+            anchor = volumeGestureAnchor,
+            dy = dy,
+            screenHeightPx = resources.displayMetrics.heightPixels,
+            maxVolume = maxVolume
+        )
+        currentVolume = adjustment.level
+        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, adjustment.streamVolume ?: 0, 0)
+        volumeProgress.progress = adjustment.progressPercent
         volumeIndicator.visibility = View.VISIBLE
         showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.VOLUME, currentVolume), autoHide = false)
     }
@@ -1114,15 +1169,15 @@ class PlayerActivity : AppCompatActivity() {
     private fun handleVolumeGestureHorizontal(dx: Float) {
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-        currentVolume =
-            PlayerGesturePolicy.horizontalLevel(
-                anchor = volumeGestureAnchor,
-                dx = dx,
-                screenWidthPx = resources.displayMetrics.widthPixels
-            )
-        val volume = (currentVolume * maxVolume).toInt().coerceIn(0, maxVolume)
-        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, volume, 0)
-        volumeProgress.progress = (currentVolume * 100).toInt()
+        val adjustment = PlayerLevelAdjustmentPolicy.horizontalVolume(
+            anchor = volumeGestureAnchor,
+            dx = dx,
+            screenWidthPx = resources.displayMetrics.widthPixels,
+            maxVolume = maxVolume
+        )
+        currentVolume = adjustment.level
+        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, adjustment.streamVolume ?: 0, 0)
+        volumeProgress.progress = adjustment.progressPercent
         volumeIndicator.visibility = View.VISIBLE
         showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.VOLUME, currentVolume), autoHide = false)
     }
@@ -1151,41 +1206,55 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun saveProgressPeriodically(positionMs: Long) {
-        if (!PlaybackProgressPolicy.shouldSaveProgress(positionMs, lastHistorySavedPositionMs)) return
-        lastHistorySavedPositionMs = positionMs
-        viewModel.saveHistory()
+        val decision = PlaybackProgressPolicy.onPositionTick(
+            positionMs = positionMs,
+            lastSavedPositionMs = lastHistorySavedPositionMs
+        )
+        lastHistorySavedPositionMs = decision.nextLastSavedPositionMs
+        if (decision.shouldSaveHistory) viewModel.saveHistory()
+    }
+
+    private fun applySubtitlePresentation() {
+        val subtitleText = if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else ""
+        val presentation = PlayerSubtitlePresentationPolicy.present(
+            subtitlesEnabled = playerPrefs.subtitlesEnabled,
+            subtitleText = subtitleText
+        )
+        tvSubtitle.text = presentation.text
+        tvSubtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE
     }
 
     private fun controlsChromeMaxAlpha(): Float =
         PlayerChromePolicy.maxChromeAlpha(playerPrefs.controlsOpacity)
 
     private fun showControls() {
-        controlsVisible = true
-        controlsContainer.animate().cancel()
-        controlsContainer.alpha = controlsChromeMaxAlpha()
-        controlsContainer.visibility = View.VISIBLE
+        applyChromePresentation(
+            PlayerChromeVisibilityPolicy.show(
+                controlsOpacityPercent = playerPrefs.controlsOpacity,
+                autoHideSeconds = playerPrefs.controlsAutoHide
+            )
+        )
         applyControlVisibility()
-        scheduleHideControls()
     }
 
     private fun hideControls() {
-        controlsVisible = false
+        val presentation = PlayerChromeVisibilityPolicy.hide()
+        controlsVisible = presentation.controlsVisible
         controlsContainer.animate().cancel()
-        controlsContainer.animate().alpha(0f).setDuration(200).withEndAction {
+        controlsContainer.animate().alpha(presentation.alpha).setDuration(200).withEndAction {
             if (!controlsVisible) {
-                controlsContainer.visibility = View.GONE
+                controlsContainer.visibility = if (presentation.containerVisible) View.VISIBLE else View.GONE
             }
         }.start()
     }
 
     private fun showLockedControls() {
-        controlsVisible = true
-        controlsContainer.animate().cancel()
-        controlsContainer.alpha = controlsChromeMaxAlpha()
-        controlsContainer.visibility = View.VISIBLE
+        applyChromePresentation(
+            PlayerChromeVisibilityPolicy.showLocked(
+                controlsOpacityPercent = playerPrefs.controlsOpacity
+            )
+        )
         applyControlVisibility()
-        handler.removeCallbacks(hideControlsRunnable)
-        handler.postDelayed(hideControlsRunnable, PlayerChromePolicy.lockedControlsHideDelayMs())
     }
 
     private fun applyControlVisibility() {
@@ -1208,8 +1277,22 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun scheduleHideControls() {
         handler.removeCallbacks(hideControlsRunnable)
-        val delay = PlayerChromePolicy.autoHideDelayMs(playerPrefs.controlsAutoHide)
-        if (PlayerChromePolicy.shouldScheduleAutoHide(delay)) {
+        val presentation = PlayerChromeVisibilityPolicy.show(
+            controlsOpacityPercent = playerPrefs.controlsOpacity,
+            autoHideSeconds = playerPrefs.controlsAutoHide
+        )
+        presentation.hideDelayMs?.let { delay ->
+            handler.postDelayed(hideControlsRunnable, delay)
+        }
+    }
+
+    private fun applyChromePresentation(presentation: PlayerChromePresentation) {
+        controlsVisible = presentation.controlsVisible
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = presentation.alpha
+        controlsContainer.visibility = if (presentation.containerVisible) View.VISIBLE else View.GONE
+        handler.removeCallbacks(hideControlsRunnable)
+        presentation.hideDelayMs?.let { delay ->
             handler.postDelayed(hideControlsRunnable, delay)
         }
     }
@@ -1225,10 +1308,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun toggleScreenLock() {
         isScreenLocked = !isScreenLocked
         if (isScreenLocked) {
-            gestureOverlay.setOnTouchListener { _, event ->
-                if (event.action == MotionEvent.ACTION_UP) showLockedControls()
-                true
-            }
+            setLockedGestureOverlay()
             controlsVisible = true
             controlsContainer.visibility = View.VISIBLE
             controlsContainer.alpha = controlsChromeMaxAlpha()
@@ -1243,6 +1323,25 @@ class PlayerActivity : AppCompatActivity() {
             scheduleHideControls()
             android.widget.Toast.makeText(this, getString(R.string.player_unlocked), android.widget.Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun setLockedGestureOverlay() {
+        gestureOverlay.setOnTouchListener { _, event ->
+            val decision = PlayerLockGesturePolicy.onTouch(
+                isLocked = isScreenLocked,
+                action = event.toPlayerTouchAction()
+            )
+            if (decision.revealLockedControls) showLockedControls()
+            decision.consumeTouch
+        }
+    }
+
+    private fun MotionEvent.toPlayerTouchAction(): PlayerTouchAction = when (actionMasked) {
+        MotionEvent.ACTION_DOWN -> PlayerTouchAction.DOWN
+        MotionEvent.ACTION_MOVE -> PlayerTouchAction.MOVE
+        MotionEvent.ACTION_UP -> PlayerTouchAction.UP
+        MotionEvent.ACTION_CANCEL -> PlayerTouchAction.CANCEL
+        else -> PlayerTouchAction.OTHER
     }
 
     private fun unlockPlayerForPause() {
@@ -1352,24 +1451,28 @@ class PlayerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isActivityForeground = true
-        stopPlaybackService()
-        observeState()
+        val decision = PlayerLifecyclePolicy.onResume()
+        if (decision.stopPlaybackService) stopPlaybackService()
+        if (decision.observeState) observeState()
     }
 
     override fun onPause() {
         super.onPause()
         isActivityForeground = false
         stopObservingState()
-        if (!isInPipModeCompat()) {
-            viewModel.saveHistory()
-            if (playerPrefs.pauseOnExit || !playerPrefs.bgAudio) {
-                unlockPlayerForPause()
-                viewModel.player?.pause()
-                stopPlaybackService()
-            } else {
-                startPlaybackServiceIfNeeded(viewModel.player?.isPlaying == true)
-            }
+        val decision = PlayerLifecyclePolicy.onPause(
+            isInPictureInPicture = isInPipModeCompat(),
+            pauseOnExit = playerPrefs.pauseOnExit,
+            backgroundAudio = playerPrefs.bgAudio,
+            isPlaying = viewModel.player?.isPlaying == true
+        )
+        if (decision.saveHistory) viewModel.saveHistory()
+        if (decision.pausePlayer) {
+            if (decision.unlockBeforePause) unlockPlayerForPause()
+            viewModel.player?.pause()
         }
+        if (decision.stopPlaybackService) stopPlaybackService()
+        if (decision.startPlaybackService) startPlaybackServiceIfNeeded(true)
     }
 
     override fun onDestroy() {
@@ -1391,11 +1494,7 @@ class PlayerActivity : AppCompatActivity() {
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
         if (isInPictureInPictureMode) {
-            handler.removeCallbacks(hideControlsRunnable)
-            controlsContainer.animate().cancel()
-            controlsContainer.alpha = 0f
-            controlsContainer.visibility = View.GONE
-            controlsVisible = false
+            applyChromePresentation(PlayerChromeVisibilityPolicy.pictureInPicture())
         } else {
             showControls()
         }
@@ -1441,8 +1540,13 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun startPlaybackServiceIfNeeded(isPlaying: Boolean) {
-        if (!playerPrefs.bgAudio || !isPlaying) return
-        if (isActivityForeground || isInPipModeCompat()) return
+        val decision = PlayerBackgroundServicePolicy.startDecision(
+            backgroundAudio = playerPrefs.bgAudio,
+            isPlaying = isPlaying,
+            isActivityForeground = isActivityForeground,
+            isInPictureInPicture = isInPipModeCompat()
+        )
+        if (!decision.shouldStart) return
         val intent = Intent(this, PlaybackService::class.java).apply {
             action = PlaybackService.ACTION_START
             putExtra(PlaybackService.EXTRA_TITLE, tvTitle.text.toString())
@@ -1461,38 +1565,31 @@ class PlayerActivity : AppCompatActivity() {
         runCatching { stopService(Intent(this, PlaybackService::class.java)) }
     }
 
-    private fun applyIntroOutroSkip(currentPositionMs: Long, durationMs: Long) {
-        val target = IntroOutroSkipPolicy.skipTarget(
-            enabled = playerPrefs.skipIntroOutro,
+    private fun applyPlaybackTickSeek(currentPositionMs: Long, durationMs: Long) {
+        val result = PlayerPlaybackTickPolicy.seekTarget(
             currentPositionMs = currentPositionMs,
             durationMs = durationMs,
+            abLoopState = abLoopState,
+            abLoopPointA = abLoopPointA,
+            abLoopPointB = abLoopPointB,
+            skipIntroOutro = playerPrefs.skipIntroOutro,
             introSeconds = playerPrefs.introSeconds,
             outroSeconds = playerPrefs.outroSeconds,
             hasSkippedIntro = hasSkippedIntro,
-            hasSkippedOutro = hasSkippedOutro
+            hasSkippedOutro = hasSkippedOutro,
+            clipLoopPreview = playerPrefs.clipLoopPreview,
+            clipStartMs = playerPrefs.clipStartMs,
+            clipEndMs = playerPrefs.clipEndMs
         ) ?: return
 
-        when (target.kind) {
-            IntroOutroSkipPolicy.Kind.INTRO -> hasSkippedIntro = true
-            IntroOutroSkipPolicy.Kind.OUTRO -> hasSkippedOutro = true
-        }
-        viewModel.seekTo(target.positionMs)
-    }
-
-    private fun applyClipPreviewLoop(currentPositionMs: Long) {
-        if (!playerPrefs.clipLoopPreview) return
-        val startMs = playerPrefs.clipStartMs
-        val endMs = playerPrefs.clipEndMs
-        if (startMs >= 0L && endMs > startMs && currentPositionMs >= endMs) {
-            viewModel.seekTo(startMs)
-        }
+        hasSkippedIntro = result.hasSkippedIntro
+        hasSkippedOutro = result.hasSkippedOutro
+        viewModel.seekTo(result.positionMs)
     }
 
     private fun isInPipModeCompat(): Boolean {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
     }
-
-    private enum class AbLoopState { IDLE, POINT_A_SET, LOOPING }
 
     companion object {
         const val EXTRA_VIDEO_WIDTH = "video_width"

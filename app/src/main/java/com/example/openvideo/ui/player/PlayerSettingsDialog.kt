@@ -918,8 +918,31 @@ class PlayerSettingsDialog(
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
         */
+        addActionRows(gesturePresetActionSpecs())
         addActionRows(tutorialActionSpecs())
         addSwitchRows(tutorialSwitchSpecs(), detailContainer)
+    }
+
+    private fun gesturePresetActionSpecs(): List<PlayerSettingsActionSpec> =
+        PlayerGesturePreset.entries.map { preset ->
+            PlayerSettingsActionSpec(
+                title = gesturePresetLabel(preset),
+                value = null
+            ) {
+                applyGesturePreset(preset)
+                rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
+            }
+        }
+
+    private fun applyGesturePreset(preset: PlayerGesturePreset) {
+        val settings = PlayerGesturePresetPolicy.settingsFor(preset)
+        playerPrefs.leftVerticalGesture = settings.leftVerticalGesture
+        playerPrefs.rightVerticalGesture = settings.rightVerticalGesture
+        playerPrefs.horizontalSwipeAction = settings.horizontalSwipeAction
+        playerPrefs.doubleTapAction = settings.doubleTapAction
+        playerPrefs.longPressAction = settings.longPressAction
+        playerPrefs.gestureSensitivity = settings.gestureSensitivity
+        playerPrefs.edgeSwipeBack = settings.edgeSwipeBack
     }
 
     private fun showDoubleTapActionPage() {
@@ -1152,6 +1175,13 @@ class PlayerSettingsDialog(
     private fun longPressLabel(value: LongPressAction): String = when (value) {
         LongPressAction.SPEED -> context.getString(R.string.settings_double_tap_playback)
         LongPressAction.NONE -> context.getString(R.string.settings_double_tap_none)
+    }
+
+    private fun gesturePresetLabel(value: PlayerGesturePreset): String = when (value) {
+        PlayerGesturePreset.CLASSIC -> context.getString(R.string.settings_gesture_preset_classic)
+        PlayerGesturePreset.MINIMAL -> context.getString(R.string.settings_gesture_preset_minimal)
+        PlayerGesturePreset.BINGE -> context.getString(R.string.settings_gesture_preset_binge)
+        PlayerGesturePreset.POWER_USER -> context.getString(R.string.settings_gesture_preset_power_user)
     }
 
     private fun formatSavedTime(ms: Long): String =
