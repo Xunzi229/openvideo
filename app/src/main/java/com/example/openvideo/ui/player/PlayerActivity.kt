@@ -680,12 +680,20 @@ class PlayerActivity : AppCompatActivity() {
                 Toast.makeText(this@PlayerActivity, R.string.player_playback_error, Toast.LENGTH_SHORT).show()
             }
 
+            @Suppress("DEPRECATION")
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                 applyVideoOrientation(
                     width = videoSize.width,
-                    height = videoSize.height
+                    height = videoSize.height,
+                    pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
+                    unappliedRotationDegrees = videoSize.unappliedRotationDegrees
                 )
-                applyPlayerContentAspectRatio()
+                applyPlayerContentAspectRatio(
+                    width = videoSize.width,
+                    height = videoSize.height,
+                    pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
+                    unappliedRotationDegrees = videoSize.unappliedRotationDegrees
+                )
             }
         }
         viewModel.player?.addListener(playerListener!!)
@@ -1298,11 +1306,18 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyVideoOrientation(width: Int, height: Int) {
+    private fun applyVideoOrientation(
+        width: Int,
+        height: Int,
+        pixelWidthHeightRatio: Float = 1f,
+        unappliedRotationDegrees: Int = 0
+    ) {
         if (!playerPrefs.autoOrientationByVideo) return
-        requestedOrientation = PlayerOrientationPolicy.orientationForVideo(
+        requestedOrientation = PlayerVideoLayoutPolicy.orientationForVideo(
             width = width,
-            height = height
+            height = height,
+            pixelWidthHeightRatio = pixelWidthHeightRatio,
+            unappliedRotationDegrees = unappliedRotationDegrees
         )
     }
 
@@ -1511,19 +1526,24 @@ class PlayerActivity : AppCompatActivity() {
      * 在 PlayerView 更新视频比例之后调用（本 Activity 的 [Player.Listener] 注册在其后）。
      */
     @OptIn(UnstableApi::class)
-    private fun applyPlayerContentAspectRatio() {
+    @Suppress("DEPRECATION")
+    private fun applyPlayerContentAspectRatio(
+        width: Int? = null,
+        height: Int? = null,
+        pixelWidthHeightRatio: Float? = null,
+        unappliedRotationDegrees: Int? = null
+    ) {
         if (!this::playerView.isInitialized) return
         val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
             ?: return
-        val forced = PlayerViewSettings.forcedContentAspectRatio(playerPrefs.aspectRatio)
-        if (forced != null) {
-            contentFrame.setAspectRatio(forced)
-            return
-        }
-        val vs = viewModel.player?.videoSize ?: return
-        val w = vs.width
-        val h = vs.height
-        val ratio = if (h == 0 || w == 0) 0f else (w * vs.pixelWidthHeightRatio) / h
+        val vs = viewModel.player?.videoSize
+        val ratio = PlayerVideoLayoutPolicy.contentAspectRatio(
+            preferredAspectRatio = playerPrefs.aspectRatio,
+            width = width ?: vs?.width ?: 0,
+            height = height ?: vs?.height ?: 0,
+            pixelWidthHeightRatio = pixelWidthHeightRatio ?: vs?.pixelWidthHeightRatio ?: 1f,
+            unappliedRotationDegrees = unappliedRotationDegrees ?: vs?.unappliedRotationDegrees ?: 0
+        )
         contentFrame.setAspectRatio(ratio)
     }
 
