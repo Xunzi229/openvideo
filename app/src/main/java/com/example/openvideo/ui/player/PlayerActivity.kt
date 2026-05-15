@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.Rational
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -30,6 +31,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -300,10 +302,7 @@ class PlayerActivity : AppCompatActivity() {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
 
-        setPlayerResizeMode()
-        applyPlayerContentAspectRatio()
-        playerView.rotation = playerPrefs.rotation.toFloat()
-        playerView.scaleX = if (playerPrefs.mirror) -1f else 1f
+        applyDisplaySettings()
 
         tvSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
         tvSubtitle.setTextColor(playerPrefs.subtitleColor)
@@ -318,6 +317,13 @@ class PlayerActivity : AppCompatActivity() {
             val travel = playerView.height * 0.6f
             tvSubtitle.translationY = -((1f - playerPrefs.subtitlePosition.coerceIn(0f, 1f)) * travel)
         }
+    }
+
+    private fun applyDisplaySettings() {
+        setPlayerResizeMode()
+        applyPlayerContentAspectRatio()
+        playerView.rotation = playerPrefs.rotation.toFloat()
+        playerView.scaleX = if (playerPrefs.mirror) -1f else 1f
     }
 
     private fun initBrightnessAndVolume() {
@@ -363,26 +369,18 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun loadSubtitles(uriString: String, videoPath: String): List<com.example.openvideo.core.subtitle.SubtitleItem> {
-        val uri = Uri.parse(uriString)
-        val sidecarPath = when {
-            uri.scheme == "file" -> uri.path.orEmpty()
-            videoPath.isNotBlank() && !videoPath.startsWith("content://") -> videoPath
-            else -> ""
-        }
-
-        if (sidecarPath.isNotBlank()) {
-            val subtitleFiles = subtitleLoader.findSubtitleFiles(sidecarPath)
-            if (subtitleFiles.isNotEmpty()) {
-                return subtitleLoader.loadFromFile(subtitleFiles[0])
+        return when (val request = PlayerSubtitleLoadPolicy.resolve(uriString, videoPath)) {
+            is PlayerSubtitleLoadRequest.SidecarFile -> {
+                val subtitleFiles = subtitleLoader.findSubtitleFiles(request.videoPath)
+                if (subtitleFiles.isNotEmpty()) {
+                    subtitleLoader.loadFromFile(subtitleFiles[0])
+                } else {
+                    emptyList()
+                }
             }
-            return emptyList()
+            is PlayerSubtitleLoadRequest.SubtitleUri -> subtitleLoader.loadFromUri(Uri.parse(request.uriString))
+            PlayerSubtitleLoadRequest.None -> emptyList()
         }
-
-        if (PlayerSubtitleAutoload.canLoadAsSubtitleUri(uriString)) {
-            return subtitleLoader.loadFromUri(uri)
-        }
-
-        return emptyList()
     }
 
     private fun initViews() {
@@ -635,13 +633,19 @@ class PlayerActivity : AppCompatActivity() {
 
         playerListener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updatePlayPauseIcon(isPlaying)
+                updatePlayPauseIcon(
+                    isPlaying = isPlaying,
+                    playWhenReady = viewModel.player?.playWhenReady == true
+                )
                 startPlaybackServiceIfNeeded(isPlaying)
             }
 
             override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                 if (!playWhenReady) unlockPlayerForPause()
-                updatePlayPauseIcon(playWhenReady)
+                updatePlayPauseIcon(
+                    isPlaying = viewModel.player?.isPlaying == true,
+                    playWhenReady = playWhenReady
+                )
                 startPlaybackServiceIfNeeded(playWhenReady && viewModel.player?.isPlaying == true)
             }
 
@@ -1200,18 +1204,29 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacks(updateRunnable)
     }
 
-    private fun updatePlayPauseIcon(isPlaying: Boolean) {
-        val icon = PlayerControlState.playPauseIcon(isPlaying)
+    private fun updatePlayPauseIcon(isPlaying: Boolean, playWhenReady: Boolean) {
+        val icon = PlayerPlayPausePolicy.iconFor(
+            isPlaying = isPlaying,
+            playWhenReady = playWhenReady
+        )
         btnPlay.setImageResource(icon)
     }
 
     private fun togglePlayPauseAndSyncIcon() {
+        val decision = PlayerPlayPausePolicy.toggleDecision(
+            isPlaying = viewModel.player?.isPlaying == true,
+            playWhenReady = viewModel.player?.playWhenReady == true
+        )
         viewModel.togglePlayPause()
-        syncPlayPauseIcon()
+        btnPlay.setImageResource(decision.iconRes)
     }
 
     private fun syncPlayPauseIcon() {
-        updatePlayPauseIcon(viewModel.player?.playWhenReady == true || viewModel.player?.isPlaying == true)
+        val icon = PlayerPlayPausePolicy.iconFor(
+            isPlaying = viewModel.player?.isPlaying == true,
+            playWhenReady = viewModel.player?.playWhenReady == true
+        )
+        btnPlay.setImageResource(icon)
     }
 
     private fun saveProgressPeriodically(positionMs: Long) {
@@ -1374,6 +1389,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun finishPlayer() {
         val decision = PlayerExitPolicy.requestFinish(exitState)
+        val presentation = PlayerExitPolicy.finishPresentation()
         exitState = decision.nextState
         if (!decision.shouldFinish) return
         preparePlayerExitFrame()
@@ -1381,16 +1397,26 @@ class PlayerActivity : AppCompatActivity() {
         suppressExitTransition()
         handler.postDelayed({
             releasePlayerAfterExit()
-        }, PLAYER_EXIT_RELEASE_DELAY_MS)
+        }, presentation.releaseDelayMs)
     }
 
     private fun suppressExitTransition() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
-        } else {
-            @Suppress("DEPRECATION")
-            overridePendingTransition(0, 0)
+        when {
+            PlayerExitPolicy.transitionStrategyFor(Build.VERSION.SDK_INT) ==
+                PlayerExitTransitionStrategy.OVERRIDE_ACTIVITY_TRANSITION &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+                overrideCloseTransitionCompat()
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+            }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun overrideCloseTransitionCompat() {
+        overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
     }
 
     private fun preparePlayerExitFrame() {
@@ -1469,6 +1495,7 @@ class PlayerActivity : AppCompatActivity() {
         isActivityForeground = true
         val decision = PlayerLifecyclePolicy.onResume()
         if (decision.stopPlaybackService) stopPlaybackService()
+        applyDisplaySettings()
         if (decision.observeState) observeState()
     }
 
@@ -1552,13 +1579,33 @@ class PlayerActivity : AppCompatActivity() {
         return playerView.videoSurfaceView
     }
 
+    @Suppress("DEPRECATION")
     private fun enterPipModeIfSupported() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        val videoSize = viewModel.player?.videoSize
+        val decision = PlayerPipPolicy.enterDecision(
+            sdkInt = Build.VERSION.SDK_INT,
+            supportsPictureInPicture = packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE),
+            isAlreadyInPictureInPicture = isInPipModeCompat(),
+            videoWidth = videoSize?.width ?: 0,
+            videoHeight = videoSize?.height ?: 0,
+            pixelWidthHeightRatio = videoSize?.pixelWidthHeightRatio ?: 1f,
+            unappliedRotationDegrees = videoSize?.unappliedRotationDegrees ?: 0
+        )
+        if (!decision.shouldEnter) return
         runCatching {
-            enterPictureInPictureMode(PictureInPictureParams.Builder().build())
+            enterPictureInPictureMode(
+                PictureInPictureParams.Builder()
+                    .setAspectRatio(
+                        decision.aspectRatio?.toRational() ?: Rational(16, 9)
+                    )
+                    .build()
+            )
         }
     }
+
+    private fun PlayerPipAspectRatio.toRational(): Rational =
+        Rational(numerator, denominator)
 
     private fun startPlaybackServiceIfNeeded(isPlaying: Boolean) {
         val decision = PlayerBackgroundServicePolicy.startDecision(
@@ -1616,6 +1663,5 @@ class PlayerActivity : AppCompatActivity() {
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"
-        private const val PLAYER_EXIT_RELEASE_DELAY_MS = 250L
     }
 }

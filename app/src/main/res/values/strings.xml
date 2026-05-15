@@ -229,6 +229,7 @@
     <string name="player_settings_info_source">Source</string>
     <string name="player_settings_info_date">Date</string>
     <string name="player_settings_info_container">Format</string>
+    <string name="player_settings_info_loading">Loading…</string>
     <string name="player_settings_info_bitrate">Bitrate</string>
     <string name="player_settings_info_stream">Stream #%1$d</string>
     <string name="player_settings_info_codec">Codec</string>

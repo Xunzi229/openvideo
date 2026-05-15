@@ -57,6 +57,7 @@ class PlayerLockPauseSourceTest {
         assertTrue(onResume.contains("PlayerLifecyclePolicy.onResume()"))
         assertTrue(onResume.contains("if (decision.stopPlaybackService) stopPlaybackService()"))
         assertTrue(onResume.contains("if (decision.observeState) observeState()"))
+        assertTrue(onResume.contains("applyDisplaySettings()"))
 
         assertTrue(onPause.contains("PlayerLifecyclePolicy.onPause("))
         assertTrue(onPause.contains("if (decision.saveHistory) viewModel.saveHistory()"))

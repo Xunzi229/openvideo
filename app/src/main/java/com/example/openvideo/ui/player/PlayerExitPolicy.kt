@@ -15,7 +15,18 @@ data class PlayerReleaseDecision(
     val nextState: PlayerExitState
 )
 
+enum class PlayerExitTransitionStrategy {
+    OVERRIDE_ACTIVITY_TRANSITION,
+    OVERRIDE_PENDING_TRANSITION
+}
+
+data class PlayerExitPresentation(
+    val releaseDelayMs: Long
+)
+
 object PlayerExitPolicy {
+    private const val PLAYER_EXIT_RELEASE_DELAY_MS = 250L
+
     fun requestFinish(state: PlayerExitState): PlayerFinishDecision {
         if (state.isFinishing) {
             return PlayerFinishDecision(shouldFinish = false, nextState = state)
@@ -35,4 +46,14 @@ object PlayerExitPolicy {
             nextState = state.copy(hasReleased = true)
         )
     }
+
+    fun finishPresentation(): PlayerExitPresentation =
+        PlayerExitPresentation(releaseDelayMs = PLAYER_EXIT_RELEASE_DELAY_MS)
+
+    fun transitionStrategyFor(sdkInt: Int): PlayerExitTransitionStrategy =
+        if (sdkInt >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            PlayerExitTransitionStrategy.OVERRIDE_ACTIVITY_TRANSITION
+        } else {
+            PlayerExitTransitionStrategy.OVERRIDE_PENDING_TRANSITION
+        }
 }

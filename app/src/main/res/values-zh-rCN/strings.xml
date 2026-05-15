@@ -229,6 +229,7 @@
     <string name="player_settings_info_source">视频来源</string>
     <string name="player_settings_info_date">日期</string>
     <string name="player_settings_info_container">格式</string>
+    <string name="player_settings_info_loading">加载中…</string>
     <string name="player_settings_info_bitrate">比特率</string>
     <string name="player_settings_info_stream">串流 #%1$d</string>
     <string name="player_settings_info_codec">编解码器</string>

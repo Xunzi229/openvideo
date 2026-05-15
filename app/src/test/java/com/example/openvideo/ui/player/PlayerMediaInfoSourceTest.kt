@@ -13,6 +13,7 @@ class PlayerMediaInfoSourceTest {
         val dialogSource = String(Files.readAllBytes(sourceFile("PlayerSettingsDialog.kt")))
         val mediaInfoSource = String(Files.readAllBytes(sourceFile("PlayerMediaInfo.kt")))
 
+        assertTrue(dialogSource.contains("loadMediaInfoAsync()"))
         assertTrue(dialogSource.contains("PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())"))
         assertTrue(dialogSource.contains("mediaInfoRows("))
         assertTrue(mediaInfoSource.contains("player_settings_info_audio_compatibility"))
@@ -54,12 +55,26 @@ class PlayerMediaInfoSourceTest {
             .substringAfter("private fun videoResolutionLabel(")
             .substringBefore("\n    private fun copyVideoInfoToClipboard()")
 
-        assertTrue(infoRows.contains("val mediaInfo = PlayerMediaInfoReader.read"))
+        assertTrue(infoRows.contains("val mediaInfo = cachedMediaInfo"))
         assertTrue(infoRows.contains("videoResolutionLabel(mediaInfo)"))
         assertTrue(resolutionLabel.contains("mediaInfo?.tracks"))
         assertTrue(resolutionLabel.contains("PlayerMediaTrack.Type.VIDEO"))
         assertTrue(resolutionLabel.contains("track.width"))
         assertTrue(resolutionLabel.contains("track.height"))
+    }
+
+    @Test
+    fun infoPageLoadsHeavyMediaParsingOffMainThreadAndCachesResults() {
+        val dialogSource = String(Files.readAllBytes(sourceFile("PlayerSettingsDialog.kt")))
+        val loadBlock = dialogSource
+            .substringAfter("private fun loadMediaInfoAsync() {")
+            .substringBefore("\n    private fun audioDiagnosticRows")
+
+        assertTrue(dialogSource.contains("private var cachedMediaInfo: PlayerMediaInfo? = null"))
+        assertTrue(dialogSource.contains("private var cachedMediaInfoSource: String? = null"))
+        assertTrue(loadBlock.contains("Dispatchers.IO"))
+        assertTrue(loadBlock.contains("cachedMediaInfo = mediaInfo"))
+        assertTrue(loadBlock.contains("cachedMediaInfoSource = source"))
     }
 
     private fun sourceFile(fileName: String): Path {

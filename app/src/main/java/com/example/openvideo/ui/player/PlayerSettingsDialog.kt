@@ -43,6 +43,12 @@ import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.switchmaterial.SwitchMaterial
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.ArrayDeque
 import java.util.Locale
 import kotlin.math.round
@@ -130,6 +136,10 @@ class PlayerSettingsDialog(
     private lateinit var subdetailTitle: TextView
     private lateinit var subdetailContainer: LinearLayout
     private lateinit var settingsPanelRoot: View
+    private val dialogScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var cachedMediaInfo: PlayerMediaInfo? = null
+    private var cachedMediaInfoSource: String? = null
+    private var isMediaInfoLoading = false
 
     private data class DetailBackState(val page: SettingsPage, val title: String)
 
@@ -203,6 +213,11 @@ class PlayerSettingsDialog(
         super.onStart()
         applySettingsSheetOpacity()
         applySheetWindowBackdrop()
+    }
+
+    override fun dismiss() {
+        dialogScope.cancel()
+        super.dismiss()
     }
 
     private fun setupPrimaryGrid() {
@@ -707,6 +722,7 @@ class PlayerSettingsDialog(
     }
 
     private fun buildInfoPage() {
+        loadMediaInfoAsync()
         videoInfoRows().forEach { (label, value) -> addInfoRow(label, value) }
         addActionRow(context.getString(R.string.player_settings_info_copy)) {
             copyVideoInfoToClipboard()
@@ -715,7 +731,7 @@ class PlayerSettingsDialog(
 
     private fun videoInfoRows(): List<Pair<String, String>> {
         val state = viewModel.uiState.value
-        val mediaInfo = PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
+        val mediaInfo = cachedMediaInfo
         val rows = mutableListOf(
             context.getString(R.string.player_settings_info_title) to
                 state.title.ifBlank { context.getString(R.string.app_name) },
@@ -729,6 +745,10 @@ class PlayerSettingsDialog(
         mediaInfo
             ?.mediaInfoRows(context, ::formatTime)
             ?.let { rows += it }
+        if (mediaInfo == null && isMediaInfoLoading) {
+            rows += context.getString(R.string.player_settings_info_container) to
+                context.getString(R.string.player_settings_info_loading)
+        }
         viewModel.selectedAudioTrack()?.let { track ->
             rows += context.getString(R.string.player_settings_info_current_audio_track) to audioTrackLabel(track)
             rows += context.getString(R.string.player_settings_info_audio_decoder) to audioDecoderLabel(track)
@@ -744,6 +764,28 @@ class PlayerSettingsDialog(
             rows += context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration)
         }
         return rows
+    }
+
+    private fun loadMediaInfoAsync() {
+        val source = viewModel.currentVideoSource()
+        if (source.isBlank()) return
+        if (cachedMediaInfoSource == source && (cachedMediaInfo != null || isMediaInfoLoading)) return
+
+        isMediaInfoLoading = true
+        dialogScope.launch {
+            val mediaInfo = withContext(Dispatchers.IO) {
+                PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
+            }
+            cachedMediaInfo = mediaInfo
+            cachedMediaInfoSource = source
+            isMediaInfoLoading = false
+            if (currentRootDetailPage == SettingsPage.INFO &&
+                ::detailPage.isInitialized &&
+                detailPage.visibility == View.VISIBLE
+            ) {
+                rebuildCurrentDetail(SettingsPage.INFO, context.getString(R.string.player_sheet_info))
+            }
+        }
     }
 
     private fun audioDiagnosticRows(diagnostics: PlayerAudioDiagnostics): List<Pair<String, String>> {

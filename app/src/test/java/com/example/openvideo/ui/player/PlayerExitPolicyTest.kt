@@ -46,4 +46,21 @@ class PlayerExitPolicyTest {
         assertTrue(decision.nextState.isFinishing)
         assertTrue(decision.nextState.hasReleased)
     }
+
+    @Test
+    fun finishPresentationKeepsExitReleaseDelayPolicyDriven() {
+        assertEquals(250L, PlayerExitPolicy.finishPresentation().releaseDelayMs)
+    }
+
+    @Test
+    fun transitionStrategyUsesModernApiOnlyOnAndroid14AndAbove() {
+        assertEquals(
+            PlayerExitTransitionStrategy.OVERRIDE_PENDING_TRANSITION,
+            PlayerExitPolicy.transitionStrategyFor(android.os.Build.VERSION_CODES.TIRAMISU)
+        )
+        assertEquals(
+            PlayerExitTransitionStrategy.OVERRIDE_ACTIVITY_TRANSITION,
+            PlayerExitPolicy.transitionStrategyFor(android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+        )
+    }
 }
