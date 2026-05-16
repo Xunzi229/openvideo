@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
@@ -129,8 +130,12 @@ class LocalFolderFragment : Fragment() {
     }
 
     private fun openPlayer(video: VideoItem) {
+        val sameFolderQueue = localVideosSnapshot.filter {
+            VideoFolderGrouper.folderKey(it.path) == VideoFolderGrouper.folderKey(video.path)
+        }
+        val orderedQueue = PlayerEpisodeOrderingPolicy.orderSameFolderQueue(sameFolderQueue)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(localVideosSnapshot.ifEmpty { listOf(video) })
+            putSessionQueue(orderedQueue.ifEmpty { listOf(video) })
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)

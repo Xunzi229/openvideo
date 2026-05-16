@@ -29,7 +29,9 @@ class LocalContinuePlaybackSourceTest {
         assertTrue(source.contains("continuePlaybackFab.visibility = if (video == null) View.GONE else View.VISIBLE"))
         assertTrue(source.contains("continuePlaybackFab.setOnClickListener"))
         assertTrue(source.contains("openPlayer(video)"))
-        assertTrue(source.contains("putSessionQueue(localVideosSnapshot.ifEmpty { listOf(video) })"))
+        assertTrue(source.contains("VideoFolderGrouper.folderKey(it.path) == VideoFolderGrouper.folderKey(video.path)"))
+        assertTrue(source.contains("PlayerEpisodeOrderingPolicy.orderSameFolderQueue("))
+        assertTrue(source.contains("putSessionQueue(orderedQueue.ifEmpty { listOf(video) })"))
         assertTrue(source.contains("putExtra(PlayerActivity.EXTRA_START_POSITION_MS, continuePlaybackPositionMs)"))
     }
 
