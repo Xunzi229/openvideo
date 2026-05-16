@@ -27,9 +27,15 @@ object PlayerEpisodeOrderingPolicy {
 
     fun shouldOrderQueue(candidates: List<PlayerEpisodeOrderingCandidate>): Boolean {
         if (candidates.size <= 1) return false
-        if (isSameFolder(candidates)) return true
+        // Only reorder when a real episode signal is present; otherwise keep the caller-provided
+        // order so the player queue matches what the user just saw on screen
+        // (folder list / playlist order).
         return hasStrongEpisodeSignal(candidates)
     }
+
+    @Suppress("unused")
+    private fun isSameFolderUnused(candidates: List<PlayerEpisodeOrderingCandidate>): Boolean =
+        isSameFolder(candidates)
 
     fun orderCandidates(candidates: List<PlayerEpisodeOrderingCandidate>): List<PlayerEpisodeOrderingCandidate> =
         orderByEpisode(candidates) { it }

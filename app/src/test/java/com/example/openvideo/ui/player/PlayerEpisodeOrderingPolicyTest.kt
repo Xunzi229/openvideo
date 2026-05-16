@@ -33,13 +33,15 @@ class PlayerEpisodeOrderingPolicyTest {
     }
 
     @Test
-    fun shouldOrderQueueWhenAllVideosShareOneFolder() {
+    fun shouldNotReorderSameFolderWithoutEpisodeSignal() {
+        // Plain folder with no episode-numbered titles must keep the caller-provided order so the
+        // player queue mirrors what the user just saw on screen.
         val candidates = listOf(
             video(id = 1, title = "clip a.mp4", path = "/storage/Movies/Show/a.mp4"),
             video(id = 2, title = "clip b.mp4", path = "/storage/Movies/Show/b.mp4")
         )
 
-        assertTrue(PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))
+        assertEquals(false, PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))
     }
 
     @Test
@@ -47,6 +49,21 @@ class PlayerEpisodeOrderingPolicyTest {
         val candidates = listOf(
             video(id = 1, title = "movie a.mp4", path = "/storage/Movies/a.mp4"),
             video(id = 2, title = "movie b.mp4", path = "/storage/Downloads/b.mp4")
+        )
+
+        assertEquals(false, PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))
+    }
+
+    @Test
+    fun orderCandidatesIsStableWhenNoEpisodeSignalAndCallerKeepsExistingOrder() {
+        // We assert through the candidate-only entry point (which avoids android.net.Uri in JVM
+        // tests). The fragment-side wrappers `orderSameFolderQueue` and `orderQueueIfEligible`
+        // both early-return the caller-provided list when `shouldOrderQueue` is false, which is
+        // covered by `shouldNotReorderSameFolderWithoutEpisodeSignal`.
+        val candidates = listOf(
+            video(id = 30, title = "z.mp4", path = "/storage/Movies/Show/z.mp4"),
+            video(id = 20, title = "a.mp4", path = "/storage/Movies/Show/a.mp4"),
+            video(id = 10, title = "m.mp4", path = "/storage/Movies/Show/m.mp4")
         )
 
         assertEquals(false, PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))

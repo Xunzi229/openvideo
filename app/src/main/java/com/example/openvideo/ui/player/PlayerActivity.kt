@@ -55,6 +55,7 @@ import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlaybackService
 import com.example.openvideo.core.player.PlayerManager
+import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.DoubleTapAction
 import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
@@ -164,6 +165,10 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingSeekTarget: Long? = null
     private var seekGestureAnchorPositionMs: Long? = null
     private var playerListener: Player.Listener? = null
+
+    // 一旦用户手动切过屏幕方向（点击全屏按钮等），本次视频会话内禁止自动方向覆盖，
+    // 防止 onVideoSizeChanged 等回调把用户操作冲掉。切到下一首视频时复位。
+    private var userOverrodeOrientation = false
     private var isLongPressing = false
     private var doubleTapSeekState: DoubleTapSeekState? = null
     private var doubleTapSeekAnchorPositionMs: Long? = null
@@ -446,6 +451,7 @@ class PlayerActivity : AppCompatActivity() {
             playingVideoId = viewModel.playingVideoId,
             onPick = { item ->
                 showFirstFrameScrim()
+                preApplyOrientationForItem(item)
                 viewModel.switchToVideo(item) {
                     resetPlaybackSessionForNewVideo()
                     currentVideoUriString = item.uri.toString()
@@ -488,6 +494,32 @@ class PlayerActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun showAspectRatioQuickDialog() {
+        val ratios = listOf(
+            AspectRatio.FIT to R.string.player_sheet_fit_screen,
+            AspectRatio.FILL to R.string.player_sheet_fill_screen,
+            AspectRatio.RATIO_16_9 to R.string.settings_ratio_16_9,
+            AspectRatio.RATIO_4_3 to R.string.settings_ratio_4_3,
+            AspectRatio.CROP to R.string.settings_ratio_crop,
+            AspectRatio.STRETCH to R.string.settings_ratio_stretch
+        )
+        val labels = ratios.map { getString(it.second) }.toTypedArray()
+        val checked = ratios.indexOfFirst { it.first == playerPrefs.aspectRatio }
+            .takeIf { it >= 0 } ?: 0
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.player_sheet_aspect_ratio)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                val ratio = ratios[which].first
+                playerPrefs.aspectRatio = ratio
+                viewModel.setAspectRatio(ratio)
+                applyDisplaySettings()
+                dialog.dismiss()
+                scheduleHideControls()
+            }
+            .show()
+            .applyPlayerSheetStyle()
+    }
+
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
         val labels = speeds.map { s -> "${s}x" }.toTypedArray()
@@ -504,6 +536,24 @@ class PlayerActivity : AppCompatActivity() {
                 scheduleHideControls()
             }
             .show()
+            .applyPlayerSheetStyle()
+    }
+
+    /**
+     * 让快速选择型 AlertDialog 继承「播放器设置」面板的不透明度与背景暗化 / 模糊，
+     * 与 [PlayerSettingsDialog] 视觉一致。必须在 `dialog.show()` 之后调用。
+     */
+    private fun androidx.appcompat.app.AlertDialog.applyPlayerSheetStyle() {
+        val w = window ?: return
+        val opacity = playerPrefs.settingsPanelOpacity.coerceIn(0, 100) / 100f
+        w.decorView.alpha = opacity
+        w.setDimAmount(playerPrefs.settingsSheetBackdropDimPercent.coerceIn(0, 100) / 100f)
+        w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val blurDp = playerPrefs.settingsSheetBackdropBlurDp.coerceIn(0, 64)
+            val density = resources.displayMetrics.density
+            w.setBackgroundBlurRadius(if (blurDp > 0) (blurDp * density).toInt() else 0)
+        }
     }
 
     private fun showAudioTrackQuickDialog() {
@@ -627,6 +677,7 @@ class PlayerActivity : AppCompatActivity() {
             .setOnDismissListener { scheduleHideControls() }
             .create()
         dialog.show()
+        dialog.applyPlayerSheetStyle()
     }
 
     private fun quickAudioTrackLabel(track: com.example.openvideo.core.player.PlayerAudioTrackInfo): String {
@@ -673,7 +724,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btn_land_aspect)?.setOnClickListener {
-            openPlayerSettingsDialog()
+            showAspectRatioQuickDialog()
         }
 
         findViewById<View>(R.id.btn_land_pip_float)?.setOnClickListener {
@@ -725,6 +776,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         btnFullscreen.setOnClickListener {
+            userOverrodeOrientation = true
             requestedOrientation = if (resources.configuration.orientation == 1) {
                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
             } else {
@@ -947,6 +999,7 @@ class PlayerActivity : AppCompatActivity() {
 
         isSwitchingQueueAfterEnded = true
         showFirstFrameScrim()
+        preApplyOrientationForItem(queue[nextIndex])
         viewModel.switchToVideo(queue[nextIndex]) {
             isSwitchingQueueAfterEnded = false
             resetPlaybackSessionForNewVideo()
@@ -1517,12 +1570,24 @@ class PlayerActivity : AppCompatActivity() {
         unappliedRotationDegrees: Int = 0
     ) {
         if (!playerPrefs.autoOrientationByVideo) return
+        if (userOverrodeOrientation) return
+        if (width <= 0 || height <= 0) return
         requestedOrientation = PlayerVideoLayoutPolicy.orientationForVideo(
             width = width,
             height = height,
             pixelWidthHeightRatio = pixelWidthHeightRatio,
             unappliedRotationDegrees = unappliedRotationDegrees
         )
+    }
+
+    /**
+     * 切换视频前，用 MediaStore 已记录的宽高预设方向，避免「先横屏→再竖屏」过渡。
+     * ExoPlayer 解码完成后 `onVideoSizeChanged` 会用精确尺寸再次校正。
+     * 新视频开始播放时复位用户手动方向标志，让自动方向重新生效。
+     */
+    private fun preApplyOrientationForItem(item: VideoItem) {
+        userOverrodeOrientation = false
+        applyVideoOrientation(width = item.width, height = item.height)
     }
 
     private fun toggleScreenLock() {
