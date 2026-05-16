@@ -10,25 +10,30 @@ import java.nio.file.Paths
 class HomeRecentSourceTest {
 
     @Test
-    fun recentCategoryDefaultsToLatestPlaybackButStillUsesSortControls() {
+    fun recentCategoryUsesFixedLatestPlaybackOrderWithoutGlobalSortControls() {
         val source = String(Files.readAllBytes(homeViewModelSource()))
-        val setCategoryBody = source
-            .substringAfter("fun setCategory(category: HomeCategory) {")
-            .substringBefore("\n    }")
-        val videosCombineBody = source
-            .substringAfter("val videos: StateFlow<List<VideoItem>> = combine(")
-            .substringBefore(".stateIn")
+        val recentVideosBody = source
+            .substringAfter("val recentVideos: StateFlow<List<VideoItem>> = ")
+            .substringBefore("\n\n")
 
-        assertTrue(
-            "Recent category should only switch the active page and must not mutate global sort state",
-            setCategoryBody.contains("_category.value = category")
-        )
-        assertFalse(setCategoryBody.contains("_sortField.value = SortField.DATE"))
-        assertFalse(setCategoryBody.contains("_sortAsc.value = false"))
-        assertFalse(
-            "Recent playback should still flow through normal sorting so asc/desc and sort-field controls work",
-            videosCombineBody.contains("return@combine filtered")
-        )
+        assertTrue(recentVideosBody.contains("filteredRecentVideos(recentCategoryVideos)"))
+        assertFalse(recentVideosBody.contains("filteredSortedVideos(recentCategoryVideos)"))
+    }
+
+    @Test
+    fun filteredRecentVideosDoesNotDependOnSortFieldOrSortOrder() {
+        val source = String(Files.readAllBytes(homeViewModelSource()))
+        val methodBody = source
+            .substringAfter("private fun filteredRecentVideos(source: Flow<List<VideoItem>>): StateFlow<List<VideoItem>> = combine(")
+            .substringBefore("}.stateIn")
+
+        assertFalse(methodBody.contains("_sortField"))
+        assertFalse(methodBody.contains("_sortAsc"))
+        assertFalse(methodBody.contains("SortField.NAME"))
+        assertFalse(methodBody.contains("SortField.SIZE"))
+        assertFalse(methodBody.contains("SortField.DURATION"))
+        assertFalse(methodBody.contains("SortField.DATE"))
+        assertTrue(methodBody.contains("if (query.isBlank()) folderFiltered"))
     }
 
     private fun homeViewModelSource(): Path {

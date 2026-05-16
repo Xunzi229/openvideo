@@ -49,6 +49,7 @@ class HomeFragment : Fragment() {
     private val recyclerViews = mutableMapOf<HomeCategory, RecyclerView>()
     private lateinit var emptyView: TextView
     private lateinit var searchView: EditText
+    private lateinit var sortRow: View
     private lateinit var sortLabel: TextView
     private lateinit var btnSortOrder: ImageButton
     private lateinit var btnList: ImageButton
@@ -100,6 +101,7 @@ class HomeFragment : Fragment() {
         searchView = view.findViewById(R.id.search_view)
         searchView.visibility = View.VISIBLE
 
+        sortRow = view.findViewById(R.id.sort_row)
         sortLabel = view.findViewById(R.id.tv_sort_label)
         sortLabel.setOnClickListener { changeSortFieldAndScrollToTop() }
         btnSortOrder = view.findViewById(R.id.btn_sort_order)
@@ -171,6 +173,11 @@ class HomeFragment : Fragment() {
                     }
                 }
                 launch {
+                    viewModel.recentContinueWatchingBadges.collect { badges ->
+                        adapters.getValue(HomeCategory.RECENT).continueWatchingBadges = badges
+                    }
+                }
+                launch {
                     viewModel.favoriteVideos.collect { list ->
                         submitCategoryList(HomeCategory.FAVORITES, list)
                     }
@@ -186,24 +193,17 @@ class HomeFragment : Fragment() {
                     }
                 }
                 launch {
-                    viewModel.viewMode.collect { mode ->
-                        adapters.values.forEach { adapter -> adapter.viewMode = mode }
-                        recyclerViews.values.forEach { recyclerView ->
-                            val spanCount = if (mode == ViewMode.GRID) 2 else 1
-                            val lm = recyclerView.layoutManager
-                            if (lm is GridLayoutManager) {
-                                lm.spanCount = spanCount
-                            } else {
-                                recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
-                            }
-                        }
-                        updateViewModeButtons(mode)
+                    viewModel.categoryViewModes.collect { modes ->
+                        applyCategoryViewModes(modes)
+                        updateViewModeButtons(modes[activeCategory] ?: ViewMode.LIST)
                     }
                 }
                 launch {
                     viewModel.category.collect { category ->
                         activeCategory = category
                         updateCategoryChips(category)
+                        updateSortControlsVisibility(category)
+                        updateViewModeButtons(viewModel.categoryViewModes.value[category] ?: ViewMode.LIST)
                         showCategoryPage(category)
                         updateActiveEmptyState()
                     }
@@ -285,6 +285,31 @@ class HomeFragment : Fragment() {
     private fun showCategoryPage(category: HomeCategory) {
         recyclerViews.forEach { (pageCategory, recyclerView) ->
             recyclerView.visibility = if (pageCategory == category) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun updateSortControlsVisibility(category: HomeCategory) {
+        val hideSortControls = category == HomeCategory.RECENT
+        sortRow.visibility = View.VISIBLE
+        sortLabel.visibility = if (hideSortControls) View.GONE else View.VISIBLE
+        btnSortOrder.visibility = if (hideSortControls) View.GONE else View.VISIBLE
+    }
+
+    private fun applyCategoryViewModes(modes: Map<HomeCategory, ViewMode>) {
+        HomeCategory.entries.forEach { category ->
+            applyViewMode(category, modes[category] ?: ViewMode.LIST)
+        }
+    }
+
+    private fun applyViewMode(category: HomeCategory, mode: ViewMode) {
+        adapters[category]?.viewMode = mode
+        val recyclerView = recyclerViews[category] ?: return
+        val spanCount = if (mode == ViewMode.GRID) 2 else 1
+        val layoutManager = recyclerView.layoutManager
+        if (layoutManager is GridLayoutManager) {
+            layoutManager.spanCount = spanCount
+        } else {
+            recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
         }
     }
 

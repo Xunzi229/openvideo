@@ -5,7 +5,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [HistoryEntity::class, FavoriteEntity::class, PlaylistEntity::class, PlaylistVideoEntity::class],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class VideoDatabase : RoomDatabase() {

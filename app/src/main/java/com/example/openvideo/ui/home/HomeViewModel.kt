@@ -14,6 +14,7 @@ import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.ui.local.VideoFolderGrouper
 import com.example.openvideo.ui.local.VideoFolderSummary
+import com.example.openvideo.ui.history.HistoryContinueWatchingPolicy
 import com.example.openvideo.ui.playlist.PlaylistEditor
 import android.net.Uri
 import com.example.openvideo.ui.privacy.PrivacyManager
@@ -56,13 +57,16 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private val _sortField = MutableStateFlow(sortFieldFromPrefs(appPrefs.sortField))
     private val _sortAsc = MutableStateFlow(appPrefs.sortAsc)
-    private val _viewMode = MutableStateFlow(viewModeFromPrefs(appPrefs.viewMode))
+    private val _categoryViewModes = MutableStateFlow(loadCategoryViewModes())
     private val _category = MutableStateFlow(HomeCategory.ALL)
     private val _selectedFolderKey = MutableStateFlow<String?>(null)
 
     val sortField: StateFlow<SortField> = _sortField
     val sortAsc: StateFlow<Boolean> = _sortAsc
-    val viewMode: StateFlow<ViewMode> = _viewMode
+    val categoryViewModes: StateFlow<Map<HomeCategory, ViewMode>> = _categoryViewModes
+    val viewMode: StateFlow<ViewMode> = combine(_category, _categoryViewModes) { category, modes ->
+        modes[category] ?: ViewMode.LIST
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ViewMode.LIST)
     val category: StateFlow<HomeCategory> = _category
     val selectedFolderKey: StateFlow<String?> = _selectedFolderKey
     val playlists: Flow<List<PlaylistEntity>> = playlistDao.getAll()
@@ -95,8 +99,23 @@ class HomeViewModel @Inject constructor(
     }
 
     val allVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(allCategoryVideos)
-    val recentVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(recentCategoryVideos)
+    val recentVideos: StateFlow<List<VideoItem>> = filteredRecentVideos(recentCategoryVideos)
     val favoriteVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(favoriteCategoryVideos)
+    val recentContinueWatchingBadges: StateFlow<Map<Long, ContinueWatchingBadge>> = repository.getHistory()
+        .map { history ->
+            HistoryContinueWatchingPolicy.buildItems(
+                history = history,
+                nowMs = System.currentTimeMillis(),
+                localFileExists = { candidatePath -> File(candidatePath).exists() }
+            ).associate { item ->
+                item.entity.videoId to ContinueWatchingBadge(
+                    watchedTimeLabel = item.watchedTimeLabel,
+                    progressLabel = item.progressLabel,
+                    isAvailable = item.isAvailable
+                )
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val videos: StateFlow<List<VideoItem>> = combine(
         allVideos, recentVideos, favoriteVideos, _category
@@ -125,6 +144,18 @@ class HomeViewModel @Inject constructor(
             SortField.DATE -> if (asc) filtered.sortedBy { it.dateAdded } else filtered.sortedByDescending { it.dateAdded }
         }
         sorted
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private fun filteredRecentVideos(source: Flow<List<VideoItem>>): StateFlow<List<VideoItem>> = combine(
+        source, _selectedFolderKey, _searchQuery
+    ) { list, selectedFolderKey, query ->
+        val folderFiltered = MediaLibraryPolicy.visibleVideos(
+            videos = list,
+            hiddenFolders = emptyList(),
+            folderKey = selectedFolderKey
+        )
+        if (query.isBlank()) folderFiltered
+        else folderFiltered.filter { it.title.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _isLoading = MutableStateFlow(false)
@@ -165,8 +196,9 @@ class HomeViewModel @Inject constructor(
     }
 
     fun setViewMode(mode: ViewMode) {
-        _viewMode.value = mode
-        appPrefs.viewMode = mode.name.lowercase()
+        val currentCategory = _category.value
+        _categoryViewModes.value = _categoryViewModes.value + (currentCategory to mode)
+        saveViewModeForCategory(currentCategory, mode)
     }
 
     fun setCategory(category: HomeCategory) {
@@ -190,6 +222,23 @@ class HomeViewModel @Inject constructor(
         return when (key) {
             "grid" -> ViewMode.GRID
             else -> ViewMode.LIST
+        }
+    }
+
+    private fun loadCategoryViewModes(): Map<HomeCategory, ViewMode> {
+        return mapOf(
+            HomeCategory.ALL to viewModeFromPrefs(appPrefs.homeAllViewMode),
+            HomeCategory.RECENT to viewModeFromPrefs(appPrefs.homeRecentViewMode),
+            HomeCategory.FAVORITES to viewModeFromPrefs(appPrefs.homeFavoriteViewMode)
+        )
+    }
+
+    private fun saveViewModeForCategory(category: HomeCategory, mode: ViewMode) {
+        val key = mode.name.lowercase()
+        when (category) {
+            HomeCategory.ALL -> appPrefs.homeAllViewMode = key
+            HomeCategory.RECENT -> appPrefs.homeRecentViewMode = key
+            HomeCategory.FAVORITES -> appPrefs.homeFavoriteViewMode = key
         }
     }
 

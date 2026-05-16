@@ -70,6 +70,79 @@ class PlayerHistorySourceTest {
             "saveHistory should prefer stored videoPath over uri.toString()",
             source.contains("path = videoPath.ifBlank { uri.toString() }")
         )
+        assertTrue(
+            "Per-video playback memory should persist the current playback speed.",
+            source.contains("speed = playerPrefs.speed")
+        )
+        assertTrue(
+            "Per-video playback memory should persist the current aspect ratio key.",
+            source.contains("aspectRatioKey = playerPrefs.aspectRatio.key")
+        )
+        assertTrue(
+            "Per-video playback memory should persist the current external subtitle URI.",
+            source.contains("externalSubtitleUri = playerPrefs.externalSubtitleUri")
+        )
+        assertTrue(
+            "Per-video playback memory should persist subtitle enabled state.",
+            source.contains("subtitlesEnabled = playerPrefs.subtitlesEnabled")
+        )
+        assertTrue(
+            "Per-video playback memory should persist audio mute state.",
+            source.contains("audioMuted = playerPrefs.audioMuted")
+        )
+        assertTrue(
+            "Per-video playback memory should persist the currently selected audio track group index.",
+            source.contains("audioTrackGroupIndex = selectedAudioTrack?.groupIndex ?: -1")
+        )
+        assertTrue(
+            "Per-video playback memory should persist the currently selected audio track index.",
+            source.contains("audioTrackIndex = selectedAudioTrack?.trackIndex ?: -1")
+        )
+    }
+
+    @Test
+    fun activityRestoresPerVideoPlaybackMemoryAlongsideResumePosition() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerActivity.kt")))
+        val onCreate = source.substringAfter("override fun onCreate(savedInstanceState: Bundle?) {")
+            .substringBefore("\n    private fun applyPlayerSettings()")
+
+        assertTrue(onCreate.contains("viewModel.restorePlaybackPreferences(id)"))
+        assertTrue(onCreate.contains("viewModel.restorePosition(id, explicitStartPositionMs)"))
+    }
+
+    @Test
+    fun viewModelAppliesStoredSpeedAndAspectRatioFromHistory() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerViewModel.kt")))
+
+        assertTrue(source.contains("fun restorePlaybackPreferences(videoId: Long)"))
+        assertTrue(source.contains("playerPrefs.speed = history.speed"))
+        assertTrue(source.contains("playerPrefs.aspectRatio = AspectRatio.fromKey(history.aspectRatioKey)"))
+        assertTrue(source.contains("playerPrefs.externalSubtitleUri = history.externalSubtitleUri"))
+        assertTrue(source.contains("playerPrefs.subtitlesEnabled = history.subtitlesEnabled"))
+        assertTrue(source.contains("playerPrefs.audioMuted = history.audioMuted"))
+        assertTrue(source.contains("pendingAudioSelection = PendingAudioSelection("))
+        assertTrue(source.contains("_uiState.value = _uiState.value.copy("))
+    }
+
+    @Test
+    fun activityWaitsForPlaybackMemoryRestoreBeforeApplyingDisplayAndSubtitleState() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerActivity.kt")))
+        val onCreate = source.substringAfter("override fun onCreate(savedInstanceState: Bundle?) {")
+            .substringBefore("\n    private fun applyPlayerSettings()")
+
+        assertTrue(onCreate.contains("viewModel.restorePlaybackPreferences(id) {"))
+        assertTrue(onCreate.contains("applyPlayerSettings()"))
+        assertTrue(onCreate.contains("loadSubtitlesAsync("))
+        assertTrue(onCreate.contains("playerPrefs.externalSubtitleUri.ifBlank { uriString }"))
+    }
+
+    @Test
+    fun playerReadyAppliesPendingPerVideoAudioSelection() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerViewModel.kt")))
+        val readyBlock = source.substringAfter("if (playbackState == androidx.media3.common.Player.STATE_READY) {")
+            .substringBefore("\n                }")
+
+        assertTrue(readyBlock.contains("applyPendingAudioSelection()"))
     }
 
     @Test

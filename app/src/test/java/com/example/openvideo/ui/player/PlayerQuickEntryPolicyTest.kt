@@ -87,6 +87,7 @@ class PlayerQuickEntryPolicyTest {
             subtitleDelayMs = 500
         )
 
+        assertTrue(state.items.any { it.action == PlayerQuickEntryAction.SubtitleDelayStatus(500) && !it.enabled })
         assertTrue(state.items.any { it.action == PlayerQuickEntryAction.AdjustSubtitleDelay(-500) })
         assertTrue(state.items.any { it.action == PlayerQuickEntryAction.AdjustSubtitleDelay(500) })
         assertTrue(state.items.any { it.action == PlayerQuickEntryAction.ResetSubtitleDelay && it.selected })

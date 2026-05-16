@@ -32,6 +32,18 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getString(KEY_VIEW_MODE, "list")
         set(value) = putString(KEY_VIEW_MODE, value)
 
+    var homeAllViewMode: String
+        get() = getString(KEY_HOME_ALL_VIEW_MODE, viewMode)
+        set(value) = putString(KEY_HOME_ALL_VIEW_MODE, value)
+
+    var homeRecentViewMode: String
+        get() = getString(KEY_HOME_RECENT_VIEW_MODE, viewMode)
+        set(value) = putString(KEY_HOME_RECENT_VIEW_MODE, value)
+
+    var homeFavoriteViewMode: String
+        get() = getString(KEY_HOME_FAVORITE_VIEW_MODE, viewMode)
+        set(value) = putString(KEY_HOME_FAVORITE_VIEW_MODE, value)
+
     var sortField: String
         get() = getString(KEY_SORT_FIELD, "date")
         set(value) = putString(KEY_SORT_FIELD, value)
@@ -75,6 +87,9 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_DEFAULT_SPEED = "default_speed"
         private const val KEY_BRIGHTNESS = "brightness"
         private const val KEY_VIEW_MODE = "view_mode"
+        private const val KEY_HOME_ALL_VIEW_MODE = "home_all_view_mode"
+        private const val KEY_HOME_RECENT_VIEW_MODE = "home_recent_view_mode"
+        private const val KEY_HOME_FAVORITE_VIEW_MODE = "home_favorite_view_mode"
         private const val KEY_SORT_FIELD = "sort_field"
         private const val KEY_SORT_ASC = "sort_asc"
         private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"

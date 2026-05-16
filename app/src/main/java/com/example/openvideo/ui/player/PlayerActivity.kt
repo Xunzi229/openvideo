@@ -236,15 +236,16 @@ class PlayerActivity : AppCompatActivity() {
         refreshSessionListButtonVisibility()
         startupTrace.record("player_view_attached")
         tvTitle.text = title
-        applyPlayerSettings()
         updateLandResolutionBadge()
-
-        loadSubtitlesAsync(uriString, videoPath)
 
         // remember current video info for external subtitle callback
         currentVideoUriString = uriString
         currentVideoPath = videoPath
         val explicitStartPositionMs = intent.getLongExtra(EXTRA_START_POSITION_MS, 0L)
+        viewModel.restorePlaybackPreferences(id) {
+            applyPlayerSettings()
+            loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { uriString }, videoPath)
+        }
 
         // register prefs listener to auto-load external subtitle when set by the settings sheet
         settingsPrefs = getSharedPreferences("player_settings", Context.MODE_PRIVATE)
@@ -449,7 +450,7 @@ class PlayerActivity : AppCompatActivity() {
                     currentVideoUriString = item.uri.toString()
                     currentVideoPath = item.path
                     tvTitle.text = item.title
-                    loadSubtitlesAsync(item.uri.toString(), item.path)
+                    loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() }, item.path)
                     applyPlayerSettings()
                     scheduleHideControls()
                 }
@@ -547,6 +548,8 @@ class PlayerActivity : AppCompatActivity() {
             when (val action = item.action) {
                 is PlayerQuickEntryAction.SetSubtitlesEnabled ->
                     item.copy(label = getString(if (action.enabled) R.string.player_sheet_enable else R.string.settings_subtitle_track_off))
+                is PlayerQuickEntryAction.SubtitleDelayStatus ->
+                    item.copy(label = getString(R.string.player_settings_unit_ms, action.delayMs))
                 is PlayerQuickEntryAction.AdjustSubtitleDelay ->
                     item.copy(
                         label = getString(
@@ -924,7 +927,10 @@ class PlayerActivity : AppCompatActivity() {
             currentVideoUriString = queue[nextIndex].uri.toString()
             currentVideoPath = queue[nextIndex].path
             tvTitle.text = queue[nextIndex].title
-            loadSubtitlesAsync(queue[nextIndex].uri.toString(), queue[nextIndex].path)
+            loadSubtitlesAsync(
+                playerPrefs.externalSubtitleUri.ifBlank { queue[nextIndex].uri.toString() },
+                queue[nextIndex].path
+            )
             applyPlayerSettings()
             scheduleHideControls()
         }

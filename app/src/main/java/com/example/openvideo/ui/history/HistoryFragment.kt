@@ -42,6 +42,7 @@ class HistoryFragment : Fragment() {
         view.findViewById<View>(R.id.tab_layout)?.visibility = View.GONE
         view.findViewById<View>(R.id.category_scroll)?.visibility = View.GONE
         view.findViewById<View>(R.id.filter_scroll)?.visibility = View.GONE
+        view.findViewById<View>(R.id.sort_row)?.visibility = View.GONE
         view.findViewById<View>(R.id.btn_refresh)?.visibility = View.GONE
 
         val recyclerView = view.findViewById<RecyclerView>(R.id.recycler_videos)
@@ -117,9 +118,17 @@ private class HistoryAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         holder.title.text = item.entity.title
-        holder.duration.text = ""
+        holder.duration.text = formatDuration(item.entity.duration)
         holder.resolution.text = item.watchedTimeLabel
         holder.size.text = item.progressLabel
         holder.itemView.alpha = if (item.isAvailable) 1f else 0.6f
+    }
+
+    private fun formatDuration(ms: Long): String {
+        val totalSec = ms / 1000
+        val h = totalSec / 3600
+        val m = (totalSec % 3600) / 60
+        val s = totalSec % 60
+        return String.format("%02d:%02d:%02d", h, m, s)
     }
 }

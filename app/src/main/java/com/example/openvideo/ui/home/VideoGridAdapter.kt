@@ -35,6 +35,14 @@ class VideoGridAdapter(
             }
         }
 
+    var continueWatchingBadges: Map<Long, ContinueWatchingBadge> = emptyMap()
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
+
     private val selectedItems = mutableSetOf<Long>()
     var isMultiSelectMode = false
         private set
@@ -65,7 +73,11 @@ class VideoGridAdapter(
                     if (isMultiSelectMode) {
                         toggleSelection(getItem(pos))
                     } else {
-                        onClick(getItem(pos))
+                        val item = getItem(pos)
+                        val continueWatchingBadge = continueWatchingBadges[item.id]
+                        if (continueWatchingBadge?.isAvailable != false) {
+                            onClick(item)
+                        }
                     }
                 }
             }
@@ -107,11 +119,16 @@ class VideoGridAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
+        val continueWatchingBadge = continueWatchingBadges[item.id]
 
         holder.title.text = item.title
-        holder.duration.text = formatDuration(item.duration)
-        holder.size?.text = formatSize(item.size)
-        holder.resolution?.text = "${item.width}x${item.height}"
+        holder.duration.text = if (viewMode == ViewMode.GRID) {
+            continueWatchingBadge?.progressLabel ?: formatDuration(item.duration)
+        } else {
+            formatDuration(item.duration)
+        }
+        holder.size?.text = continueWatchingBadge?.progressLabel ?: formatSize(item.size)
+        holder.resolution?.text = continueWatchingBadge?.watchedTimeLabel ?: "${item.width}x${item.height}"
 
         // Multi-select UI
         val isSelected = selectedItems.contains(item.id)
@@ -120,6 +137,7 @@ class VideoGridAdapter(
         holder.itemView.setBackgroundColor(
             if (isSelected) Color.argb(40, 33, 150, 243) else Color.TRANSPARENT
         )
+        holder.itemView.alpha = if (continueWatchingBadge?.isAvailable == false) 0.6f else 1f
 
         holder.onLoadStarted()
         Glide.with(holder.thumbnail)

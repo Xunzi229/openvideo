@@ -6,6 +6,7 @@ sealed interface PlayerQuickEntryAction {
     data class SelectAudioTrack(val groupIndex: Int, val trackIndex: Int) : PlayerQuickEntryAction
     data object DisableAudio : PlayerQuickEntryAction
     data class SetSubtitlesEnabled(val enabled: Boolean) : PlayerQuickEntryAction
+    data class SubtitleDelayStatus(val delayMs: Int) : PlayerQuickEntryAction
     data class AdjustSubtitleDelay(val deltaMs: Int) : PlayerQuickEntryAction
     data object ResetSubtitleDelay : PlayerQuickEntryAction
     data object PickSubtitleFile : PlayerQuickEntryAction
@@ -81,6 +82,11 @@ object PlayerQuickEntryPolicy {
                 label = "subtitle_off",
                 selected = !subtitlesEnabled,
                 action = PlayerQuickEntryAction.SetSubtitlesEnabled(false)
+            )
+            items += PlayerQuickEntryItem(
+                label = "subtitle_delay_current",
+                enabled = false,
+                action = PlayerQuickEntryAction.SubtitleDelayStatus(subtitleDelayMs)
             )
             items += PlayerQuickEntryItem(
                 label = "subtitle_delay_minus",

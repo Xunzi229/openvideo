@@ -29,7 +29,17 @@ class VideoRepository @Inject constructor(
     // History
     fun getHistory(): Flow<List<HistoryEntity>> = historyDao.getAll()
 
-    suspend fun saveHistory(video: VideoItem, position: Long) {
+    suspend fun saveHistory(
+        video: VideoItem,
+        position: Long,
+        speed: Float,
+        aspectRatioKey: String,
+        externalSubtitleUri: String,
+        subtitlesEnabled: Boolean,
+        audioTrackGroupIndex: Int,
+        audioTrackIndex: Int,
+        audioMuted: Boolean
+    ) {
         historyDao.upsert(
             HistoryEntity(
                 videoId = video.id,
@@ -37,7 +47,14 @@ class VideoRepository @Inject constructor(
                 path = video.path,
                 duration = video.duration,
                 lastPosition = position,
-                timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis(),
+                speed = speed,
+                aspectRatioKey = aspectRatioKey,
+                externalSubtitleUri = externalSubtitleUri,
+                subtitlesEnabled = subtitlesEnabled,
+                audioTrackGroupIndex = audioTrackGroupIndex,
+                audioTrackIndex = audioTrackIndex,
+                audioMuted = audioMuted
             )
         )
     }

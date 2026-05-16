@@ -34,5 +34,22 @@ object DatabaseMigrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2)
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE play_history ADD COLUMN speed REAL NOT NULL DEFAULT 1.0")
+            db.execSQL("ALTER TABLE play_history ADD COLUMN aspectRatioKey TEXT NOT NULL DEFAULT 'fit'")
+        }
+    }
+
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE play_history ADD COLUMN externalSubtitleUri TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE play_history ADD COLUMN subtitlesEnabled INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE play_history ADD COLUMN audioTrackGroupIndex INTEGER NOT NULL DEFAULT -1")
+            db.execSQL("ALTER TABLE play_history ADD COLUMN audioTrackIndex INTEGER NOT NULL DEFAULT -1")
+            db.execSQL("ALTER TABLE play_history ADD COLUMN audioMuted INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }

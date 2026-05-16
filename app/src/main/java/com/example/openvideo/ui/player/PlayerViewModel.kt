@@ -50,6 +50,13 @@ class PlayerViewModel @Inject constructor(
     private var videoPath: String = ""
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
+    private var pendingAudioSelection: PendingAudioSelection? = null
+    private val defaultPlaybackMemory = DefaultPlaybackMemory(
+        speed = playerPrefs.speed,
+        aspectRatio = playerPrefs.aspectRatio,
+        subtitlesEnabled = playerPrefs.subtitlesEnabled,
+        audioMuted = playerPrefs.audioMuted
+    )
 
     private val _sessionQueue = MutableStateFlow<List<VideoItem>>(emptyList())
     val sessionQueue: StateFlow<List<VideoItem>> = _sessionQueue
@@ -78,6 +85,7 @@ class PlayerViewModel @Inject constructor(
                     duration = playerManager.duration
                 )
                 if (playbackState == androidx.media3.common.Player.STATE_READY) {
+                    applyPendingAudioSelection()
                     markPlaybackStarted()
                     applyPendingRestore()
                 }
@@ -100,6 +108,52 @@ class PlayerViewModel @Inject constructor(
                 pendingRestorePosition = restorePositionMs
                 applyPendingRestore()
             }
+        }
+    }
+
+    fun restorePlaybackPreferences(videoId: Long) {
+        restorePlaybackPreferences(videoId) {}
+    }
+
+    fun restorePlaybackPreferences(videoId: Long, onRestored: () -> Unit) {
+        viewModelScope.launch {
+            val history = repository.getHistory(videoId)
+            val speed: Float
+            if (history != null) {
+                speed = history.speed
+                playerPrefs.speed = history.speed
+                playerPrefs.aspectRatio = AspectRatio.fromKey(history.aspectRatioKey)
+                playerPrefs.externalSubtitleUri = history.externalSubtitleUri
+                playerPrefs.subtitlesEnabled = history.subtitlesEnabled
+                playerPrefs.audioMuted = history.audioMuted
+                pendingAudioSelection = PendingAudioSelection(
+                    groupIndex = history.audioTrackGroupIndex,
+                    trackIndex = history.audioTrackIndex,
+                    muted = history.audioMuted
+                )
+            } else {
+                speed = defaultPlaybackMemory.speed
+                playerPrefs.speed = defaultPlaybackMemory.speed
+                playerPrefs.aspectRatio = defaultPlaybackMemory.aspectRatio
+                playerPrefs.externalSubtitleUri = ""
+                playerPrefs.subtitlesEnabled = defaultPlaybackMemory.subtitlesEnabled
+                playerPrefs.audioMuted = defaultPlaybackMemory.audioMuted
+                pendingAudioSelection = PendingAudioSelection(
+                    groupIndex = -1,
+                    trackIndex = -1,
+                    muted = defaultPlaybackMemory.audioMuted
+                )
+            }
+            setSpeed(
+                speed,
+                PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch)
+            )
+            setAspectRatio(playerPrefs.aspectRatio)
+            _uiState.value = _uiState.value.copy(
+                speed = speed,
+                aspectRatio = playerPrefs.aspectRatio
+            )
+            onRestored()
         }
     }
 
@@ -237,9 +291,17 @@ class PlayerViewModel @Inject constructor(
 
     private suspend fun persistCurrentPlaybackProgress() {
         val uri = videoUri ?: return
+        val selectedAudioTrack = selectedAudioTrack()
         repository.saveHistory(
             currentHistoryVideoItem(uri),
-            currentPersistablePosition()
+            currentPersistablePosition(),
+            speed = playerPrefs.speed,
+            aspectRatioKey = playerPrefs.aspectRatio.key,
+            externalSubtitleUri = playerPrefs.externalSubtitleUri,
+            subtitlesEnabled = playerPrefs.subtitlesEnabled,
+            audioTrackGroupIndex = selectedAudioTrack?.groupIndex ?: -1,
+            audioTrackIndex = selectedAudioTrack?.trackIndex ?: -1,
+            audioMuted = playerPrefs.audioMuted
         )
     }
 
@@ -281,10 +343,10 @@ class PlayerViewModel @Inject constructor(
             }
             val isFav = repository.isFavorite(item.id)
             _uiState.value = _uiState.value.copy(isFavorite = isFav)
-            if (playerPrefs.rememberProgress) {
-                restorePosition(item.id)
-            }
-            withContext(Dispatchers.Main.immediate) {
+            restorePlaybackPreferences(item.id) {
+                if (playerPrefs.rememberProgress) {
+                    restorePosition(item.id)
+                }
                 onSwitched()
             }
         }
@@ -294,10 +356,28 @@ class PlayerViewModel @Inject constructor(
         viewModelScope.launch {
             val uri = videoUri ?: return@launch
             val history = repository.getHistory(videoId)
+            val selectedAudioTrack = selectedAudioTrack()
             repository.saveHistory(
                 currentHistoryVideoItem(uri),
-                history?.lastPosition ?: 0L
+                history?.lastPosition ?: 0L,
+                speed = playerPrefs.speed,
+                aspectRatioKey = playerPrefs.aspectRatio.key,
+                externalSubtitleUri = playerPrefs.externalSubtitleUri,
+                subtitlesEnabled = playerPrefs.subtitlesEnabled,
+                audioTrackGroupIndex = selectedAudioTrack?.groupIndex ?: history?.audioTrackGroupIndex ?: -1,
+                audioTrackIndex = selectedAudioTrack?.trackIndex ?: history?.audioTrackIndex ?: -1,
+                audioMuted = playerPrefs.audioMuted
             )
+        }
+    }
+
+    private fun applyPendingAudioSelection() {
+        val selection = pendingAudioSelection ?: return
+        pendingAudioSelection = null
+        when {
+            selection.muted -> disableAudioTrack()
+            selection.groupIndex >= 0 && selection.trackIndex >= 0 ->
+                playerManager.selectAudioTrack(selection.groupIndex, selection.trackIndex)
         }
     }
 
@@ -322,4 +402,17 @@ class PlayerViewModel @Inject constructor(
     }
 
     val player get() = playerManager.player
+
+    private data class PendingAudioSelection(
+        val groupIndex: Int,
+        val trackIndex: Int,
+        val muted: Boolean
+    )
+
+    private data class DefaultPlaybackMemory(
+        val speed: Float,
+        val aspectRatio: AspectRatio,
+        val subtitlesEnabled: Boolean,
+        val audioMuted: Boolean
+    )
 }
