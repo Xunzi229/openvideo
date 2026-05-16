@@ -39,10 +39,40 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
         val tvBg = findViewById<TextView>(R.id.tv_subtitle_bg_value)
         val sbPosition = findViewById<SeekBar>(R.id.sb_subtitle_position)
         val tvEncoding = findViewById<TextView>(R.id.tv_encoding_value)
+        val tvPreview = findViewById<TextView>(R.id.tv_subtitle_preview)
+        val tvSubtitleDelay = findViewById<TextView>(R.id.tv_subtitle_delay_value)
+        val btnSubtitleDelayMinus = findViewById<MaterialButton>(R.id.btn_subtitle_delay_minus)
+        val btnSubtitleDelayPlus = findViewById<MaterialButton>(R.id.btn_subtitle_delay_plus)
+        val btnSubtitleDelayReset = findViewById<MaterialButton>(R.id.btn_subtitle_delay_reset)
+
+        fun updateSubtitlePreview() {
+            tvPreview.text = getString(R.string.player_settings_subtitle_preview_sample)
+            tvPreview.textSize = playerPrefs.subtitleSize.toFloat()
+            tvPreview.setTextColor(playerPrefs.subtitleColor)
+            tvPreview.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
+        }
+
+        fun updateSubtitleDelayText() {
+            tvSubtitleDelay.text = getString(R.string.player_settings_unit_ms, playerPrefs.subtitleDelayMs)
+        }
 
         btnLoad.setOnClickListener {
             pickSubtitleLauncher.launch(arrayOf("*/*"))
         }
+        btnSubtitleDelayMinus.setOnClickListener {
+            playerPrefs.subtitleDelayMs -= 500
+            updateSubtitleDelayText()
+        }
+        btnSubtitleDelayPlus.setOnClickListener {
+            playerPrefs.subtitleDelayMs += 500
+            updateSubtitleDelayText()
+        }
+        btnSubtitleDelayReset.setOnClickListener {
+            playerPrefs.subtitleDelayMs = 0
+            updateSubtitleDelayText()
+        }
+        updateSubtitleDelayText()
+        updateSubtitlePreview()
 
         // Subtitle size
         val currentSize = playerPrefs.subtitleSize
@@ -58,6 +88,7 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
             override fun onStartTrackingTouch(sb: SeekBar) {}
             override fun onStopTrackingTouch(sb: SeekBar) {
                 playerPrefs.subtitleSize = pendingSubtitleSize
+                updateSubtitlePreview()
             }
         })
 
@@ -76,6 +107,7 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
             bgIndex = (bgIndex + 1) % subtitleBgStyles.size
             playerPrefs.subtitleBgStyle = subtitleBgStyles[bgIndex]
             updateBgText()
+            updateSubtitlePreview()
         }
 
         // Subtitle position

@@ -48,6 +48,7 @@ class PlayerAudioTrackSelectionSourceTest {
         assertTrue(infoRows.contains("viewModel.selectedAudioTrack()"))
         assertTrue(infoRows.contains("player_settings_info_current_audio_track"))
         assertTrue(infoRows.contains("player_settings_info_audio_decoder"))
+        assertTrue(infoRows.contains("PlayerAudioDiagnosticsPolicy.trackSummary("))
     }
 
     @Test
@@ -65,6 +66,8 @@ class PlayerAudioTrackSelectionSourceTest {
         assertTrue(dialogSource.contains("player_settings_info_ffmpeg_extension"))
         assertTrue(dialogSource.contains("player_settings_info_audio_input_format"))
         assertTrue(dialogSource.contains("player_settings_info_playback_error"))
+        assertTrue(dialogSource.contains("PlayerAudioDiagnosticsPolicy.runtimeInputSummary("))
+        assertTrue(dialogSource.contains("PlayerAudioDiagnosticsPolicy.compatibilityMessage("))
         assertTrue(strings.contains("player_settings_info_ffmpeg_available"))
     }
 

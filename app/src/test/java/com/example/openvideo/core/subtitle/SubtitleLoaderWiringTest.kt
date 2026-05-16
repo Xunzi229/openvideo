@@ -43,4 +43,39 @@ class SubtitleLoaderWiringTest {
         assertTrue(source.contains("playerPrefs.subtitleEncoding"))
         assertTrue(source.contains("charsetForPreference("))
     }
+
+    @Test
+    fun sidecarDiscoveryUsesSubtitleAutoloadRanking() {
+        val source = String(
+            Files.readAllBytes(
+                sequenceOf(
+                    Paths.get(
+                        "src",
+                        "main",
+                        "java",
+                        "com",
+                        "example",
+                        "openvideo",
+                        "core",
+                        "subtitle",
+                        "SubtitleLoader.kt"
+                    ),
+                    Paths.get(
+                        "app",
+                        "src",
+                        "main",
+                        "java",
+                        "com",
+                        "example",
+                        "openvideo",
+                        "core",
+                        "subtitle",
+                        "SubtitleLoader.kt"
+                    )
+                ).first(Files::exists)
+            )
+        )
+
+        assertTrue(source.contains("PlayerSubtitleAutoload.rankSidecarCandidates("))
+    }
 }

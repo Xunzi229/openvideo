@@ -750,7 +750,12 @@ class PlayerSettingsDialog(
                 context.getString(R.string.player_settings_info_loading)
         }
         viewModel.selectedAudioTrack()?.let { track ->
-            rows += context.getString(R.string.player_settings_info_current_audio_track) to audioTrackLabel(track)
+            rows += context.getString(R.string.player_settings_info_current_audio_track) to
+                PlayerAudioDiagnosticsPolicy.trackSummary(
+                    track = track,
+                    streamLabel = context.getString(R.string.player_settings_info_stream, track.groupIndex + 1),
+                    unsupportedLabel = context.getString(R.string.player_settings_audio_track_unsupported)
+                )
             rows += context.getString(R.string.player_settings_info_audio_decoder) to audioDecoderLabel(track)
         } ?: run {
             rows += context.getString(R.string.player_settings_info_current_audio_track) to
@@ -800,17 +805,18 @@ class PlayerSettingsDialog(
         diagnostics.lastDecoderName?.takeIf { it.isNotBlank() }?.let { decoder ->
             rows += context.getString(R.string.player_settings_info_audio_decoder) to decoder
         }
-        audioInputFormatLabel(diagnostics)?.let { label ->
+        PlayerAudioDiagnosticsPolicy.runtimeInputSummary(
+            diagnostics = diagnostics,
+            softwareFallbackLabel = context.getString(R.string.player_settings_info_audio_fallback_needed)
+        )?.let { label ->
             rows += context.getString(R.string.player_settings_info_audio_input_format) to label
         }
-        if (diagnostics.needsSoftwareAudioFallback) {
-            rows += context.getString(R.string.player_settings_info_audio_compatibility) to context.getString(
-                if (diagnostics.isUsingFfmpegDecoder) {
-                    R.string.player_settings_info_audio_fallback_active
-                } else {
-                    R.string.player_settings_info_audio_fallback_needed
-                }
-            )
+        PlayerAudioDiagnosticsPolicy.compatibilityMessage(
+            diagnostics = diagnostics,
+            fallbackActiveLabel = context.getString(R.string.player_settings_info_audio_fallback_active),
+            fallbackNeededLabel = context.getString(R.string.player_settings_info_audio_fallback_needed)
+        )?.let { message ->
+            rows += context.getString(R.string.player_settings_info_audio_compatibility) to message
         }
         diagnostics.lastPlaybackError?.takeIf { it.isNotBlank() }?.let { error ->
             rows += context.getString(R.string.player_settings_info_playback_error) to error
@@ -818,16 +824,12 @@ class PlayerSettingsDialog(
         return rows
     }
 
-    private fun audioInputFormatLabel(diagnostics: PlayerAudioDiagnostics): String? {
-        val parts = mutableListOf<String>()
-        diagnostics.lastInputMimeType?.takeIf { it.isNotBlank() }?.let { parts += audioCodecLabel(it) }
-        diagnostics.lastInputLanguage?.takeIf { it.isNotBlank() && it != "und" }?.let { parts += it }
-        if (diagnostics.lastInputChannelCount > 0) parts += audioChannelLabel(diagnostics.lastInputChannelCount)
-        if (diagnostics.lastInputSampleRate > 0) parts += "${diagnostics.lastInputSampleRate} Hz"
-        return parts.takeIf { it.isNotEmpty() }?.joinToString(" / ")
-    }
-
     private fun audioTrackLabel(track: PlayerAudioTrackInfo): String {
+        return PlayerAudioDiagnosticsPolicy.trackSummary(
+            track = track,
+            streamLabel = context.getString(R.string.player_settings_info_stream, track.groupIndex + 1),
+            unsupportedLabel = context.getString(R.string.player_settings_audio_track_unsupported)
+        )
         val parts = mutableListOf<String>()
         parts += context.getString(R.string.player_settings_info_stream, track.groupIndex + 1)
         parts += audioCodecLabel(track.mimeType)

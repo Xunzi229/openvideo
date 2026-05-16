@@ -3,6 +3,7 @@ package com.example.openvideo.core.subtitle
 import android.content.Context
 import android.net.Uri
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.ui.player.PlayerSubtitleAutoload
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.nio.charset.Charset
@@ -54,11 +55,15 @@ class SubtitleLoader @Inject constructor(
 
         val dir = videoFile.parentFile ?: return emptyList()
         val baseName = videoFile.nameWithoutExtension
+        val filesByName = dir.listFiles()
+            ?.filter { it.isFile }
+            ?.associateBy { it.name }
+            ?: return emptyList()
 
-        return dir.listFiles { file ->
-            file.isFile && file.nameWithoutExtension.equals(baseName, ignoreCase = true) &&
-                file.extension.lowercase() in listOf("srt", "ass", "ssa", "vtt")
-        }?.sortedBy { it.name } ?: emptyList()
+        return PlayerSubtitleAutoload.rankSidecarCandidates(
+            videoBaseName = baseName,
+            candidateFileNames = filesByName.keys.toList()
+        ).mapNotNull(filesByName::get)
     }
 
     private fun getExtensionFromUri(uri: Uri): String {

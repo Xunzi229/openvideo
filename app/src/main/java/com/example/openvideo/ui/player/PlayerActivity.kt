@@ -23,6 +23,7 @@ import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -306,13 +307,7 @@ class PlayerActivity : AppCompatActivity() {
 
         tvSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
         tvSubtitle.setTextColor(playerPrefs.subtitleColor)
-        tvSubtitle.setBackgroundColor(
-            when (playerPrefs.subtitleBgStyle) {
-                SubtitleBgStyle.NONE -> Color.TRANSPARENT
-                SubtitleBgStyle.SEMI_TRANSPARENT -> Color.argb(170, 0, 0, 0)
-                SubtitleBgStyle.OPAQUE -> Color.BLACK
-            }
-        )
+        tvSubtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
         tvSubtitle.post {
             val travel = playerView.height * 0.6f
             tvSubtitle.translationY = -((1f - playerPrefs.subtitlePosition.coerceIn(0f, 1f)) * travel)
@@ -501,6 +496,135 @@ class PlayerActivity : AppCompatActivity() {
             .show()
     }
 
+    private fun showAudioTrackQuickDialog() {
+        val state = PlayerQuickEntryPolicy.audioEntry(
+            tracks = viewModel.audioTracks(),
+            audioMuted = playerPrefs.audioMuted,
+            trackLabel = { track ->
+                PlayerAudioDiagnosticsPolicy.quickTrackSummary(
+                    track = track,
+                    streamLabel = getString(R.string.player_settings_info_stream, track.groupIndex + 1)
+                )
+            }
+        )
+        val items = state.items.map { item ->
+            when (item.action) {
+                PlayerQuickEntryAction.DisableAudio ->
+                    item.copy(label = getString(R.string.player_sheet_disable))
+                PlayerQuickEntryAction.None ->
+                    item.copy(label = getString(R.string.player_settings_audio_track_none))
+                else -> item
+            }
+        }
+        showQuickEntryDialog(R.string.player_sheet_audio_track, items) { action ->
+            when (action) {
+                is PlayerQuickEntryAction.SelectAudioTrack -> {
+                    val track = viewModel.audioTracks().firstOrNull {
+                        it.groupIndex == action.groupIndex && it.trackIndex == action.trackIndex
+                    } ?: return@showQuickEntryDialog
+                    viewModel.selectAudioTrack(track)
+                }
+                PlayerQuickEntryAction.DisableAudio -> viewModel.disableAudioTrack()
+                else -> Unit
+            }
+        }
+    }
+
+    private fun showSubtitleQuickDialog() {
+        val state = PlayerQuickEntryPolicy.subtitleEntry(
+            hasLoadedSubtitles = viewModel.uiState.value.subtitles.isNotEmpty(),
+            subtitlesEnabled = playerPrefs.subtitlesEnabled,
+            subtitleDelayMs = playerPrefs.subtitleDelayMs
+        )
+        val items = state.items.map { item ->
+            when (val action = item.action) {
+                is PlayerQuickEntryAction.SetSubtitlesEnabled ->
+                    item.copy(label = getString(if (action.enabled) R.string.player_sheet_enable else R.string.settings_subtitle_track_off))
+                is PlayerQuickEntryAction.AdjustSubtitleDelay ->
+                    item.copy(
+                        label = getString(
+                            if (action.deltaMs < 0) {
+                                R.string.player_quick_subtitle_delay_minus
+                            } else {
+                                R.string.player_quick_subtitle_delay_plus
+                            }
+                        )
+                    )
+                PlayerQuickEntryAction.ResetSubtitleDelay ->
+                    item.copy(label = getString(R.string.player_quick_subtitle_delay_reset))
+                PlayerQuickEntryAction.PickSubtitleFile ->
+                    item.copy(label = getString(R.string.player_sheet_select_subtitle_file))
+                PlayerQuickEntryAction.OpenSubtitleSettings ->
+                    item.copy(label = getString(R.string.player_quick_subtitle_more_settings))
+                PlayerQuickEntryAction.None ->
+                    item.copy(label = getString(R.string.player_quick_subtitle_none))
+                else -> item
+            }
+        }
+        showQuickEntryDialog(R.string.player_sheet_subtitles, items) { action ->
+            when (action) {
+                is PlayerQuickEntryAction.SetSubtitlesEnabled -> {
+                    playerPrefs.subtitlesEnabled = action.enabled
+                    applySubtitlePresentation()
+                }
+                is PlayerQuickEntryAction.AdjustSubtitleDelay -> {
+                    playerPrefs.subtitleDelayMs += action.deltaMs
+                    applySubtitlePresentation()
+                }
+                PlayerQuickEntryAction.ResetSubtitleDelay -> {
+                    playerPrefs.subtitleDelayMs = 0
+                    applySubtitlePresentation()
+                }
+                PlayerQuickEntryAction.PickSubtitleFile ->
+                    pickSubtitleLauncher.launch(arrayOf("*/*"))
+                PlayerQuickEntryAction.OpenSubtitleSettings ->
+                    openPlayerSettingsDialog()
+                else -> Unit
+            }
+        }
+    }
+
+    private fun showQuickEntryDialog(
+        titleRes: Int,
+        items: List<PlayerQuickEntryItem>,
+        onSelected: (PlayerQuickEntryAction) -> Unit
+    ) {
+        handler.removeCallbacks(hideControlsRunnable)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = (8 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+        }
+        var dialog: androidx.appcompat.app.AlertDialog? = null
+        items.forEach { item ->
+            container.addView(
+                RadioButton(this).apply {
+                    text = item.label
+                    isChecked = item.selected
+                    isEnabled = item.enabled
+                    setOnClickListener {
+                        dialog?.dismiss()
+                        onSelected(item.action)
+                    }
+                }
+            )
+        }
+        dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(titleRes)
+            .setView(container)
+            .setOnDismissListener { scheduleHideControls() }
+            .create()
+        dialog.show()
+    }
+
+    private fun quickAudioTrackLabel(track: com.example.openvideo.core.player.PlayerAudioTrackInfo): String {
+        val parts = mutableListOf<String>()
+        parts += getString(R.string.player_settings_info_stream, track.groupIndex + 1)
+        track.language?.takeIf { it.isNotBlank() && it != "und" }?.let { parts += it }
+        if (track.channelCount > 0) parts += "${track.channelCount}ch"
+        return parts.joinToString(" · ")
+    }
+
     private fun setupControls() {
         btnPlay.setOnClickListener { togglePlayPauseAndSyncIcon() }
         btnBack.setOnClickListener { finishPlayer() }
@@ -549,7 +673,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.portrait_btn_quality)?.setOnClickListener {
-            Toast.makeText(this, R.string.player_quality_local_single, Toast.LENGTH_SHORT).show()
+            showAudioTrackQuickDialog()
             scheduleHideControls()
         }
 
@@ -558,7 +682,7 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.portrait_btn_subtitles)?.setOnClickListener {
-            pickSubtitleLauncher.launch(arrayOf("*/*"))
+            showSubtitleQuickDialog()
             scheduleHideControls()
         }
 

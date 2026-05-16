@@ -134,6 +134,7 @@
     <string name="settings_subtitle_track_off">关闭</string>
     <string name="settings_subtitle_color">字幕颜色</string>
     <string name="settings_subtitle_bg">字幕背景</string>
+    <string name="settings_subtitle_preview">字幕预览</string>
     <string name="settings_subtitle_bg_none">无</string>
     <string name="settings_subtitle_bg_semi">半透明黑</string>
     <string name="settings_subtitle_bg_opaque">全黑</string>
@@ -277,6 +278,7 @@
     <string name="player_settings_stream_url_hint">https://example.com/video.mp4</string>
     <string name="player_settings_unit_ms">%1$d 毫秒</string>
     <string name="player_settings_unit_sp">%1$d 字号</string>
+    <string name="player_settings_subtitle_preview_sample">字幕预览</string>
     <string name="player_settings_subtitle_color_white">白色</string>
     <string name="player_settings_subtitle_color_yellow">黄色</string>
     <string name="player_settings_subtitle_color_green">绿色</string>
@@ -394,10 +396,16 @@
     <string name="player_video_list_title">列表</string>
     <string name="player_portrait_speed">倍速</string>
     <string name="player_portrait_quality">清晰度</string>
+    <string name="player_portrait_audio">音轨</string>
     <string name="player_portrait_episodes">选集</string>
     <string name="player_portrait_subtitles">字幕</string>
     <string name="player_portrait_more">更多</string>
     <string name="player_quality_local_single">本地文件为单一清晰度</string>
+    <string name="player_quick_subtitle_none">未加载字幕</string>
+    <string name="player_quick_subtitle_more_settings">更多字幕设置</string>
+    <string name="player_quick_subtitle_delay_minus">-500 毫秒</string>
+    <string name="player_quick_subtitle_delay_plus">+500 毫秒</string>
+    <string name="player_quick_subtitle_delay_reset">重置延迟</string>
     <string name="player_pick_speed">播放速度</string>
     <string name="player_land_seek_jump_back">按间隔快退</string>
     <string name="player_land_seek_jump_forward">按间隔快进</string>

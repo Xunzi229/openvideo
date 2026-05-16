@@ -134,6 +134,7 @@
     <string name="settings_subtitle_track_off">Off</string>
     <string name="settings_subtitle_color">Subtitle color</string>
     <string name="settings_subtitle_bg">Subtitle background</string>
+    <string name="settings_subtitle_preview">Subtitle preview</string>
     <string name="settings_subtitle_bg_none">None</string>
     <string name="settings_subtitle_bg_semi">Semi-transparent black</string>
     <string name="settings_subtitle_bg_opaque">Opaque black</string>
@@ -277,6 +278,7 @@
     <string name="player_settings_stream_url_hint">https://example.com/video.mp4</string>
     <string name="player_settings_unit_ms">%1$d ms</string>
     <string name="player_settings_unit_sp">%1$d sp</string>
+    <string name="player_settings_subtitle_preview_sample">Subtitle preview</string>
     <string name="player_settings_subtitle_color_white">White</string>
     <string name="player_settings_subtitle_color_yellow">Yellow</string>
     <string name="player_settings_subtitle_color_green">Green</string>
@@ -394,10 +396,16 @@
     <string name="player_video_list_title">List</string>
     <string name="player_portrait_speed">Speed</string>
     <string name="player_portrait_quality">Quality</string>
+    <string name="player_portrait_audio">Audio</string>
     <string name="player_portrait_episodes">Episodes</string>
     <string name="player_portrait_subtitles">Subtitles</string>
     <string name="player_portrait_more">More</string>
     <string name="player_quality_local_single">Local file has a single stream</string>
+    <string name="player_quick_subtitle_none">No subtitles loaded</string>
+    <string name="player_quick_subtitle_more_settings">More subtitle settings</string>
+    <string name="player_quick_subtitle_delay_minus">-500 ms</string>
+    <string name="player_quick_subtitle_delay_plus">+500 ms</string>
+    <string name="player_quick_subtitle_delay_reset">Reset delay</string>
     <string name="player_pick_speed">Playback speed</string>
     <string name="player_land_seek_jump_back">Rewind one seek interval</string>
     <string name="player_land_seek_jump_forward">Forward one seek interval</string>
