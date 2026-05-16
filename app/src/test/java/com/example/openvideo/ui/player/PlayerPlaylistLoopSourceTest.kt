@@ -16,18 +16,27 @@ class PlayerPlaylistLoopSourceTest {
             .substringBefore("viewModel.player?.addListener")
 
         assertTrue(listener.contains("Player.STATE_ENDED"))
-        assertTrue(listener.contains("playNextQueueVideoAfterEnded()"))
+        assertTrue(listener.contains("handlePlaybackEnded()"))
 
         val endedHandler = source
-            .substringAfter("private fun playNextQueueVideoAfterEnded()")
+            .substringAfter("private fun handlePlaybackEnded()")
             .substringBefore("\n    private fun", missingDelimiterValue = "")
 
-        assertTrue(endedHandler.contains("PlayerQueueLoopPolicy.nextIndexAfterEnded"))
+        assertTrue(endedHandler.contains("PlayerPlaybackEndPolicy.decide"))
         assertTrue(endedHandler.contains("viewModel.sessionQueue.value"))
         assertTrue(endedHandler.contains("viewModel.playingVideoId"))
         assertTrue(endedHandler.contains("loopMode = playerPrefs.loopMode"))
-        assertTrue(endedHandler.contains("viewModel.switchToVideo(queue[nextIndex])"))
-        assertTrue(endedHandler.contains("applyPlayerSettings()"))
+        assertTrue(endedHandler.contains("PlayerPlaybackEndAction.PLAY_NEXT"))
+        assertTrue(endedHandler.contains("PlayerPlaybackEndAction.REPLAY_CURRENT"))
+        assertTrue(endedHandler.contains("PlayerPlaybackEndAction.RETURN_TO_LIST"))
+        assertTrue(endedHandler.contains("playNextQueueVideoAfterEnded(queue, decision.nextIndex)"))
+
+        val nextHandler = source
+            .substringAfter("private fun playNextQueueVideoAfterEnded(queue: List<VideoItem>, nextIndex: Int?)")
+            .substringBefore("\n    private fun", missingDelimiterValue = "")
+
+        assertTrue(nextHandler.contains("viewModel.switchToVideo(queue[nextIndex])"))
+        assertTrue(nextHandler.contains("applyPlayerSettings()"))
     }
 
     private fun playerActivitySource(): Path {

@@ -306,6 +306,22 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun aspectRatioSelectionInvokesCallbackSoActivityCanApplyResizeModeImmediately() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val aspectRowBlock = dialogSource
+            .substringAfter("private fun addAspectRow(title: String, ratio: AspectRatio)")
+            .substringBefore("\n    private fun rebuildCurrentDetail")
+
+        assertTrue(dialogSource.contains("private val onAspectRatioChanged: () -> Unit = {}"))
+        assertTrue(aspectRowBlock.contains("playerPrefs.aspectRatio = ratio"))
+        assertTrue(aspectRowBlock.contains("viewModel.setAspectRatio(ratio)"))
+        assertTrue(aspectRowBlock.contains("onAspectRatioChanged()"))
+
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        assertTrue(activitySource.contains("onAspectRatioChanged = ::applyDisplaySettings"))
+    }
+
+    @Test
     fun tutorialChoicePagesStayInsidePlayerSettingsPanel() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val doubleTapPage = dialogSource

@@ -60,6 +60,7 @@ import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
+import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.settings.DefaultPlayerSettings
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -475,6 +476,7 @@ class PlayerActivity : AppCompatActivity() {
             onRequestPickSubtitle = {
                 pickSubtitleLauncher.launch(arrayOf("*/*"))
             },
+            onAspectRatioChanged = ::applyDisplaySettings,
             onPlayerPrefsReset = ::applyPlayerSettings
         )
         dialog.setOnDismissListener {
@@ -789,7 +791,7 @@ class PlayerActivity : AppCompatActivity() {
                     applyPlaybackTickSeek(state.currentPosition, state.duration)
                     hideFirstFrameScrimForAudioOnly()
                 } else if (playbackState == Player.STATE_ENDED) {
-                    playNextQueueVideoAfterEnded()
+                    handlePlaybackEnded()
                 }
             }
 
@@ -908,16 +910,40 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun playNextQueueVideoAfterEnded() {
+    private fun handlePlaybackEnded() {
         if (isSwitchingQueueAfterEnded) return
         val queue = viewModel.sessionQueue.value
         val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }
-        val nextIndex = PlayerQueueLoopPolicy.nextIndexAfterEnded(
+        val decision = PlayerPlaybackEndPolicy.decide(
             currentIndex = currentIndex,
             queueSize = queue.size,
             autoPlayNext = playerPrefs.autoPlayNext,
-            loopMode = playerPrefs.loopMode
-        ) ?: return
+            loopMode = playerPrefs.loopMode,
+            abLoopState = abLoopState,
+            abLoopPointA = abLoopPointA,
+            returnToListWhenDone = false
+        )
+
+        when (decision.action) {
+            PlayerPlaybackEndAction.PLAY_NEXT -> playNextQueueVideoAfterEnded(queue, decision.nextIndex)
+            PlayerPlaybackEndAction.REPLAY_CURRENT -> {
+                viewModel.seekTo(decision.seekPositionMs ?: 0L)
+                viewModel.player?.play()
+                scheduleHideControls()
+            }
+            PlayerPlaybackEndAction.STOP_AT_END -> {
+                viewModel.saveHistory()
+                showControls()
+            }
+            PlayerPlaybackEndAction.RETURN_TO_LIST -> {
+                viewModel.saveHistory()
+                finishPlayer()
+            }
+        }
+    }
+
+    private fun playNextQueueVideoAfterEnded(queue: List<VideoItem>, nextIndex: Int?) {
+        if (nextIndex == null) return
 
         isSwitchingQueueAfterEnded = true
         showFirstFrameScrim()

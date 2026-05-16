@@ -64,6 +64,7 @@ class PlayerSettingsDialog(
     private val playerPrefs: PlayerPrefs,
     private val onScreenBrightnessChanged: (Int) -> Unit = {},
     private val onRequestPickSubtitle: () -> Unit = {},
+    private val onAspectRatioChanged: () -> Unit = {},
     /** Invoked after [PlayerPrefs.resetToDefaults] so playback/UI re-sync from cleared prefs. */
     private val onPlayerPrefsReset: () -> Unit = {}
 ) : Dialog(context) {
@@ -1248,6 +1249,7 @@ class PlayerSettingsDialog(
         ) {
             playerPrefs.aspectRatio = ratio
             viewModel.setAspectRatio(ratio)
+            onAspectRatioChanged()
             rebuildCurrentDetail(SettingsPage.ASPECT, context.getString(R.string.player_sheet_aspect_ratio))
         }
     }

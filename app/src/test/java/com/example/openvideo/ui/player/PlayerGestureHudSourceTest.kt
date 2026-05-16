@@ -74,10 +74,10 @@ class PlayerGestureHudSourceTest {
     @Test
     fun endedQueueSwitchRespectsAutoPlayNextPreference() {
         val source = sourceFile("PlayerActivity.kt").readText()
-        val block = source.substringAfter("private fun playNextQueueVideoAfterEnded()")
+        val block = source.substringAfter("private fun handlePlaybackEnded()")
             .substringBefore("\n    private fun")
 
-        assertTrue(block.contains("PlayerQueueLoopPolicy.nextIndexAfterEnded("))
+        assertTrue(block.contains("PlayerPlaybackEndPolicy.decide("))
         assertTrue(block.contains("autoPlayNext = playerPrefs.autoPlayNext"))
     }
 
