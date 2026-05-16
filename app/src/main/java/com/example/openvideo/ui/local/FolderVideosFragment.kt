@@ -26,6 +26,7 @@ import com.example.openvideo.ui.home.HomeViewModel
 import com.example.openvideo.ui.home.VideoGridAdapter
 import com.example.openvideo.ui.home.VideoOptionsSheet
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
@@ -99,8 +100,9 @@ class FolderVideosFragment : Fragment() {
     }
 
     private fun openPlayer(video: VideoItem) {
+        val orderedQueue = PlayerEpisodeOrderingPolicy.orderSameFolderQueue(folderVideosSnapshot)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(folderVideosSnapshot)
+            putSessionQueue(orderedQueue)
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)
