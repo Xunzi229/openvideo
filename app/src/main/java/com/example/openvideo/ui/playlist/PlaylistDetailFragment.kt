@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.example.openvideo.ui.player.toSessionVideoItem
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -75,8 +76,9 @@ class PlaylistDetailFragment : Fragment() {
         adapter = PlaylistVideoAdapter(
             onClick = { video ->
                 val queue = playlistVideosSnapshot.map { it.toSessionVideoItem() }
+                val orderedQueue = PlayerEpisodeOrderingPolicy.orderQueueIfEligible(queue)
                 val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-                    putSessionQueue(queue)
+                    putSessionQueue(orderedQueue)
                     putExtra("video_uri", video.videoPath)
                     putExtra("video_title", video.videoTitle)
                     putExtra("video_id", video.videoId)

@@ -26,6 +26,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_AUTO_PLAY_NEXT, true)
         set(value) = putBoolean(KEY_AUTO_PLAY_NEXT, value)
 
+    var playbackEndBehavior: PlaybackEndBehavior
+        get() = PlaybackEndBehavior.fromKey(getString(KEY_PLAYBACK_END_BEHAVIOR, PlaybackEndBehavior.FOLLOW_SETTINGS.key))
+        set(value) = putString(KEY_PLAYBACK_END_BEHAVIOR, value.key)
+
     var hwAcceleration: Boolean
         get() = getBoolean(KEY_HW_ACCEL, true)
         set(value) = putBoolean(KEY_HW_ACCEL, value)
@@ -284,6 +288,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SEEK_INTERVAL = "seek_interval"
         private const val KEY_REMEMBER_PROGRESS = "remember_progress"
         private const val KEY_AUTO_PLAY_NEXT = "auto_play_next"
+        private const val KEY_PLAYBACK_END_BEHAVIOR = "playback_end_behavior"
         private const val KEY_HW_ACCEL = "hw_acceleration"
         private const val KEY_PAUSE_ON_EXIT = "pause_on_exit"
         private const val KEY_BG_AUDIO = "bg_audio"

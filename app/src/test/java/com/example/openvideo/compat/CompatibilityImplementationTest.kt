@@ -95,12 +95,14 @@ class CompatibilityImplementationTest {
 
     @Test
     fun homeRuntimePermissionHandlesAndroid14PartialVideoAccess() {
-        val source = String(Files.readAllBytes(sourceFile("ui", "home", "HomeFragment.kt")))
+        val homeSource = String(Files.readAllBytes(sourceFile("ui", "home", "HomeFragment.kt")))
+        val policySource = String(Files.readAllBytes(sourceFile("ui", "home", "MediaLibraryPermissionPolicy.kt")))
 
-        assertTrue(source.contains("RequestMultiplePermissions"))
-        assertTrue(source.contains("Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED"))
-        assertTrue(source.contains("Build.VERSION_CODES.UPSIDE_DOWN_CAKE"))
-        assertTrue(source.contains("hasVideoReadPermission"))
+        assertTrue(homeSource.contains("RequestMultiplePermissions"))
+        assertTrue(homeSource.contains("MediaLibraryPermissionPolicy.requiredPermissions"))
+        assertTrue(homeSource.contains("hasVideoReadPermission"))
+        assertTrue(policySource.contains("Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED"))
+        assertTrue(policySource.contains("Build.VERSION_CODES.UPSIDE_DOWN_CAKE"))
     }
 
     private fun sourceFile(vararg parts: String): Path {

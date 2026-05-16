@@ -5,7 +5,10 @@ import androidx.activity.ComponentActivity
 import com.example.openvideo.R
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.example.openvideo.core.prefs.LoopMode
+import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import com.example.openvideo.core.prefs.PlayerPrefs
+import androidx.appcompat.app.AlertDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
 import android.widget.TextView
 import android.widget.RadioGroup
@@ -21,6 +24,7 @@ class PlayerPlaybackSettingsActivity : ComponentActivity() {
 
         val rgSpeed = findViewById<RadioGroup>(R.id.rg_speed_settings)
         val tvLoop = findViewById<TextView>(R.id.tv_loop_value)
+        val tvPlaybackEnd = findViewById<TextView>(R.id.tv_playback_end_value)
         val tvSeek = findViewById<TextView>(R.id.tv_seek_value)
         val swRemember = findViewById<SwitchMaterial>(R.id.sw_remember)
         val swHw = findViewById<SwitchMaterial>(R.id.sw_hw_accel)
@@ -54,19 +58,34 @@ class PlayerPlaybackSettingsActivity : ComponentActivity() {
         // Loop mode
         fun updateLoopText() {
             tvLoop.text = when (playerPrefs.loopMode) {
-                com.example.openvideo.core.prefs.LoopMode.SINGLE -> getString(R.string.settings_loop_single)
-                com.example.openvideo.core.prefs.LoopMode.LIST -> getString(R.string.settings_loop_list)
+                LoopMode.SINGLE -> getString(R.string.settings_loop_single)
+                LoopMode.LIST -> getString(R.string.settings_loop_list)
                 else -> getString(R.string.settings_loop_off)
             }
         }
         updateLoopText()
         tvLoop.setOnClickListener {
             playerPrefs.loopMode = when (playerPrefs.loopMode) {
-                com.example.openvideo.core.prefs.LoopMode.OFF -> com.example.openvideo.core.prefs.LoopMode.LIST
-                com.example.openvideo.core.prefs.LoopMode.LIST -> com.example.openvideo.core.prefs.LoopMode.SINGLE
-                else -> com.example.openvideo.core.prefs.LoopMode.OFF
+                LoopMode.OFF -> LoopMode.LIST
+                LoopMode.LIST -> LoopMode.SINGLE
+                else -> LoopMode.OFF
             }
             updateLoopText()
+        }
+
+        fun updatePlaybackEndText() {
+            tvPlaybackEnd.text = PlayerPlaybackEndBehaviorUi.label(this, playerPrefs.playbackEndBehavior)
+        }
+        updatePlaybackEndText()
+        tvPlaybackEnd.setOnClickListener {
+            val options = PlayerPlaybackEndBehaviorUi.options()
+            AlertDialog.Builder(this)
+                .setTitle(R.string.settings_playback_end_behavior)
+                .setItems(options.map { PlayerPlaybackEndBehaviorUi.label(this, it) }.toTypedArray()) { _, which ->
+                    playerPrefs.playbackEndBehavior = options[which]
+                    updatePlaybackEndText()
+                }
+                .show()
         }
 
         // Seek interval

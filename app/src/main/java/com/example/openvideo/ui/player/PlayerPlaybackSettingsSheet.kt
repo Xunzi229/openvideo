@@ -11,6 +11,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.example.openvideo.R
+import androidx.appcompat.app.AlertDialog
 import com.example.openvideo.core.prefs.PlayerPrefs
 
 @AndroidEntryPoint
@@ -29,6 +30,7 @@ class PlayerPlaybackSettingsSheet : BaseSettingsSheet() {
         val swPause = view.findViewById<SwitchMaterial>(R.id.sw_pause_on_exit)
         val swAutoNext = view.findViewById<SwitchMaterial>(R.id.sw_auto_next)
         val swBgAudio = view.findViewById<SwitchMaterial>(R.id.sw_bg_audio)
+        val tvPlaybackEnd = view.findViewById<TextView>(R.id.tv_playback_end_value)
 
         // Speed
         val speed = playerPrefs.speed
@@ -68,5 +70,20 @@ class PlayerPlaybackSettingsSheet : BaseSettingsSheet() {
 
         swBgAudio.isChecked = playerPrefs.bgAudio
         swBgAudio.setOnCheckedChangeListener { _, isChecked -> playerPrefs.bgAudio = isChecked }
+
+        fun updatePlaybackEndText() {
+            tvPlaybackEnd.text = PlayerPlaybackEndBehaviorUi.label(requireContext(), playerPrefs.playbackEndBehavior)
+        }
+        updatePlaybackEndText()
+        tvPlaybackEnd.setOnClickListener {
+            val options = PlayerPlaybackEndBehaviorUi.options()
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.settings_playback_end_behavior)
+                .setItems(options.map { PlayerPlaybackEndBehaviorUi.label(requireContext(), it) }.toTypedArray()) { _, which ->
+                    playerPrefs.playbackEndBehavior = options[which]
+                    updatePlaybackEndText()
+                }
+                .show()
+        }
     }
 }

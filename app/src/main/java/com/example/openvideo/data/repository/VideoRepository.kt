@@ -10,9 +10,17 @@ import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
+import com.example.openvideo.data.scanner.VideoScanOutcome
 import com.example.openvideo.data.scanner.VideoScanner
+import com.example.openvideo.ui.history.HistoryCleanupPolicy
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.shareIn
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -24,7 +32,16 @@ class VideoRepository @Inject constructor(
     private val playlistDao: PlaylistDao
 ) {
 
-    fun scanLocalVideos(): Flow<List<VideoItem>> = videoScanner.scanVideos()
+    private val repositoryScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private val sharedScanResults = videoScanner.scanVideos()
+        .shareIn(
+            scope = repositoryScope,
+            started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000),
+            replay = 1
+        )
+
+    fun scanLocalVideos(): Flow<VideoScanOutcome> = sharedScanResults
 
     // History
     fun getHistory(): Flow<List<HistoryEntity>> = historyDao.getAll()
@@ -62,6 +79,20 @@ class VideoRepository @Inject constructor(
     suspend fun getHistory(videoId: Long): HistoryEntity? = historyDao.getByVideoId(videoId)
 
     suspend fun clearHistory() = historyDao.deleteAll()
+
+    suspend fun pruneStaleHistory(scannedVideos: List<VideoItem>) {
+        val history = historyDao.getAll().first()
+        if (history.isEmpty()) return
+        val scannedVideoIds = scannedVideos.map { it.id }.toSet()
+        val scannedPaths = scannedVideos.map { it.path.trim().replace('\\', '/').trimEnd('/') }.toSet()
+        val staleIds = HistoryCleanupPolicy.videoIdsToRemove(
+            history = history,
+            scannedVideoIds = scannedVideoIds,
+            scannedPaths = scannedPaths,
+            localFileExists = { path -> File(path).exists() }
+        )
+        staleIds.forEach { historyDao.delete(it) }
+    }
 
     // Favorites
     fun getFavorites(): Flow<List<FavoriteEntity>> = favoriteDao.getAll()

@@ -58,6 +58,28 @@ class MediaLibraryPolicyTest {
     }
 
     @Test
+    fun emptyStatePrioritizesPermissionAndScanErrors() {
+        assertEquals(
+            MediaLibraryEmptyState.PERMISSION_DENIED,
+            MediaLibraryPolicy.emptyState(
+                isLoading = true,
+                scannedCount = 10,
+                visibleCount = 0,
+                permissionDenied = true
+            )
+        )
+        assertEquals(
+            MediaLibraryEmptyState.SCAN_ERROR,
+            MediaLibraryPolicy.emptyState(
+                isLoading = false,
+                scannedCount = 10,
+                visibleCount = 0,
+                scanError = true
+            )
+        )
+    }
+
+    @Test
     fun emptyStateDistinguishesNoMediaFromFiltering() {
         assertEquals(
             MediaLibraryEmptyState.LOADING,

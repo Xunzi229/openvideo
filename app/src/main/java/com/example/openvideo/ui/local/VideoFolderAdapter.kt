@@ -10,7 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 
 class VideoFolderAdapter(
-    private val onClick: (VideoFolder) -> Unit
+    private val onClick: (VideoFolder) -> Unit,
+    private val onLongClick: (VideoFolder) -> Unit
 ) : ListAdapter<VideoFolder, VideoFolderAdapter.ViewHolder>(DIFF) {
 
     companion object {
@@ -32,10 +33,24 @@ class VideoFolderAdapter(
                 val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) onClick(getItem(position))
             }
+            view.setOnLongClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onLongClick(getItem(position))
+                    true
+                } else {
+                    false
+                }
+            }
         }
 
         fun bind(folder: VideoFolder) {
-            name.text = folder.name
+            val displayName = if (folder.isPinned) {
+                itemView.resources.getString(R.string.home_filter_folder_pinned_prefix, folder.name)
+            } else {
+                folder.name
+            }
+            name.text = displayName
             count.text = itemView.resources.getQuantityString(
                 R.plurals.video_count,
                 folder.videoCount,

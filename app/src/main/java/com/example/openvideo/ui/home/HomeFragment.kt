@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
@@ -38,6 +39,7 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -48,12 +50,16 @@ class HomeFragment : Fragment() {
     private val adapters = mutableMapOf<HomeCategory, VideoGridAdapter>()
     private val recyclerViews = mutableMapOf<HomeCategory, RecyclerView>()
     private lateinit var emptyView: TextView
+    private lateinit var scanLoadingContainer: View
+    private lateinit var scanProgressBar: ProgressBar
+    private lateinit var scanProgressLabel: TextView
     private lateinit var searchView: EditText
     private lateinit var sortRow: View
     private lateinit var sortLabel: TextView
     private lateinit var btnSortOrder: ImageButton
     private lateinit var btnList: ImageButton
     private lateinit var btnGrid: ImageButton
+    private lateinit var btnLibraryFilter: ImageButton
     private lateinit var chipAll: Chip
     private lateinit var chipRecent: Chip
     private lateinit var chipFavorite: Chip
@@ -62,6 +68,8 @@ class HomeFragment : Fragment() {
     private var actionMode: ActionMode? = null
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
     private var pendingJumpToTopCategory: HomeCategory? = null
+    private var latestEmptyState: MediaLibraryEmptyState = MediaLibraryEmptyState.LOADING
+    private var latestScanProgress: MediaLibraryScanProgress? = null
     private var activeCategory = HomeCategory.ALL
     private val categoryLists = mutableMapOf<HomeCategory, List<VideoItem>>()
     private var currentFolders: List<VideoFolderSummary> = emptyList()
@@ -98,6 +106,9 @@ class HomeFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         emptyView = view.findViewById(R.id.tv_empty)
+        scanLoadingContainer = view.findViewById(R.id.scan_loading_container)
+        scanProgressBar = view.findViewById(R.id.scan_progress_bar)
+        scanProgressLabel = view.findViewById(R.id.tv_scan_progress)
         searchView = view.findViewById(R.id.search_view)
         searchView.visibility = View.VISIBLE
 
@@ -109,8 +120,10 @@ class HomeFragment : Fragment() {
 
         btnList = view.findViewById(R.id.btn_list_view)
         btnGrid = view.findViewById(R.id.btn_grid_view)
+        btnLibraryFilter = view.findViewById(R.id.btn_library_filter)
         btnList.setOnClickListener { viewModel.setViewMode(ViewMode.LIST) }
         btnGrid.setOnClickListener { viewModel.setViewMode(ViewMode.GRID) }
+        btnLibraryFilter.setOnClickListener { showAdvancedFilterMenu() }
         chipAll = view.findViewById(R.id.chip_all)
         chipRecent = view.findViewById(R.id.chip_recent)
         chipFavorite = view.findViewById(R.id.chip_favorite)
@@ -221,14 +234,29 @@ class HomeFragment : Fragment() {
                     }
                 }
                 launch {
-                    viewModel.emptyState.collect { state ->
+                    viewModel.hasActiveAdvancedFilters.collect { active ->
+                        val tint = if (active) R.color.ov_accent_blue else R.color.ov_text_secondary
+                        btnLibraryFilter.imageTintList = ColorStateList.valueOf(
+                            ContextCompat.getColor(requireContext(), tint)
+                        )
+                    }
+                }
+                launch {
+                    combine(viewModel.emptyState, viewModel.scanProgress) { state, progress ->
+                        state to progress
+                    }.collect { (state, progress) ->
+                        latestEmptyState = state
+                        latestScanProgress = progress
                         emptyView.text = when (state) {
-                            MediaLibraryEmptyState.LOADING -> getString(R.string.media_library_loading)
+                            MediaLibraryEmptyState.PERMISSION_DENIED -> getString(R.string.media_library_permission_denied)
+                            MediaLibraryEmptyState.SCAN_ERROR -> getString(R.string.media_library_scan_error)
                             MediaLibraryEmptyState.NO_MEDIA -> getString(R.string.no_videos)
                             MediaLibraryEmptyState.FILTERED_BY_PRIVACY -> getString(R.string.media_library_empty_privacy)
                             MediaLibraryEmptyState.FILTERED_BY_QUERY_OR_FOLDER -> getString(R.string.media_library_empty_filtered)
+                            MediaLibraryEmptyState.LOADING,
                             MediaLibraryEmptyState.NONE -> getString(R.string.no_videos)
                         }
+                        bindEmptyUi(state, progress)
                     }
                 }
             }
@@ -316,8 +344,30 @@ class HomeFragment : Fragment() {
     private fun updateActiveEmptyState() {
         val list = categoryLists[activeCategory].orEmpty()
         val isEmpty = list.isEmpty()
-        emptyView.visibility = if (isEmpty) View.VISIBLE else View.GONE
         activeRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        if (!isEmpty) {
+            scanLoadingContainer.visibility = View.GONE
+            emptyView.visibility = View.GONE
+            return
+        }
+        bindEmptyUi(latestEmptyState, latestScanProgress)
+    }
+
+    private fun bindEmptyUi(
+        state: MediaLibraryEmptyState,
+        progress: MediaLibraryScanProgress?
+    ) {
+        val isEmpty = categoryLists[activeCategory].orEmpty().isEmpty()
+        MediaLibraryScanLoadingUi.bind(
+            context = requireContext(),
+            loadingContainer = scanLoadingContainer,
+            progressBar = scanProgressBar,
+            progressLabel = scanProgressLabel,
+            emptyLabel = emptyView,
+            emptyState = state,
+            scanProgress = progress,
+            isContentEmpty = isEmpty
+        )
     }
 
     private fun hasVideoReadPermission(): Boolean {
@@ -327,17 +377,12 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun videoReadPermissions(): Array<String> {
-        return when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> arrayOf(
-                Manifest.permission.READ_MEDIA_VIDEO,
-                Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-            )
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
-                Manifest.permission.READ_MEDIA_VIDEO
-            )
-            else -> arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
+    private fun videoReadPermissions(): Array<String> =
+        MediaLibraryPermissionPolicy.requiredPermissions()
+
+    override fun onResume() {
+        super.onResume()
+        checkPermissionAndLoad()
     }
 
     private fun openPlayer(video: VideoItem) {
@@ -475,14 +520,111 @@ class HomeFragment : Fragment() {
         ))
         currentFolders.forEach { folder ->
             folderGroup.addView(createFolderChip(
-                text = getString(R.string.home_filter_folder_with_count, folder.name, folder.videoCount),
+                text = folderChipLabel(folder),
                 checked = currentSelectedFolderKey == folder.key,
-                onClick = { viewModel.setFolderFilter(folder.key) }
+                onClick = { viewModel.setFolderFilter(folder.key) },
+                onLongClick = { viewModel.togglePinnedFolder(folder.key) }
             ))
         }
     }
 
-    private fun createFolderChip(text: String, checked: Boolean, onClick: () -> Unit): Chip {
+    private fun showAdvancedFilterMenu() {
+        val options = arrayOf(
+            getString(R.string.home_filter_duration_option),
+            getString(R.string.home_filter_format_option),
+            getString(R.string.home_filter_date_option),
+            getString(R.string.home_filter_clear)
+        )
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.home_advanced_filters_title)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showDurationFilterDialog()
+                    1 -> showFormatFilterDialog()
+                    2 -> showDateFilterDialog()
+                    3 -> viewModel.clearAdvancedFilters()
+                }
+            }
+            .show()
+    }
+
+    private fun showDurationFilterDialog() {
+        val labels = arrayOf(
+            getString(R.string.home_filter_duration_any),
+            getString(R.string.home_filter_duration_short),
+            getString(R.string.home_filter_duration_medium),
+            getString(R.string.home_filter_duration_long)
+        )
+        val values = DurationFilter.entries
+        val current = viewModel.advancedFilters.value.durationFilter
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.home_filter_duration_option)
+            .setSingleChoiceItems(labels, values.indexOf(current)) { dialog, which ->
+                viewModel.setAdvancedFilters(
+                    viewModel.advancedFilters.value.copy(durationFilter = values[which])
+                )
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun showFormatFilterDialog() {
+        val extensions = arrayOf(null, "mp4", "mkv", "avi", "webm")
+        val labels = arrayOf(
+            getString(R.string.home_filter_format_any),
+            getString(R.string.home_filter_format_mp4),
+            getString(R.string.home_filter_format_mkv),
+            getString(R.string.home_filter_format_avi),
+            getString(R.string.home_filter_format_webm)
+        )
+        val current = viewModel.advancedFilters.value.formatExtension
+        val checked = extensions.indexOfFirst { it == current }.coerceAtLeast(0)
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.home_filter_format_option)
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                viewModel.setAdvancedFilters(
+                    viewModel.advancedFilters.value.copy(formatExtension = extensions[which])
+                )
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun showDateFilterDialog() {
+        val labels = arrayOf(
+            getString(R.string.home_filter_date_any),
+            getString(R.string.home_filter_date_7d),
+            getString(R.string.home_filter_date_30d),
+            getString(R.string.home_filter_date_older)
+        )
+        val values = DateFilter.entries
+        val current = viewModel.advancedFilters.value.dateFilter
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.home_filter_date_option)
+            .setSingleChoiceItems(labels, values.indexOf(current)) { dialog, which ->
+                viewModel.setAdvancedFilters(
+                    viewModel.advancedFilters.value.copy(dateFilter = values[which])
+                )
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun folderChipLabel(folder: VideoFolderSummary): String {
+        val label = getString(R.string.home_filter_folder_with_count, folder.name, folder.videoCount)
+        return if (folder.isPinned) {
+            getString(R.string.home_filter_folder_pinned_prefix, label)
+        } else {
+            label
+        }
+    }
+
+    private fun createFolderChip(
+        text: String,
+        checked: Boolean,
+        onClick: () -> Unit,
+        onLongClick: (() -> Unit)? = null
+    ): Chip {
         return Chip(requireContext()).apply {
             this.text = text
             isCheckable = true
@@ -491,6 +633,12 @@ class HomeFragment : Fragment() {
             checkedIcon = null
             isCheckedIconVisible = false
             setOnClickListener { onClick() }
+            onLongClick?.let { handler ->
+                setOnLongClickListener {
+                    handler()
+                    true
+                }
+            }
             chipStrokeWidth = resources.displayMetrics.density
             bindFolderChipStyle(this, checked)
         }

@@ -96,6 +96,12 @@
     <string name="settings_gesture_seek">Seek gesture</string>
     <string name="settings_keep_screen_on">Keep screen on</string>
     <string name="settings_auto_play_next">Play next automatically</string>
+    <string name="settings_playback_end_behavior">When playback ends</string>
+    <string name="settings_playback_end_follow">Follow loop and auto-next</string>
+    <string name="settings_playback_end_next">Play next</string>
+    <string name="settings_playback_end_replay">Replay current</string>
+    <string name="settings_playback_end_stop">Stop at end</string>
+    <string name="settings_playback_end_return">Return to list</string>
     <string name="settings_double_tap_action">Double-tap action</string>
     <string name="settings_double_tap_pause">Play / pause</string>
     <string name="settings_double_tap_playback">Speed playback</string>
@@ -288,6 +294,9 @@
     <string name="refresh">Refresh</string>
     <string name="no_videos">No videos</string>
     <string name="media_library_loading">Scanning videos...</string>
+    <string name="media_library_scanning_count">Scanned %1$d videos…</string>
+    <string name="media_library_permission_denied">Video access permission is required to scan local files</string>
+    <string name="media_library_scan_error">Could not refresh the local library. Try again.</string>
     <string name="media_library_empty_privacy">Videos are hidden by private folders</string>
     <string name="media_library_empty_filtered">No videos match the current filter</string>
     <string name="duration_format" formatted="false">%02d:%02d:%02d</string>
@@ -299,6 +308,27 @@
     <string name="home_filter_favorite">Favorites</string>
     <string name="home_filter_all_folders">All folders</string>
     <string name="home_filter_folder_with_count">%1$s (%2$d)</string>
+    <string name="home_filter_folder_pinned_prefix">★ %1$s</string>
+    <string name="home_folder_pin_hint">Long press a folder to pin or unpin</string>
+    <string name="home_search_hint">Search by title or folder path</string>
+    <string name="home_advanced_filters_title">Filters</string>
+    <string name="home_filter_duration_option">Duration</string>
+    <string name="home_filter_format_option">Format</string>
+    <string name="home_filter_date_option">Date added</string>
+    <string name="home_filter_clear">Clear filters</string>
+    <string name="home_filter_duration_any">Any duration</string>
+    <string name="home_filter_duration_short">Under 5 minutes</string>
+    <string name="home_filter_duration_medium">5–60 minutes</string>
+    <string name="home_filter_duration_long">Over 60 minutes</string>
+    <string name="home_filter_format_any">Any format</string>
+    <string name="home_filter_format_mp4">MP4</string>
+    <string name="home_filter_format_mkv">MKV</string>
+    <string name="home_filter_format_avi">AVI</string>
+    <string name="home_filter_format_webm">WebM</string>
+    <string name="home_filter_date_any">Any date</string>
+    <string name="home_filter_date_7d">Last 7 days</string>
+    <string name="home_filter_date_30d">Last 30 days</string>
+    <string name="home_filter_date_older">Older than 30 days</string>
     <string name="home_sort_by_modified">Modified time</string>
     <string name="sort_by_date">Date</string>
     <string name="sort_by_name">Name</string>
@@ -455,4 +485,13 @@
     <string name="playlist_option_rename">Rename</string>
     <string name="playlist_option_delete">Delete</string>
     <string name="multi_select_count">%d selected</string>
+
+    <!-- Continue watching -->
+    <string name="history_continue_missing_file">Missing file</string>
+    <string name="history_continue_completed">Completed</string>
+    <string name="history_continue_just_now">Just now</string>
+    <string name="history_continue_minutes_ago">%1$d min ago</string>
+    <string name="history_continue_hours_ago">%1$d hr ago</string>
+    <string name="history_continue_days_ago">%1$d d ago</string>
+    <string name="history_continue_progress_percent">%1$d%%</string>
 </resources>

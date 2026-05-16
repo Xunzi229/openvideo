@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -20,11 +21,16 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.ui.home.MediaLibraryEmptyState
+import com.example.openvideo.ui.home.MediaLibraryPermissionPolicy
+import com.example.openvideo.ui.home.MediaLibraryScanLoadingUi
+import com.example.openvideo.ui.home.MediaLibraryScanProgress
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -34,15 +40,20 @@ class LocalFolderFragment : Fragment() {
     private lateinit var adapter: VideoFolderAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
+    private lateinit var scanLoadingContainer: View
+    private lateinit var scanProgressBar: ProgressBar
+    private lateinit var scanProgressLabel: TextView
     private lateinit var continuePlaybackFab: FloatingActionButton
     private var localVideosSnapshot: List<VideoItem> = emptyList()
     private var continuePlaybackVideo: VideoItem? = null
     private var continuePlaybackPositionMs: Long = 0L
+    private var latestEmptyState: MediaLibraryEmptyState = MediaLibraryEmptyState.LOADING
+    private var latestScanProgress: MediaLibraryScanProgress? = null
 
     private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) viewModel.loadVideos()
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        if (grants.any { it.value }) viewModel.loadVideos()
     }
 
     override fun onCreateView(
@@ -55,9 +66,15 @@ class LocalFolderFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recycler_folders)
         emptyView = view.findViewById(R.id.tv_empty)
+        scanLoadingContainer = view.findViewById(R.id.scan_loading_container)
+        scanProgressBar = view.findViewById(R.id.scan_progress_bar)
+        scanProgressLabel = view.findViewById(R.id.tv_scan_progress)
         continuePlaybackFab = view.findViewById(R.id.fab_continue_playback)
 
-        adapter = VideoFolderAdapter { folder -> openFolder(folder) }
+        adapter = VideoFolderAdapter(
+            onClick = { folder -> openFolder(folder) },
+            onLongClick = { folder -> viewModel.togglePinnedFolder(folder.key) }
+        )
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
@@ -79,8 +96,30 @@ class LocalFolderFragment : Fragment() {
                 launch {
                     viewModel.folders.collect { folders ->
                         adapter.submitList(folders)
-                        emptyView.visibility = if (folders.isEmpty()) View.VISIBLE else View.GONE
-                        recyclerView.visibility = if (folders.isEmpty()) View.GONE else View.VISIBLE
+                    }
+                }
+                launch {
+                    combine(viewModel.emptyState, viewModel.scanProgress, viewModel.folders) { state, progress, folders ->
+                        Triple(state, progress, folders)
+                    }.collect { (state, progress, folders) ->
+                        latestEmptyState = state
+                        latestScanProgress = progress
+                        emptyView.text = when (state) {
+                            MediaLibraryEmptyState.PERMISSION_DENIED -> getString(R.string.media_library_permission_denied)
+                            MediaLibraryEmptyState.SCAN_ERROR -> getString(R.string.media_library_scan_error)
+                            MediaLibraryEmptyState.NO_MEDIA -> getString(R.string.no_videos)
+                            else -> getString(R.string.no_videos)
+                        }
+                        val showBlockingEmpty = state == MediaLibraryEmptyState.PERMISSION_DENIED ||
+                            state == MediaLibraryEmptyState.SCAN_ERROR ||
+                            state == MediaLibraryEmptyState.LOADING ||
+                            state == MediaLibraryEmptyState.NO_MEDIA
+                        if (showBlockingEmpty) {
+                            updateFolderListVisibility(false)
+                        } else if (folders.isNotEmpty()) {
+                            updateFolderListVisibility(true)
+                        }
+                        bindEmptyUi(state, progress, folders.isEmpty())
                     }
                 }
                 launch {
@@ -104,19 +143,53 @@ class LocalFolderFragment : Fragment() {
     }
 
     private fun checkPermissionAndLoad() {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_VIDEO
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
-
-        if (ContextCompat.checkSelfPermission(requireContext(), permission)
-            == PackageManager.PERMISSION_GRANTED
-        ) {
+        if (hasVideoReadPermission()) {
             viewModel.loadVideos()
         } else {
-            permissionLauncher.launch(permission)
+            permissionLauncher.launch(MediaLibraryPermissionPolicy.requiredPermissions())
         }
+    }
+
+    private fun hasVideoReadPermission(): Boolean =
+        MediaLibraryPermissionPolicy.requiredPermissions().any { permission ->
+            ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED
+        }
+
+    private fun updateFolderListVisibility(hasFolders: Boolean) {
+        if (hasFolders) {
+            scanLoadingContainer.visibility = View.GONE
+            emptyView.visibility = View.GONE
+            recyclerView.visibility = View.VISIBLE
+            return
+        }
+        bindEmptyUi(
+            state = latestEmptyState,
+            progress = latestScanProgress,
+            isContentEmpty = true
+        )
+        recyclerView.visibility = View.GONE
+    }
+
+    private fun bindEmptyUi(
+        state: MediaLibraryEmptyState,
+        progress: MediaLibraryScanProgress?,
+        isContentEmpty: Boolean
+    ) {
+        MediaLibraryScanLoadingUi.bind(
+            context = requireContext(),
+            loadingContainer = scanLoadingContainer,
+            progressBar = scanProgressBar,
+            progressLabel = scanProgressLabel,
+            emptyLabel = emptyView,
+            emptyState = state,
+            scanProgress = progress,
+            isContentEmpty = isContentEmpty
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        checkPermissionAndLoad()
     }
 
     private fun openFolder(folder: VideoFolder) {

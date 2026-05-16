@@ -52,6 +52,10 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_SORT_ASC, false)
         set(value) = putBoolean(KEY_SORT_ASC, value)
 
+    var pinnedFolderKeys: Set<String>
+        get() = prefs.getStringSet(KEY_PINNED_FOLDER_KEYS, emptySet()) ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_PINNED_FOLDER_KEYS, value.toSet()).apply()
+
     /** Last successful GitHub release API check (epoch ms). */
     var lastGitHubReleaseCheckMs: Long
         get() = getLong(KEY_LAST_GITHUB_RELEASE_CHECK_MS, 0L)
@@ -92,6 +96,7 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_HOME_FAVORITE_VIEW_MODE = "home_favorite_view_mode"
         private const val KEY_SORT_FIELD = "sort_field"
         private const val KEY_SORT_ASC = "sort_asc"
+        private const val KEY_PINNED_FOLDER_KEYS = "pinned_folder_keys"
         private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"
         private const val KEY_GITHUB_UPDATE_BADGE = "github_update_badge_visible"
         private const val KEY_GITHUB_PENDING_DOWNLOAD_URL = "github_pending_download_url"

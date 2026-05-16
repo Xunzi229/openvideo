@@ -17,6 +17,10 @@ class HomeFolderFilterSourceTest {
         assertTrue(source.contains("fun setFolderFilter(folderKey: String?)"))
         assertTrue(source.contains("MediaLibraryPolicy.validFolderKey"))
         assertTrue(source.contains("folderKey = selectedFolderKey"))
+        assertTrue(source.contains("videosForFolderChips"))
+        assertTrue(source.contains("VideoFolderFilterPolicy.displayFolders"))
+        assertTrue(source.contains("togglePinnedFolder"))
+        assertTrue(source.contains("prunePinnedKeys"))
     }
 
     @Test
@@ -29,6 +33,8 @@ class HomeFolderFilterSourceTest {
         assertTrue(source.contains("viewModel.folders.collect"))
         assertTrue(source.contains("viewModel.selectedFolderKey.collect"))
         assertTrue(source.contains("bindFolderChips"))
+        assertTrue(source.contains("togglePinnedFolder"))
+        assertTrue(source.contains("folderChipLabel"))
     }
 
     private fun homeViewModelSource(): Path = sourcePath(

@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import com.example.openvideo.core.prefs.LoopMode
+import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -8,7 +9,7 @@ import org.junit.Test
 class PlayerPlaybackEndPolicyTest {
 
     @Test
-    fun singleVideoStopsAtEndWhenNoLoopOrReturnBehaviorIsRequested() {
+    fun followSettingsStopsAtEndForSingleVideoWithoutLoop() {
         val decision = PlayerPlaybackEndPolicy.decide(
             currentIndex = 0,
             queueSize = 1,
@@ -16,7 +17,7 @@ class PlayerPlaybackEndPolicyTest {
             loopMode = LoopMode.OFF,
             abLoopState = PlayerAbLoopState.IDLE,
             abLoopPointA = -1L,
-            returnToListWhenDone = false
+            endBehavior = PlaybackEndBehavior.FOLLOW_SETTINGS
         )
 
         assertEquals(PlayerPlaybackEndAction.STOP_AT_END, decision.action)
@@ -25,7 +26,7 @@ class PlayerPlaybackEndPolicyTest {
     }
 
     @Test
-    fun singleLoopReplaysCurrentVideoFromStart() {
+    fun followSettingsReplaysCurrentVideoWhenSingleLoopEnabled() {
         val decision = PlayerPlaybackEndPolicy.decide(
             currentIndex = 0,
             queueSize = 1,
@@ -33,7 +34,7 @@ class PlayerPlaybackEndPolicyTest {
             loopMode = LoopMode.SINGLE,
             abLoopState = PlayerAbLoopState.IDLE,
             abLoopPointA = -1L,
-            returnToListWhenDone = false
+            endBehavior = PlaybackEndBehavior.FOLLOW_SETTINGS
         )
 
         assertEquals(PlayerPlaybackEndAction.REPLAY_CURRENT, decision.action)
@@ -42,7 +43,7 @@ class PlayerPlaybackEndPolicyTest {
     }
 
     @Test
-    fun listLoopWithAutoNextAdvancesToNextQueueItem() {
+    fun followSettingsAdvancesWhenListLoopAndAutoNextAreEnabled() {
         val decision = PlayerPlaybackEndPolicy.decide(
             currentIndex = 0,
             queueSize = 3,
@@ -50,7 +51,7 @@ class PlayerPlaybackEndPolicyTest {
             loopMode = LoopMode.LIST,
             abLoopState = PlayerAbLoopState.IDLE,
             abLoopPointA = -1L,
-            returnToListWhenDone = false
+            endBehavior = PlaybackEndBehavior.FOLLOW_SETTINGS
         )
 
         assertEquals(PlayerPlaybackEndAction.PLAY_NEXT, decision.action)
@@ -59,7 +60,7 @@ class PlayerPlaybackEndPolicyTest {
     }
 
     @Test
-    fun activeAbLoopReplaysFromPointABeforeQueueAdvance() {
+    fun activeAbLoopReplaysFromPointABeforeExplicitEndBehavior() {
         val decision = PlayerPlaybackEndPolicy.decide(
             currentIndex = 0,
             queueSize = 3,
@@ -67,7 +68,7 @@ class PlayerPlaybackEndPolicyTest {
             loopMode = LoopMode.LIST,
             abLoopState = PlayerAbLoopState.LOOPING,
             abLoopPointA = 42_000L,
-            returnToListWhenDone = false
+            endBehavior = PlaybackEndBehavior.RETURN_TO_LIST
         )
 
         assertEquals(PlayerPlaybackEndAction.REPLAY_CURRENT, decision.action)
@@ -76,7 +77,54 @@ class PlayerPlaybackEndPolicyTest {
     }
 
     @Test
-    fun returnToListBehaviorWinsWhenQueueCannotAdvance() {
+    fun explicitReplayOverridesListLoopAdvance() {
+        val decision = PlayerPlaybackEndPolicy.decide(
+            currentIndex = 0,
+            queueSize = 3,
+            autoPlayNext = true,
+            loopMode = LoopMode.LIST,
+            abLoopState = PlayerAbLoopState.IDLE,
+            abLoopPointA = -1L,
+            endBehavior = PlaybackEndBehavior.REPLAY
+        )
+
+        assertEquals(PlayerPlaybackEndAction.REPLAY_CURRENT, decision.action)
+        assertEquals(0L, decision.seekPositionMs)
+    }
+
+    @Test
+    fun explicitStopOverridesListLoopAdvance() {
+        val decision = PlayerPlaybackEndPolicy.decide(
+            currentIndex = 0,
+            queueSize = 3,
+            autoPlayNext = true,
+            loopMode = LoopMode.LIST,
+            abLoopState = PlayerAbLoopState.IDLE,
+            abLoopPointA = -1L,
+            endBehavior = PlaybackEndBehavior.STOP
+        )
+
+        assertEquals(PlayerPlaybackEndAction.STOP_AT_END, decision.action)
+    }
+
+    @Test
+    fun explicitPlayNextAdvancesQueueAndWrapsAtEnd() {
+        val decision = PlayerPlaybackEndPolicy.decide(
+            currentIndex = 2,
+            queueSize = 3,
+            autoPlayNext = false,
+            loopMode = LoopMode.OFF,
+            abLoopState = PlayerAbLoopState.IDLE,
+            abLoopPointA = -1L,
+            endBehavior = PlaybackEndBehavior.PLAY_NEXT
+        )
+
+        assertEquals(PlayerPlaybackEndAction.PLAY_NEXT, decision.action)
+        assertEquals(0, decision.nextIndex)
+    }
+
+    @Test
+    fun explicitReturnToListFinishesPlayback() {
         val decision = PlayerPlaybackEndPolicy.decide(
             currentIndex = 0,
             queueSize = 1,
@@ -84,11 +132,9 @@ class PlayerPlaybackEndPolicyTest {
             loopMode = LoopMode.OFF,
             abLoopState = PlayerAbLoopState.IDLE,
             abLoopPointA = -1L,
-            returnToListWhenDone = true
+            endBehavior = PlaybackEndBehavior.RETURN_TO_LIST
         )
 
         assertEquals(PlayerPlaybackEndAction.RETURN_TO_LIST, decision.action)
-        assertNull(decision.nextIndex)
-        assertNull(decision.seekPositionMs)
     }
 }

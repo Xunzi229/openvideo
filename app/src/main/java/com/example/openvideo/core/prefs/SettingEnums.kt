@@ -11,6 +11,19 @@ enum class LoopMode(val key: String) {
     }
 }
 
+enum class PlaybackEndBehavior(val key: String) {
+    FOLLOW_SETTINGS("follow"),
+    PLAY_NEXT("next"),
+    REPLAY("replay"),
+    STOP("stop"),
+    RETURN_TO_LIST("return");
+
+    companion object {
+        fun fromKey(key: String): PlaybackEndBehavior =
+            entries.find { it.key == key } ?: FOLLOW_SETTINGS
+    }
+}
+
 enum class AspectRatio(val key: String) {
     FIT("fit"),
     FILL("fill"),

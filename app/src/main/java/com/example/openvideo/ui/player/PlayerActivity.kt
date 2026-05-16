@@ -921,7 +921,7 @@ class PlayerActivity : AppCompatActivity() {
             loopMode = playerPrefs.loopMode,
             abLoopState = abLoopState,
             abLoopPointA = abLoopPointA,
-            returnToListWhenDone = false
+            endBehavior = playerPrefs.playbackEndBehavior
         )
 
         when (decision.action) {

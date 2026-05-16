@@ -70,6 +70,7 @@ class HistoryFragment : Fragment() {
                 viewModel.history.collect { list ->
                     val items = HistoryContinueWatchingPolicy.buildItems(
                         history = list,
+                        labels = HistoryContinueWatchingLabels.from(requireContext()),
                         nowMs = System.currentTimeMillis(),
                         localFileExists = { path -> File(path).exists() }
                     )

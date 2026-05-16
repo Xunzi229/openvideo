@@ -96,6 +96,12 @@
     <string name="settings_gesture_seek">进度手势</string>
     <string name="settings_keep_screen_on">保持屏幕常亮</string>
     <string name="settings_auto_play_next">自动连播下一集</string>
+    <string name="settings_playback_end_behavior">播放结束行为</string>
+    <string name="settings_playback_end_follow">跟随循环与自动连播</string>
+    <string name="settings_playback_end_next">播放下一个</string>
+    <string name="settings_playback_end_replay">重播当前</string>
+    <string name="settings_playback_end_stop">播完停止</string>
+    <string name="settings_playback_end_return">返回列表</string>
     <string name="settings_double_tap_action">双击动作</string>
     <string name="settings_double_tap_pause">暂停/播放</string>
     <string name="settings_double_tap_playback">倍速播放</string>
@@ -288,6 +294,9 @@
     <string name="refresh">刷新</string>
     <string name="no_videos">暂无视频</string>
     <string name="media_library_loading">正在扫描视频...</string>
+    <string name="media_library_scanning_count">已扫描 %1$d 个视频…</string>
+    <string name="media_library_permission_denied">需要视频访问权限才能扫描本地文件</string>
+    <string name="media_library_scan_error">无法刷新本地媒体库，请重试</string>
     <string name="media_library_empty_privacy">视频已被隐私文件夹隐藏</string>
     <string name="media_library_empty_filtered">当前筛选条件下暂无视频</string>
     <string name="duration_format" formatted="false">%02d:%02d:%02d</string>
@@ -299,6 +308,27 @@
     <string name="home_filter_favorite">收藏</string>
     <string name="home_filter_all_folders">全部文件夹</string>
     <string name="home_filter_folder_with_count">%1$s（%2$d）</string>
+    <string name="home_filter_folder_pinned_prefix">★ %1$s</string>
+    <string name="home_folder_pin_hint">长按文件夹可置顶或取消置顶</string>
+    <string name="home_search_hint">搜索标题或文件夹路径</string>
+    <string name="home_advanced_filters_title">筛选</string>
+    <string name="home_filter_duration_option">时长</string>
+    <string name="home_filter_format_option">格式</string>
+    <string name="home_filter_date_option">添加日期</string>
+    <string name="home_filter_clear">清除筛选</string>
+    <string name="home_filter_duration_any">不限时长</string>
+    <string name="home_filter_duration_short">5 分钟以内</string>
+    <string name="home_filter_duration_medium">5–60 分钟</string>
+    <string name="home_filter_duration_long">60 分钟以上</string>
+    <string name="home_filter_format_any">不限格式</string>
+    <string name="home_filter_format_mp4">MP4</string>
+    <string name="home_filter_format_mkv">MKV</string>
+    <string name="home_filter_format_avi">AVI</string>
+    <string name="home_filter_format_webm">WebM</string>
+    <string name="home_filter_date_any">不限日期</string>
+    <string name="home_filter_date_7d">最近 7 天</string>
+    <string name="home_filter_date_30d">最近 30 天</string>
+    <string name="home_filter_date_older">30 天以前</string>
     <string name="home_sort_by_modified">按修改时间</string>
     <string name="sort_by_date">按日期</string>
     <string name="sort_by_name">按名称</string>
@@ -455,4 +485,13 @@
     <string name="playlist_option_rename">重命名</string>
     <string name="playlist_option_delete">删除</string>
     <string name="multi_select_count">%d 已选择</string>
+
+    <!-- Continue watching -->
+    <string name="history_continue_missing_file">文件已缺失</string>
+    <string name="history_continue_completed">已看完</string>
+    <string name="history_continue_just_now">刚刚</string>
+    <string name="history_continue_minutes_ago">%1$d 分钟前</string>
+    <string name="history_continue_hours_ago">%1$d 小时前</string>
+    <string name="history_continue_days_ago">%1$d 天前</string>
+    <string name="history_continue_progress_percent">%1$d%%</string>
 </resources>

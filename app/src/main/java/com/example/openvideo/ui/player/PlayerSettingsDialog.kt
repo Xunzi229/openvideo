@@ -40,6 +40,7 @@ import com.example.openvideo.core.prefs.DoubleTapAction
 import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.LongPressAction
 import com.example.openvideo.core.prefs.LoopMode
+import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -669,6 +670,16 @@ class PlayerSettingsDialog(
         ) { checked ->
             playerPrefs.autoPlayNext = checked
         }
+        addChoiceRow(
+            title = context.getString(R.string.settings_playback_end_behavior),
+            value = playbackEndBehaviorLabel(playerPrefs.playbackEndBehavior),
+            options = PlayerPlaybackEndBehaviorUi.options().map(::playbackEndBehaviorLabel)
+        ) { selected ->
+            val behavior = PlayerPlaybackEndBehaviorUi.options()
+                .firstOrNull { playbackEndBehaviorLabel(it) == selected }
+                ?: PlaybackEndBehavior.FOLLOW_SETTINGS
+            playerPrefs.playbackEndBehavior = behavior
+        }
         addPlaybackSpeedSeekRow()
         addChoiceRow(
             title = context.getString(R.string.settings_seek_interval),
@@ -1200,6 +1211,9 @@ class PlayerSettingsDialog(
         LoopMode.SINGLE -> context.getString(R.string.settings_loop_single)
         LoopMode.LIST -> context.getString(R.string.settings_loop_list)
     }
+
+    private fun playbackEndBehaviorLabel(value: PlaybackEndBehavior): String =
+        PlayerPlaybackEndBehaviorUi.label(context, value)
 
     private fun aspectLabel(value: AspectRatio): String = when (value) {
         AspectRatio.FIT -> context.getString(R.string.player_sheet_fit_screen)

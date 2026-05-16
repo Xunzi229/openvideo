@@ -15,8 +15,18 @@ class VideoScannerObserverSourceTest {
         assertTrue(source.contains("ContentObserver"))
         assertTrue(source.contains("registerContentObserver(videoCollectionUri(), true, observer)"))
         assertTrue(source.contains("unregisterContentObserver(observer)"))
-        assertTrue(source.contains("SCAN_OBSERVER_DEBOUNCE_MS"))
-        assertTrue(source.contains("queryVideos()"))
+        assertTrue(source.contains("MediaStoreRefreshPolicy.debounceDelayMs()"))
+        assertTrue(source.contains("emitScanResults"))
+        assertTrue(source.contains("VideoScanOutcome"))
+        assertTrue(source.contains("MediaLibraryPermissionPolicy.hasReadAccess"))
+        assertTrue(source.contains("refreshVideos"))
+        assertTrue(source.contains("queryVideoIndex()"))
+        assertTrue(source.contains("queryVideosByIds"))
+        assertTrue(source.contains("MediaStoreDiffPolicy.diff"))
+        assertTrue(source.contains("MediaStoreRefreshPolicy.shouldUseIncrementalRefresh"))
+        assertTrue(source.contains("VideoScanOutcome.Progress"))
+        assertTrue(source.contains("shouldReportFullScanProgress"))
+        assertTrue(source.contains("shouldEmitScanProgress"))
     }
 
     private fun videoScannerSource(): Path {

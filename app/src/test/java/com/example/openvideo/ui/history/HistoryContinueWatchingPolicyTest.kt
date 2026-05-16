@@ -10,8 +10,10 @@ class HistoryContinueWatchingPolicyTest {
 
     @Test
     fun buildItemsIncludesProgressAndRecentWatchLabelsForAvailableFiles() {
+        val labels = HistoryContinueWatchingLabels.englishDefaults()
         val items = HistoryContinueWatchingPolicy.buildItems(
             history = listOf(history(duration = 120_000, lastPosition = 30_000, timestamp = 3_540_000)),
+            labels = labels,
             nowMs = 3_600_000,
             localFileExists = { true }
         )
@@ -24,8 +26,10 @@ class HistoryContinueWatchingPolicyTest {
 
     @Test
     fun buildItemsMarksMissingFilesButKeepsThemVisible() {
+        val labels = HistoryContinueWatchingLabels.englishDefaults()
         val items = HistoryContinueWatchingPolicy.buildItems(
             history = listOf(history(path = "/missing.mp4")),
+            labels = labels,
             nowMs = 10_000,
             localFileExists = { false }
         )
@@ -37,8 +41,10 @@ class HistoryContinueWatchingPolicyTest {
 
     @Test
     fun buildItemsShowsCompletedWhenResumeProgressIsReset() {
+        val labels = HistoryContinueWatchingLabels.englishDefaults()
         val items = HistoryContinueWatchingPolicy.buildItems(
             history = listOf(history(duration = 90_000, lastPosition = 0)),
+            labels = labels,
             nowMs = 10_000,
             localFileExists = { true }
         )

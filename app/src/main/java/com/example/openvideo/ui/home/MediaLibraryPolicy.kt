@@ -5,6 +5,8 @@ import com.example.openvideo.ui.local.VideoFolderGrouper
 
 enum class MediaLibraryEmptyState {
     LOADING,
+    PERMISSION_DENIED,
+    SCAN_ERROR,
     NONE,
     NO_MEDIA,
     FILTERED_BY_PRIVACY,
@@ -90,8 +92,12 @@ object MediaLibraryPolicy {
         isLoading: Boolean,
         scannedCount: Int,
         visibleCount: Int,
-        hiddenFilteredCount: Int = 0
+        hiddenFilteredCount: Int = 0,
+        permissionDenied: Boolean = false,
+        scanError: Boolean = false
     ): MediaLibraryEmptyState {
+        if (permissionDenied) return MediaLibraryEmptyState.PERMISSION_DENIED
+        if (scanError) return MediaLibraryEmptyState.SCAN_ERROR
         if (isLoading) return MediaLibraryEmptyState.LOADING
         if (visibleCount > 0) return MediaLibraryEmptyState.NONE
         if (scannedCount == 0) return MediaLibraryEmptyState.NO_MEDIA

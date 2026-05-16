@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerEpisodeOrderingPolicyTest {
@@ -32,6 +33,37 @@ class PlayerEpisodeOrderingPolicyTest {
     }
 
     @Test
+    fun shouldOrderQueueWhenAllVideosShareOneFolder() {
+        val candidates = listOf(
+            video(id = 1, title = "clip a.mp4", path = "/storage/Movies/Show/a.mp4"),
+            video(id = 2, title = "clip b.mp4", path = "/storage/Movies/Show/b.mp4")
+        )
+
+        assertTrue(PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))
+    }
+
+    @Test
+    fun shouldNotOrderQueueForMixedFoldersWithoutEpisodeSignal() {
+        val candidates = listOf(
+            video(id = 1, title = "movie a.mp4", path = "/storage/Movies/a.mp4"),
+            video(id = 2, title = "movie b.mp4", path = "/storage/Downloads/b.mp4")
+        )
+
+        assertEquals(false, PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))
+    }
+
+    @Test
+    fun shouldOrderPlaylistLikeQueueWhenMostTitlesCarryEpisodeNumbers() {
+        val candidates = listOf(
+            video(id = 1, title = "Show S01E01.mp4"),
+            video(id = 2, title = "Show S01E02.mp4"),
+            video(id = 3, title = "Show trailer.mp4", path = "/storage/Other/trailer.mp4")
+        )
+
+        assertTrue(PlayerEpisodeOrderingPolicy.shouldOrderQueue(candidates))
+    }
+
+    @Test
     fun keepsFallbackDeterministicWhenEpisodeNumberIsMissing() {
         val ordered = PlayerEpisodeOrderingPolicy.orderCandidates(
             listOf(
@@ -47,12 +79,14 @@ class PlayerEpisodeOrderingPolicyTest {
     private fun video(
         id: Long,
         title: String,
+        path: String = "/storage/emulated/0/Shows/$title",
         dateAdded: Long = id
     ): PlayerEpisodeOrderingCandidate =
         PlayerEpisodeOrderingCandidate(
             id = id,
             title = title,
-            path = "/storage/emulated/0/Shows/$title",
+            path = path,
             dateAdded = dateAdded
         )
+
 }

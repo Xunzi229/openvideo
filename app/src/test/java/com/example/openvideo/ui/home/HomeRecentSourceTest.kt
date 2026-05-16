@@ -33,7 +33,7 @@ class HomeRecentSourceTest {
         assertFalse(methodBody.contains("SortField.SIZE"))
         assertFalse(methodBody.contains("SortField.DURATION"))
         assertFalse(methodBody.contains("SortField.DATE"))
-        assertTrue(methodBody.contains("if (query.isBlank()) folderFiltered"))
+        assertTrue(methodBody.contains("applyLibraryFilters(folderFiltered, query, filters)"))
     }
 
     private fun homeViewModelSource(): Path {

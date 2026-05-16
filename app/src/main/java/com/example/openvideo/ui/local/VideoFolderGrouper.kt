@@ -5,13 +5,15 @@ import com.example.openvideo.data.model.VideoItem
 data class VideoFolderSummary(
     val key: String,
     val name: String,
-    val videoCount: Int
+    val videoCount: Int,
+    val isPinned: Boolean = false
 )
 
 data class VideoFolder(
     val key: String,
     val name: String,
-    val videos: List<VideoItem>
+    val videos: List<VideoItem>,
+    val isPinned: Boolean = false
 ) {
     val videoCount: Int get() = videos.size
 }

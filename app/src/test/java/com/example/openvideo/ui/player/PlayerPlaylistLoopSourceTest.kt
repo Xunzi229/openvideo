@@ -26,6 +26,7 @@ class PlayerPlaylistLoopSourceTest {
         assertTrue(endedHandler.contains("viewModel.sessionQueue.value"))
         assertTrue(endedHandler.contains("viewModel.playingVideoId"))
         assertTrue(endedHandler.contains("loopMode = playerPrefs.loopMode"))
+        assertTrue(endedHandler.contains("endBehavior = playerPrefs.playbackEndBehavior"))
         assertTrue(endedHandler.contains("PlayerPlaybackEndAction.PLAY_NEXT"))
         assertTrue(endedHandler.contains("PlayerPlaybackEndAction.REPLAY_CURRENT"))
         assertTrue(endedHandler.contains("PlayerPlaybackEndAction.RETURN_TO_LIST"))

@@ -9,12 +9,16 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.content.pm.PackageManager
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.ui.home.MediaLibraryPermissionPolicy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +27,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -37,7 +43,11 @@ class VideoScanner @Inject constructor(
     @param:ApplicationContext private val context: Context
 ) {
 
-    fun scanVideos(): Flow<List<VideoItem>> = callbackFlow {
+    private val cacheMutex = Mutex()
+    @Volatile
+    private var videoCache: Map<Long, VideoItem> = emptyMap()
+
+    fun scanVideos(): Flow<VideoScanOutcome> = callbackFlow {
         val refreshRequests = Channel<Unit>(Channel.CONFLATED)
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
@@ -52,10 +62,10 @@ class VideoScanner @Inject constructor(
         context.contentResolver.registerContentObserver(videoCollectionUri(), true, observer)
 
         val scanJob = launch(Dispatchers.IO) {
-            send(queryVideos())
+            emitScanResults(this@callbackFlow)
             refreshRequests.receiveAsFlow().collectLatest {
-                delay(SCAN_OBSERVER_DEBOUNCE_MS)
-                send(queryVideos())
+                delay(MediaStoreRefreshPolicy.debounceDelayMs())
+                emitScanResults(this@callbackFlow)
             }
         }
 
@@ -66,72 +76,215 @@ class VideoScanner @Inject constructor(
         }
     }.flowOn(Dispatchers.IO)
 
-    private fun queryVideos(): List<VideoItem> {
-        val videos = mutableListOf<VideoItem>()
+    private suspend fun emitScanResults(channel: ProducerScope<VideoScanOutcome>) {
+        if (!hasVideoReadPermission()) {
+            clearVideoCache()
+            channel.send(VideoScanOutcome.PermissionDenied)
+            return
+        }
+        try {
+            val videos = refreshVideos { count ->
+                channel.send(VideoScanOutcome.Progress(count))
+            }
+            channel.send(VideoScanOutcome.Success(videos))
+        } catch (_: SecurityException) {
+            clearVideoCache()
+            channel.send(VideoScanOutcome.PermissionDenied)
+        } catch (error: Exception) {
+            channel.send(VideoScanOutcome.Error(error.message ?: "MediaStore scan failed"))
+        }
+    }
 
+    private suspend fun clearVideoCache() {
+        cacheMutex.withLock { videoCache = emptyMap() }
+    }
+
+    private suspend fun replaceVideoCache(videos: List<VideoItem>) {
+        cacheMutex.withLock { videoCache = videos.associateBy { it.id } }
+    }
+
+    private suspend fun readVideoCache(): Map<Long, VideoItem> =
+        cacheMutex.withLock { videoCache }
+
+    private suspend fun readVideoCacheSize(): Int =
+        cacheMutex.withLock { videoCache.size }
+
+    private suspend fun refreshVideos(onProgress: (suspend (Int) -> Unit)? = null): List<VideoItem> {
+        val cachedCount = readVideoCacheSize()
+        val reportProgress = if (MediaStoreRefreshPolicy.shouldReportFullScanProgress(cachedCount)) {
+            onProgress
+        } else {
+            null
+        }
+        if (!MediaStoreRefreshPolicy.shouldUseIncrementalRefresh(cachedCount)) {
+            return queryVideos(onProgress = onProgress).also { videos ->
+                replaceVideoCache(videos)
+            }
+        }
+        val currentIndex = queryVideoIndex()
+        val previousIndex = readVideoCache().mapValues { (_, video) -> MediaStoreIndexEntry.fromVideo(video) }
+        val diff = MediaStoreDiffPolicy.diff(previousIndex, currentIndex)
+        if (MediaStoreRefreshPolicy.shouldFallbackToFullScan(cachedCount, diff)) {
+            return queryVideos(onProgress = reportProgress).also { videos ->
+                replaceVideoCache(videos)
+            }
+        }
+        if (diff.mutationCount == 0) {
+            return readVideoCache().values.sortedByDescending { it.dateAdded }
+        }
+        val idsToFetch = diff.addedIds + diff.changedIds
+        val fetched = if (idsToFetch.isEmpty()) {
+            emptyMap()
+        } else {
+            queryVideosByIds(idsToFetch).associateBy { it.id }
+        }
+        val merged = MediaStoreDiffPolicy.mergeCachedVideos(readVideoCache(), diff, fetched)
+        replaceVideoCache(merged)
+        return merged
+    }
+
+    private fun hasVideoReadPermission(): Boolean =
+        MediaLibraryPermissionPolicy.hasReadAccess(
+            isPermissionGranted = { permission ->
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            }
+        )
+
+    private fun queryVideoIndex(): Map<Long, MediaStoreIndexEntry> {
+        val index = linkedMapOf<Long, MediaStoreIndexEntry>()
         val collection = videoCollectionUri()
-
         val projection = arrayOf(
             MediaStore.Video.Media._ID,
             MediaStore.Video.Media.DISPLAY_NAME,
-            MediaStore.Video.Media.DATA,
             MediaStore.Video.Media.DURATION,
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.WIDTH,
             MediaStore.Video.Media.HEIGHT,
             MediaStore.Video.Media.DATE_ADDED
         )
-
-        val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
-
-        context.contentResolver.query(
-            collection, projection, null, null, sortOrder
-        )?.use { cursor ->
+        context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
             val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-            val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
             val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
             val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
             val widthCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
             val heightCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
-
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
-                val name = cursor.getString(nameCol) ?: "Unknown"
-                val path = cursor.getString(dataCol) ?: ""
-                val duration = cursor.getLong(durationCol)
-                val size = cursor.getLong(sizeCol)
-                val width = cursor.getInt(widthCol)
-                val height = cursor.getInt(heightCol)
-                val dateAdded = cursor.getLong(dateCol)
-
-                val contentUri = ContentUris.withAppendedId(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id
-                )
-
-                val thumbnailUri = Uri.withAppendedPath(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI, "$id"
-                )
-
-                videos.add(
-                    VideoItem(
-                        id = id,
-                        title = name,
-                        path = path,
-                        uri = contentUri,
-                        duration = duration,
-                        size = size,
-                        width = width,
-                        height = height,
-                        dateAdded = dateAdded,
-                        thumbnailUri = thumbnailUri
-                    )
+                index[id] = MediaStoreIndexEntry(
+                    id = id,
+                    displayName = cursor.getString(nameCol) ?: "Unknown",
+                    dateAdded = cursor.getLong(dateCol),
+                    duration = cursor.getLong(durationCol),
+                    size = cursor.getLong(sizeCol),
+                    width = cursor.getInt(widthCol),
+                    height = cursor.getInt(heightCol)
                 )
             }
         }
+        return index
+    }
 
+    private suspend fun queryVideos(onProgress: (suspend (Int) -> Unit)? = null): List<VideoItem> {
+        val videos = mutableListOf<VideoItem>()
+        val collection = videoCollectionUri()
+        val projection = videoProjection()
+        val sortOrder = "${MediaStore.Video.Media.DATE_ADDED} DESC"
+        var lastEmittedCount = 0
+        context.contentResolver.query(collection, projection, null, null, sortOrder)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                readVideoItem(cursor, collection)?.let { video ->
+                    videos.add(video)
+                    val scannedCount = videos.size
+                    if (onProgress != null &&
+                        MediaStoreRefreshPolicy.shouldEmitScanProgress(scannedCount, lastEmittedCount)
+                    ) {
+                        onProgress(scannedCount)
+                        lastEmittedCount = scannedCount
+                    }
+                }
+            }
+        }
+        if (onProgress != null && videos.size > lastEmittedCount) {
+            onProgress(videos.size)
+        }
         return videos
+    }
+
+    private fun queryVideosByIds(ids: Set<Long>): List<VideoItem> {
+        if (ids.isEmpty()) return emptyList()
+        val collection = videoCollectionUri()
+        return ids.chunked(SQLITE_MAX_VARIABLES).flatMap { batch ->
+            queryVideosByIdsBatch(batch.toSet(), collection)
+        }
+    }
+
+    private fun queryVideosByIdsBatch(ids: Set<Long>, collection: Uri): List<VideoItem> {
+        if (ids.isEmpty()) return emptyList()
+        val videos = mutableListOf<VideoItem>()
+        val projection = videoProjection()
+        val placeholders = ids.joinToString(",") { "?" }
+        val selection = "${MediaStore.Video.Media._ID} IN ($placeholders)"
+        val selectionArgs = ids.map { it.toString() }.toTypedArray()
+        context.contentResolver.query(
+            collection,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        )?.use { cursor ->
+            while (cursor.moveToNext()) {
+                readVideoItem(cursor, collection)?.let { videos.add(it) }
+            }
+        }
+        return videos
+    }
+
+    private fun videoProjection(): Array<String> = arrayOf(
+        MediaStore.Video.Media._ID,
+        MediaStore.Video.Media.DISPLAY_NAME,
+        MediaStore.Video.Media.DATA,
+        MediaStore.Video.Media.DURATION,
+        MediaStore.Video.Media.SIZE,
+        MediaStore.Video.Media.WIDTH,
+        MediaStore.Video.Media.HEIGHT,
+        MediaStore.Video.Media.DATE_ADDED
+    )
+
+    private fun readVideoItem(cursor: android.database.Cursor, collection: Uri = videoCollectionUri()): VideoItem? {
+        val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+        val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+        val dataCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA)
+        val durationCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+        val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+        val widthCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
+        val heightCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
+        val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+
+        val id = cursor.getLong(idCol)
+        val name = cursor.getString(nameCol) ?: "Unknown"
+        val path = cursor.getString(dataCol) ?: ""
+        val duration = cursor.getLong(durationCol)
+        val size = cursor.getLong(sizeCol)
+        val width = cursor.getInt(widthCol)
+        val height = cursor.getInt(heightCol)
+        val dateAdded = cursor.getLong(dateCol)
+
+        val contentUri = ContentUris.withAppendedId(collection, id)
+        val thumbnailUri = ContentUris.withAppendedId(collection, id)
+        return VideoItem(
+            id = id,
+            title = name,
+            path = path,
+            uri = contentUri,
+            duration = duration,
+            size = size,
+            width = width,
+            height = height,
+            dateAdded = dateAdded,
+            thumbnailUri = thumbnailUri
+        )
     }
 
     private fun videoCollectionUri(): Uri {
@@ -143,7 +296,11 @@ class VideoScanner @Inject constructor(
     }
 
     fun deleteVideo(uri: Uri): Boolean {
-        return deleteVideoWithResult(uri) is VideoDeleteResult.Deleted
+        val deleted = deleteVideoWithResult(uri) is VideoDeleteResult.Deleted
+        if (deleted) {
+            removeCachedVideo(uri)
+        }
+        return deleted
     }
 
     fun deleteVideos(uris: List<Uri>): VideoDeleteResult {
@@ -162,11 +319,19 @@ class VideoScanner @Inject constructor(
             }
         }
 
+        deleted.forEach { removeCachedVideo(it) }
         return if (deleted.isNotEmpty()) {
             VideoDeleteResult.Deleted(deleted)
         } else {
             VideoDeleteResult.Failed
         }
+    }
+
+    @Synchronized
+    private fun removeCachedVideo(uri: Uri) {
+        val id = ContentUris.parseId(uri)
+        if (videoCache.isEmpty()) return
+        videoCache = videoCache.filterKeys { key -> key != id }
     }
 
     private fun deleteVideoWithResult(uri: Uri): VideoDeleteResult {
@@ -204,6 +369,10 @@ class VideoScanner @Inject constructor(
         }
     }
 
+    private companion object {
+        private const val SQLITE_MAX_VARIABLES = 200
+    }
+
     fun createDeleteRequest(uris: List<Uri>): PendingIntent? {
         if (uris.isEmpty()) return null
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -211,10 +380,6 @@ class VideoScanner @Inject constructor(
         } else {
             null
         }
-    }
-
-    private companion object {
-        const val SCAN_OBSERVER_DEBOUNCE_MS = 500L
     }
 
 }
