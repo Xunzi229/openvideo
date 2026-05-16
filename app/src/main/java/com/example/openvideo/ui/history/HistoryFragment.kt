@@ -1,7 +1,6 @@
 package com.example.openvideo.ui.history
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -21,13 +20,14 @@ import com.example.openvideo.ui.player.putSessionQueue
 import com.example.openvideo.ui.player.toSessionVideoItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import java.io.File
 
 @AndroidEntryPoint
 class HistoryFragment : Fragment() {
 
     private val viewModel: HistoryViewModel by viewModels()
 
-    private var historySnapshot: List<HistoryEntity> = emptyList()
+    private var historySnapshot: List<HistoryContinueWatchingItem> = emptyList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -49,8 +49,11 @@ class HistoryFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         // Simple history list adapter
-        val adapter = HistoryAdapter { entity ->
-            val queue = historySnapshot.map { it.toSessionVideoItem() }
+        val adapter = HistoryAdapter { item ->
+            val entity = item.entity
+            val queue = historySnapshot
+                .filter { it.isAvailable }
+                .map { it.entity.toSessionVideoItem() }
             val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
                 putSessionQueue(queue)
                 putExtra("video_uri", entity.path)
@@ -64,8 +67,13 @@ class HistoryFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.history.collect { list ->
-                    historySnapshot = list
-                    adapter.submitList(list)
+                    val items = HistoryContinueWatchingPolicy.buildItems(
+                        history = list,
+                        nowMs = System.currentTimeMillis(),
+                        localFileExists = { path -> File(path).exists() }
+                    )
+                    historySnapshot = items
+                    adapter.submitList(items)
                     emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
                     recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
                 }
@@ -75,11 +83,12 @@ class HistoryFragment : Fragment() {
 }
 
 private class HistoryAdapter(
-    private val onClick: (HistoryEntity) -> Unit
-) : androidx.recyclerview.widget.ListAdapter<HistoryEntity, HistoryAdapter.VH>(
-    object : androidx.recyclerview.widget.DiffUtil.ItemCallback<HistoryEntity>() {
-        override fun areItemsTheSame(a: HistoryEntity, b: HistoryEntity) = a.videoId == b.videoId
-        override fun areContentsTheSame(a: HistoryEntity, b: HistoryEntity) = a == b
+    private val onClick: (HistoryContinueWatchingItem) -> Unit
+) : androidx.recyclerview.widget.ListAdapter<HistoryContinueWatchingItem, HistoryAdapter.VH>(
+    object : androidx.recyclerview.widget.DiffUtil.ItemCallback<HistoryContinueWatchingItem>() {
+        override fun areItemsTheSame(a: HistoryContinueWatchingItem, b: HistoryContinueWatchingItem) =
+            a.entity.videoId == b.entity.videoId
+        override fun areContentsTheSame(a: HistoryContinueWatchingItem, b: HistoryContinueWatchingItem) = a == b
     }
 ) {
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
@@ -91,7 +100,10 @@ private class HistoryAdapter(
         init {
             view.setOnClickListener {
                 val pos = bindingAdapterPosition
-                if (pos != RecyclerView.NO_POSITION) onClick(getItem(pos))
+                if (pos != RecyclerView.NO_POSITION) {
+                    val item = getItem(pos)
+                    if (item.isAvailable) onClick(item)
+                }
             }
         }
     }
@@ -104,9 +116,10 @@ private class HistoryAdapter(
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
-        holder.title.text = item.title
+        holder.title.text = item.entity.title
         holder.duration.text = ""
-        holder.size.text = ""
-        holder.resolution.text = ""
+        holder.resolution.text = item.watchedTimeLabel
+        holder.size.text = item.progressLabel
+        holder.itemView.alpha = if (item.isAvailable) 1f else 0.6f
     }
 }
