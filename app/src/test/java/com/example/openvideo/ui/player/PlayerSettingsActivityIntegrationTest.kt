@@ -14,7 +14,10 @@ class PlayerSettingsActivityIntegrationTest {
         val source = String(Files.readAllBytes(playerActivitySource()))
 
         assertTrue(source.contains("openPlayerSettingsDialog"))
-        assertTrue(source.contains("hideControls()"))
+        assertTrue(source.contains("hideChromeForSettingsOverlay()"))
+        assertTrue(source.contains("restoreChromeAfterSettingsOverlay()"))
+        assertTrue(source.contains("isSettingsOverlayVisible = true"))
+        assertTrue(source.contains("isSettingsOverlayVisible = false"))
         assertTrue(source.contains("if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else \"\""))
         assertTrue(source.contains("playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f"))
         assertTrue(source.contains("controlsChromeMaxAlpha()"))

@@ -122,6 +122,8 @@ class PlayerActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var controlsVisible = true
     private var isActivityForeground = false
+    private var isSettingsOverlayVisible = false
+    private var controlsVisibleBeforeSettingsOverlay = true
     private val hideControlsRunnable = Runnable { hideControls() }
     private val hideGestureHudRunnable = Runnable { hideGestureHud() }
     private val updateRunnable = object : Runnable {
@@ -460,6 +462,9 @@ class PlayerActivity : AppCompatActivity() {
     /** 与横屏齿轮按钮相同：弹出播放器设置。竖屏底栏「更多」亦指向此处。 */
     private fun openPlayerSettingsDialog() {
         handler.removeCallbacks(hideControlsRunnable)
+        controlsVisibleBeforeSettingsOverlay = controlsVisible
+        isSettingsOverlayVisible = true
+        hideChromeForSettingsOverlay()
         val dialog = PlayerSettingsDialog(
             context = this,
             playerManager = playerManager,
@@ -472,6 +477,8 @@ class PlayerActivity : AppCompatActivity() {
             onPlayerPrefsReset = ::applyPlayerSettings
         )
         dialog.setOnDismissListener {
+            isSettingsOverlayVisible = false
+            restoreChromeAfterSettingsOverlay()
             applyPlayerSettings()
             scheduleHideControls()
         }
@@ -1406,6 +1413,16 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyControlVisibility() {
+        if (isSettingsOverlayVisible) {
+            topScrim.visibility = View.GONE
+            bottomScrim.visibility = View.GONE
+            topBar.visibility = View.GONE
+            bottomPanel.visibility = View.GONE
+            toolRow.visibility = View.GONE
+            landRightFloatColumn?.visibility = View.GONE
+            btnLock.visibility = View.GONE
+            return
+        }
         val visibility = PlayerControlState.visibilityFor(isScreenLocked, controlsVisible)
         val chromeVisibility = if (visibility.chromeVisible) View.VISIBLE else View.GONE
         topScrim.visibility = chromeVisibility
@@ -1423,7 +1440,23 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun hideChromeForSettingsOverlay() {
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = 0f
+        controlsContainer.visibility = View.GONE
+        applyControlVisibility()
+    }
+
+    private fun restoreChromeAfterSettingsOverlay() {
+        controlsVisible = controlsVisibleBeforeSettingsOverlay
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = if (controlsVisibleBeforeSettingsOverlay) controlsChromeMaxAlpha() else 0f
+        controlsContainer.visibility = if (controlsVisibleBeforeSettingsOverlay) View.VISIBLE else View.GONE
+        applyControlVisibility()
+    }
+
     private fun scheduleHideControls() {
+        if (isSettingsOverlayVisible) return
         handler.removeCallbacks(hideControlsRunnable)
         val presentation = PlayerChromeVisibilityPolicy.show(
             controlsOpacityPercent = playerPrefs.controlsOpacity,
