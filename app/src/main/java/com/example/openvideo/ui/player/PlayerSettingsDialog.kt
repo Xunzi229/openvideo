@@ -544,7 +544,6 @@ class PlayerSettingsDialog(
     }
 
     private fun buildAspectPage() {
-        addAspectRow(context.getString(R.string.player_sheet_fit_screen), AspectRatio.FIT)
         addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
         addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
         addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
@@ -1216,7 +1215,7 @@ class PlayerSettingsDialog(
         PlayerPlaybackEndBehaviorUi.label(context, value)
 
     private fun aspectLabel(value: AspectRatio): String = when (value) {
-        AspectRatio.FIT -> context.getString(R.string.player_sheet_fit_screen)
+        AspectRatio.FIT -> context.getString(R.string.player_sheet_original_ratio)
         AspectRatio.FILL -> context.getString(R.string.player_sheet_fill_screen)
         AspectRatio.CROP -> context.getString(R.string.settings_ratio_crop)
         AspectRatio.STRETCH -> context.getString(R.string.settings_ratio_stretch)
@@ -1261,8 +1260,13 @@ class PlayerSettingsDialog(
             title = title,
             checked = playerPrefs.aspectRatio == ratio
         ) {
-            playerPrefs.aspectRatio = ratio
-            viewModel.setAspectRatio(ratio)
+            val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
+                aspectRatio = ratio,
+                currentContentFrameMode = playerPrefs.contentFrameMode
+            )
+            playerPrefs.aspectRatio = selection.aspectRatio
+            selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }
+            viewModel.setAspectRatio(selection.aspectRatio)
             onAspectRatioChanged()
             rebuildCurrentDetail(SettingsPage.ASPECT, context.getString(R.string.player_sheet_aspect_ratio))
         }

@@ -8,10 +8,28 @@ data class ContentFrameModeSelection(
     val aspectRatioOverride: AspectRatio? = null
 )
 
+data class AspectRatioSelection(
+    val aspectRatio: AspectRatio,
+    val contentFrameOverride: ContentFrameMode? = null
+)
+
 /**
  * Display-settings side effects when the user picks a center-window preset.
  */
 object PlayerContentFrameSettingsPolicy {
+
+    fun onAspectRatioSelected(
+        aspectRatio: AspectRatio,
+        currentContentFrameMode: ContentFrameMode
+    ): AspectRatioSelection {
+        if (currentContentFrameMode == ContentFrameMode.OFF) {
+            return AspectRatioSelection(aspectRatio)
+        }
+        return AspectRatioSelection(
+            aspectRatio = aspectRatio,
+            contentFrameOverride = ContentFrameMode.OFF
+        )
+    }
 
     fun onModeSelected(
         mode: ContentFrameMode,

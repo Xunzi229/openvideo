@@ -23,7 +23,7 @@
 |------|------|
 | Popover | `app/src/main/java/com/example/openvideo/ui/home/VideoLibraryFilterPopover.kt` |
 | 草稿态 | `app/src/main/java/com/example/openvideo/ui/home/VideoLibraryFilterUiState.kt` |
-| 筛选 | `app/src/main/java/com/example/openvideo/ui/home/MediaLibraryAdvancedFilters.kt`、`MediaLibrarySearchPolicy.kt` |
+| 筛选策略 | `app/src/main/java/com/example/openvideo/ui/home/MediaLibraryAdvancedFilters.kt`、`app/src/main/java/com/example/openvideo/ui/home/MediaLibrarySearchPolicy.kt` |
 | 布局/令牌 | `app/src/main/res/layout/overlay_video_library_filter.xml`、`view_video_library_filter_popover.xml`、`values/filter_popover_tokens.xml`、`values-night/filter_popover_tokens.xml` |
 | 入口 | `HomeFragment.kt`、`fragment_home.xml`（`btn_library_filter`） |
 

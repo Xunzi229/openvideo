@@ -9,6 +9,26 @@ import org.junit.Test
 class PlayerContentFrameSettingsPolicyTest {
 
     @Test
+    fun aspectRatioSelectionClearsActiveCenterBand() {
+        val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
+            aspectRatio = AspectRatio.FIT,
+            currentContentFrameMode = ContentFrameMode.CENTER_16_9
+        )
+        assertEquals(AspectRatio.FIT, selection.aspectRatio)
+        assertEquals(ContentFrameMode.OFF, selection.contentFrameOverride)
+    }
+
+    @Test
+    fun aspectRatioSelectionKeepsContentFrameOff() {
+        val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
+            aspectRatio = AspectRatio.FIT,
+            currentContentFrameMode = ContentFrameMode.OFF
+        )
+        assertEquals(AspectRatio.FIT, selection.aspectRatio)
+        assertNull(selection.contentFrameOverride)
+    }
+
+    @Test
     fun offModeDoesNotOverrideAspectRatio() {
         val selection = PlayerContentFrameSettingsPolicy.onModeSelected(
             mode = ContentFrameMode.OFF,

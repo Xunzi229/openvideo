@@ -725,7 +725,11 @@ class PlayerActivity : AppCompatActivity() {
         w.decorView.alpha = 1f
         val dm = resources.displayMetrics
         val maxW = resources.getDimensionPixelSize(R.dimen.player_aspect_dialog_max_width)
-        val dialogW = kotlin.math.min(maxW, (dm.widthPixels * 0.9f).toInt())
+        val gutter = PlayerQuickEntryDialogPolicy.sheetPaddingPx(dm.density)
+        val dialogW = kotlin.math.min(
+            maxW,
+            kotlin.math.max(0, (dm.widthPixels * 0.9f).toInt() - 2 * gutter)
+        )
         w.setLayout(dialogW, LinearLayout.LayoutParams.WRAP_CONTENT)
         w.setGravity(Gravity.CENTER)
         w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)

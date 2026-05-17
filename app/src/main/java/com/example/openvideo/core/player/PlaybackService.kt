@@ -238,7 +238,7 @@ class PlaybackService : Service() {
 
     private fun buildCustomNotification(payload: NotificationPayload): android.app.Notification {
         val remoteViews = buildPlaybackRemoteViews(payload)
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_playback)
             .setContentTitle(payload.title)
             .setContentText(payload.statusText)
@@ -249,7 +249,11 @@ class PlaybackService : Service() {
             .setContentIntent(payload.contentIntent)
             .setCustomContentView(remoteViews)
             .setCustomBigContentView(remoteViews)
-            .build()
+        mediaSessionManager.getSessionToken()?.let { token ->
+            // Lock screen / BT AVRCP need a MediaSession on the Notification; collapsed custom RemoteViews alone are not enough on many OEM builds.
+            builder.setStyle(MediaNotificationCompat.DecoratedMediaCustomViewStyle().setMediaSession(token))
+        }
+        return builder.build()
     }
 
     private fun buildMediaStyleNotification(payload: NotificationPayload): android.app.Notification {

@@ -55,6 +55,18 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun aspectPageHasOnlyOneFitStyleOption() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val aspectPageBlock = dialogSource
+            .substringAfter("private fun buildAspectPage()")
+            .substringBefore("\n    private fun buildDisplayPage")
+
+        assertFalse(aspectPageBlock.contains("R.string.player_sheet_fit_screen"))
+        assertTrue(aspectPageBlock.contains("R.string.player_sheet_original_ratio"))
+        assertTrue(aspectPageBlock.contains("AspectRatio.FIT"))
+    }
+
+    @Test
     fun subtitleDelayAndNetworkStreamAreWiredToPlayback() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val viewModelSource = String(Files.readAllBytes(playerViewModelSource()))
@@ -313,8 +325,10 @@ class PlayerSettingsDialogTest {
             .substringBefore("\n    private fun rebuildCurrentDetail")
 
         assertTrue(dialogSource.contains("private val onAspectRatioChanged: () -> Unit = {}"))
-        assertTrue(aspectRowBlock.contains("playerPrefs.aspectRatio = ratio"))
-        assertTrue(aspectRowBlock.contains("viewModel.setAspectRatio(ratio)"))
+        assertTrue(aspectRowBlock.contains("PlayerContentFrameSettingsPolicy.onAspectRatioSelected"))
+        assertTrue(aspectRowBlock.contains("playerPrefs.aspectRatio = selection.aspectRatio"))
+        assertTrue(aspectRowBlock.contains("selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }"))
+        assertTrue(aspectRowBlock.contains("viewModel.setAspectRatio(selection.aspectRatio)"))
         assertTrue(aspectRowBlock.contains("onAspectRatioChanged()"))
 
         val activitySource = String(Files.readAllBytes(playerActivitySource()))

@@ -12,7 +12,6 @@ import javax.inject.Inject
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.AspectRatio
-import com.example.openvideo.core.prefs.ContentFrameMode
 
 @AndroidEntryPoint
 class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
@@ -57,15 +56,18 @@ class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
 
         tvAspect.setOnClickListener {
             aspectIndex = (aspectIndex + 1) % aspectRatios.size
-            playerPrefs.aspectRatio = aspectRatios[aspectIndex]
-            if (!PlayerContentFramePolicy.allowsContentFrameAdjustment(playerPrefs.aspectRatio) &&
-                playerPrefs.contentFrameMode != ContentFrameMode.OFF
-            ) {
-                playerPrefs.contentFrameMode = ContentFrameMode.OFF
+            val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
+                aspectRatio = aspectRatios[aspectIndex],
+                currentContentFrameMode = playerPrefs.contentFrameMode
+            )
+            playerPrefs.aspectRatio = selection.aspectRatio
+            selection.contentFrameOverride?.let {
+                playerPrefs.contentFrameMode = it
                 contentFrameIndex = 0
-                tvContentFrame.setText(PlayerDisplayContentFrameControls.labelRes(ContentFrameMode.OFF))
+                tvContentFrame.setText(PlayerDisplayContentFrameControls.labelRes(it))
             }
             updateAspectText()
+            (activity as? PlayerActivity)?.refreshPlayerDisplayFromSettings()
         }
 
         PlayerDisplayContentFrameControls.bind(
