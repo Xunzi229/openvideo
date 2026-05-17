@@ -42,6 +42,11 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_BG_AUDIO, false)
         set(value) = putBoolean(KEY_BG_AUDIO, value)
 
+    /** 后台播放时是否在通知栏显示控制条；默认 true。 */
+    var bgPlaybackNotificationEnabled: Boolean
+        get() = getBoolean(KEY_BG_NOTIFICATION_ENABLED, true)
+        set(value) = putBoolean(KEY_BG_NOTIFICATION_ENABLED, value)
+
     var skipIntroOutro: Boolean
         get() = getBoolean(KEY_SKIP_INTRO_OUTRO, false)
         set(value) = putBoolean(KEY_SKIP_INTRO_OUTRO, value)
@@ -292,6 +297,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_HW_ACCEL = "hw_acceleration"
         private const val KEY_PAUSE_ON_EXIT = "pause_on_exit"
         private const val KEY_BG_AUDIO = "bg_audio"
+        const val KEY_BG_NOTIFICATION_ENABLED = "bg_playback_notification_enabled"
         private const val KEY_SKIP_INTRO_OUTRO = "skip_intro_outro"
         private const val KEY_INTRO_SECONDS = "intro_seconds"
         private const val KEY_OUTRO_SECONDS = "outro_seconds"

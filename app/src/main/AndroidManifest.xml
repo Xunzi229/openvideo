@@ -36,6 +36,7 @@
 
         <activity
             android:name=".ui.player.PlayerActivity"
+            android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:screenOrientation="sensor"
             android:supportsPictureInPicture="true"
@@ -64,6 +65,11 @@
 
         <activity
             android:name=".ui.player.PlayerGestureSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.OpenVideo" />
+
+        <activity
+            android:name=".ui.settings.NotificationSettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.OpenVideo" />
 

@@ -150,14 +150,26 @@ class PlayerGestureHudSourceTest {
     }
 
     @Test
+    fun lockedChromeVisibilityUsesLockedControlsPolicy() {
+        val source = sourceFile("PlayerActivity.kt").readText()
+        assertTrue(source.contains("PlayerLockedControlsPolicy.visibility(isScreenLocked, controlsVisible)"))
+        assertTrue(source.contains("PlayerLockedControlsPolicy.isChromeRegionVisible("))
+    }
+
+    @Test
     fun lockedGestureOverlayUsesPureLockGesturePolicy() {
         val source = sourceFile("PlayerActivity.kt").readText()
         val lockBlock = source.substringAfter("private fun setLockedGestureOverlay()")
             .substringBefore("\n    private fun")
 
         assertTrue(lockBlock.contains("PlayerLockGesturePolicy.onTouch("))
+        assertTrue(lockBlock.contains("PlayerTouchActionPolicy.fromMotionActionMasked(event.actionMasked)"))
         assertTrue(lockBlock.contains("if (decision.revealLockedControls) showLockedControls()"))
         assertTrue(lockBlock.contains("decision.consumeTouch"))
+        assertFalse(
+            "Lock overlay must not map MotionEvent inline.",
+            lockBlock.contains("toPlayerTouchAction()")
+        )
     }
 
     @Test

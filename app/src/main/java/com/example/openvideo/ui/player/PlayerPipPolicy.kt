@@ -1,11 +1,14 @@
 package com.example.openvideo.ui.player
 
 import android.os.Build
+import android.util.Rational
 
 data class PlayerPipAspectRatio(
     val numerator: Int,
     val denominator: Int
-)
+) {
+    fun toRational(): Rational = Rational(numerator, denominator)
+}
 
 data class PlayerPipDecision(
     val shouldEnter: Boolean,
@@ -13,8 +16,10 @@ data class PlayerPipDecision(
 )
 
 object PlayerPipPolicy {
-    private val FALLBACK_ASPECT_RATIO = PlayerPipAspectRatio(16, 9)
+    val FALLBACK_ASPECT_RATIO = PlayerPipAspectRatio(16, 9)
     private const val RATIO_SCALE = 1000
+
+    fun fallbackRational(): Rational = FALLBACK_ASPECT_RATIO.toRational()
 
     fun enterDecision(
         sdkInt: Int,

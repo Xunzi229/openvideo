@@ -59,4 +59,17 @@ class PlayerBackgroundServicePolicyTest {
         assertEquals(false, foreground.shouldStart)
         assertEquals(false, pip.shouldStart)
     }
+
+    @Test
+    fun doesNotStartWhenPlaybackNotificationToggleIsDisabled() {
+        val decision = PlayerBackgroundServicePolicy.startDecision(
+            backgroundAudio = true,
+            isPlaying = true,
+            isActivityForeground = false,
+            isInPictureInPicture = false,
+            notificationEnabled = false
+        )
+
+        assertEquals(false, decision.shouldStart)
+    }
 }

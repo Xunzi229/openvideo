@@ -64,6 +64,9 @@ class PlayerViewModel @Inject constructor(
     /** 当前正在播放的条目 id（与会话列表高亮一致）。 */
     val playingVideoId: Long get() = videoId
 
+    fun isActiveSessionFor(videoId: Long): Boolean =
+        videoId != 0L && this.videoId == videoId && player != null
+
     fun setSessionQueue(videos: List<VideoItem>) {
         _sessionQueue.value = videos
     }

@@ -1,6 +1,7 @@
 package com.example.openvideo.core.player
 
 import android.content.Context
+import android.os.SystemClock
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
@@ -34,7 +35,7 @@ class MediaSessionManager @Inject constructor(
                     PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
                     PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
             )
-            .setState(state, position, speed)
+            .setState(state, position, speed, SystemClock.elapsedRealtime())
             .build()
         mediaSession?.setPlaybackState(playbackState)
     }
@@ -45,6 +46,18 @@ class MediaSessionManager @Inject constructor(
             .putLong(MediaMetadataCompat.METADATA_KEY_DURATION, duration)
             .build()
         mediaSession?.setMetadata(metadata)
+    }
+
+    fun clearMetadata() {
+        mediaSession?.setMetadata(null)
+    }
+
+    fun markStopped() {
+        val playbackState = PlaybackStateCompat.Builder()
+            .setActions(0)
+            .setState(PlaybackStateCompat.STATE_STOPPED, 0L, 0f)
+            .build()
+        mediaSession?.setPlaybackState(playbackState)
     }
 
     fun getSessionToken(): MediaSessionCompat.Token? = mediaSession?.sessionToken

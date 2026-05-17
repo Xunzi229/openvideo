@@ -32,12 +32,20 @@ data class DoubleTapSeekResult(
 
 object PlayerGestureHudPolicy {
     fun seek(targetMs: Long, durationMs: Long, deltaMs: Long): PlayerGestureHud {
-        val signedDelta = if (deltaMs >= 0) "+${formatTime(deltaMs)}" else "-${formatTime(-deltaMs)}"
-        val duration = if (PlayerTimeline.hasSeekableDuration(durationMs)) formatTime(durationMs) else "--:--"
+        val signedDelta = if (deltaMs >= 0) {
+            "+${PlayerTimeFormatter.format(deltaMs)}"
+        } else {
+            "-${PlayerTimeFormatter.format(-deltaMs)}"
+        }
+        val duration = if (PlayerTimeline.hasSeekableDuration(durationMs)) {
+            PlayerTimeFormatter.format(durationMs)
+        } else {
+            "--:--"
+        }
         return PlayerGestureHud(
             kind = PlayerGestureHudKind.SEEK,
             primaryText = signedDelta,
-            secondaryText = "${formatTime(targetMs)} / $duration"
+            secondaryText = "${PlayerTimeFormatter.format(targetMs)} / $duration"
         )
     }
 
@@ -70,14 +78,5 @@ object PlayerGestureHudPolicy {
             nextState = step.nextState,
             isAccumulated = step.isAccumulated
         )
-    }
-
-    private fun formatTime(ms: Long): String {
-        val totalSec = ms.coerceAtLeast(0) / 1000
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
-        else String.format("%02d:%02d", m, s)
     }
 }

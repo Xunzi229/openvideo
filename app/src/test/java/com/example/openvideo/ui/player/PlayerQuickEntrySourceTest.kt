@@ -12,10 +12,12 @@ class PlayerQuickEntrySourceTest {
     @Test
     fun portraitQuickButtonsUseDedicatedAudioAndSubtitleDialogs() {
         val source = String(Files.readAllBytes(playerActivitySource()))
-        val audioButtonBlock = source.substringAfter("findViewById<View>(R.id.portrait_btn_quality)?.setOnClickListener {")
-            .substringBefore("\n        }\n\n        findViewById<View>(R.id.portrait_btn_episodes)")
-        val subtitleButtonBlock = source.substringAfter("findViewById<View>(R.id.portrait_btn_subtitles)?.setOnClickListener {")
-            .substringBefore("\n        }\n\n        btnScreenshot?.setOnClickListener")
+        val audioButtonBlock = source.substringAfter(
+            "findViewById<View>(R.id.portrait_btn_quality)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
+        ).substringBefore("\n        }\n\n        findViewById<View>(R.id.portrait_btn_episodes)")
+        val subtitleButtonBlock = source.substringAfter(
+            "findViewById<View>(R.id.portrait_btn_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
+        ).substringBefore("\n        }\n\n        btnScreenshot?.setPlayerClickListener")
 
         assertTrue(audioButtonBlock.contains("showAudioTrackQuickDialog()"))
         assertFalse(audioButtonBlock.contains("player_quality_local_single"))

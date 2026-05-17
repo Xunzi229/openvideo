@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -17,6 +18,16 @@ class PlayerPipSourceTest {
         assertTrue(pipBlock.contains("PlayerPipPolicy.enterDecision("))
         assertTrue(pipBlock.contains("PictureInPictureParams.Builder()"))
         assertTrue(pipBlock.contains(".setAspectRatio("))
+        assertTrue(pipBlock.contains("decision.aspectRatio?.toRational()"))
+        assertTrue(pipBlock.contains("PlayerPipPolicy.fallbackRational()"))
+        assertFalse(
+            "PiP fallback must not inline Rational(16, 9) in Activity.",
+            pipBlock.contains("Rational(16, 9)")
+        )
+        assertFalse(
+            "Activity must not declare a private PlayerPipAspectRatio.toRational extension.",
+            source.contains("private fun PlayerPipAspectRatio.toRational()")
+        )
     }
 
     private fun playerActivitySource(): Path {

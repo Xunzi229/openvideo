@@ -26,11 +26,7 @@ object PlayerControlState {
         if (isPlayingOrRequested) R.drawable.ic_pause else R.drawable.ic_play
 
     fun visibilityFor(isLocked: Boolean, controlsVisible: Boolean): ControlVisibility =
-        ControlVisibility(
-            chromeVisible = controlsVisible && !isLocked,
-            lockButtonVisible = controlsVisible || isLocked,
-            lockButtonSelected = isLocked
-        )
+        PlayerLockedControlsPolicy.visibility(isLocked, controlsVisible)
 
     fun lockButtonPlacement(): LockButtonPlacement =
         LockButtonPlacement(

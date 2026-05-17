@@ -10,12 +10,14 @@ object PlayerBackgroundServicePolicy {
         backgroundAudio: Boolean,
         isPlaying: Boolean,
         isActivityForeground: Boolean,
-        isInPictureInPicture: Boolean
+        isInPictureInPicture: Boolean,
+        notificationEnabled: Boolean = true
     ): PlayerBackgroundServiceStartDecision =
         PlayerBackgroundServiceStartDecision(
             shouldStart = backgroundAudio &&
                 isPlaying &&
                 !isActivityForeground &&
-                !isInPictureInPicture
+                !isInPictureInPicture &&
+                notificationEnabled
         )
 }

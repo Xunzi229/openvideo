@@ -23,6 +23,27 @@
     <string name="filter_latest">Latest</string>
     <string name="filter_hollywood">Hollywood</string>
 
+    <!-- Playback notification (channel + RemoteViews; default locale English) -->
+    <string name="playback_notification_channel_name">Playback</string>
+    <string name="playback_notification_channel_description">Media controls while playing in the background</string>
+    <string name="playback_notification_status_playing">Playing</string>
+    <string name="playback_notification_status_paused">Paused</string>
+    <string name="playback_notification_play">Play</string>
+    <string name="playback_notification_pause">Pause</string>
+    <string name="playback_notification_previous">Previous</string>
+    <string name="playback_notification_next">Next</string>
+
+    <!-- Notification settings (Me tab → matches typical OS wording: Notifications) -->
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_title">Notifications</string>
+    <string name="settings_notification_section_background_playback">Background playback</string>
+    <string name="settings_notification_bg_playback_title">Show playback notification</string>
+    <string name="settings_notification_bg_playback_summary">Show media controls and progress in the notification shade while audio keeps playing in the background</string>
+    <string name="settings_section_system_notifications">System notifications</string>
+    <string name="settings_notification_allow_system_title">Allow system notifications</string>
+    <string name="settings_notification_allow_system_on">Notifications are enabled for OpenVideo</string>
+    <string name="settings_notification_allow_system_off">Disabled — tap to open system settings and enable</string>
+
     <!-- Player -->
     <string name="player_speed">Speed</string>
     <string name="player_lock">Lock</string>

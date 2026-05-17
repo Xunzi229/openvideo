@@ -33,16 +33,33 @@ class PlaybackServiceIntentsSourceTest {
     }
 
     @Test
-    fun stopIntentTargetsServiceWithoutAction() {
+    fun stopIntentDismissesForegroundNotification() {
         val source = intentsSource()
         val stopBlock = source.substringAfter("fun stop(")
-            .substringBefore("\n}")
+            .substringBefore("\n\n    fun openPlayer(")
 
         assertTrue(stopBlock.contains("Intent(context, PlaybackService::class.java)"))
-        assertFalse(
-            "stop intent must rely on stopService, no action string.",
-            stopBlock.contains("action =")
-        )
+        assertTrue(stopBlock.contains("action = PlaybackService.ACTION_DISMISS"))
+    }
+
+    @Test
+    fun controlIntentsUseExplicitServiceActions() {
+        val source = intentsSource()
+        assertTrue(source.contains("PlaybackService.ACTION_TOGGLE_PLAY_PAUSE"))
+        assertTrue(source.contains("PlaybackService.ACTION_SKIP_TO_NEXT"))
+        assertTrue(source.contains("PlaybackService.ACTION_SKIP_TO_PREVIOUS"))
+        assertTrue(source.contains("PlaybackService.ACTION_REFRESH"))
+    }
+
+    @Test
+    fun openPlayerIntentCarriesSessionExtrasAndSingleTopFlags() {
+        val source = intentsSource()
+        val openBlock = source.substringAfter("fun openPlayer(")
+            .substringBefore("\n\n    private fun serviceAction(")
+
+        assertTrue(openBlock.contains("FLAG_ACTIVITY_SINGLE_TOP"))
+        assertTrue(openBlock.contains("FLAG_ACTIVITY_CLEAR_TOP"))
+        assertTrue(openBlock.contains("putSessionQueue(snapshot.queue)"))
     }
 
     @Test
@@ -64,6 +81,18 @@ class PlaybackServiceIntentsSourceTest {
             "Activity must not branch on Build.VERSION_CODES.O for startForegroundService anymore.",
             activitySource.contains("Build.VERSION.SDK_INT >= Build.VERSION_CODES.O") &&
                 activitySource.contains("ContextCompat.startForegroundService")
+        )
+        assertTrue(
+            "Activity must sync notification snapshot before starting the service.",
+            activitySource.contains("syncPlaybackNotificationSnapshot()")
+        )
+        assertTrue(
+            "Activity must register notification control handlers.",
+            activitySource.contains("registerPlaybackNotificationHandlers()")
+        )
+        assertTrue(
+            "Activity must dismiss playback notification when exiting.",
+            activitySource.contains("dismissPlaybackNotification()")
         )
     }
 

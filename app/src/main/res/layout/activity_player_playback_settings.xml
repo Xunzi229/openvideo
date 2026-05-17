@@ -151,7 +151,7 @@
                 android:id="@+id/sw_bg_audio"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="后台播放音频" />
+                android:text="@string/settings_bg_audio" />
 
         </LinearLayout>
     </ScrollView>

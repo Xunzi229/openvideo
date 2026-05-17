@@ -21,7 +21,7 @@ class PlayerExitFlashSourceTest {
 
         assertTrue(
             "Player back button should go through the guarded finish path",
-            source.contains("btnBack.setOnClickListener { finishPlayer() }")
+            source.contains("btnBack.setPlayerClickListener(PlayerLockedInteraction.BACK) { finishPlayer() }")
         )
         assertTrue(
             "System back should use the same guarded finish path",

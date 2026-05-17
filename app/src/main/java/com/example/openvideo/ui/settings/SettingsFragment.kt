@@ -73,6 +73,10 @@ class SettingsFragment : Fragment() {
             }
         }
 
+        view.findViewById<View>(R.id.row_notifications).setOnClickListener {
+            startActivity(Intent(requireContext(), NotificationSettingsActivity::class.java))
+        }
+
         view.findViewById<View>(R.id.row_default_ratio).setOnClickListener {
             val ratios = AspectRatio.entries
             val next = (ratios.indexOf(viewModel.defaultRatio) + 1) % ratios.size

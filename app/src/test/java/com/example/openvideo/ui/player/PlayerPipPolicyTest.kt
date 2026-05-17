@@ -71,4 +71,9 @@ class PlayerPipPolicyTest {
         assertTrue(decision.shouldEnter)
         assertEquals(PlayerPipAspectRatio(1777, 1000), decision.aspectRatio)
     }
+
+    @Test
+    fun exposesSixteenByNineFallbackConstant() {
+        assertEquals(PlayerPipAspectRatio(16, 9), PlayerPipPolicy.FALLBACK_ASPECT_RATIO)
+    }
 }

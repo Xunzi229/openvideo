@@ -68,6 +68,29 @@ class PlayerActivityP9SlimmingSourceTest {
     }
 
     @Test
+    fun lockOverlayUsesTouchActionPolicy() {
+        val source = playerActivitySource()
+        assertTrue(
+            "Locked gesture overlay must map touches via PlayerTouchActionPolicy.",
+            source.contains("PlayerTouchActionPolicy.fromMotionActionMasked(event.actionMasked)")
+        )
+        assertFalse(
+            "Activity must not keep MotionEvent.toPlayerTouchAction extension.",
+            source.contains("fun MotionEvent.toPlayerTouchAction()")
+        )
+    }
+
+    @Test
+    fun pipAspectRatioConversionLivesOnPolicyType() {
+        val activitySource = playerActivitySource()
+        val pipBlock = activitySource.substringAfter("private fun enterPipModeIfSupported()")
+            .substringBefore("\n    private fun startPlaybackServiceIfNeeded")
+        assertTrue(pipBlock.contains("decision.aspectRatio?.toRational()"))
+        assertTrue(pipBlock.contains("PlayerPipPolicy.fallbackRational()"))
+        assertFalse(pipBlock.contains("private fun PlayerPipAspectRatio.toRational()"))
+    }
+
+    @Test
     fun mirrorAndSubtitlePositionGoThroughDisplayAdjustment() {
         val source = playerActivitySource()
         assertTrue(
