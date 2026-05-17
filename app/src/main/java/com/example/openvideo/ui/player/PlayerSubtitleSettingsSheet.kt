@@ -50,11 +50,15 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         val btnSubtitleDelayPlus = view.findViewById<MaterialButton>(R.id.btn_subtitle_delay_plus)
         val btnSubtitleDelayReset = view.findViewById<MaterialButton>(R.id.btn_subtitle_delay_reset)
 
-        fun updateSubtitlePreview() {
-            tvPreview.text = getString(R.string.player_settings_subtitle_preview_sample)
-            tvPreview.textSize = playerPrefs.subtitleSize.toFloat()
-            tvPreview.setTextColor(playerPrefs.subtitleColor)
-            tvPreview.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
+        fun updateSubtitlePreview(position: Float = playerPrefs.subtitlePosition) {
+            PlayerSubtitleSettingsPreviewPolicy.apply(
+                preview = tvPreview,
+                sampleText = getString(R.string.player_settings_subtitle_preview_sample),
+                sizeSp = playerPrefs.subtitleSize,
+                textColor = playerPrefs.subtitleColor,
+                bgStyle = playerPrefs.subtitleBgStyle,
+                position = position
+            )
         }
 
         fun updateSubtitleDelayText() {
@@ -117,11 +121,15 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         sbPosition.progress = (pendingSubtitlePosition * 100).toInt()
         sbPosition.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) pendingSubtitlePosition = progress / 100f
+                if (fromUser) {
+                    pendingSubtitlePosition = progress / 100f
+                    updateSubtitlePreview(pendingSubtitlePosition)
+                }
             }
             override fun onStartTrackingTouch(sb: SeekBar) {}
             override fun onStopTrackingTouch(sb: SeekBar) {
                 playerPrefs.subtitlePosition = pendingSubtitlePosition
+                updateSubtitlePreview(pendingSubtitlePosition)
             }
         })
 

@@ -9,6 +9,12 @@ import org.junit.Test
 class PlayerDoubleTapSeekPolicyTest {
 
     @Test
+    fun intervalMsConvertsSeconds() {
+        assertEquals(10_000L, PlayerDoubleTapSeekPolicy.intervalMs(10))
+        assertEquals(0L, PlayerDoubleTapSeekPolicy.intervalMs(-1))
+    }
+
+    @Test
     fun firstRightTapSeeksForwardFromCurrentPosition() {
         val preview = PlayerDoubleTapSeekPolicy.preview(
             previous = null,

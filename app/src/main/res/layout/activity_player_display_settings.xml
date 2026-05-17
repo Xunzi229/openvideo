@@ -28,6 +28,27 @@
         android:layout_height="12dp" />
 
     <TextView
+        android:id="@+id/tv_content_frame_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/settings_content_frame"
+        android:textAppearance="?attr/textAppearanceHeadline6" />
+
+    <TextView
+        android:id="@+id/tv_content_frame_value"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="@string/settings_content_frame_off"
+        android:background="?attr/selectableItemBackground" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="12dp" />
+
+    <TextView
         android:id="@+id/tv_rotation_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

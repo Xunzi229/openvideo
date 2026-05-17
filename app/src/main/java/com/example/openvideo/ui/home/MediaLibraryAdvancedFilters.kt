@@ -9,6 +9,7 @@ enum class DurationFilter {
 
 enum class DateFilter {
     ANY,
+    TODAY,
     LAST_7_DAYS,
     LAST_30_DAYS,
     OLDER_THAN_30_DAYS

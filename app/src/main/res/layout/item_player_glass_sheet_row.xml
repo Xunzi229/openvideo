@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Glass sheet option row — same chrome as aspect ratio picker. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/player_glass_sheet_row_root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="56dp"
+    android:background="@drawable/player_aspect_ratio_row_unselected"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/player_aspect_row_horizontal_padding"
+    android:paddingEnd="@dimen/player_aspect_row_horizontal_padding"
+    android:paddingTop="@dimen/player_aspect_row_vertical_padding"
+    android:paddingBottom="@dimen/player_aspect_row_vertical_padding">
+
+    <ImageView
+        android:id="@+id/player_glass_sheet_radio"
+        android:layout_width="@dimen/player_aspect_radio_size"
+        android:layout_height="@dimen/player_aspect_radio_size"
+        android:contentDescription="@null"
+        android:duplicateParentState="false"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_player_aspect_radio_off" />
+
+    <TextView
+        android:id="@+id/player_glass_sheet_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="@color/player_aspect_row_label_normal"
+        android:textSize="15sp" />
+</LinearLayout>

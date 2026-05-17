@@ -13,8 +13,11 @@ class CompatibilityImplementationTest {
         val source = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerActivity.kt")))
 
         assertTrue(source.contains("private fun isInPipModeCompat()"))
-        assertTrue(source.contains("Build.VERSION.SDK_INT >= Build.VERSION_CODES.N"))
-        assertTrue(source.contains("Build.VERSION.SDK_INT < Build.VERSION_CODES.O"))
+        assertTrue(source.contains("PlayerPipCompatPolicy.isInPictureInPictureMode("))
+        val pipCompat = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerPipCompatPolicy.kt")))
+        assertTrue(pipCompat.contains("sdkInt >= Build.VERSION_CODES.N"))
+        val pipPolicy = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerPipPolicy.kt")))
+        assertTrue(pipPolicy.contains("sdkInt < Build.VERSION_CODES.O"))
         assertTrue(source.contains("PackageManager.FEATURE_PICTURE_IN_PICTURE"))
         assertTrue(source.contains("runCatching"))
     }

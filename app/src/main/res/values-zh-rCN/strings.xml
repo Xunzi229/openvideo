@@ -114,6 +114,10 @@
     <!-- 画面设置 -->
     <string name="settings_group_display">画面设置</string>
     <string name="settings_aspect_ratio_label">画面比例</string>
+    <string name="settings_content_frame">内容窗口</string>
+    <string name="settings_content_frame_off">关闭（整帧）</string>
+    <string name="settings_content_frame_center_16_9">居中 16:9 条带</string>
+    <string name="settings_content_frame_center_4_3">居中 4:3 条带</string>
     <string name="settings_ratio_fit">适应</string>
     <string name="settings_ratio_fill">填充</string>
     <string name="settings_ratio_crop">裁剪</string>
@@ -312,6 +316,18 @@
     <string name="home_folder_pin_hint">长按文件夹可置顶或取消置顶</string>
     <string name="home_search_hint">搜索标题或文件夹路径</string>
     <string name="home_advanced_filters_title">筛选</string>
+    <string name="home_filter_reset">重置</string>
+    <string name="home_filter_cancel">取消</string>
+    <string name="home_filter_apply">应用筛选</string>
+    <string name="home_filter_dismiss_scrim">关闭筛选面板</string>
+    <string name="home_filter_chip_duration_all">全部</string>
+    <string name="home_filter_chip_duration_0_5">0-5分钟</string>
+    <string name="home_filter_chip_duration_5_20">5-20分钟</string>
+    <string name="home_filter_chip_duration_20_plus">20分钟+</string>
+    <string name="home_filter_chip_format_all">全部</string>
+    <string name="home_filter_chip_date_all">全部</string>
+    <string name="home_filter_date_today">今天</string>
+    <string name="home_filter_format_mov">MOV</string>
     <string name="home_filter_duration_option">时长</string>
     <string name="home_filter_format_option">格式</string>
     <string name="home_filter_date_option">添加日期</string>
@@ -452,7 +468,10 @@
     <string name="player_quick_subtitle_more_settings">更多字幕设置</string>
     <string name="player_quick_subtitle_delay_minus">-500 毫秒</string>
     <string name="player_quick_subtitle_delay_plus">+500 毫秒</string>
+    <string name="player_quick_subtitle_delay_minus_in_dialog">−%1$d 毫秒（当前偏移 %2$d 毫秒）</string>
+    <string name="player_quick_subtitle_delay_plus_in_dialog">+%1$d 毫秒（当前偏移 %2$d 毫秒）</string>
     <string name="player_quick_subtitle_delay_reset">重置延迟</string>
+    <string name="player_quick_subtitle_delay_current">当前延迟：%1$d 毫秒</string>
     <string name="player_pick_speed">播放速度</string>
     <string name="player_land_seek_jump_back">按间隔快退</string>
     <string name="player_land_seek_jump_forward">按间隔快进</string>

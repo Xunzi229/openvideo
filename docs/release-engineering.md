@@ -30,10 +30,14 @@ Keystores and signing material must not be committed.
 
 ## Packaging
 
+`scripts/OpenVideo.Release.psm1` is the shared module for version resolution, artifact renaming, checksums, and release notes. `scripts/package-helper.ps1` and `scripts/sign-release.ps1` import it so naming stays aligned with `gradle.properties`.
+
 `scripts/package-helper.ps1` collects package artifacts and writes:
 
 - `RELEASE_NOTES.md`
 - `SHA256SUMS.txt`
+
+CI runs `scripts/tests/Test-OpenVideoRelease.ps1` on every push/PR to guard version parsing and release artifact formatting.
 
 ## Gradle 10 Compatibility
 

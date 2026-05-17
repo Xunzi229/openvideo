@@ -19,6 +19,9 @@ data class DoubleTapSeekStep(
 object PlayerDoubleTapSeekPolicy {
     private const val DOUBLE_TAP_ACCUMULATE_TIMEOUT_MS = 650L
 
+    fun intervalMs(seekIntervalSeconds: Int): Long =
+        seekIntervalSeconds.coerceAtLeast(0) * 1_000L
+
     fun step(
         previous: DoubleTapSeekState?,
         tapSide: PlayerSwipeSide,

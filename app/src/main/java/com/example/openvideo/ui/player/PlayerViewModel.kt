@@ -10,6 +10,7 @@ import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.player.RenderMode
 import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.prefs.ContentFrameMode
 import com.example.openvideo.core.subtitle.SubtitleItem
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
@@ -29,6 +30,7 @@ data class PlayerUiState(
     val decodeMode: DecodeMode = DecodeMode.HARD,
     val renderMode: RenderMode = RenderMode.SURFACE,
     val aspectRatio: AspectRatio = AspectRatio.FIT,
+    val contentFrameMode: ContentFrameMode = ContentFrameMode.OFF,
     val speed: Float = 1.0f,
     val isFavorite: Boolean = false,
     val currentSubtitle: String = "",
@@ -54,6 +56,7 @@ class PlayerViewModel @Inject constructor(
     private val defaultPlaybackMemory = DefaultPlaybackMemory(
         speed = playerPrefs.speed,
         aspectRatio = playerPrefs.aspectRatio,
+        contentFrameMode = playerPrefs.contentFrameMode,
         subtitlesEnabled = playerPrefs.subtitlesEnabled,
         audioMuted = playerPrefs.audioMuted
     )
@@ -126,6 +129,7 @@ class PlayerViewModel @Inject constructor(
                 speed = history.speed
                 playerPrefs.speed = history.speed
                 playerPrefs.aspectRatio = AspectRatio.fromKey(history.aspectRatioKey)
+                playerPrefs.contentFrameMode = ContentFrameMode.fromKey(history.contentFrameKey)
                 playerPrefs.externalSubtitleUri = history.externalSubtitleUri
                 playerPrefs.subtitlesEnabled = history.subtitlesEnabled
                 playerPrefs.audioMuted = history.audioMuted
@@ -138,6 +142,7 @@ class PlayerViewModel @Inject constructor(
                 speed = defaultPlaybackMemory.speed
                 playerPrefs.speed = defaultPlaybackMemory.speed
                 playerPrefs.aspectRatio = defaultPlaybackMemory.aspectRatio
+                playerPrefs.contentFrameMode = defaultPlaybackMemory.contentFrameMode
                 playerPrefs.externalSubtitleUri = ""
                 playerPrefs.subtitlesEnabled = defaultPlaybackMemory.subtitlesEnabled
                 playerPrefs.audioMuted = defaultPlaybackMemory.audioMuted
@@ -154,7 +159,8 @@ class PlayerViewModel @Inject constructor(
             setAspectRatio(playerPrefs.aspectRatio)
             _uiState.value = _uiState.value.copy(
                 speed = speed,
-                aspectRatio = playerPrefs.aspectRatio
+                aspectRatio = playerPrefs.aspectRatio,
+                contentFrameMode = playerPrefs.contentFrameMode
             )
             onRestored()
         }
@@ -300,6 +306,7 @@ class PlayerViewModel @Inject constructor(
             currentPersistablePosition(),
             speed = playerPrefs.speed,
             aspectRatioKey = playerPrefs.aspectRatio.key,
+            contentFrameKey = playerPrefs.contentFrameMode.key,
             externalSubtitleUri = playerPrefs.externalSubtitleUri,
             subtitlesEnabled = playerPrefs.subtitlesEnabled,
             audioTrackGroupIndex = selectedAudioTrack?.groupIndex ?: -1,
@@ -365,6 +372,7 @@ class PlayerViewModel @Inject constructor(
                 history?.lastPosition ?: 0L,
                 speed = playerPrefs.speed,
                 aspectRatioKey = playerPrefs.aspectRatio.key,
+                contentFrameKey = playerPrefs.contentFrameMode.key,
                 externalSubtitleUri = playerPrefs.externalSubtitleUri,
                 subtitlesEnabled = playerPrefs.subtitlesEnabled,
                 audioTrackGroupIndex = selectedAudioTrack?.groupIndex ?: history?.audioTrackGroupIndex ?: -1,
@@ -415,6 +423,7 @@ class PlayerViewModel @Inject constructor(
     private data class DefaultPlaybackMemory(
         val speed: Float,
         val aspectRatio: AspectRatio,
+        val contentFrameMode: ContentFrameMode,
         val subtitlesEnabled: Boolean,
         val audioMuted: Boolean
     )

@@ -1,0 +1,21 @@
+---
+description: Player centered «glass sheet» picker dialogs — layout, tokens, and Activity hooks
+globs:
+  - app/src/main/java/com/example/openvideo/ui/player/**/*.kt
+  - app/src/main/res/layout/dialog_player_glass_sheet.xml
+  - app/src/main/res/layout/item_player_glass_sheet_row.xml
+  - app/src/main/res/values/aspect_ratio_dialog_tokens.xml
+  - docs/player-glass-sheet-dialog.md
+alwaysApply: false
+---
+
+# 播放器玻璃卡片单列弹窗
+
+完整约定见：**[docs/player-glass-sheet-dialog.md](docs/player-glass-sheet-dialog.md)**。
+
+编写或修改居中单列选项弹窗时遵守：
+
+1. **布局**：`dialog_player_glass_sheet.xml` + `item_player_glass_sheet_row.xml`；不使用 `RadioButton` + `MaterialAlertDialog.setItems` 做同类产品感弹窗。
+2. **令牌**：颜色/间距用 `aspect_ratio_dialog_tokens.xml`（`player_aspect_*`），勿在 Kotlin 硬编码同色值。
+3. **窗口**：`show()` 后调用 `applyPlayerGlassSheetChrome()`，并 `scroll.post { capPlayerGlassSheetScroll(scroll, 0) }`；勿对同一弹窗再套 `applyPlayerSheetStyle()`（避免 `decorView` 整体变淡发糊）。
+4. **重用**：新业务逻辑照旧；UI 拼装复用 `inflatePlayerGlassSheet` / `applyGlassSheetRowVisual`（均在 `PlayerActivity.kt`）。

@@ -95,6 +95,7 @@ object MediaLibrarySearchPolicy {
         if (filter == DateFilter.ANY) return true
         val ageSec = (nowEpochSec - dateAddedSec).coerceAtLeast(0L)
         return when (filter) {
+            DateFilter.TODAY -> ageSec <= DAY_SECONDS
             DateFilter.LAST_7_DAYS -> ageSec <= 7 * DAY_SECONDS
             DateFilter.LAST_30_DAYS -> ageSec <= 30 * DAY_SECONDS
             DateFilter.OLDER_THAN_30_DAYS -> ageSec > 30 * DAY_SECONDS

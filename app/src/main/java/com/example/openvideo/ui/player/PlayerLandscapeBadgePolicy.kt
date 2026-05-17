@@ -12,4 +12,6 @@ object PlayerLandscapeBadgePolicy {
     const val UHD_4K_MIN_WIDTH = 3840
 
     fun is4kVideo(videoWidth: Int): Boolean = videoWidth >= UHD_4K_MIN_WIDTH
+
+    fun shouldShowBadge(videoWidth: Int): Boolean = is4kVideo(videoWidth)
 }

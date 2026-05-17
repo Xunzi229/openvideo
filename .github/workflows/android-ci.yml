@@ -27,7 +27,11 @@ jobs:
         run: ./gradlew :app:compileDebugKotlin
 
       - name: Run unit tests
-        run: ./gradlew :app:testDebugUnitTest
+        run: ./gradlew :app:testDebugUnitTest --warning-mode fail
+
+      - name: Verify release scripts
+        shell: pwsh
+        run: ./scripts/tests/Test-OpenVideoRelease.ps1
 
       - name: Run lint
         run: ./gradlew :app:lintDebug

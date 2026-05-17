@@ -13,7 +13,8 @@ class PlayerLockedControlsPolicyTest {
             ControlVisibility(
                 chromeVisible = false,
                 lockButtonVisible = true,
-                lockButtonSelected = true
+                lockButtonSelected = true,
+                fullscreenButtonVisible = false
             ),
             PlayerLockedControlsPolicy.visibility(isLocked = true, controlsVisible = true)
         )
@@ -25,7 +26,8 @@ class PlayerLockedControlsPolicyTest {
             ControlVisibility(
                 chromeVisible = true,
                 lockButtonVisible = true,
-                lockButtonSelected = false
+                lockButtonSelected = false,
+                fullscreenButtonVisible = true
             ),
             PlayerLockedControlsPolicy.visibility(isLocked = false, controlsVisible = true)
         )
@@ -75,6 +77,16 @@ class PlayerLockedControlsPolicyTest {
         assertFalse(PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SEEK_BAR, isLocked = true))
         assertFalse(PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.BACK, isLocked = true))
         assertFalse(PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.GESTURE_PLAYBACK, isLocked = true))
+    }
+
+    @Test
+    fun lockedModeHidesFloatingFullscreenButton() {
+        assertFalse(
+            PlayerLockedControlsPolicy.visibility(isLocked = true, controlsVisible = true).fullscreenButtonVisible
+        )
+        assertTrue(
+            PlayerLockedControlsPolicy.visibility(isLocked = false, controlsVisible = true).fullscreenButtonVisible
+        )
     }
 
     @Test

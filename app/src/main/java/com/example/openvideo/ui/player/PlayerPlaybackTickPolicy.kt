@@ -15,6 +15,7 @@ data class PlayerPlaybackTickSeek(
 )
 
 object PlayerPlaybackTickPolicy {
+    const val UI_TICK_INTERVAL_MS = 500L
 
     fun seekTarget(
         currentPositionMs: Long,

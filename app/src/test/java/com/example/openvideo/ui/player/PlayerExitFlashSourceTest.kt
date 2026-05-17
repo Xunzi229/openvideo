@@ -42,8 +42,12 @@ class PlayerExitFlashSourceTest {
             prepareExit.contains("playerView.visibility = View.INVISIBLE")
         )
         assertTrue(
-            "Exit preparation should switch the player window/root to the app background color",
-            prepareExit.contains("R.color.ov_bg_base")
+            "Exit preparation should delegate backdrop choice to PlayerExitPolicy",
+            prepareExit.contains("PlayerExitPolicy.exitFrameDecision(")
+        )
+        assertTrue(
+            "Exit preparation should map APP_BASE backdrop to ov_bg_base",
+            prepareExit.contains("PlayerExitBackdrop.APP_BASE") && prepareExit.contains("R.color.ov_bg_base")
         )
     }
 

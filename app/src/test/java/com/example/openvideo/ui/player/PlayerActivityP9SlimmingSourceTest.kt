@@ -59,7 +59,7 @@ class PlayerActivityP9SlimmingSourceTest {
         val source = playerActivitySource()
         assertTrue(
             "Landscape badge visibility must go through PlayerLandscapeBadgePolicy.is4kVideo(...).",
-            source.contains("PlayerLandscapeBadgePolicy.is4kVideo(w)")
+            source.contains("PlayerLandscapeBadgePolicy.shouldShowBadge(w)")
         )
         assertFalse(
             "Landscape badge must not inline the 3840 width magic number.",
@@ -113,6 +113,138 @@ class PlayerActivityP9SlimmingSourceTest {
             "Activity must not keep the inline `subtitlePosition.coerceIn(0f, 1f)` computation.",
             source.contains("playerPrefs.subtitlePosition.coerceIn(0f, 1f)")
         )
+    }
+
+    @Test
+    fun edgeSwipeBackUsesPolicy() {
+        val gestureBlock = playerActivitySource().substringAfter("private fun initGestures()")
+            .substringBefore("\n    private fun releaseLongPressSpeed()")
+        assertTrue(gestureBlock.contains("PlayerEdgeSwipeBackPolicy.shouldFinish("))
+        assertFalse(gestureBlock.contains("if (dx > 100)"))
+    }
+
+    @Test
+    fun sessionListVisibilityUsesPolicy() {
+        val source = playerActivitySource()
+        assertTrue(source.contains("PlayerSessionQueueChromePolicy.shouldShowSessionListButton("))
+        assertFalse(source.contains("val show = q.size > 1"))
+    }
+
+    @Test
+    fun gestureHudDisplayUsesPolicy() {
+        val source = playerActivitySource()
+        assertTrue(source.contains("PlayerGestureHudDisplayPolicy.indicatorText(hud)"))
+        assertTrue(source.contains("PlayerGestureHudDisplayPolicy.AUTO_HIDE_DELAY_MS"))
+        assertFalse(source.contains("handler.postDelayed(hideGestureHudRunnable, 800)"))
+    }
+
+    @Test
+    fun windowBrightnessInitUsesPolicy() {
+        val source = playerActivitySource()
+        assertTrue(source.contains("PlayerWindowBrightnessPolicy.initialBrightness("))
+        assertTrue(source.contains("PlayerWindowBrightnessPolicy.initialVolumeLevel("))
+        assertFalse(source.contains("private fun quickAudioTrackLabel("))
+    }
+
+    @Test
+    fun settingsSheetStyleUsesPolicy() {
+        val block = playerActivitySource().substringAfter("private fun androidx.appcompat.app.AlertDialog.applyPlayerSheetStyle()")
+            .substringBefore("\n    private fun showAudioTrackQuickDialog()")
+        assertTrue(block.contains("PlayerSettingsSheetStylePolicy.compute("))
+        assertFalse(block.contains("settingsPanelOpacity.coerceIn(0, 100) / 100f"))
+    }
+
+    @Test
+    fun videoTrackDetectionUsesPolicy() {
+        val source = playerActivitySource()
+        assertTrue(source.contains("PlayerMediaTracksPolicy.hasVideoTrack("))
+        assertFalse(source.contains("group.type == C.TRACK_TYPE_VIDEO"))
+    }
+
+    @Test
+    fun gestureAndChromeConstantsUsePolicies() {
+        val source = playerActivitySource()
+        assertTrue(source.contains("PlayerGesturePolicy.verticalGestureAction("))
+        assertTrue(source.contains("PlayerDoubleTapSeekPolicy.intervalMs("))
+        assertTrue(source.contains("PlayerChromePolicy.CHROME_FADE_DURATION_MS"))
+        assertTrue(source.contains("PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS"))
+        assertFalse(source.contains("handler.postDelayed(this, 500)"))
+        assertFalse(source.contains("seekInterval * 1000L"))
+        assertFalse(source.contains(".setDuration(200)"))
+    }
+
+    @Test
+    fun playerSettingsUseDisplayAndOrientationPolicies() {
+        val applySettings = playerActivitySource().substringAfter("private fun applyPlayerSettings()")
+            .substringBefore("\n    internal fun refreshPlayerDisplayFromSettings()")
+        assertTrue(applySettings.contains("PlayerVideoColorAdjustmentPolicy.fromPercent("))
+        assertTrue(applySettings.contains("PlayerDisplayVisibilityPolicy.videoLayerAlpha("))
+        assertTrue(applySettings.contains("PlayerScreenOnPolicy.shouldKeepScreenOn("))
+        assertFalse(applySettings.contains("contrastAdjustment / 100f"))
+        assertFalse(applySettings.contains("if (playerPrefs.videoDisplayEnabled) 1f else 0f"))
+    }
+
+    @Test
+    fun firstFrameScrimUsesPresentationPolicy() {
+        val block = playerActivitySource().substringAfter("private fun applyFirstFrameDecision(")
+            .substringBefore("\n    private fun handlePlaybackEnded()")
+        assertTrue(block.contains("PlayerFirstFrameScrimPolicy.presentation(decision)"))
+        assertFalse(block.contains("firstFrameScrim.alpha = 1f"))
+    }
+
+    @Test
+    fun orientationGuardsUsePolicies() {
+        val source = playerActivitySource()
+        assertTrue(source.contains("PlayerConfigurationOrientationPolicy.isLandscape("))
+        assertTrue(source.contains("PlayerVideoOrientationApplyPolicy.shouldApply("))
+        assertFalse(source.contains("configuration.orientation == Configuration.ORIENTATION_LANDSCAPE"))
+        assertFalse(source.contains("configuration.orientation != Configuration.ORIENTATION_LANDSCAPE"))
+    }
+
+    @Test
+    fun remainingPlayerActivitySlicesUsePolicies() {
+        val source = playerActivitySource()
+        val banned = listOf(
+            "if (playerPrefs.softwareAudioDecoder) DecodeMode.SOFT",
+            "if (playerPrefs.rememberProgress)",
+            "if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle()",
+            "if (isAwaitingFirstFrame && !warmResume)",
+            "if (queue.size <= 1) return",
+            "Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode",
+            "if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return",
+            "when (playerPrefs.horizontalSwipeAction)",
+            "if (side == PlayerSwipeSide.NONE) return",
+            "if (verticalAction == GestureAction.SEEK)",
+            "val padding = (8 * resources.displayMetrics.density).toInt()",
+            "contentFrame.pivotX = 0f",
+            "if (playerPrefs.volumeBoost)"
+        )
+        for (snippet in banned) {
+            assertFalse("Banned inline slice `$snippet` must stay in policy.", source.contains(snippet))
+        }
+        val required = listOf(
+            "PlayerDecodeModePolicy.decodeMode",
+            "PlayerSessionResumePolicy.shouldRestorePlaybackPosition",
+            "PlayerSubtitlePresentationPolicy.resolveSubtitleText",
+            "PlayerFirstFrameScrimPolicy.initialScrimVisible",
+            "PlayerChromeSettingsOverlayPolicy.suppressesControlAutoHide",
+            "PlayerScreenLockChromePolicy.revealChrome",
+            "PlayerGestureDispatchPolicy.onHorizontalSwipe",
+            "PlayerNotificationRefreshPolicy.shouldRefreshBackgroundPlayback",
+            "PlayerNotificationPermissionPolicy.requiresRuntimePermission",
+            "PlayerPipCompatPolicy.isInPictureInPictureMode",
+            "PlayerVolumeBoostApplyPolicy.shouldReapplyOnAudioSessionChange",
+            "PlayerQuickEntryDialogPolicy.sheetPaddingPx",
+            "PlayerAbLoopButtonStylePolicy.shouldHighlight",
+            "PlayerLockButtonStylePolicy.shouldUseAccentTint",
+            "PlayerContentFrameResetPolicy.PIVOT",
+            "PlayerGesturePolicy.shouldApplyVerticalSeekOnRelease",
+            "PlayerGesturePolicy.isValidDoubleTapSeekSide",
+            "PlayerSettingsSheetStylePolicy.supportsBackdropBlur"
+        )
+        for (snippet in required) {
+            assertTrue("Expected policy wiring `$snippet`.", source.contains(snippet))
+        }
     }
 
     @Test

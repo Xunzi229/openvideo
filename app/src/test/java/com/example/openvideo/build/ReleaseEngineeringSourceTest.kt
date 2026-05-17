@@ -43,22 +43,44 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
-    fun packageHelperGeneratesReleaseNotesAndChecksums() {
-        val helper = rootFile("scripts", "package-helper.ps1").readText()
+    fun releaseModuleCentralizesVersionAndArtifacts() {
+        val module = rootFile("scripts", "OpenVideo.Release.psm1").readText()
 
-        assertTrue(helper.contains("RELEASE_NOTES.md"))
-        assertTrue(helper.contains("SHA256SUMS.txt"))
-        assertTrue(helper.contains("Get-FileHash"))
-        assertTrue(helper.contains("Resolve-VersionNameForArtifact"))
+        assertTrue(module.contains("Get-OpenVideoProjectVersion"))
+        assertTrue(module.contains("Resolve-OpenVideoVersionName"))
+        assertTrue(module.contains("Write-OpenVideoReleaseChecksums"))
+        assertTrue(module.contains("Write-OpenVideoReleaseNotes"))
+        assertTrue(module.contains("gradle.properties"))
     }
 
     @Test
-    fun signingScriptReadsVersionNameFromGradleProperties() {
+    fun packageHelperUsesSharedReleaseModule() {
+        val helper = rootFile("scripts", "package-helper.ps1").readText()
+
+        assertTrue(helper.contains("OpenVideo.Release.psm1"))
+        assertTrue(helper.contains("Write-OpenVideoReleaseChecksums"))
+        assertTrue(helper.contains("Write-OpenVideoReleaseNotes"))
+        assertFalse(helper.contains("Resolve-VersionNameForArtifact"))
+    }
+
+    @Test
+    fun signingScriptUsesSharedReleaseModule() {
         val script = rootFile("scripts", "sign-release.ps1").readText()
 
-        assertTrue(script.contains("gradle.properties"))
-        assertTrue(script.contains("VERSION_NAME"))
-        assertFalse(script.contains("Cannot read versionName from: ${'$'}gradleFile"))
+        assertTrue(script.contains("OpenVideo.Release.psm1"))
+        assertTrue(script.contains("Resolve-OpenVideoVersionName"))
+        assertFalse(script.contains("Resolve-AppVersionName"))
+    }
+
+    @Test
+    fun releaseScriptTestsAndCiAreWired() {
+        val testScript = rootFile("scripts", "tests", "Test-OpenVideoRelease.ps1").readText()
+        val workflow = rootFile(".github", "workflows", "android-ci.yml").readText()
+
+        assertTrue(testScript.contains("Get-OpenVideoProjectVersion"))
+        assertTrue(testScript.contains("SHA256SUMS.txt"))
+        assertTrue(workflow.contains("Test-OpenVideoRelease.ps1"))
+        assertTrue(workflow.contains("--warning-mode fail"))
     }
 
     @Test

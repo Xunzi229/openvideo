@@ -135,6 +135,10 @@
     <!-- Display -->
     <string name="settings_group_display">Display</string>
     <string name="settings_aspect_ratio_label">Aspect ratio</string>
+    <string name="settings_content_frame">Content window</string>
+    <string name="settings_content_frame_off">Off (full frame)</string>
+    <string name="settings_content_frame_center_16_9">Center 16:9 band</string>
+    <string name="settings_content_frame_center_4_3">Center 4:3 band</string>
     <string name="settings_ratio_fit">Fit</string>
     <string name="settings_ratio_fill">Fill</string>
     <string name="settings_ratio_crop">Crop</string>
@@ -333,6 +337,18 @@
     <string name="home_folder_pin_hint">Long press a folder to pin or unpin</string>
     <string name="home_search_hint">Search by title or folder path</string>
     <string name="home_advanced_filters_title">Filters</string>
+    <string name="home_filter_reset">Reset</string>
+    <string name="home_filter_cancel">Cancel</string>
+    <string name="home_filter_apply">Apply filters</string>
+    <string name="home_filter_dismiss_scrim">Dismiss filter panel</string>
+    <string name="home_filter_chip_duration_all">All</string>
+    <string name="home_filter_chip_duration_0_5">0–5 min</string>
+    <string name="home_filter_chip_duration_5_20">5–20 min</string>
+    <string name="home_filter_chip_duration_20_plus">20 min+</string>
+    <string name="home_filter_chip_format_all">All</string>
+    <string name="home_filter_chip_date_all">All</string>
+    <string name="home_filter_date_today">Today</string>
+    <string name="home_filter_format_mov">MOV</string>
     <string name="home_filter_duration_option">Duration</string>
     <string name="home_filter_format_option">Format</string>
     <string name="home_filter_date_option">Date added</string>
@@ -456,7 +472,10 @@
     <string name="player_quick_subtitle_more_settings">More subtitle settings</string>
     <string name="player_quick_subtitle_delay_minus">-500 ms</string>
     <string name="player_quick_subtitle_delay_plus">+500 ms</string>
+    <string name="player_quick_subtitle_delay_minus_in_dialog">-%1$d ms (offset %2$d ms)</string>
+    <string name="player_quick_subtitle_delay_plus_in_dialog">+%1$d ms (offset %2$d ms)</string>
     <string name="player_quick_subtitle_delay_reset">Reset delay</string>
+    <string name="player_quick_subtitle_delay_current">Current delay: %1$d ms</string>
     <string name="player_pick_speed">Playback speed</string>
     <string name="player_land_seek_jump_back">Rewind one seek interval</string>
     <string name="player_land_seek_jump_forward">Forward one seek interval</string>

@@ -24,6 +24,18 @@ data class PlayerExitPresentation(
     val releaseDelayMs: Long
 )
 
+/** Semantic backdrop when hiding the video surface during exit (Activity maps to `R.color`). */
+enum class PlayerExitBackdrop {
+    APP_BASE
+}
+
+data class PlayerExitFrameDecision(
+    val shouldPrepare: Boolean,
+    val cancelPlayerViewAnimation: Boolean,
+    val hidePlayerView: Boolean,
+    val backdrop: PlayerExitBackdrop
+)
+
 object PlayerExitPolicy {
     private const val PLAYER_EXIT_RELEASE_DELAY_MS = 250L
 
@@ -56,4 +68,25 @@ object PlayerExitPolicy {
         } else {
             PlayerExitTransitionStrategy.OVERRIDE_PENDING_TRANSITION
         }
+
+    /**
+     * Prepares a static app-colored frame before [android.app.Activity.finish] so the
+     * TextureView/Surface layer cannot flash black over the previous screen.
+     */
+    fun exitFrameDecision(playerViewInitialized: Boolean): PlayerExitFrameDecision {
+        if (!playerViewInitialized) {
+            return PlayerExitFrameDecision(
+                shouldPrepare = false,
+                cancelPlayerViewAnimation = false,
+                hidePlayerView = false,
+                backdrop = PlayerExitBackdrop.APP_BASE
+            )
+        }
+        return PlayerExitFrameDecision(
+            shouldPrepare = true,
+            cancelPlayerViewAnimation = true,
+            hidePlayerView = true,
+            backdrop = PlayerExitBackdrop.APP_BASE
+        )
+    }
 }

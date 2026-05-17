@@ -38,7 +38,7 @@ class PlayerQuickEntrySourceTest {
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryPolicy.subtitleEntry("))
         assertTrue(subtitleDialogBlock.contains("subtitleDelayMs = playerPrefs.subtitleDelayMs"))
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryAction.SubtitleDelayStatus"))
-        assertTrue(subtitleDialogBlock.contains("player_settings_unit_ms"))
+        assertTrue(subtitleDialogBlock.contains("player_quick_subtitle_delay_current"))
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryAction.AdjustSubtitleDelay"))
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryAction.ResetSubtitleDelay"))
         assertTrue(subtitleDialogBlock.contains("playerPrefs.subtitleDelayMs += action.deltaMs"))

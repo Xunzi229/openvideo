@@ -74,6 +74,7 @@ class HomeFragment : Fragment() {
     private val categoryLists = mutableMapOf<HomeCategory, List<VideoItem>>()
     private var currentFolders: List<VideoFolderSummary> = emptyList()
     private var currentSelectedFolderKey: String? = null
+    private var filterPopover: VideoLibraryFilterPopover? = null
 
     private val activeAdapter: VideoGridAdapter
         get() = adapters.getValue(activeCategory)
@@ -123,7 +124,7 @@ class HomeFragment : Fragment() {
         btnLibraryFilter = view.findViewById(R.id.btn_library_filter)
         btnList.setOnClickListener { viewModel.setViewMode(ViewMode.LIST) }
         btnGrid.setOnClickListener { viewModel.setViewMode(ViewMode.GRID) }
-        btnLibraryFilter.setOnClickListener { showAdvancedFilterMenu() }
+        btnLibraryFilter.setOnClickListener { toggleAdvancedFilterPopover() }
         chipAll = view.findViewById(R.id.chip_all)
         chipRecent = view.findViewById(R.id.chip_recent)
         chipFavorite = view.findViewById(R.id.chip_favorite)
@@ -235,10 +236,7 @@ class HomeFragment : Fragment() {
                 }
                 launch {
                     viewModel.hasActiveAdvancedFilters.collect { active ->
-                        val tint = if (active) R.color.ov_accent_blue else R.color.ov_text_secondary
-                        btnLibraryFilter.imageTintList = ColorStateList.valueOf(
-                            ContextCompat.getColor(requireContext(), tint)
-                        )
+                        bindFilterButtonTint(active || filterPopover?.isShowing() == true)
                     }
                 }
                 launch {
@@ -528,86 +526,24 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun showAdvancedFilterMenu() {
-        val options = arrayOf(
-            getString(R.string.home_filter_duration_option),
-            getString(R.string.home_filter_format_option),
-            getString(R.string.home_filter_date_option),
-            getString(R.string.home_filter_clear)
-        )
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.home_advanced_filters_title)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> showDurationFilterDialog()
-                    1 -> showFormatFilterDialog()
-                    2 -> showDateFilterDialog()
-                    3 -> viewModel.clearAdvancedFilters()
-                }
-            }
-            .show()
+    private fun toggleAdvancedFilterPopover() {
+        val popover = filterPopover ?: VideoLibraryFilterPopover(
+            anchor = btnLibraryFilter,
+            initial = viewModel.advancedFilters.value,
+            onApply = { filters ->
+                viewModel.setAdvancedFilters(filters)
+            },
+            onDismiss = { bindFilterButtonTint(viewModel.hasActiveAdvancedFilters.value) }
+        ).also { filterPopover = it }
+        popover.toggle(viewModel.advancedFilters.value)
+        bindFilterButtonTint(viewModel.hasActiveAdvancedFilters.value || popover.isShowing())
     }
 
-    private fun showDurationFilterDialog() {
-        val labels = arrayOf(
-            getString(R.string.home_filter_duration_any),
-            getString(R.string.home_filter_duration_short),
-            getString(R.string.home_filter_duration_medium),
-            getString(R.string.home_filter_duration_long)
+    private fun bindFilterButtonTint(active: Boolean) {
+        val colorRes = if (active) R.color.ov_accent_blue else R.color.ov_text_secondary
+        btnLibraryFilter.imageTintList = ColorStateList.valueOf(
+            ContextCompat.getColor(requireContext(), colorRes)
         )
-        val values = DurationFilter.entries
-        val current = viewModel.advancedFilters.value.durationFilter
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.home_filter_duration_option)
-            .setSingleChoiceItems(labels, values.indexOf(current)) { dialog, which ->
-                viewModel.setAdvancedFilters(
-                    viewModel.advancedFilters.value.copy(durationFilter = values[which])
-                )
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun showFormatFilterDialog() {
-        val extensions = arrayOf(null, "mp4", "mkv", "avi", "webm")
-        val labels = arrayOf(
-            getString(R.string.home_filter_format_any),
-            getString(R.string.home_filter_format_mp4),
-            getString(R.string.home_filter_format_mkv),
-            getString(R.string.home_filter_format_avi),
-            getString(R.string.home_filter_format_webm)
-        )
-        val current = viewModel.advancedFilters.value.formatExtension
-        val checked = extensions.indexOfFirst { it == current }.coerceAtLeast(0)
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.home_filter_format_option)
-            .setSingleChoiceItems(labels, checked) { dialog, which ->
-                viewModel.setAdvancedFilters(
-                    viewModel.advancedFilters.value.copy(formatExtension = extensions[which])
-                )
-                dialog.dismiss()
-            }
-            .show()
-    }
-
-    private fun showDateFilterDialog() {
-        val labels = arrayOf(
-            getString(R.string.home_filter_date_any),
-            getString(R.string.home_filter_date_7d),
-            getString(R.string.home_filter_date_30d),
-            getString(R.string.home_filter_date_older)
-        )
-        val values = DateFilter.entries
-        val current = viewModel.advancedFilters.value.dateFilter
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.home_filter_date_option)
-            .setSingleChoiceItems(labels, values.indexOf(current)) { dialog, which ->
-                viewModel.setAdvancedFilters(
-                    viewModel.advancedFilters.value.copy(dateFilter = values[which])
-                )
-                dialog.dismiss()
-            }
-            .show()
     }
 
     private fun folderChipLabel(folder: VideoFolderSummary): String {

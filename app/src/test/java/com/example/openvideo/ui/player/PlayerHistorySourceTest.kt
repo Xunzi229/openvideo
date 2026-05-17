@@ -79,6 +79,10 @@ class PlayerHistorySourceTest {
             source.contains("aspectRatioKey = playerPrefs.aspectRatio.key")
         )
         assertTrue(
+            "Per-video playback memory should persist the current content frame key.",
+            source.contains("contentFrameKey = playerPrefs.contentFrameMode.key")
+        )
+        assertTrue(
             "Per-video playback memory should persist the current external subtitle URI.",
             source.contains("externalSubtitleUri = playerPrefs.externalSubtitleUri")
         )
@@ -117,6 +121,7 @@ class PlayerHistorySourceTest {
         assertTrue(source.contains("fun restorePlaybackPreferences(videoId: Long)"))
         assertTrue(source.contains("playerPrefs.speed = history.speed"))
         assertTrue(source.contains("playerPrefs.aspectRatio = AspectRatio.fromKey(history.aspectRatioKey)"))
+        assertTrue(source.contains("playerPrefs.contentFrameMode = ContentFrameMode.fromKey(history.contentFrameKey)"))
         assertTrue(source.contains("playerPrefs.externalSubtitleUri = history.externalSubtitleUri"))
         assertTrue(source.contains("playerPrefs.subtitlesEnabled = history.subtitlesEnabled"))
         assertTrue(source.contains("playerPrefs.audioMuted = history.audioMuted"))

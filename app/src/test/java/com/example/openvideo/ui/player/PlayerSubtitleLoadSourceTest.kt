@@ -9,12 +9,13 @@ import java.nio.file.Paths
 class PlayerSubtitleLoadSourceTest {
 
     @Test
-    fun playerActivityDelegatesSubtitleLoadRoutingToPolicy() {
+    fun playerActivityDelegatesSubtitleLoadToCoordinatorAndApplyPolicy() {
         val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun loadSubtitles(uriString: String, videoPath: String):")
+        val block = source.substringAfter("private fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {")
             .substringBefore("\n    private fun initViews()")
 
-        assertTrue(block.contains("PlayerSubtitleLoadPolicy.resolve("))
+        assertTrue(block.contains("PlayerSubtitleLoadCoordinator.load("))
+        assertTrue(block.contains("PlayerSubtitleLoadApplyPolicy.afterLoad("))
     }
 
     private fun playerActivitySource(): Path {

@@ -6,6 +6,9 @@ data class PlayerSubtitlePresentation(
 )
 
 object PlayerSubtitlePresentationPolicy {
+    fun resolveSubtitleText(subtitlesEnabled: Boolean, currentSubtitle: String): String =
+        if (subtitlesEnabled) currentSubtitle else ""
+
     fun present(
         subtitlesEnabled: Boolean,
         subtitleText: String

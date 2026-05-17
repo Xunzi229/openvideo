@@ -23,12 +23,22 @@ class HomeSearchFilterSourceTest {
     fun homeFragmentExposesAdvancedFilterEntryPoint() {
         val source = String(Files.readAllBytes(homeFragmentSource()))
         val layout = String(Files.readAllBytes(homeLayoutSource()))
+        val popoverLayout = String(
+            Files.readAllBytes(
+                moduleResPath("layout", "view_video_library_filter_popover.xml")
+            )
+        )
 
         assertTrue(layout.contains("@+id/btn_library_filter"))
-        assertTrue(source.contains("showAdvancedFilterMenu"))
-        assertTrue(source.contains("showDurationFilterDialog"))
-        assertTrue(source.contains("showFormatFilterDialog"))
-        assertTrue(source.contains("showDateFilterDialog"))
+        assertTrue(source.contains("VideoLibraryFilterPopover"))
+        assertTrue(source.contains("toggleAdvancedFilterPopover"))
+        assertTrue(popoverLayout.contains("@+id/chip_group_duration"))
+        assertTrue(popoverLayout.contains("@+id/btn_filter_apply"))
+    }
+
+    private fun moduleResPath(vararg segments: String): Path {
+        val relativePath = Paths.get("src", "main", "res", *segments)
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
     }
 
     private fun homeViewModelSource(): Path = moduleSource("ui", "home", "HomeViewModel.kt")

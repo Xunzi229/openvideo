@@ -19,6 +19,7 @@ class PlayerDisplaySettingsSourceTest {
         assertTrue(applySettingsBlock.contains("applyDisplaySettings()"))
         assertTrue(displayBlock.contains("setPlayerResizeMode()"))
         assertTrue(displayBlock.contains("applyPlayerContentAspectRatio()"))
+        assertTrue(displayBlock.contains("applyPlayerContentFrameTransform()"))
         assertTrue(displayBlock.contains("playerView.rotation = playerPrefs.rotation.toFloat()"))
         // mirror is routed through PlayerDisplayAdjustment so future mirror policy changes
         // (e.g. clamp / animate) only need updating the helper, not the Activity.

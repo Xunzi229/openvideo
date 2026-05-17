@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <!-- Tokens for player “glass sheet” centered pickers (aspect, speed, quick entry rows). -->
+<resources>
+    <color name="player_aspect_dialog_panel_bg">#B80C101C</color>
+    <color name="player_aspect_dialog_stroke">#33FFFFFF</color>
+    <color name="player_aspect_row_bg">#33101628</color>
+    <color name="player_aspect_row_stroke">#14FFFFFF</color>
+    <color name="player_aspect_row_selected_fill">#404A9EFF</color>
+    <color name="player_aspect_row_selected_stroke">@color/ov_accent_blue</color>
+    <color name="player_aspect_row_label_normal">#CCBFC8DE</color>
+    <color name="player_aspect_row_label_selected">#FFFFFFFF</color>
+    <color name="player_aspect_radio_ring_off">#99B8C5E0</color>
+    <color name="player_aspect_radio_ring_on">@color/ov_accent_blue</color>
+    <color name="player_aspect_radio_dot">@color/ov_accent_blue</color>
+
+    <dimen name="player_aspect_dialog_corner">28dp</dimen>
+    <dimen name="player_aspect_dialog_horizontal_inset">20dp</dimen>
+    <dimen name="player_aspect_dialog_max_width">408dp</dimen>
+    <dimen name="player_aspect_dialog_elevation">12dp</dimen>
+    <dimen name="player_aspect_row_corner">14dp</dimen>
+    <dimen name="player_aspect_row_horizontal_padding">16dp</dimen>
+    <dimen name="player_aspect_row_vertical_padding">12dp</dimen>
+    <dimen name="player_aspect_radio_size">22dp</dimen>
+    <dimen name="player_aspect_option_spacing">10dp</dimen>
+    <!-- Max height for scrollable option list before internal scroll engages -->
+    <dimen name="player_aspect_dialog_option_scroll_cap">420dp</dimen>
+</resources>

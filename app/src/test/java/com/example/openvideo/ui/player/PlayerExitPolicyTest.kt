@@ -63,4 +63,23 @@ class PlayerExitPolicyTest {
             PlayerExitPolicy.transitionStrategyFor(android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
         )
     }
+
+    @Test
+    fun exitFrameDecision_skipsWhenPlayerViewNotInitialized() {
+        val decision = PlayerExitPolicy.exitFrameDecision(playerViewInitialized = false)
+
+        assertFalse(decision.shouldPrepare)
+        assertFalse(decision.hidePlayerView)
+        assertFalse(decision.cancelPlayerViewAnimation)
+    }
+
+    @Test
+    fun exitFrameDecision_hidesPlayerViewWithAppBaseBackdrop() {
+        val decision = PlayerExitPolicy.exitFrameDecision(playerViewInitialized = true)
+
+        assertTrue(decision.shouldPrepare)
+        assertTrue(decision.hidePlayerView)
+        assertTrue(decision.cancelPlayerViewAnimation)
+        assertEquals(PlayerExitBackdrop.APP_BASE, decision.backdrop)
+    }
 }

@@ -23,7 +23,8 @@ class PlayerControlStateTest {
             ControlVisibility(
                 chromeVisible = false,
                 lockButtonVisible = true,
-                lockButtonSelected = true
+                lockButtonSelected = true,
+                fullscreenButtonVisible = false
             ),
             PlayerControlState.visibilityFor(isLocked = true, controlsVisible = true)
         )
@@ -35,7 +36,8 @@ class PlayerControlStateTest {
             ControlVisibility(
                 chromeVisible = true,
                 lockButtonVisible = true,
-                lockButtonSelected = false
+                lockButtonSelected = false,
+                fullscreenButtonVisible = true
             ),
             PlayerControlState.visibilityFor(isLocked = false, controlsVisible = true)
         )

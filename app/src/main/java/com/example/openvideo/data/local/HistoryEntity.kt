@@ -13,6 +13,7 @@ data class HistoryEntity(
     val timestamp: Long,      // epoch ms when last played
     val speed: Float = 1.0f,
     val aspectRatioKey: String = "fit",
+    val contentFrameKey: String = "off",
     val externalSubtitleUri: String = "",
     val subtitlesEnabled: Boolean = true,
     val audioTrackGroupIndex: Int = -1,

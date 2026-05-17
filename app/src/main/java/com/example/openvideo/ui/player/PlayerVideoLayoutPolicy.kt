@@ -2,7 +2,30 @@ package com.example.openvideo.ui.player
 
 import com.example.openvideo.core.prefs.AspectRatio
 
+/** Display-oriented frame size in pixels (after rotation / pixel aspect). */
+data class DisplayFrameSize(val width: Int, val height: Int)
+
 object PlayerVideoLayoutPolicy {
+
+    fun displayFrameSize(
+        width: Int,
+        height: Int,
+        pixelWidthHeightRatio: Float = 1f,
+        unappliedRotationDegrees: Int = 0
+    ): DisplayFrameSize {
+        if (width <= 0 || height <= 0) return DisplayFrameSize(width = 0, height = 0)
+
+        val normalizedPixelRatio = pixelWidthHeightRatio
+            .takeIf { it.isFinite() && it > 0f }
+            ?: 1f
+        val isQuarterTurn = normalizedRotation(unappliedRotationDegrees) % 180 != 0
+        val displayWidth = if (isQuarterTurn) height.toFloat() else width * normalizedPixelRatio
+        val displayHeight = if (isQuarterTurn) width * normalizedPixelRatio else height.toFloat()
+        return DisplayFrameSize(
+            width = displayWidth.toInt().coerceAtLeast(1),
+            height = displayHeight.toInt().coerceAtLeast(1)
+        )
+    }
 
     fun orientationForVideo(
         width: Int,

@@ -27,6 +27,8 @@ data class PlayerQuickEntryState(
 
 object PlayerQuickEntryPolicy {
 
+    fun subtitleDelayAdjustIsDecrease(deltaMs: Int): Boolean = deltaMs < 0
+
     fun audioEntry(
         tracks: List<PlayerAudioTrackInfo>,
         audioMuted: Boolean,

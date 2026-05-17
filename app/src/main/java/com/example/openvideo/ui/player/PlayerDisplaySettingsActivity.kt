@@ -10,6 +10,7 @@ import javax.inject.Inject
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.prefs.ContentFrameMode
 
 @AndroidEntryPoint
 class PlayerDisplaySettingsActivity : ComponentActivity() {
@@ -19,6 +20,7 @@ class PlayerDisplaySettingsActivity : ComponentActivity() {
     private val aspectRatios = AspectRatio.entries.toTypedArray()
     private val rotations = intArrayOf(0, 90, 180, 270)
     private var aspectIndex = 0
+    private var contentFrameIndex = 0
     private var rotationIndex = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,9 +28,13 @@ class PlayerDisplaySettingsActivity : ComponentActivity() {
         setContentView(R.layout.activity_player_display_settings)
 
         aspectIndex = aspectRatios.indexOf(playerPrefs.aspectRatio).takeIf { it >= 0 } ?: 0
+        contentFrameIndex = PlayerDisplayContentFrameControls.modes
+            .indexOf(playerPrefs.contentFrameMode)
+            .takeIf { it >= 0 } ?: 0
         rotationIndex = rotations.indexOf(playerPrefs.rotation).takeIf { it >= 0 } ?: 0
 
         val tvAspect = findViewById<TextView>(R.id.tv_aspect_value)
+        val tvContentFrame = findViewById<TextView>(R.id.tv_content_frame_value)
         val tvRotation = findViewById<TextView>(R.id.tv_rotation_value)
         val swMirror = findViewById<SwitchMaterial>(R.id.sw_mirror)
         val swAutoOrientation = findViewById<SwitchMaterial>(R.id.sw_auto_orientation)
@@ -49,8 +55,22 @@ class PlayerDisplaySettingsActivity : ComponentActivity() {
         tvAspect.setOnClickListener {
             aspectIndex = (aspectIndex + 1) % aspectRatios.size
             playerPrefs.aspectRatio = aspectRatios[aspectIndex]
+            if (!PlayerContentFramePolicy.allowsContentFrameAdjustment(playerPrefs.aspectRatio) &&
+                playerPrefs.contentFrameMode != ContentFrameMode.OFF
+            ) {
+                playerPrefs.contentFrameMode = ContentFrameMode.OFF
+                contentFrameIndex = 0
+                tvContentFrame.setText(PlayerDisplayContentFrameControls.labelRes(ContentFrameMode.OFF))
+            }
             updateAspectText()
         }
+
+        PlayerDisplayContentFrameControls.bind(
+            tvValue = tvContentFrame,
+            playerPrefs = playerPrefs,
+            getIndex = { contentFrameIndex },
+            setIndex = { contentFrameIndex = it }
+        )
 
         fun updateRotationText() {
             tvRotation.text = "${rotations[rotationIndex]}°"

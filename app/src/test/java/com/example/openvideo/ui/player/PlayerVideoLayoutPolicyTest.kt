@@ -40,6 +40,26 @@ class PlayerVideoLayoutPolicyTest {
     }
 
     @Test
+    fun displayFrameSizeAppliesRotationAndPixelAspectRatio() {
+        assertEquals(
+            DisplayFrameSize(width = 1920, height = 1080),
+            PlayerVideoLayoutPolicy.displayFrameSize(
+                width = 1080,
+                height = 1920,
+                unappliedRotationDegrees = 90
+            )
+        )
+        assertEquals(
+            DisplayFrameSize(width = 1280, height = 576),
+            PlayerVideoLayoutPolicy.displayFrameSize(
+                width = 720,
+                height = 576,
+                pixelWidthHeightRatio = 16f / 9f
+            )
+        )
+    }
+
+    @Test
     fun rotationMetadataFlipsDisplayOrientationAndAspectRatioConsistently() {
         assertEquals(
             ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,

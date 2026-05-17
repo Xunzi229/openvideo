@@ -38,6 +38,7 @@ class PlayerSubtitleSettingsSheetTest {
             assertTrue(source.contains("tv_subtitle_preview"))
             assertTrue(source.contains("tv_subtitle_delay_value"))
             assertTrue(source.contains("updateSubtitlePreview()"))
+            assertTrue(source.contains("PlayerSubtitleSettingsPreviewPolicy.apply"))
             assertTrue(source.contains("updateSubtitleDelayText()"))
             assertTrue(source.contains("playerPrefs.subtitleDelayMs"))
         }

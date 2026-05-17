@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,13 +17,15 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.TypedValue
 import android.view.GestureDetector
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
-import android.widget.RadioButton
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -33,6 +36,7 @@ import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
@@ -40,6 +44,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -114,9 +119,11 @@ class PlayerActivity : AppCompatActivity() {
     /** 横屏右侧浮层（倍速 / 比例 / 画中画）。 */
     private var landRightFloatColumn: View? = null
 
+    private var contentFrameTransformRetryPosted = false
+
     private val landscapeGeometryListener =
         View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (PlayerConfigurationOrientationPolicy.isLandscape(resources.configuration.orientation)) {
                 applyLandscapePlayerGeometry()
             }
         }
@@ -146,7 +153,7 @@ class PlayerActivity : AppCompatActivity() {
                 applyPlaybackTickSeek(state.currentPosition, state.duration)
                 applySubtitlePresentation()
             }
-            handler.postDelayed(this, 500)
+            handler.postDelayed(this, PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS)
         }
     }
 
@@ -268,7 +275,12 @@ class PlayerActivity : AppCompatActivity() {
 
         playerView.player = viewModel.player
         playerView.visibility = View.VISIBLE
-        firstFrameScrim.visibility = if (isAwaitingFirstFrame && !warmResume) View.VISIBLE else View.GONE
+        firstFrameScrim.visibility =
+            if (PlayerFirstFrameScrimPolicy.initialScrimVisible(isAwaitingFirstFrame, warmResume)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         setupControls()
         refreshSessionListButtonVisibility()
         startupTrace.record(PlayerStartupTrace.Events.PLAYER_VIEW_ATTACHED)
@@ -313,7 +325,7 @@ class PlayerActivity : AppCompatActivity() {
         scheduleHideControls()
 
         // Restore playback position if remember_progress is on
-        if (playerPrefs.rememberProgress) {
+        if (PlayerSessionResumePolicy.shouldRestorePlaybackPosition(playerPrefs.rememberProgress)) {
             viewModel.restorePosition(id, explicitStartPositionMs)
         }
 
@@ -329,7 +341,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun applyPlayerSettings() {
         viewModel.setAspectRatio(playerPrefs.aspectRatio)
-        viewModel.setDecodeMode(if (playerPrefs.softwareAudioDecoder) DecodeMode.SOFT else DecodeMode.HARD)
+        viewModel.setDecodeMode(PlayerDecodeModePolicy.decodeMode(playerPrefs.softwareAudioDecoder))
         viewModel.setSpeed(
             playerPrefs.speed,
             PlayerPlaybackSettings.pitchFor(playerPrefs.speed, playerPrefs.speedPreservePitch)
@@ -337,20 +349,24 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
         viewModel.setVolumeBoost(playerPrefs.volumeBoost)
         playerManager.setMuted(playerPrefs.audioMuted)
+        val colorAdjustments = PlayerVideoColorAdjustmentPolicy.fromPercent(
+            contrastPercent = playerPrefs.contrastAdjustment,
+            saturationPercent = playerPrefs.saturationAdjustment
+        )
         playerManager.applyVideoAdjustments(
             0f,
-            playerPrefs.contrastAdjustment / 100f,
-            playerPrefs.saturationAdjustment / 100f
+            colorAdjustments.contrast,
+            colorAdjustments.saturation
         )
         applyScreenBrightness(playerPrefs.brightnessAdjustment)
-        playerView.alpha = if (playerPrefs.videoDisplayEnabled) 1f else 0f
+        playerView.alpha = PlayerDisplayVisibilityPolicy.videoLayerAlpha(playerPrefs.videoDisplayEnabled)
         bottomPanel.alpha = 1f
         if (controlsVisible) {
             controlsContainer.animate().cancel()
             controlsContainer.alpha = controlsChromeMaxAlpha()
         }
 
-        if (playerPrefs.keepScreenOn) {
+        if (PlayerScreenOnPolicy.shouldKeepScreenOn(playerPrefs.keepScreenOn)) {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -369,73 +385,70 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    internal fun refreshPlayerDisplayFromSettings() {
+        applyDisplaySettings()
+    }
+
     private fun applyDisplaySettings() {
         setPlayerResizeMode()
         applyPlayerContentAspectRatio()
+        applyPlayerContentFrameTransform()
         playerView.rotation = playerPrefs.rotation.toFloat()
         playerView.scaleX = PlayerDisplayAdjustment.mirrorScaleX(playerPrefs.mirror)
     }
 
     private fun initBrightnessAndVolume() {
-        // Read current window brightness (BRIGHTNESS_DEFAULT is -1f)
         val windowBrightness = window.attributes.screenBrightness
-        currentBrightness = if (windowBrightness in 0f..1f) {
-            windowBrightness
-        } else {
-            // Read system brightness setting
-            try {
-                android.provider.Settings.System.getInt(
-                    contentResolver,
-                    android.provider.Settings.System.SCREEN_BRIGHTNESS
-                ) / 255f
-            } catch (_: Exception) {
-                0.5f
-            }
+        val systemBrightness = try {
+            android.provider.Settings.System.getInt(
+                contentResolver,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS
+            ) / 255f
+        } catch (_: Exception) {
+            null
         }
+        currentBrightness = PlayerWindowBrightnessPolicy.initialBrightness(
+            windowBrightness = windowBrightness,
+            systemBrightnessNormalized = systemBrightness
+        )
 
-        // Read current music stream volume
         val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
         val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
         val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
-        currentVolume = if (maxVolume > 0) currentVol.toFloat() / maxVolume else 0.5f
+        currentVolume = PlayerWindowBrightnessPolicy.initialVolumeLevel(currentVol, maxVolume)
 
-        brightnessProgress.progress = (currentBrightness * 100).toInt()
-        volumeProgress.progress = (currentVolume * 100).toInt()
+        brightnessProgress.progress = PlayerWindowBrightnessPolicy.levelToProgressPercent(currentBrightness)
+        volumeProgress.progress = PlayerWindowBrightnessPolicy.levelToProgressPercent(currentVolume)
     }
 
     private fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {
         lifecycleScope.launch {
             val subtitles = withContext(Dispatchers.IO) {
-                loadSubtitles(uriString, videoPath)
+                PlayerSubtitleLoadCoordinator.load(uriString, videoPath, subtitleLoader)
             }
-            if (subtitles.isNotEmpty()) {
+            val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, showToast)
+            if (decision.shouldApplyToPlayer) {
                 viewModel.setSubtitles(subtitles)
-                if (showToast) Toast.makeText(this@PlayerActivity, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
-            } else {
-                if (showToast) Toast.makeText(this@PlayerActivity, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
+            }
+            when (decision.toastKind) {
+                PlayerSubtitleLoadToastKind.LOADED ->
+                    Toast.makeText(this@PlayerActivity, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
+                PlayerSubtitleLoadToastKind.FAILED ->
+                    Toast.makeText(this@PlayerActivity, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
+                PlayerSubtitleLoadToastKind.NONE -> Unit
             }
             startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
-        }
-    }
-
-    private fun loadSubtitles(uriString: String, videoPath: String): List<com.example.openvideo.core.subtitle.SubtitleItem> {
-        return when (val request = PlayerSubtitleLoadPolicy.resolve(uriString, videoPath)) {
-            is PlayerSubtitleLoadRequest.SidecarFile -> {
-                val subtitleFiles = subtitleLoader.findSubtitleFiles(request.videoPath)
-                if (subtitleFiles.isNotEmpty()) {
-                    subtitleLoader.loadFromFile(subtitleFiles[0])
-                } else {
-                    emptyList()
-                }
-            }
-            is PlayerSubtitleLoadRequest.SubtitleUri -> subtitleLoader.loadFromUri(Uri.parse(request.uriString))
-            PlayerSubtitleLoadRequest.None -> emptyList()
         }
     }
 
     private fun initViews() {
         playerRoot = findViewById(R.id.player_root)
         playerView = findViewById(R.id.player_view)
+        playerView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            if (this::playerView.isInitialized) {
+                applyPlayerContentFrameTransform()
+            }
+        }
         firstFrameScrim = findViewById(R.id.player_first_frame_scrim)
         controlsContainer = findViewById(R.id.controls_container)
         topBar = findViewById(R.id.top_bar)
@@ -471,21 +484,22 @@ class PlayerActivity : AppCompatActivity() {
     private fun updateLandResolutionBadge() {
         val w = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
         findViewById<TextView>(R.id.tv_land_resolution_badge)?.visibility =
-            if (PlayerLandscapeBadgePolicy.is4kVideo(w)) View.VISIBLE else View.GONE
+            if (PlayerLandscapeBadgePolicy.shouldShowBadge(w)) View.VISIBLE else View.GONE
     }
 
     private fun landSpeedLabel(speed: Float): String = PlayerSpeedLabel.format(speed)
 
     private fun refreshSessionListButtonVisibility() {
-        val q = viewModel.sessionQueue.value
-        val show = q.size > 1
+        val show = PlayerSessionQueueChromePolicy.shouldShowSessionListButton(
+            viewModel.sessionQueue.value.size
+        )
         btnVideoList?.isVisible = show
         findViewById<View>(R.id.portrait_btn_episodes)?.isVisible = show
     }
 
     private fun showSessionVideoListPanel() {
         val queue = viewModel.sessionQueue.value
-        if (queue.size <= 1) return
+        if (!PlayerSessionQueueChromePolicy.canOpenSessionListPanel(queue.size)) return
         handler.removeCallbacks(hideControlsRunnable)
         PlayerVideoListDialog(
             context = this,
@@ -536,6 +550,34 @@ class PlayerActivity : AppCompatActivity() {
         dialog.show()
     }
 
+    private fun inflatePlayerGlassSheet(titleRes: Int): Triple<View, LinearLayout, NestedScrollView> {
+        val content = layoutInflater.inflate(R.layout.dialog_player_glass_sheet, null, false)
+        content.findViewById<TextView>(R.id.player_glass_sheet_title).setText(titleRes)
+        val list = content.findViewById<LinearLayout>(R.id.player_glass_sheet_option_list)
+        val scroll = content.findViewById<NestedScrollView>(R.id.player_glass_sheet_scroll)
+        return Triple(content, list, scroll)
+    }
+
+    private fun applyGlassSheetRowVisual(row: View, selected: Boolean) {
+        val density = resources.displayMetrics.density
+        row.setBackgroundResource(
+            if (selected) R.drawable.player_aspect_ratio_row_selected
+            else R.drawable.player_aspect_ratio_row_unselected
+        )
+        row.findViewById<ImageView>(R.id.player_glass_sheet_radio).setImageResource(
+            if (selected) R.drawable.ic_player_aspect_radio_on
+            else R.drawable.ic_player_aspect_radio_off
+        )
+        row.findViewById<TextView>(R.id.player_glass_sheet_label).setTextColor(
+            ContextCompat.getColor(
+                this,
+                if (selected) R.color.player_aspect_row_label_selected
+                else R.color.player_aspect_row_label_normal
+            )
+        )
+        row.translationZ = if (selected) 4f * density else 0f
+    }
+
     private fun showAspectRatioQuickDialog() {
         val ratios = listOf(
             AspectRatio.FIT to R.string.player_sheet_fit_screen,
@@ -545,40 +587,113 @@ class PlayerActivity : AppCompatActivity() {
             AspectRatio.CROP to R.string.settings_ratio_crop,
             AspectRatio.STRETCH to R.string.settings_ratio_stretch
         )
-        val labels = ratios.map { getString(it.second) }.toTypedArray()
         val checked = ratios.indexOfFirst { it.first == playerPrefs.aspectRatio }
             .takeIf { it >= 0 } ?: 0
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.player_sheet_aspect_ratio)
-            .setSingleChoiceItems(labels, checked) { dialog, which ->
-                val ratio = ratios[which].first
+
+        val (content, list, scroll) = inflatePlayerGlassSheet(R.string.player_sheet_aspect_ratio)
+        val spacingPx = resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(content)
+            .setOnDismissListener { scheduleHideControls() }
+            .create()
+
+        ratios.forEachIndexed { index, (_, titleRes) ->
+            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
+            row.findViewById<TextView>(R.id.player_glass_sheet_label).text = getString(titleRes)
+            applyGlassSheetRowVisual(row, index == checked)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            if (index < ratios.lastIndex) {
+                lp.bottomMargin = spacingPx
+            }
+            row.layoutParams = lp
+            row.setOnClickListener {
+                val ratio = ratios[index].first
                 playerPrefs.aspectRatio = ratio
                 viewModel.setAspectRatio(ratio)
                 applyDisplaySettings()
                 dialog.dismiss()
-                scheduleHideControls()
             }
-            .show()
-            .applyPlayerSheetStyle()
+            list.addView(row)
+        }
+
+        dialog.show()
+        dialog.applyPlayerGlassSheetChrome()
+        scroll.post { capPlayerGlassSheetScroll(scroll, 0) }
     }
 
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
-        val labels = speeds.map { s -> "${s}x" }.toTypedArray()
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.player_pick_speed)
-            .setItems(labels) { _, which ->
-                val s = speeds[which]
+        val checkedIdx = speeds.indexOfFirst { it == playerPrefs.speed }.takeIf { it >= 0 } ?: 0
+        val (content, list, scroll) = inflatePlayerGlassSheet(R.string.player_pick_speed)
+        val spacingPx = resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(content)
+            .setOnDismissListener { scheduleHideControls() }
+            .create()
+
+        speeds.forEachIndexed { index, s ->
+            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
+            row.findViewById<TextView>(R.id.player_glass_sheet_label).text = "${s}x"
+            applyGlassSheetRowVisual(row, index == checkedIdx)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            if (index < speeds.lastIndex) {
+                lp.bottomMargin = spacingPx
+            }
+            row.layoutParams = lp
+            row.setOnClickListener {
                 playerPrefs.speed = s
                 viewModel.setSpeed(
                     s,
                     PlayerPlaybackSettings.pitchFor(s, playerPrefs.speedPreservePitch)
                 )
                 findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(s)
-                scheduleHideControls()
+                dialog.dismiss()
             }
-            .show()
-            .applyPlayerSheetStyle()
+            list.addView(row)
+        }
+
+        dialog.show()
+        dialog.applyPlayerGlassSheetChrome()
+        scroll.post { capPlayerGlassSheetScroll(scroll, 0) }
+    }
+
+    /**
+     * 限制选项列表最大高度并在超出时仅在列表区域内滚动（标题常驻）。
+     */
+    private fun capPlayerGlassSheetScroll(scrollView: NestedScrollView, attempt: Int) {
+        val inner = scrollView.getChildAt(0) ?: return
+        val widthPx = scrollView.width.takeIf { it > 0 } ?: scrollView.measuredWidth.takeIf { it > 0 }
+        if (widthPx == null || widthPx <= 0) {
+            if (attempt < 6) {
+                scrollView.post { capPlayerGlassSheetScroll(scrollView, attempt + 1) }
+            }
+            return
+        }
+        val dm = scrollView.resources.displayMetrics
+        val capFromScreen = (dm.heightPixels * 0.48f).toInt()
+        val capFromDimen = scrollView.resources.getDimensionPixelSize(
+            R.dimen.player_aspect_dialog_option_scroll_cap
+        )
+        val capPx = kotlin.math.min(capFromScreen, capFromDimen)
+
+        inner.measure(
+            View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        val listHeight = inner.measuredHeight
+
+        val lp = scrollView.layoutParams ?: return
+        lp.height = if (listHeight > capPx) capPx else ViewGroup.LayoutParams.WRAP_CONTENT
+        scrollView.layoutParams = lp
+        scrollView.requestLayout()
     }
 
     /**
@@ -587,14 +702,38 @@ class PlayerActivity : AppCompatActivity() {
      */
     private fun androidx.appcompat.app.AlertDialog.applyPlayerSheetStyle() {
         val w = window ?: return
-        val opacity = playerPrefs.settingsPanelOpacity.coerceIn(0, 100) / 100f
-        w.decorView.alpha = opacity
-        w.setDimAmount(playerPrefs.settingsSheetBackdropDimPercent.coerceIn(0, 100) / 100f)
+        val style = PlayerSettingsSheetStylePolicy.compute(
+            panelOpacityPercent = playerPrefs.settingsPanelOpacity,
+            backdropDimPercent = playerPrefs.settingsSheetBackdropDimPercent,
+            backdropBlurDp = playerPrefs.settingsSheetBackdropBlurDp,
+            density = resources.displayMetrics.density
+        )
+        w.decorView.alpha = style.panelAlpha
+        w.setDimAmount(style.dimAmount)
         w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val blurDp = playerPrefs.settingsSheetBackdropBlurDp.coerceIn(0, 64)
-            val density = resources.displayMetrics.density
-            w.setBackgroundBlurRadius(if (blurDp > 0) (blurDp * density).toInt() else 0)
+        if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
+            w.setBackgroundBlurRadius(style.backdropBlurRadiusPx)
+        }
+    }
+
+    /**
+     * Aspect ratio quick picker: opaque custom panel + backdrop dim/blur only (no decor alpha).
+     */
+    private fun AlertDialog.applyPlayerGlassSheetChrome() {
+        val w = window ?: return
+        w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        w.decorView.alpha = 1f
+        val dm = resources.displayMetrics
+        val maxW = resources.getDimensionPixelSize(R.dimen.player_aspect_dialog_max_width)
+        val dialogW = kotlin.math.min(maxW, (dm.widthPixels * 0.9f).toInt())
+        w.setLayout(dialogW, LinearLayout.LayoutParams.WRAP_CONTENT)
+        w.setGravity(Gravity.CENTER)
+        w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        w.attributes = w.attributes.apply {
+            dimAmount = 0.48f
+        }
+        if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
+            w.setBackgroundBlurRadius(kotlin.math.max(1, (18f * dm.density).toInt()))
         }
     }
 
@@ -643,15 +782,17 @@ class PlayerActivity : AppCompatActivity() {
                 is PlayerQuickEntryAction.SetSubtitlesEnabled ->
                     item.copy(label = getString(if (action.enabled) R.string.player_sheet_enable else R.string.settings_subtitle_track_off))
                 is PlayerQuickEntryAction.SubtitleDelayStatus ->
-                    item.copy(label = getString(R.string.player_settings_unit_ms, action.delayMs))
+                    item.copy(label = getString(R.string.player_quick_subtitle_delay_current, action.delayMs))
                 is PlayerQuickEntryAction.AdjustSubtitleDelay ->
                     item.copy(
                         label = getString(
-                            if (action.deltaMs < 0) {
-                                R.string.player_quick_subtitle_delay_minus
+                            if (PlayerQuickEntryPolicy.subtitleDelayAdjustIsDecrease(action.deltaMs)) {
+                                R.string.player_quick_subtitle_delay_minus_in_dialog
                             } else {
-                                R.string.player_quick_subtitle_delay_plus
-                            }
+                                R.string.player_quick_subtitle_delay_plus_in_dialog
+                            },
+                            kotlin.math.abs(action.deltaMs),
+                            playerPrefs.subtitleDelayMs
                         )
                     )
                 PlayerQuickEntryAction.ResetSubtitleDelay ->
@@ -694,40 +835,44 @@ class PlayerActivity : AppCompatActivity() {
         onSelected: (PlayerQuickEntryAction) -> Unit
     ) {
         handler.removeCallbacks(hideControlsRunnable)
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val padding = (8 * resources.displayMetrics.density).toInt()
-            setPadding(padding, padding, padding, padding)
-        }
-        var dialog: androidx.appcompat.app.AlertDialog? = null
-        items.forEach { item ->
-            container.addView(
-                RadioButton(this).apply {
-                    text = item.label
-                    isChecked = item.selected
-                    isEnabled = item.enabled
-                    setOnClickListener {
-                        dialog?.dismiss()
-                        onSelected(item.action)
-                    }
-                }
+        val (content, list, scroll) = inflatePlayerGlassSheet(titleRes)
+        val spacingPx = resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
+        var dialog: AlertDialog? = null
+        items.forEachIndexed { index, item ->
+            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
+            row.findViewById<TextView>(R.id.player_glass_sheet_label).text = item.label
+            row.isEnabled = item.enabled
+            row.isClickable = item.enabled
+            row.isFocusable = item.enabled
+            row.alpha = if (item.enabled) 1f else 0.42f
+            if (!item.enabled) {
+                row.foreground = null
+                applyGlassSheetRowVisual(row, false)
+            } else {
+                applyGlassSheetRowVisual(row, item.selected)
+            }
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             )
+            if (index < items.lastIndex) {
+                lp.bottomMargin = spacingPx
+            }
+            row.layoutParams = lp
+            row.setOnClickListener {
+                if (!item.enabled) return@setOnClickListener
+                dialog?.dismiss()
+                onSelected(item.action)
+            }
+            list.addView(row)
         }
         dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(titleRes)
-            .setView(container)
+            .setView(content)
             .setOnDismissListener { scheduleHideControls() }
             .create()
         dialog.show()
-        dialog.applyPlayerSheetStyle()
-    }
-
-    private fun quickAudioTrackLabel(track: com.example.openvideo.core.player.PlayerAudioTrackInfo): String {
-        val parts = mutableListOf<String>()
-        parts += getString(R.string.player_settings_info_stream, track.groupIndex + 1)
-        track.language?.takeIf { it.isNotBlank() && it != "und" }?.let { parts += it }
-        if (track.channelCount > 0) parts += "${track.channelCount}ch"
-        return parts.joinToString(" · ")
+        dialog.applyPlayerGlassSheetChrome()
+        scroll.post { capPlayerGlassSheetScroll(scroll, 0) }
     }
 
     private fun setupControls() {
@@ -893,7 +1038,7 @@ class PlayerActivity : AppCompatActivity() {
 
             @OptIn(UnstableApi::class)
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                if (playerPrefs.volumeBoost) {
+                if (PlayerVolumeBoostApplyPolicy.shouldReapplyOnAudioSessionChange(playerPrefs.volumeBoost)) {
                     viewModel.setVolumeBoost(true)
                 }
             }
@@ -926,6 +1071,12 @@ class PlayerActivity : AppCompatActivity() {
                     unappliedRotationDegrees = videoSize.unappliedRotationDegrees
                 )
                 applyPlayerContentAspectRatio(
+                    width = videoSize.width,
+                    height = videoSize.height,
+                    pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
+                    unappliedRotationDegrees = videoSize.unappliedRotationDegrees
+                )
+                applyPlayerContentFrameTransform(
                     width = videoSize.width,
                     height = videoSize.height,
                     pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
@@ -995,7 +1146,9 @@ class PlayerActivity : AppCompatActivity() {
 
         when (result.event) {
             PlayerAbLoopEvent.POINT_A_SET -> {
-                btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
+                if (PlayerAbLoopButtonStylePolicy.shouldHighlight(result.event)) {
+                    btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
+                }
                 android.widget.Toast.makeText(
                     this,
                     getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)),
@@ -1003,15 +1156,21 @@ class PlayerActivity : AppCompatActivity() {
                 ).show()
             }
             PlayerAbLoopEvent.LOOP_STARTED -> {
-                btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
+                if (PlayerAbLoopButtonStylePolicy.shouldHighlight(result.event)) {
+                    btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
+                }
                 android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
             }
             PlayerAbLoopEvent.INVALID_POINT_B -> {
-                btnAbLoop?.clearColorFilter()
+                if (PlayerAbLoopButtonStylePolicy.shouldClearHighlight(result.event)) {
+                    btnAbLoop?.clearColorFilter()
+                }
                 android.widget.Toast.makeText(this, getString(R.string.player_ab_point_b_error), android.widget.Toast.LENGTH_SHORT).show()
             }
             PlayerAbLoopEvent.CANCELLED -> {
-                btnAbLoop?.clearColorFilter()
+                if (PlayerAbLoopButtonStylePolicy.shouldClearHighlight(result.event)) {
+                    btnAbLoop?.clearColorFilter()
+                }
                 android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_cancelled), android.widget.Toast.LENGTH_SHORT).show()
             }
         }
@@ -1030,12 +1189,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun hideFirstFrameScrimForAudioOnly() {
-        val hasVideoTrack = viewModel.player?.currentTracks?.groups
-            ?.any { group -> group.type == C.TRACK_TYPE_VIDEO } == true
         applyFirstFrameDecision(
             PlayerFirstFramePolicy.onReady(
                 isAwaitingFirstFrame = isAwaitingFirstFrame,
-                hasVideoTrack = hasVideoTrack
+                hasVideoTrack = hasVideoTrack()
             )
         )
     }
@@ -1050,10 +1207,8 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun scheduleFirstFrameTimeoutCheck() {
-        val hasVideoTrack = viewModel.player?.currentTracks?.groups
-            ?.any { group -> group.type == C.TRACK_TYPE_VIDEO } == true
         val delayMs = PlayerFirstFrameTimeoutPolicy.scheduleDelayMs(
-            hasVideoTrack = hasVideoTrack,
+            hasVideoTrack = hasVideoTrack(),
             firstFrameRendered = hasLoggedFirstFrame,
             alreadyTimedOut = hasLoggedFirstFrameTimeout
         ) ?: return
@@ -1080,17 +1235,10 @@ class PlayerActivity : AppCompatActivity() {
         isAwaitingFirstFrame = decision.nextAwaitingFirstFrame
         if (!this::firstFrameScrim.isInitialized) return
 
-        when {
-            decision.showScrim -> {
-                firstFrameScrim.animate().cancel()
-                firstFrameScrim.alpha = 1f
-                firstFrameScrim.visibility = View.VISIBLE
-            }
-            decision.hideScrim -> {
-                firstFrameScrim.animate().cancel()
-                firstFrameScrim.visibility = View.GONE
-            }
-        }
+        val presentation = PlayerFirstFrameScrimPolicy.presentation(decision) ?: return
+        firstFrameScrim.animate().cancel()
+        firstFrameScrim.alpha = presentation.alpha
+        firstFrameScrim.visibility = if (presentation.visible) View.VISIBLE else View.GONE
     }
 
     private fun handlePlaybackEnded() {
@@ -1179,7 +1327,9 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                // P1: Double tap action from settings
+                if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.GESTURE_PLAYBACK, isScreenLocked)) {
+                    return true
+                }
                 when (playerPrefs.doubleTapAction) {
                     DoubleTapAction.PLAY_PAUSE -> viewModel.togglePlayPause()
                     DoubleTapAction.FORWARD -> handleDoubleTapSeek(PlayerSwipeSide.RIGHT)
@@ -1190,6 +1340,9 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onLongPress(e: MotionEvent) {
+                if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.GESTURE_PLAYBACK, isScreenLocked)) {
+                    return
+                }
                 val decision = PlayerLongPressPolicy.onPress(
                     action = playerPrefs.longPressAction,
                     requestedSpeed = playerPrefs.longPressSpeed,
@@ -1212,6 +1365,14 @@ class PlayerActivity : AppCompatActivity() {
         val gestureSlop = gestureSlopPx()
 
         gestureOverlay.setOnTouchListener { _, event ->
+            if (isScreenLocked) {
+                val decision = PlayerLockGesturePolicy.onTouch(
+                    isLocked = true,
+                    action = PlayerTouchActionPolicy.fromMotionActionMasked(event.actionMasked)
+                )
+                if (decision.revealLockedControls) showLockedControls()
+                return@setOnTouchListener decision.consumeTouch
+            }
             gestureDetector.onTouchEvent(event)
 
             when (event.action) {
@@ -1253,19 +1414,27 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_UP -> {
                     // P1: Edge swipe back
-                    if (playerPrefs.edgeSwipeBack && isEdgeSwipe && isHorizontalSwipe) {
-                        val dx = event.x - startX
-                        if (dx > 100) { // Swipe right from left edge
-                            finishPlayer()
-                            return@setOnTouchListener true
-                        }
+                    val dx = event.x - startX
+                    if (PlayerEdgeSwipeBackPolicy.shouldFinish(
+                            edgeSwipeBackEnabled = playerPrefs.edgeSwipeBack,
+                            isEdgeSwipe = isEdgeSwipe,
+                            isHorizontalSwipe = isHorizontalSwipe,
+                            dragDxPx = dx
+                        )
+                    ) {
+                        finishPlayer()
+                        return@setOnTouchListener true
                     }
 
-                    if (isHorizontalSwipe && playerPrefs.horizontalSwipeAction == GestureAction.SEEK) {
+                    if (PlayerGesturePolicy.shouldApplyHorizontalSeekOnRelease(
+                            isHorizontalSwipe = isHorizontalSwipe,
+                            horizontalSwipeAction = playerPrefs.horizontalSwipeAction
+                        )
+                    ) {
                         applySeekGesture()
                     } else if (isVerticalSwipe) {
                         val verticalAction = resolveVerticalGestureAction(swipeSide)
-                        if (verticalAction == GestureAction.SEEK) {
+                        if (PlayerGesturePolicy.shouldApplyVerticalSeekOnRelease(isVerticalSwipe, verticalAction)) {
                             applySeekGesture()
                         }
                     }
@@ -1303,26 +1472,22 @@ class PlayerActivity : AppCompatActivity() {
         PlayerGesturePolicy.gestureSlopPx(playerPrefs.gestureSensitivity)
 
     private fun handleHorizontalSwipeAction(dx: Float) {
-        when (playerPrefs.horizontalSwipeAction) {
-            GestureAction.SEEK -> handleSeekGesture(dx)
-            // 亮度/音量仅支持上下滑动触发；左右滑动不再处理这两项
-            GestureAction.BRIGHTNESS -> {}
-            GestureAction.VOLUME -> {}
-            GestureAction.NONE -> {}
+        PlayerGestureDispatchPolicy.onHorizontalSwipe(playerPrefs.horizontalSwipeAction) {
+            handleSeekGesture(dx)
         }
     }
 
     private fun resolveVerticalGestureAction(side: PlayerSwipeSide): GestureAction =
-        when (side) {
-            PlayerSwipeSide.LEFT -> playerPrefs.leftVerticalGesture
-            PlayerSwipeSide.RIGHT -> playerPrefs.rightVerticalGesture
-            PlayerSwipeSide.NONE -> GestureAction.NONE
-        }
+        PlayerGesturePolicy.verticalGestureAction(
+            side = side,
+            leftAction = playerPrefs.leftVerticalGesture,
+            rightAction = playerPrefs.rightVerticalGesture
+        )
 
     private fun handleDoubleTapSeek(side: PlayerSwipeSide) {
-        if (side == PlayerSwipeSide.NONE) return
+        if (!PlayerGesturePolicy.isValidDoubleTapSeekSide(side)) return
 
-        val intervalMs = playerPrefs.seekInterval * 1000L
+        val intervalMs = PlayerDoubleTapSeekPolicy.intervalMs(playerPrefs.seekInterval)
         val state = viewModel.uiState.value
         val preview = PlayerDoubleTapSeekPolicy.preview(
             previous = doubleTapSeekState,
@@ -1382,14 +1547,10 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun showGestureHud(hud: PlayerGestureHud, autoHide: Boolean = true) {
         handler.removeCallbacks(hideGestureHudRunnable)
-        seekIndicator.text = if (hud.secondaryText.isBlank()) {
-            hud.primaryText
-        } else {
-            "${hud.primaryText}\n${hud.secondaryText}"
-        }
+        seekIndicator.text = PlayerGestureHudDisplayPolicy.indicatorText(hud)
         seekIndicator.visibility = View.VISIBLE
         if (autoHide) {
-            handler.postDelayed(hideGestureHudRunnable, 800)
+            handler.postDelayed(hideGestureHudRunnable, PlayerGestureHudDisplayPolicy.AUTO_HIDE_DELAY_MS)
         }
     }
 
@@ -1432,7 +1593,7 @@ class PlayerActivity : AppCompatActivity() {
         if (brightness >= 0f) {
             currentBrightness = brightness
             if (this::brightnessProgress.isInitialized) {
-                brightnessProgress.progress = (brightness * 100).toInt()
+                brightnessProgress.progress = PlayerWindowBrightnessPolicy.levelToProgressPercent(brightness)
             }
         }
     }
@@ -1441,7 +1602,7 @@ class PlayerActivity : AppCompatActivity() {
      * 按屏宽/屏高比例微调横屏控件边距与运输区按钮尺寸（对齐 design/横屏播放界面 稿）。
      */
     private fun applyLandscapePlayerGeometry() {
-        if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) return
+        if (!PlayerConfigurationOrientationPolicy.isLandscape(resources.configuration.orientation)) return
         val geometry = PlayerLandscapeGeometryPolicy.compute(
             widthPx = controlsContainer.width,
             heightPx = controlsContainer.height,
@@ -1496,6 +1657,12 @@ class PlayerActivity : AppCompatActivity() {
             marginEnd = geometry.innerGapPx
         }
     }
+
+    private fun currentTrackGroupTypes(): List<Int> =
+        viewModel.player?.currentTracks?.groups?.map { it.type } ?: emptyList()
+
+    private fun hasVideoTrack(): Boolean =
+        PlayerMediaTracksPolicy.hasVideoTrack(currentTrackGroupTypes(), C.TRACK_TYPE_VIDEO)
 
     private fun setWindowBrightness(brightness: Float) {
         val layoutParams = window.attributes
@@ -1579,7 +1746,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applySubtitlePresentation() {
-        val subtitleText = if (playerPrefs.subtitlesEnabled) viewModel.getCurrentSubtitle() else ""
+        val subtitleText = PlayerSubtitlePresentationPolicy.resolveSubtitleText(
+            subtitlesEnabled = playerPrefs.subtitlesEnabled,
+            currentSubtitle = viewModel.getCurrentSubtitle()
+        )
         val presentation = PlayerSubtitlePresentationPolicy.present(
             subtitlesEnabled = playerPrefs.subtitlesEnabled,
             subtitleText = subtitleText
@@ -1605,7 +1775,8 @@ class PlayerActivity : AppCompatActivity() {
         val presentation = PlayerChromeVisibilityPolicy.hide()
         controlsVisible = presentation.controlsVisible
         controlsContainer.animate().cancel()
-        controlsContainer.animate().alpha(presentation.alpha).setDuration(200).withEndAction {
+        controlsContainer.animate().alpha(presentation.alpha)
+            .setDuration(PlayerChromePolicy.CHROME_FADE_DURATION_MS).withEndAction {
             if (!controlsVisible) {
                 controlsContainer.visibility = if (presentation.containerVisible) View.VISIBLE else View.GONE
             }
@@ -1622,7 +1793,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyControlVisibility() {
-        if (isSettingsOverlayVisible) {
+        if (PlayerChromeSettingsOverlayPolicy.hidesAllChromeRegions(isSettingsOverlayVisible)) {
             topScrim.visibility = View.GONE
             bottomScrim.visibility = View.GONE
             topBar.visibility = View.GONE
@@ -1630,6 +1801,7 @@ class PlayerActivity : AppCompatActivity() {
             toolRow.visibility = View.GONE
             landRightFloatColumn?.visibility = View.GONE
             btnLock.visibility = View.GONE
+            btnFullscreen.visibility = View.GONE
             return
         }
         val visibility = PlayerLockedControlsPolicy.visibility(isScreenLocked, controlsVisible)
@@ -1647,11 +1819,13 @@ class PlayerActivity : AppCompatActivity() {
         landRightFloatColumn?.visibility = regionVisibility(PlayerChromeRegion.LAND_RIGHT_FLOAT_COLUMN)
         btnLock.visibility = if (visibility.lockButtonVisible) View.VISIBLE else View.GONE
         btnLock.isSelected = visibility.lockButtonSelected
-        if (visibility.lockButtonSelected) {
+        if (PlayerLockButtonStylePolicy.shouldUseAccentTint(visibility.lockButtonSelected)) {
             btnLock.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
         } else {
             btnLock.clearColorFilter()
         }
+        btnFullscreen.visibility =
+            if (visibility.fullscreenButtonVisible) View.VISIBLE else View.GONE
     }
 
     private fun View.setPlayerClickListener(interaction: PlayerLockedInteraction, onClick: () -> Unit) {
@@ -1671,13 +1845,21 @@ class PlayerActivity : AppCompatActivity() {
     private fun restoreChromeAfterSettingsOverlay() {
         controlsVisible = controlsVisibleBeforeSettingsOverlay
         controlsContainer.animate().cancel()
-        controlsContainer.alpha = if (controlsVisibleBeforeSettingsOverlay) controlsChromeMaxAlpha() else 0f
-        controlsContainer.visibility = if (controlsVisibleBeforeSettingsOverlay) View.VISIBLE else View.GONE
+        controlsContainer.alpha = PlayerChromeSettingsOverlayPolicy.restoreContainerAlpha(
+            controlsWereVisible = controlsVisibleBeforeSettingsOverlay,
+            maxAlpha = controlsChromeMaxAlpha()
+        )
+        controlsContainer.visibility =
+            if (PlayerChromeSettingsOverlayPolicy.restoreContainerVisible(controlsVisibleBeforeSettingsOverlay)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         applyControlVisibility()
     }
 
     private fun scheduleHideControls() {
-        if (isSettingsOverlayVisible) return
+        if (PlayerChromeSettingsOverlayPolicy.suppressesControlAutoHide(isSettingsOverlayVisible)) return
         handler.removeCallbacks(hideControlsRunnable)
         val presentation = PlayerChromeVisibilityPolicy.show(
             controlsOpacityPercent = playerPrefs.controlsOpacity,
@@ -1705,9 +1887,15 @@ class PlayerActivity : AppCompatActivity() {
         pixelWidthHeightRatio: Float = 1f,
         unappliedRotationDegrees: Int = 0
     ) {
-        if (!playerPrefs.autoOrientationByVideo) return
-        if (userOverrodeOrientation) return
-        if (width <= 0 || height <= 0) return
+        if (!PlayerVideoOrientationApplyPolicy.shouldApply(
+                autoOrientationByVideo = playerPrefs.autoOrientationByVideo,
+                userOverrodeOrientation = userOverrodeOrientation,
+                width = width,
+                height = height
+            )
+        ) {
+            return
+        }
         requestedOrientation = PlayerVideoLayoutPolicy.orientationForVideo(
             width = width,
             height = height,
@@ -1730,20 +1918,22 @@ class PlayerActivity : AppCompatActivity() {
         isScreenLocked = !isScreenLocked
         if (isScreenLocked) {
             setLockedGestureOverlay()
-            controlsVisible = true
-            controlsContainer.visibility = View.VISIBLE
-            controlsContainer.alpha = controlsChromeMaxAlpha()
-            applyControlVisibility()
+            applyScreenLockChromeReveal()
             android.widget.Toast.makeText(this, getString(R.string.player_locked), android.widget.Toast.LENGTH_SHORT).show()
         } else {
             initGestures()
-            controlsVisible = true
-            controlsContainer.visibility = View.VISIBLE
-            controlsContainer.alpha = controlsChromeMaxAlpha()
-            applyControlVisibility()
+            applyScreenLockChromeReveal()
             scheduleHideControls()
             android.widget.Toast.makeText(this, getString(R.string.player_unlocked), android.widget.Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun applyScreenLockChromeReveal() {
+        val reveal = PlayerScreenLockChromePolicy.revealChrome(controlsChromeMaxAlpha())
+        controlsVisible = reveal.controlsVisible
+        controlsContainer.visibility = if (reveal.containerVisible) View.VISIBLE else View.GONE
+        controlsContainer.alpha = reveal.alpha
+        applyControlVisibility()
     }
 
     private fun setLockedGestureOverlay() {
@@ -1761,11 +1951,8 @@ class PlayerActivity : AppCompatActivity() {
         if (!isScreenLocked) return
         isScreenLocked = false
         initGestures()
-        controlsVisible = true
         controlsContainer.animate().cancel()
-        controlsContainer.alpha = controlsChromeMaxAlpha()
-        controlsContainer.visibility = View.VISIBLE
-        applyControlVisibility()
+        applyScreenLockChromeReveal()
         scheduleHideControls()
     }
 
@@ -1803,15 +1990,19 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun preparePlayerExitFrame() {
-        if (!this::playerView.isInitialized) return
-        playerView.animate().cancel()
+        val frame = PlayerExitPolicy.exitFrameDecision(this::playerView.isInitialized)
+        if (!frame.shouldPrepare) return
         // Do not detach PlayerView here: Media3 may block while detaching the video surface
         // and throw ExoTimeoutException on some devices during Activity finish.
-        playerView.visibility = View.INVISIBLE
-        if (this::playerRoot.isInitialized) {
-            playerRoot.setBackgroundColor(ContextCompat.getColor(this, R.color.ov_bg_base))
+        if (frame.cancelPlayerViewAnimation) playerView.animate().cancel()
+        if (frame.hidePlayerView) playerView.visibility = View.INVISIBLE
+        val backdropColorRes = when (frame.backdrop) {
+            PlayerExitBackdrop.APP_BASE -> R.color.ov_bg_base
         }
-        window.setBackgroundDrawableResource(R.color.ov_bg_base)
+        if (this::playerRoot.isInitialized) {
+            playerRoot.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))
+        }
+        window.setBackgroundDrawableResource(backdropColorRes)
     }
 
     private fun releasePlayerAfterExit() {
@@ -1853,7 +2044,12 @@ class PlayerActivity : AppCompatActivity() {
         initBrightnessAndVolume()
 
         playerView.player = viewModel.player
-        firstFrameScrim.visibility = if (isAwaitingFirstFrame) View.VISIBLE else View.GONE
+        firstFrameScrim.visibility =
+            if (PlayerFirstFrameScrimPolicy.scrimVisibleOnReattach(isAwaitingFirstFrame)) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
         setupControls()
         refreshSessionListButtonVisibility()
         tvTitle.text = viewModel.uiState.value.title
@@ -1960,6 +2156,130 @@ class PlayerActivity : AppCompatActivity() {
         contentFrame.setAspectRatio(ratio)
     }
 
+    /**
+     * Zooms the active content band (P9-1b) on [exo_content_frame]. Only runs when FIT-style
+     * aspect ratio and a non-off [ContentFrameMode] are active; otherwise resets to identity.
+     */
+    @OptIn(UnstableApi::class)
+    @Suppress("DEPRECATION")
+    private fun applyPlayerContentFrameTransform(
+        width: Int? = null,
+        height: Int? = null,
+        pixelWidthHeightRatio: Float? = null,
+        unappliedRotationDegrees: Int? = null
+    ) {
+        if (!this::playerView.isInitialized) return
+        if (playerView.width <= 0 || playerView.height <= 0) {
+            playerView.post {
+                applyPlayerContentFrameTransform(
+                    width = width,
+                    height = height,
+                    pixelWidthHeightRatio = pixelWidthHeightRatio,
+                    unappliedRotationDegrees = unappliedRotationDegrees
+                )
+            }
+            return
+        }
+        val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
+            ?: return
+        val frameSize = contentFrameSourceSize(
+            width = width,
+            height = height,
+            pixelWidthHeightRatio = pixelWidthHeightRatio,
+            unappliedRotationDegrees = unappliedRotationDegrees
+        )
+        if (frameSize.width <= 0 || frameSize.height <= 0) {
+            resetContentFrameTransform(contentFrame)
+            scheduleContentFrameTransformRetry(
+                width = width,
+                height = height,
+                pixelWidthHeightRatio = pixelWidthHeightRatio,
+                unappliedRotationDegrees = unappliedRotationDegrees
+            )
+            return
+        }
+        contentFrameTransformRetryPosted = false
+        val transform = PlayerContentFrameApplyPolicy.resolveTransform(
+            contentFrameMode = playerPrefs.contentFrameMode,
+            aspectRatio = playerPrefs.aspectRatio,
+            sourceWidth = frameSize.width,
+            sourceHeight = frameSize.height,
+            viewportWidth = playerView.width,
+            viewportHeight = playerView.height
+        )
+        applyContentFrameTransform(contentFrame, frameSize, transform)
+    }
+
+    private fun contentFrameSourceSize(
+        width: Int?,
+        height: Int?,
+        pixelWidthHeightRatio: Float?,
+        unappliedRotationDegrees: Int?
+    ): DisplayFrameSize {
+        val vs = viewModel.player?.videoSize
+        val rawWidth = width?.takeIf { it > 0 }
+            ?: vs?.width?.takeIf { it > 0 }
+            ?: intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
+        val rawHeight = height?.takeIf { it > 0 }
+            ?: vs?.height?.takeIf { it > 0 }
+            ?: intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
+        return PlayerVideoLayoutPolicy.displayFrameSize(
+            width = rawWidth,
+            height = rawHeight,
+            pixelWidthHeightRatio = pixelWidthHeightRatio ?: vs?.pixelWidthHeightRatio ?: 1f,
+            unappliedRotationDegrees = unappliedRotationDegrees ?: vs?.unappliedRotationDegrees ?: 0
+        )
+    }
+
+    private fun scheduleContentFrameTransformRetry(
+        width: Int?,
+        height: Int?,
+        pixelWidthHeightRatio: Float?,
+        unappliedRotationDegrees: Int?
+    ) {
+        if (contentFrameTransformRetryPosted) return
+        contentFrameTransformRetryPosted = true
+        playerView.post {
+            contentFrameTransformRetryPosted = false
+            applyPlayerContentFrameTransform(
+                width = width,
+                height = height,
+                pixelWidthHeightRatio = pixelWidthHeightRatio,
+                unappliedRotationDegrees = unappliedRotationDegrees
+            )
+        }
+    }
+
+    private fun resetContentFrameTransform(contentFrame: AspectRatioFrameLayout) {
+        contentFrame.pivotX = PlayerContentFrameResetPolicy.PIVOT
+        contentFrame.pivotY = PlayerContentFrameResetPolicy.PIVOT
+        contentFrame.scaleX = PlayerContentFrameResetPolicy.SCALE
+        contentFrame.scaleY = PlayerContentFrameResetPolicy.SCALE
+        contentFrame.translationX = PlayerContentFrameResetPolicy.TRANSLATION
+        contentFrame.translationY = PlayerContentFrameResetPolicy.TRANSLATION
+    }
+
+    private fun applyContentFrameTransform(
+        contentFrame: AspectRatioFrameLayout,
+        frameSize: DisplayFrameSize,
+        transform: PlayerContentFrameTransform
+    ) {
+        contentFrame.pivotX = PlayerContentFrameResetPolicy.PIVOT
+        contentFrame.pivotY = PlayerContentFrameResetPolicy.PIVOT
+        contentFrame.scaleX = transform.scale
+        contentFrame.scaleY = transform.scale
+        contentFrame.translationX = transform.translationX
+        contentFrame.translationY = transform.translationY
+        if (com.example.openvideo.BuildConfig.DEBUG) {
+            android.util.Log.d(
+                TAG_CONTENT_FRAME,
+                "mode=${playerPrefs.contentFrameMode.key} aspect=${playerPrefs.aspectRatio.key} " +
+                    "frame=${frameSize.width}x${frameSize.height} viewport=${playerView.width}x${playerView.height} " +
+                    "scale=${transform.scale} tx=${transform.translationX} ty=${transform.translationY}"
+            )
+        }
+    }
+
     @OptIn(UnstableApi::class)
     private fun videoRenderView(): View? {
         return playerView.videoSurfaceView
@@ -1967,7 +2287,6 @@ class PlayerActivity : AppCompatActivity() {
 
     @Suppress("DEPRECATION")
     private fun enterPipModeIfSupported() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val videoSize = viewModel.player?.videoSize
         val decision = PlayerPipPolicy.enterDecision(
             sdkInt = Build.VERSION.SDK_INT,
@@ -1991,12 +2310,14 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun ensureNotificationPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val requiresPermission =
+            PlayerNotificationPermissionPolicy.requiresRuntimePermission(Build.VERSION.SDK_INT)
+        if (!requiresPermission) return
         val granted = ContextCompat.checkSelfPermission(
             this,
             android.Manifest.permission.POST_NOTIFICATIONS
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (!granted) {
+        if (PlayerNotificationPermissionPolicy.shouldRequestPermission(requiresPermission, granted)) {
             runCatching {
                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
@@ -2019,7 +2340,7 @@ class PlayerActivity : AppCompatActivity() {
         if (!this::playerView.isInitialized) return
         playerView.visibility = View.VISIBLE
         playerView.player = viewModel.player
-        if (!isAwaitingFirstFrame) {
+        if (!PlayerFirstFrameScrimPolicy.scrimVisibleOnReattach(isAwaitingFirstFrame)) {
             firstFrameScrim.visibility = View.GONE
         }
         syncPlayPauseIcon()
@@ -2045,11 +2366,15 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun refreshPlaybackNotificationIfRunning() {
-        if (isFinishing ||
-            !playerPrefs.bgAudio ||
-            !playerPrefs.bgPlaybackNotificationEnabled ||
-            isActivityForeground
-        ) return
+        if (!PlayerNotificationRefreshPolicy.shouldRefreshBackgroundPlayback(
+                isFinishing = isFinishing,
+                backgroundAudio = playerPrefs.bgAudio,
+                notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled,
+                isActivityForeground = isActivityForeground
+            )
+        ) {
+            return
+        }
         runCatching {
             ContextCompat.startForegroundService(this, PlaybackServiceIntents.refresh(this))
         }
@@ -2064,7 +2389,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun skipQueueVideoFromNotification(forward: Boolean) {
         val queue = viewModel.sessionQueue.value
-        if (queue.size <= 1) return
+        if (!PlayerSessionQueueChromePolicy.canOpenSessionListPanel(queue.size)) return
         val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }
         val targetIndex = if (forward) {
             PlayerQueueSkipPolicy.nextIndex(currentIndex, queue.size)
@@ -2135,11 +2460,14 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.seekTo(result.positionMs)
     }
 
-    private fun isInPipModeCompat(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && isInPictureInPictureMode
-    }
+    private fun isInPipModeCompat(): Boolean =
+        PlayerPipCompatPolicy.isInPictureInPictureMode(
+            sdkInt = Build.VERSION.SDK_INT,
+            isInPictureInPictureMode = isInPictureInPictureMode
+        )
 
     companion object {
+        private const val TAG_CONTENT_FRAME = "OVContentFrame"
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"

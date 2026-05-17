@@ -38,6 +38,20 @@ enum class AspectRatio(val key: String) {
     }
 }
 
+/**
+ * P9-1b: zoom into a centered content band inside letterboxed frames (e.g. 16:9 in 9:16).
+ */
+enum class ContentFrameMode(val key: String, val targetAspectRatio: Float?) {
+    OFF("off", null),
+    CENTER_16_9("center_16_9", 16f / 9f),
+    CENTER_4_3("center_4_3", 4f / 3f);
+
+    companion object {
+        fun fromKey(key: String): ContentFrameMode =
+            entries.find { it.key == key } ?: OFF
+    }
+}
+
 enum class AudioChannel(val key: String) {
     STEREO("stereo"),
     LEFT("left"),

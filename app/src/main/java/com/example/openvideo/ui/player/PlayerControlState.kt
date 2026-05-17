@@ -7,7 +7,9 @@ import com.example.openvideo.R
 data class ControlVisibility(
     val chromeVisible: Boolean,
     val lockButtonVisible: Boolean,
-    val lockButtonSelected: Boolean
+    val lockButtonSelected: Boolean,
+    /** Portrait-only floating fullscreen; hidden while locked. */
+    val fullscreenButtonVisible: Boolean
 )
 
 data class LockButtonPlacement(

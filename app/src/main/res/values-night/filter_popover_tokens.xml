@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark theme filter popover (~ rgba(20, 24, 32, 0.86) glass) -->
+    <color name="ov_filter_scrim">#66000000</color>
+    <color name="ov_filter_popover_bg">#EE141820</color>
+    <color name="ov_filter_popover_stroke">#33FFFFFF</color>
+    <color name="ov_filter_popover_shadow">#40000000</color>
+    <color name="ov_filter_group_title">#FFB8C2D0</color>
+    <color name="ov_filter_divider">#1AFFFFFF</color>
+    <color name="ov_filter_chip_bg">#33FFFFFF</color>
+    <color name="ov_filter_chip_stroke">#33FFFFFF</color>
+    <color name="ov_filter_chip_text">#FFB4BDCA</color>
+    <color name="ov_filter_chip_selected_bg">#405B95FF</color>
+    <color name="ov_filter_chip_selected_stroke">@color/ov_accent_blue</color>
+    <color name="ov_filter_chip_selected_text">#FFFFFFFF</color>
+    <color name="ov_filter_chip_glow">#335B95FF</color>
+    <color name="ov_filter_btn_cancel_stroke">#33FFFFFF</color>
+    <color name="ov_filter_btn_primary_start">@color/ov_accent_blue</color>
+    <color name="ov_filter_btn_primary_end">#FF6AA3FF</color>
+    <color name="ov_filter_reset_text">@color/ov_accent_blue</color>
+</resources>

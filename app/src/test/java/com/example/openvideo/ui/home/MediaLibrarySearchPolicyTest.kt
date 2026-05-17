@@ -75,6 +75,30 @@ class MediaLibrarySearchPolicyTest {
     }
 
     @Test
+    fun todayDateFilterMatchesLast24Hours() {
+        val now = 1_700_000_000L
+        val filters = MediaLibraryAdvancedFilters(dateFilter = DateFilter.TODAY)
+        assertTrue(
+            MediaLibrarySearchPolicy.matchesAdvanced(
+                path = "/storage/today.mp4",
+                durationMs = 60_000,
+                dateAddedSec = now - 3_600,
+                filters = filters,
+                nowEpochSec = now
+            )
+        )
+        assertFalse(
+            MediaLibrarySearchPolicy.matchesAdvanced(
+                path = "/storage/yesterday.mp4",
+                durationMs = 60_000,
+                dateAddedSec = now - 2 * 86_400,
+                filters = filters,
+                nowEpochSec = now
+            )
+        )
+    }
+
+    @Test
     fun fileExtensionIsLowercaseWithoutDot() {
         assertTrue(MediaLibrarySearchPolicy.fileExtension("/storage/a.MP4") == "mp4")
     }

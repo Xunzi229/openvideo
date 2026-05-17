@@ -37,7 +37,8 @@ object PlayerLockedControlsPolicy {
         ControlVisibility(
             chromeVisible = controlsVisible && !isLocked,
             lockButtonVisible = controlsVisible || isLocked,
-            lockButtonSelected = isLocked
+            lockButtonSelected = isLocked,
+            fullscreenButtonVisible = !isLocked
         )
 
     fun isChromeRegionVisible(region: PlayerChromeRegion, isLocked: Boolean, controlsVisible: Boolean): Boolean {

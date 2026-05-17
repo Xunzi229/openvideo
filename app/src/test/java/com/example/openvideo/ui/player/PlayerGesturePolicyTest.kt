@@ -1,6 +1,9 @@
 package com.example.openvideo.ui.player
 
+import com.example.openvideo.core.prefs.GestureAction
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayerGesturePolicyTest {
@@ -46,5 +49,41 @@ class PlayerGesturePolicyTest {
         assertEquals(0.7f, PlayerGesturePolicy.verticalLevel(anchor = 0.5f, dy = -200f, screenHeightPx = 1000), 0.001f)
         assertEquals(0.3f, PlayerGesturePolicy.verticalLevel(anchor = 0.5f, dy = 200f, screenHeightPx = 1000), 0.001f)
         assertEquals(0.01f, PlayerGesturePolicy.verticalLevel(anchor = 0.5f, dy = 1000f, screenHeightPx = 1000, min = 0.01f), 0.001f)
+    }
+
+    @Test
+    fun horizontalSeekOnReleaseRequiresSeekAction() {
+        assertTrue(
+            PlayerGesturePolicy.shouldApplyHorizontalSeekOnRelease(
+                isHorizontalSwipe = true,
+                horizontalSwipeAction = GestureAction.SEEK
+            )
+        )
+        assertFalse(
+            PlayerGesturePolicy.shouldApplyHorizontalSeekOnRelease(
+                isHorizontalSwipe = true,
+                horizontalSwipeAction = GestureAction.BRIGHTNESS
+            )
+        )
+    }
+
+    @Test
+    fun verticalGestureActionMapsBySide() {
+        assertEquals(
+            GestureAction.BRIGHTNESS,
+            PlayerGesturePolicy.verticalGestureAction(
+                PlayerSwipeSide.LEFT,
+                GestureAction.BRIGHTNESS,
+                GestureAction.VOLUME
+            )
+        )
+        assertEquals(
+            GestureAction.NONE,
+            PlayerGesturePolicy.verticalGestureAction(
+                PlayerSwipeSide.NONE,
+                GestureAction.BRIGHTNESS,
+                GestureAction.VOLUME
+            )
+        )
     }
 }

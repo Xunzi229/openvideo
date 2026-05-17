@@ -36,4 +36,14 @@ class PlayerChromePolicyTest {
     fun lockedControlsUseShortHideDelay() {
         assertEquals(1_500L, PlayerChromePolicy.lockedControlsHideDelayMs())
     }
+
+    @Test
+    fun percentToAlphaMatchesMaxChromeAlpha() {
+        assertEquals(PlayerChromePolicy.maxChromeAlpha(85), PlayerChromePolicy.percentToAlpha(85), 0.001f)
+    }
+
+    @Test
+    fun chromeFadeDurationIsStable() {
+        assertEquals(200L, PlayerChromePolicy.CHROME_FADE_DURATION_MS)
+    }
 }

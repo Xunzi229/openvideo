@@ -9,6 +9,12 @@ import org.junit.Test
 class PlayerQuickEntryPolicyTest {
 
     @Test
+    fun subtitleDelayAdjustDirection() {
+        assertTrue(PlayerQuickEntryPolicy.subtitleDelayAdjustIsDecrease(-500))
+        assertFalse(PlayerQuickEntryPolicy.subtitleDelayAdjustIsDecrease(500))
+    }
+
+    @Test
     fun audioEntryMarksSelectedTrackWhenAudioIsActive() {
         val state = PlayerQuickEntryPolicy.audioEntry(
             tracks = listOf(

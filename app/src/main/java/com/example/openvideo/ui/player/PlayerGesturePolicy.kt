@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import com.example.openvideo.core.prefs.GestureAction
 import kotlin.math.abs
 
 enum class PlayerSwipeSide { LEFT, RIGHT, NONE }
@@ -27,6 +28,32 @@ object PlayerGesturePolicy {
         if (screenWidthPx <= 0) return PlayerSwipeSide.NONE
         return if (x < screenWidthPx / 2f) PlayerSwipeSide.LEFT else PlayerSwipeSide.RIGHT
     }
+
+    fun shouldApplyHorizontalSeekOnRelease(
+        isHorizontalSwipe: Boolean,
+        horizontalSwipeAction: GestureAction
+    ): Boolean =
+        isHorizontalSwipe && horizontalSwipeAction == GestureAction.SEEK
+
+    fun shouldApplyVerticalSeekOnRelease(
+        isVerticalSwipe: Boolean,
+        verticalAction: GestureAction
+    ): Boolean =
+        isVerticalSwipe && verticalAction == GestureAction.SEEK
+
+    fun isValidDoubleTapSeekSide(side: PlayerSwipeSide): Boolean =
+        side != PlayerSwipeSide.NONE
+
+    fun verticalGestureAction(
+        side: PlayerSwipeSide,
+        leftAction: GestureAction,
+        rightAction: GestureAction
+    ): GestureAction =
+        when (side) {
+            PlayerSwipeSide.LEFT -> leftAction
+            PlayerSwipeSide.RIGHT -> rightAction
+            PlayerSwipeSide.NONE -> GestureAction.NONE
+        }
 
     fun dominantAxis(dx: Float, dy: Float, slopPx: Int): PlayerSwipeAxis {
         if (abs(dx) <= slopPx && abs(dy) <= slopPx) return PlayerSwipeAxis.NONE

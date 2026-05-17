@@ -73,6 +73,11 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = AspectRatio.fromKey(getString(KEY_ASPECT_RATIO, "fit"))
         set(value) = putString(KEY_ASPECT_RATIO, value.key)
 
+    /** Center-window zoom for nested landscape/portrait content; requires FIT-style aspect ratio. */
+    var contentFrameMode: ContentFrameMode
+        get() = ContentFrameMode.fromKey(getString(KEY_CONTENT_FRAME_MODE, ContentFrameMode.OFF.key))
+        set(value) = putString(KEY_CONTENT_FRAME_MODE, value.key)
+
     var rotation: Int
         get() = getInt(KEY_ROTATION, 0)
         set(value) = putInt(KEY_ROTATION, value)
@@ -306,6 +311,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
 
         // 画面
         private const val KEY_ASPECT_RATIO = "aspect_ratio"
+        private const val KEY_CONTENT_FRAME_MODE = "content_frame_mode"
         private const val KEY_ROTATION = "rotation"
         private const val KEY_MIRROR = "mirror"
         private const val KEY_AUTO_ORIENTATION = "auto_orientation_by_video"
@@ -369,6 +375,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
                 KEY_LOOP_MODE,
                 KEY_KEEP_SCREEN_ON,
                 KEY_ASPECT_RATIO,
+                KEY_CONTENT_FRAME_MODE,
                 KEY_ROTATION,
                 KEY_MIRROR,
                 KEY_VIDEO_DISPLAY_ENABLED,

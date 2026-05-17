@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp"
+    android:height="10dp"
+    android:viewportWidth="18"
+    android:viewportHeight="10">
+    <path
+        android:fillColor="@color/ov_filter_popover_bg"
+        android:pathData="M9,0 L18,10 H0 Z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:pathData="M0,10 L9,0 L18,10"
+        android:strokeColor="@color/ov_filter_popover_stroke"
+        android:strokeWidth="1" />
+</vector>

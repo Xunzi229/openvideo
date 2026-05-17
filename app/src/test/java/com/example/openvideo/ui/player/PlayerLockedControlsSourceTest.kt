@@ -19,6 +19,8 @@ class PlayerLockedControlsSourceTest {
         assertTrue(block.contains("PlayerLockedControlsPolicy.isChromeRegionVisible("))
         assertTrue(block.contains("PlayerChromeRegion.TOP_SCRIM"))
         assertTrue(block.contains("PlayerChromeRegion.LAND_RIGHT_FLOAT_COLUMN"))
+        assertTrue(block.contains("visibility.fullscreenButtonVisible"))
+        assertTrue(block.contains("btnFullscreen.visibility"))
         assertFalse(
             "Chrome visibility must not bypass PlayerLockedControlsPolicy.",
             block.contains("PlayerControlState.visibilityFor(isScreenLocked")

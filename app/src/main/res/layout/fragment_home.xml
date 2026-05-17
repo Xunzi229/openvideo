@@ -192,7 +192,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/home_advanced_filters_title"
             android:padding="8dp"
-            android:src="@drawable/ic_display_settings"
+            android:src="@drawable/ic_filter_tune"
             app:tint="@color/ov_text_secondary" />
 
         <LinearLayout

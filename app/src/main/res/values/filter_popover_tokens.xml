@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light theme filter popover (glass panel) -->
+    <color name="ov_filter_scrim">#52030A14</color>
+    <!-- Slightly higher opacity — visual “glass” without full-screen blur -->
+    <color name="ov_filter_popover_bg">#F2F5F8FC</color>
+    <color name="ov_filter_popover_stroke">#33FFFFFF</color>
+    <color name="ov_filter_popover_shadow">#1A0A1420</color>
+    <color name="ov_filter_group_title">@color/ov_text_secondary</color>
+    <color name="ov_filter_divider">#1A111827</color>
+    <color name="ov_filter_chip_bg">#66FFFFFF</color>
+    <color name="ov_filter_chip_stroke">#33111827</color>
+    <color name="ov_filter_chip_text">@color/ov_text_secondary</color>
+    <color name="ov_filter_chip_selected_bg">#402F6FE4</color>
+    <color name="ov_filter_chip_selected_stroke">@color/ov_accent_blue</color>
+    <color name="ov_filter_chip_selected_text">@color/ov_text_primary</color>
+    <color name="ov_filter_chip_glow">#332F6FE4</color>
+    <color name="ov_filter_btn_cancel_stroke">#33111827</color>
+    <color name="ov_filter_btn_primary_start">@color/ov_accent_blue</color>
+    <color name="ov_filter_btn_primary_end">#FF3D7AE8</color>
+    <color name="ov_filter_reset_text">@color/ov_accent_blue</color>
+
+    <dimen name="ov_filter_popover_radius">24dp</dimen>
+    <!-- ~88% minus horizontal safe margins -->
+    <integer name="ov_filter_popover_width_percent">88</integer>
+    <dimen name="ov_filter_chip_radius">999dp</dimen>
+    <dimen name="ov_filter_btn_radius">14dp</dimen>
+    <dimen name="ov_filter_arrow_width">18dp</dimen>
+    <dimen name="ov_filter_arrow_height">10dp</dimen>
+    <dimen name="ov_filter_arrow_overlap_into_panel">-8dp</dimen>
+</resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/filter_overlay_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <View
+        android:id="@+id/filter_scrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/ov_filter_scrim"
+        android:contentDescription="@string/home_filter_dismiss_scrim" />
+
+    <!-- Do not put android:id on <include>; it overrides the inflated root id and removes filter_popover_root. -->
+    <include
+        layout="@layout/view_video_library_filter_popover"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end" />
+
+</FrameLayout>
