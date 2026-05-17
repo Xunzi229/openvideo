@@ -28,5 +28,5 @@ output
 *.pem
 keys/
 release/
-docs/roadmap
+docs/
 scripts/
