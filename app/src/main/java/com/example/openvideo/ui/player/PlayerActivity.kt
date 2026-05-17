@@ -34,7 +34,6 @@ import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
@@ -53,7 +52,7 @@ import androidx.media3.ui.R as Media3UiR
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
-import com.example.openvideo.core.player.PlaybackService
+import com.example.openvideo.core.player.PlaybackServiceIntents
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.DoubleTapAction
@@ -165,6 +164,7 @@ class PlayerActivity : AppCompatActivity() {
     private var pendingSeekTarget: Long? = null
     private var seekGestureAnchorPositionMs: Long? = null
     private var playerListener: Player.Listener? = null
+    private var startupAnalyticsListener: androidx.media3.exoplayer.analytics.AnalyticsListener? = null
 
     // 一旦用户手动切过屏幕方向（点击全屏按钮等），本次视频会话内禁止自动方向覆盖，
     // 防止 onVideoSizeChanged 等回调把用户操作冲掉。切到下一首视频时复位。
@@ -177,6 +177,8 @@ class PlayerActivity : AppCompatActivity() {
     private var hasSkippedOutro = false
     private val startupTrace = PlayerStartupTrace()
     private var hasLoggedFirstFrame = false
+    private var hasLoggedFirstFrameTimeout = false
+    private var isFirstFrameTimeoutPosted = false
     private var isAwaitingFirstFrame = true
     private var lastHistorySavedPositionMs = 0L
 
@@ -195,7 +197,16 @@ class PlayerActivity : AppCompatActivity() {
     private var isSwitchingQueueAfterEnded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        delegate.localNightMode = AppCompatDelegate.MODE_NIGHT_YES
+        // Do NOT call `delegate.localNightMode = MODE_NIGHT_YES` here:
+        // AppCompat's setLocalNightMode mutates the process-wide Resources configuration
+        // (uiMode = NIGHT_YES). After leaving the player the cached drawables (e.g. the
+        // gradient `bg_app_root` used by Home/Local/Playlist fragments) keep the dark
+        // colors that were resolved while the player was running, while the host activity's
+        // own light theme stays unchanged - producing the "light status/nav bar + dark
+        // fragment in the middle" symptom users see when they back out of the player.
+        // The player's own theme (Theme.OpenVideo.Player) already hard-codes every color
+        // (player_bg / player_panel_bg / player_title_primary ...) to dark, so it stays
+        // dark without forcing the night mode flag globally.
         super.onCreate(savedInstanceState)
         requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
             width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
@@ -231,16 +242,16 @@ class PlayerActivity : AppCompatActivity() {
         val id = intent.getLongExtra("video_id", 0)
         val videoPath = intent.getStringExtra("video_path").orEmpty()
 
-        startupTrace.record("activity_created")
+        startupTrace.record(PlayerStartupTrace.Events.ACTIVITY_CREATED)
         viewModel.initialize(Uri.parse(uriString), title, id, videoPath)
         viewModel.setSessionQueue(intent.sessionVideoQueue())
-        startupTrace.record("player_initialized")
+        startupTrace.record(PlayerStartupTrace.Events.PLAYER_INITIALIZED)
 
         playerView.player = viewModel.player
         firstFrameScrim.visibility = if (isAwaitingFirstFrame) View.VISIBLE else View.GONE
         setupControls()
         refreshSessionListButtonVisibility()
-        startupTrace.record("player_view_attached")
+        startupTrace.record(PlayerStartupTrace.Events.PLAYER_VIEW_ATTACHED)
         tvTitle.text = title
         updateLandResolutionBadge()
 
@@ -318,8 +329,10 @@ class PlayerActivity : AppCompatActivity() {
         tvSubtitle.setTextColor(playerPrefs.subtitleColor)
         tvSubtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
         tvSubtitle.post {
-            val travel = playerView.height * 0.6f
-            tvSubtitle.translationY = -((1f - playerPrefs.subtitlePosition.coerceIn(0f, 1f)) * travel)
+            tvSubtitle.translationY = PlayerDisplayAdjustment.subtitleTranslationY(
+                playerViewHeightPx = playerView.height,
+                position = playerPrefs.subtitlePosition
+            )
         }
     }
 
@@ -327,7 +340,7 @@ class PlayerActivity : AppCompatActivity() {
         setPlayerResizeMode()
         applyPlayerContentAspectRatio()
         playerView.rotation = playerPrefs.rotation.toFloat()
-        playerView.scaleX = if (playerPrefs.mirror) -1f else 1f
+        playerView.scaleX = PlayerDisplayAdjustment.mirrorScaleX(playerPrefs.mirror)
     }
 
     private fun initBrightnessAndVolume() {
@@ -368,7 +381,7 @@ class PlayerActivity : AppCompatActivity() {
             } else {
                 if (showToast) Toast.makeText(this@PlayerActivity, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
             }
-            startupTrace.record("subtitle_scan_finished")
+            startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
         }
     }
 
@@ -425,14 +438,10 @@ class PlayerActivity : AppCompatActivity() {
     private fun updateLandResolutionBadge() {
         val w = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
         findViewById<TextView>(R.id.tv_land_resolution_badge)?.visibility =
-            if (w >= 3840) View.VISIBLE else View.GONE
+            if (PlayerLandscapeBadgePolicy.is4kVideo(w)) View.VISIBLE else View.GONE
     }
 
-    private fun landSpeedLabel(speed: Float): String {
-        val s = DefaultPlayerSettings.supportedSpeedOrDefault(speed)
-        val t = if (s % 1f == 0f) s.toInt().toString() else s.toString()
-        return "${t}x"
-    }
+    private fun landSpeedLabel(speed: Float): String = PlayerSpeedLabel.format(speed)
 
     private fun refreshSessionListButtonVisibility() {
         val q = viewModel.sessionQueue.value
@@ -777,11 +786,9 @@ class PlayerActivity : AppCompatActivity() {
 
         btnFullscreen.setOnClickListener {
             userOverrodeOrientation = true
-            requestedOrientation = if (resources.configuration.orientation == 1) {
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            } else {
-                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            }
+            requestedOrientation = PlayerOrientationTogglePolicy.nextRequestedOrientation(
+                resources.configuration.orientation
+            )
         }
 
         btnPip?.setOnClickListener { enterPipModeIfSupported() }
@@ -842,6 +849,7 @@ class PlayerActivity : AppCompatActivity() {
                     val state = viewModel.uiState.value
                     applyPlaybackTickSeek(state.currentPosition, state.duration)
                     hideFirstFrameScrimForAudioOnly()
+                    onPrepareReady()
                 } else if (playbackState == Player.STATE_ENDED) {
                     handlePlaybackEnded()
                 }
@@ -856,9 +864,10 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun onRenderedFirstFrame() {
                 hideFirstFrameScrim()
+                cancelFirstFrameTimeoutCheck()
                 if (!hasLoggedFirstFrame) {
                     hasLoggedFirstFrame = true
-                    startupTrace.record("first_frame_rendered")
+                    startupTrace.record(PlayerStartupTrace.Events.FIRST_FRAME_RENDERED)
                     CrashLogger.logDiagnostic(
                         this@PlayerActivity,
                         "player_startup",
@@ -889,8 +898,58 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
         viewModel.player?.addListener(playerListener!!)
+        attachStartupAnalyticsListener()
         syncPlayPauseIcon()
         applyControlVisibility()
+    }
+
+    /**
+     * 把 ExoPlayer 的 decoder / codec-error 事件接入 [PlayerStartupTrace]，
+     * 通过 [PlayerDecoderEventPolicy] 决定每次回调要打哪几个事件名（同名事件靠
+     * `recordOnce` 去重）。
+     */
+    @OptIn(UnstableApi::class)
+    private fun attachStartupAnalyticsListener() {
+        if (startupAnalyticsListener != null) return
+        val listener = object : androidx.media3.exoplayer.analytics.AnalyticsListener {
+            override fun onVideoDecoderInitialized(
+                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                decoderName: String,
+                initializedTimestampMs: Long,
+                initializationDurationMs: Long
+            ) {
+                PlayerDecoderEventPolicy.videoDecoderEvents(decoderName)
+                    .forEach { startupTrace.recordOnce(it) }
+            }
+
+            override fun onAudioDecoderInitialized(
+                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                decoderName: String,
+                initializedTimestampMs: Long,
+                initializationDurationMs: Long
+            ) {
+                PlayerDecoderEventPolicy.audioDecoderEvents(decoderName)
+                    .forEach { startupTrace.recordOnce(it) }
+            }
+
+            override fun onVideoCodecError(
+                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                videoCodecError: Exception
+            ) {
+                PlayerDecoderEventPolicy.videoCodecErrorEvents(videoCodecError.javaClass.name)
+                    .forEach { startupTrace.recordOnce(it) }
+            }
+
+            override fun onAudioCodecError(
+                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
+                audioCodecError: Exception
+            ) {
+                PlayerDecoderEventPolicy.audioCodecErrorEvents(audioCodecError.javaClass.name)
+                    .forEach { startupTrace.recordOnce(it) }
+            }
+        }
+        viewModel.player?.addAnalyticsListener(listener)
+        startupAnalyticsListener = listener
     }
 
     private fun applyAbLoopResult(result: PlayerAbLoopResult) {
@@ -943,6 +1002,42 @@ class PlayerActivity : AppCompatActivity() {
                 hasVideoTrack = hasVideoTrack
             )
         )
+    }
+
+    /**
+     * 第一次 `STATE_READY` 到达后打 `prepare_ready` 埋点并排程「首帧迟滞」检查。
+     */
+    private fun onPrepareReady() {
+        if (startupTrace.hasRecorded(PlayerStartupTrace.Events.PREPARE_READY)) return
+        startupTrace.recordOnce(PlayerStartupTrace.Events.PREPARE_READY)
+        scheduleFirstFrameTimeoutCheck()
+    }
+
+    private fun scheduleFirstFrameTimeoutCheck() {
+        val hasVideoTrack = viewModel.player?.currentTracks?.groups
+            ?.any { group -> group.type == C.TRACK_TYPE_VIDEO } == true
+        val delayMs = PlayerFirstFrameTimeoutPolicy.scheduleDelayMs(
+            hasVideoTrack = hasVideoTrack,
+            firstFrameRendered = hasLoggedFirstFrame,
+            alreadyTimedOut = hasLoggedFirstFrameTimeout
+        ) ?: return
+        cancelFirstFrameTimeoutCheck()
+        handler.postDelayed(firstFrameTimeoutRunnable, delayMs)
+        isFirstFrameTimeoutPosted = true
+    }
+
+    private fun cancelFirstFrameTimeoutCheck() {
+        if (!isFirstFrameTimeoutPosted) return
+        handler.removeCallbacks(firstFrameTimeoutRunnable)
+        isFirstFrameTimeoutPosted = false
+    }
+
+    private val firstFrameTimeoutRunnable = Runnable {
+        isFirstFrameTimeoutPosted = false
+        if (hasLoggedFirstFrame || hasLoggedFirstFrameTimeout) return@Runnable
+        hasLoggedFirstFrameTimeout = true
+        startupTrace.recordOnce(PlayerStartupTrace.Events.FIRST_FRAME_TIMEOUT)
+        CrashLogger.logDiagnostic(this, "player_first_frame_timeout", startupTrace.format())
     }
 
     private fun applyFirstFrameDecision(decision: PlayerFirstFrameDecision) {
@@ -1309,39 +1404,31 @@ class PlayerActivity : AppCompatActivity() {
      */
     private fun applyLandscapePlayerGeometry() {
         if (resources.configuration.orientation != Configuration.ORIENTATION_LANDSCAPE) return
-        val root = controlsContainer
-        val w = root.width
-        val h = root.height
-        if (w <= 0 || h <= 0) return
-        val dm = resources.displayMetrics.density
-
-        fun xp(r: Float) = (w * r).toInt()
-        fun yp(r: Float) = (h * r).toInt()
+        val geometry = PlayerLandscapeGeometryPolicy.compute(
+            widthPx = controlsContainer.width,
+            heightPx = controlsContainer.height,
+            density = resources.displayMetrics.density
+        ) ?: return
 
         topBar.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginStart = xp(0.022f)
-            marginEnd = xp(0.022f)
-            topMargin = yp(0.028f)
+            marginStart = geometry.containerHorizontalMarginPx
+            marginEnd = geometry.containerHorizontalMarginPx
+            topMargin = geometry.topBarTopMarginPx
         }
         bottomPanel.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginStart = xp(0.022f)
-            marginEnd = xp(0.022f)
-            bottomMargin = yp(0.032f)
+            marginStart = geometry.containerHorizontalMarginPx
+            marginEnd = geometry.containerHorizontalMarginPx
+            bottomMargin = geometry.bottomPanelBottomMarginPx
         }
         btnLock.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginStart = xp(0.026f)
+            marginStart = geometry.lockMarginStartPx
             topMargin = 0
             bottomMargin = 0
             verticalBias = 0.5f
         }
         landRightFloatColumn?.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginEnd = xp(0.022f)
+            marginEnd = geometry.containerHorizontalMarginPx
         }
-
-        val iconSide = (w * 0.049f).coerceIn(40f * dm, 52f * dm).toInt()
-        val playSide = (w * 0.060f).coerceIn(52f * dm, 64f * dm).toInt()
-        val transportGap = (w * 0.02f).coerceIn(14f * dm, 22f * dm).toInt()
-        val innerGap = (w * 0.009f).coerceIn(6f * dm, 12f * dm).toInt()
 
         listOf(
             R.id.btn_land_seek_back,
@@ -1350,27 +1437,26 @@ class PlayerActivity : AppCompatActivity() {
             R.id.btn_land_seek_forward
         ).forEach { id ->
             findViewById<View>(id)?.updateLayoutParams<LinearLayout.LayoutParams> {
-                width = iconSide
-                height = iconSide
+                width = geometry.iconSidePx
+                height = geometry.iconSidePx
             }
         }
         findViewById<View>(R.id.btn_fullscreen)?.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            width = iconSide
-            height = iconSide
+            width = geometry.iconSidePx
+            height = geometry.iconSidePx
         }
         findViewById<View>(R.id.btn_play)?.updateLayoutParams<LinearLayout.LayoutParams> {
-            width = playSide
-            height = playSide
-            marginStart = transportGap
-            marginEnd = transportGap
+            width = geometry.playSidePx
+            height = geometry.playSidePx
+            marginStart = geometry.transportGapPx
+            marginEnd = geometry.transportGapPx
         }
         findViewById<View>(R.id.btn_prev)?.updateLayoutParams<LinearLayout.LayoutParams> {
-            marginStart = innerGap
+            marginStart = geometry.innerGapPx
         }
         findViewById<View>(R.id.btn_next)?.updateLayoutParams<LinearLayout.LayoutParams> {
-            marginEnd = innerGap
+            marginEnd = geometry.innerGapPx
         }
-
     }
 
     private fun setWindowBrightness(brightness: Float) {
@@ -1700,14 +1786,7 @@ class PlayerActivity : AppCompatActivity() {
             WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     }
 
-    private fun formatTime(ms: Long): String {
-        val totalSec = ms / 1000
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
-        else String.format("%02d:%02d", m, s)
-    }
+    private fun formatTime(ms: Long): String = PlayerTimeFormatter.format(ms)
 
     /**
      * Manifest 使用了 configChanges（方向切换不重建 Activity），
@@ -1780,6 +1859,8 @@ class PlayerActivity : AppCompatActivity() {
         handler.removeCallbacksAndMessages(null)
         playerListener?.let { viewModel.player?.removeListener(it) }
         playerListener = null
+        startupAnalyticsListener?.let { viewModel.player?.removeAnalyticsListener(it) }
+        startupAnalyticsListener = null
         preparePlayerExitFrame()
         releasePlayerAfterExit()
         super.onDestroy()
@@ -1869,22 +1950,16 @@ class PlayerActivity : AppCompatActivity() {
             isInPictureInPicture = isInPipModeCompat()
         )
         if (!decision.shouldStart) return
-        val intent = Intent(this, PlaybackService::class.java).apply {
-            action = PlaybackService.ACTION_START
-            putExtra(PlaybackService.EXTRA_TITLE, tvTitle.text.toString())
-            putExtra(PlaybackService.EXTRA_IS_PLAYING, isPlaying)
-        }
-        runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                ContextCompat.startForegroundService(this, intent)
-            } else {
-                startService(intent)
-            }
-        }
+        val intent = PlaybackServiceIntents.start(
+            context = this,
+            title = tvTitle.text.toString(),
+            isPlaying = isPlaying
+        )
+        runCatching { ContextCompat.startForegroundService(this, intent) }
     }
 
     private fun stopPlaybackService() {
-        runCatching { stopService(Intent(this, PlaybackService::class.java)) }
+        runCatching { stopService(PlaybackServiceIntents.stop(this)) }
     }
 
     private fun applyPlaybackTickSeek(currentPositionMs: Long, durationMs: Long) {

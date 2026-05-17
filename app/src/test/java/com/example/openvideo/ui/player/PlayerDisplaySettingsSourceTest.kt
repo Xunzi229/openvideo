@@ -20,7 +20,13 @@ class PlayerDisplaySettingsSourceTest {
         assertTrue(displayBlock.contains("setPlayerResizeMode()"))
         assertTrue(displayBlock.contains("applyPlayerContentAspectRatio()"))
         assertTrue(displayBlock.contains("playerView.rotation = playerPrefs.rotation.toFloat()"))
-        assertTrue(displayBlock.contains("playerView.scaleX = if (playerPrefs.mirror) -1f else 1f"))
+        // mirror is routed through PlayerDisplayAdjustment so future mirror policy changes
+        // (e.g. clamp / animate) only need updating the helper, not the Activity.
+        assertTrue(
+            displayBlock.contains(
+                "playerView.scaleX = PlayerDisplayAdjustment.mirrorScaleX(playerPrefs.mirror)"
+            )
+        )
     }
 
     private fun playerActivitySource(): Path {

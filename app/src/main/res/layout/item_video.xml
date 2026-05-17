@@ -46,7 +46,7 @@
                 android:background="@drawable/bg_video_duration"
                 android:paddingHorizontal="6dp"
                 android:paddingVertical="2dp"
-                android:textColor="@color/ov_text_primary"
+                android:textColor="@android:color/white"
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </FrameLayout>

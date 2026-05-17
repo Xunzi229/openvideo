@@ -23,17 +23,22 @@ object CrashLogger {
         val appContext = context.applicationContext
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            write(appContext, "uncaught_${timestampFormat.format(Date())}.txt", thread.name, throwable)
+            write(
+                context = appContext,
+                source = CrashCategoryPolicy.SOURCE_UNCAUGHT,
+                threadName = thread.name,
+                throwable = throwable
+            )
             previous?.uncaughtException(thread, throwable)
         }
     }
 
     fun logPlayerError(context: Context, throwable: Throwable) {
         write(
-            context.applicationContext,
-            "player_${timestampFormat.format(Date())}.txt",
-            Thread.currentThread().name,
-            throwable
+            context = context.applicationContext,
+            source = CrashCategoryPolicy.SOURCE_PLAYER,
+            threadName = Thread.currentThread().name,
+            throwable = throwable
         )
     }
 
@@ -46,10 +51,12 @@ object CrashLogger {
         }
     }
 
-    private fun write(context: Context, fileName: String, threadName: String, throwable: Throwable) {
+    private fun write(context: Context, source: String, threadName: String, throwable: Throwable) {
         runCatching {
             val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
-            val log = buildLog(threadName, throwable)
+            val category = CrashCategoryPolicy.categorize(throwable, source)
+            val fileName = "${source}_${category.token}_${timestampFormat.format(Date())}.txt"
+            val log = buildLog(threadName, throwable, category, source)
             File(dir, fileName).writeText(log)
             if (BuildConfig.REMOTE_CRASH_REPORTING_ENABLED && BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()) {
                 reportRemotely(BuildConfig.FEISHU_WEBHOOK_URL, fileName, log)
@@ -66,19 +73,26 @@ object CrashLogger {
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("sdk=${Build.VERSION.SDK_INT}")
             appendLine()
-            append(body)
+            append(CrashRedactionPolicy.redact(body))
         }
     }
 
-    private fun buildLog(threadName: String, throwable: Throwable): String {
+    private fun buildLog(
+        threadName: String,
+        throwable: Throwable,
+        category: CrashCategory,
+        source: String
+    ): String {
         val stack = StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }.toString()
         return buildString {
             appendLine("time=${Date()}")
+            appendLine("source=$source")
+            appendLine("category=${category.token}")
             appendLine("thread=$threadName")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("sdk=${Build.VERSION.SDK_INT}")
             appendLine()
-            append(stack)
+            append(CrashRedactionPolicy.redact(stack))
         }
     }
 

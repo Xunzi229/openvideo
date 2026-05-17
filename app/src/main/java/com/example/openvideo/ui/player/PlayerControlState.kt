@@ -65,10 +65,35 @@ object PlayerOrientationPolicy {
 }
 
 object PlayerDisplayAdjustment {
+
+    /**
+     * Vertical position of the subtitle layer (in pixels) relative to its natural top.
+     *
+     * Subtitle position is stored as a 0..1 ratio where 1 means "stick to the natural
+     * top edge" and 0 means "push down by 60% of the player view height". We clamp the
+     * incoming ratio so persisted out-of-range values from older builds cannot send the
+     * subtitle off-screen.
+     */
+    private const val SUBTITLE_TRAVEL_RATIO = 0.6f
+
     fun screenBrightnessFor(adjustmentPercent: Int): Float {
         if (adjustmentPercent == 0) return -1f
         return (adjustmentPercent.coerceIn(1, 100) / 100f)
             .coerceIn(0.01f, 1f)
+    }
+
+    /** Horizontal mirror toggle for [PlayerView.scaleX]: -1f flips the frame, 1f keeps normal. */
+    fun mirrorScaleX(mirror: Boolean): Float = if (mirror) -1f else 1f
+
+    /**
+     * Translates the subtitle TextView along Y so that [position] in `[0, 1]` smoothly moves it
+     * between "natural top" (1f -> 0px) and "60% of [playerViewHeightPx] below" (0f).
+     */
+    fun subtitleTranslationY(playerViewHeightPx: Int, position: Float): Float {
+        val safeHeight = playerViewHeightPx.coerceAtLeast(0)
+        val travel = safeHeight * SUBTITLE_TRAVEL_RATIO
+        val normalized = position.coerceIn(0f, 1f)
+        return -((1f - normalized) * travel)
     }
 }
 
