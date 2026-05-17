@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-    <!-- Tokens for player “glass sheet” centered pickers (aspect, speed, quick entry rows). -->
+<!-- Tokens for player glass sheet centered pickers (aspect, speed, quick entry rows). -->
 <resources>
-    <color name="player_aspect_dialog_panel_bg">#B80C101C</color>
+    <color name="player_aspect_dialog_panel_bg">#CCFFFFFF</color>
     <color name="player_aspect_dialog_stroke">#33FFFFFF</color>
-    <color name="player_aspect_row_bg">#33101628</color>
-    <color name="player_aspect_row_stroke">#14FFFFFF</color>
-    <color name="player_aspect_row_selected_fill">#404A9EFF</color>
+    <color name="player_glass_sheet_title">#FF172033</color>
+    <color name="player_aspect_row_bg">#80FFFFFF</color>
+    <color name="player_aspect_row_stroke">#29FFFFFF</color>
+    <color name="player_aspect_row_selected_fill">#BFEAF1FF</color>
     <color name="player_aspect_row_selected_stroke">@color/ov_accent_blue</color>
-    <color name="player_aspect_row_label_normal">#CCBFC8DE</color>
-    <color name="player_aspect_row_label_selected">#FFFFFFFF</color>
-    <color name="player_aspect_radio_ring_off">#99B8C5E0</color>
+    <color name="player_aspect_row_label_normal">#DE172033</color>
+    <color name="player_aspect_row_label_selected">#FF172033</color>
+    <color name="player_aspect_radio_ring_off">#66718091</color>
     <color name="player_aspect_radio_ring_on">@color/ov_accent_blue</color>
     <color name="player_aspect_radio_dot">@color/ov_accent_blue</color>
 

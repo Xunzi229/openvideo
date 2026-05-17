@@ -40,6 +40,41 @@ class OpenVideoDialogThemeSourceTest {
         assertTrue(theme.contains("ShapeAppearance.OpenVideo.Dialog"))
     }
 
+    @Test
+    fun playerGlassSheetUsesThemeSpecificColorTokens() {
+        val lightTokens = rootFile("app", "src", "main", "res", "values", "aspect_ratio_dialog_tokens.xml").readText()
+        val darkTokens = rootFile("app", "src", "main", "res", "values-night", "aspect_ratio_dialog_tokens.xml").readText()
+        val layout = rootFile("app", "src", "main", "res", "layout", "dialog_player_glass_sheet.xml").readText()
+
+        assertTrue(lightTokens.contains("<color name=\"player_aspect_dialog_panel_bg\">#CCFFFFFF</color>"))
+        assertTrue(lightTokens.contains("<color name=\"player_glass_sheet_title\">#FF172033</color>"))
+        assertTrue(lightTokens.contains("<color name=\"player_aspect_row_bg\">#80FFFFFF</color>"))
+        assertTrue(lightTokens.contains("<color name=\"player_aspect_row_label_normal\">#DE172033</color>"))
+        assertTrue(darkTokens.contains("<color name=\"player_aspect_dialog_panel_bg\">#A60C101C</color>"))
+        assertTrue(darkTokens.contains("<color name=\"player_glass_sheet_title\">#FFFFFFFF</color>"))
+        assertTrue(layout.contains("android:textColor=\"@color/player_glass_sheet_title\""))
+    }
+
+    @Test
+    fun playerGlassSheetAppliesBackdropBlurForFrostedGlass() {
+        val source = rootFile(
+            "app",
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerGlassSheetDialog.kt"
+        ).readText()
+
+        assertTrue(source.contains("setBackgroundBlurRadius"))
+        assertTrue(source.contains("18f * dm.density"))
+        assertTrue(source.contains("dimAmount = 0.48f"))
+    }
+
     private fun Path.readText(): String =
         String(Files.readAllBytes(this))
 

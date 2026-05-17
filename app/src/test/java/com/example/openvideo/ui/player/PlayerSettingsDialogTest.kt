@@ -67,6 +67,17 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun quickChoiceDialogsUseSharedGlassSheetHelper() {
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+
+        assertTrue(activitySource.contains("PlayerGlassSheetDialog.showSingleChoice"))
+        assertFalse(activitySource.contains("inflatePlayerGlassSheet("))
+        assertFalse(activitySource.contains("applyGlassSheetRowVisual("))
+        assertFalse(activitySource.contains("applyPlayerGlassSheetChrome("))
+        assertFalse(activitySource.contains("capPlayerGlassSheetScroll("))
+    }
+
+    @Test
     fun subtitleDelayAndNetworkStreamAreWiredToPlayback() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val viewModelSource = String(Files.readAllBytes(playerViewModelSource()))

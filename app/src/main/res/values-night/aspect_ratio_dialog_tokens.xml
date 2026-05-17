@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark tokens for player glass sheet centered pickers. -->
+<resources>
+    <color name="player_aspect_dialog_panel_bg">#A60C101C</color>
+    <color name="player_aspect_dialog_stroke">#33FFFFFF</color>
+    <color name="player_glass_sheet_title">#FFFFFFFF</color>
+    <color name="player_aspect_row_bg">#4D101628</color>
+    <color name="player_aspect_row_stroke">#14FFFFFF</color>
+    <color name="player_aspect_row_selected_fill">#594A9EFF</color>
+    <color name="player_aspect_row_selected_stroke">@color/ov_accent_blue</color>
+    <color name="player_aspect_row_label_normal">#CCBFC8DE</color>
+    <color name="player_aspect_row_label_selected">#FFFFFFFF</color>
+    <color name="player_aspect_radio_ring_off">#99B8C5E0</color>
+    <color name="player_aspect_radio_ring_on">@color/ov_accent_blue</color>
+    <color name="player_aspect_radio_dot">@color/ov_accent_blue</color>
+</resources>

@@ -7,8 +7,6 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -17,13 +15,11 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.TypedValue
 import android.view.GestureDetector
-import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.SeekBar
@@ -36,7 +32,6 @@ import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AlertDialog
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
@@ -44,7 +39,6 @@ import androidx.core.view.isVisible
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.core.widget.NestedScrollView
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -67,7 +61,6 @@ import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.settings.DefaultPlayerSettings
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -550,34 +543,6 @@ class PlayerActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun inflatePlayerGlassSheet(titleRes: Int): Triple<View, LinearLayout, NestedScrollView> {
-        val content = layoutInflater.inflate(R.layout.dialog_player_glass_sheet, null, false)
-        content.findViewById<TextView>(R.id.player_glass_sheet_title).setText(titleRes)
-        val list = content.findViewById<LinearLayout>(R.id.player_glass_sheet_option_list)
-        val scroll = content.findViewById<NestedScrollView>(R.id.player_glass_sheet_scroll)
-        return Triple(content, list, scroll)
-    }
-
-    private fun applyGlassSheetRowVisual(row: View, selected: Boolean) {
-        val density = resources.displayMetrics.density
-        row.setBackgroundResource(
-            if (selected) R.drawable.player_aspect_ratio_row_selected
-            else R.drawable.player_aspect_ratio_row_unselected
-        )
-        row.findViewById<ImageView>(R.id.player_glass_sheet_radio).setImageResource(
-            if (selected) R.drawable.ic_player_aspect_radio_on
-            else R.drawable.ic_player_aspect_radio_off
-        )
-        row.findViewById<TextView>(R.id.player_glass_sheet_label).setTextColor(
-            ContextCompat.getColor(
-                this,
-                if (selected) R.color.player_aspect_row_label_selected
-                else R.color.player_aspect_row_label_normal
-            )
-        )
-        row.translationZ = if (selected) 4f * density else 0f
-    }
-
     private fun showAspectRatioQuickDialog() {
         val ratios = listOf(
             AspectRatio.FIT to R.string.player_sheet_fit_screen,
@@ -587,113 +552,47 @@ class PlayerActivity : AppCompatActivity() {
             AspectRatio.CROP to R.string.settings_ratio_crop,
             AspectRatio.STRETCH to R.string.settings_ratio_stretch
         )
-        val checked = ratios.indexOfFirst { it.first == playerPrefs.aspectRatio }
-            .takeIf { it >= 0 } ?: 0
-
-        val (content, list, scroll) = inflatePlayerGlassSheet(R.string.player_sheet_aspect_ratio)
-        val spacingPx = resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setView(content)
-            .setOnDismissListener { scheduleHideControls() }
-            .create()
-
-        ratios.forEachIndexed { index, (_, titleRes) ->
-            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
-            row.findViewById<TextView>(R.id.player_glass_sheet_label).text = getString(titleRes)
-            applyGlassSheetRowVisual(row, index == checked)
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            if (index < ratios.lastIndex) {
-                lp.bottomMargin = spacingPx
-            }
-            row.layoutParams = lp
-            row.setOnClickListener {
-                val ratio = ratios[index].first
-                playerPrefs.aspectRatio = ratio
-                viewModel.setAspectRatio(ratio)
-                applyDisplaySettings()
-                dialog.dismiss()
-            }
-            list.addView(row)
+        PlayerGlassSheetDialog.showSingleChoice(
+            context = this,
+            layoutInflater = layoutInflater,
+            titleRes = R.string.player_sheet_aspect_ratio,
+            choices = ratios.map { (ratio, titleRes) ->
+                PlayerGlassSheetChoice(
+                    value = ratio,
+                    label = getString(titleRes),
+                    selected = ratio == playerPrefs.aspectRatio
+                )
+            },
+            onDismiss = ::scheduleHideControls
+        ) { ratio ->
+            playerPrefs.aspectRatio = ratio
+            viewModel.setAspectRatio(ratio)
+            applyDisplaySettings()
         }
-
-        dialog.show()
-        dialog.applyPlayerGlassSheetChrome()
-        scroll.post { capPlayerGlassSheetScroll(scroll, 0) }
     }
 
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
-        val checkedIdx = speeds.indexOfFirst { it == playerPrefs.speed }.takeIf { it >= 0 } ?: 0
-        val (content, list, scroll) = inflatePlayerGlassSheet(R.string.player_pick_speed)
-        val spacingPx = resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setView(content)
-            .setOnDismissListener { scheduleHideControls() }
-            .create()
-
-        speeds.forEachIndexed { index, s ->
-            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
-            row.findViewById<TextView>(R.id.player_glass_sheet_label).text = "${s}x"
-            applyGlassSheetRowVisual(row, index == checkedIdx)
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            if (index < speeds.lastIndex) {
-                lp.bottomMargin = spacingPx
-            }
-            row.layoutParams = lp
-            row.setOnClickListener {
-                playerPrefs.speed = s
-                viewModel.setSpeed(
-                    s,
-                    PlayerPlaybackSettings.pitchFor(s, playerPrefs.speedPreservePitch)
+        PlayerGlassSheetDialog.showSingleChoice(
+            context = this,
+            layoutInflater = layoutInflater,
+            titleRes = R.string.player_pick_speed,
+            choices = speeds.map { speed ->
+                PlayerGlassSheetChoice(
+                    value = speed,
+                    label = "${speed}x",
+                    selected = speed == playerPrefs.speed
                 )
-                findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(s)
-                dialog.dismiss()
-            }
-            list.addView(row)
+            },
+            onDismiss = ::scheduleHideControls
+        ) { speed ->
+            playerPrefs.speed = speed
+            viewModel.setSpeed(
+                speed,
+                PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch)
+            )
+            findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(speed)
         }
-
-        dialog.show()
-        dialog.applyPlayerGlassSheetChrome()
-        scroll.post { capPlayerGlassSheetScroll(scroll, 0) }
-    }
-
-    /**
-     * 限制选项列表最大高度并在超出时仅在列表区域内滚动（标题常驻）。
-     */
-    private fun capPlayerGlassSheetScroll(scrollView: NestedScrollView, attempt: Int) {
-        val inner = scrollView.getChildAt(0) ?: return
-        val widthPx = scrollView.width.takeIf { it > 0 } ?: scrollView.measuredWidth.takeIf { it > 0 }
-        if (widthPx == null || widthPx <= 0) {
-            if (attempt < 6) {
-                scrollView.post { capPlayerGlassSheetScroll(scrollView, attempt + 1) }
-            }
-            return
-        }
-        val dm = scrollView.resources.displayMetrics
-        val capFromScreen = (dm.heightPixels * 0.48f).toInt()
-        val capFromDimen = scrollView.resources.getDimensionPixelSize(
-            R.dimen.player_aspect_dialog_option_scroll_cap
-        )
-        val capPx = kotlin.math.min(capFromScreen, capFromDimen)
-
-        inner.measure(
-            View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        )
-        val listHeight = inner.measuredHeight
-
-        val lp = scrollView.layoutParams ?: return
-        lp.height = if (listHeight > capPx) capPx else ViewGroup.LayoutParams.WRAP_CONTENT
-        scrollView.layoutParams = lp
-        scrollView.requestLayout()
     }
 
     /**
@@ -713,31 +612,6 @@ class PlayerActivity : AppCompatActivity() {
         w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
             w.setBackgroundBlurRadius(style.backdropBlurRadiusPx)
-        }
-    }
-
-    /**
-     * Aspect ratio quick picker: opaque custom panel + backdrop dim/blur only (no decor alpha).
-     */
-    private fun AlertDialog.applyPlayerGlassSheetChrome() {
-        val w = window ?: return
-        w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        w.decorView.alpha = 1f
-        val dm = resources.displayMetrics
-        val maxW = resources.getDimensionPixelSize(R.dimen.player_aspect_dialog_max_width)
-        val gutter = PlayerQuickEntryDialogPolicy.sheetPaddingPx(dm.density)
-        val dialogW = kotlin.math.min(
-            maxW,
-            kotlin.math.max(0, (dm.widthPixels * 0.9f).toInt() - 2 * gutter)
-        )
-        w.setLayout(dialogW, LinearLayout.LayoutParams.WRAP_CONTENT)
-        w.setGravity(Gravity.CENTER)
-        w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        w.attributes = w.attributes.apply {
-            dimAmount = 0.48f
-        }
-        if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
-            w.setBackgroundBlurRadius(kotlin.math.max(1, (18f * dm.density).toInt()))
         }
     }
 
@@ -839,44 +713,21 @@ class PlayerActivity : AppCompatActivity() {
         onSelected: (PlayerQuickEntryAction) -> Unit
     ) {
         handler.removeCallbacks(hideControlsRunnable)
-        val (content, list, scroll) = inflatePlayerGlassSheet(titleRes)
-        val spacingPx = resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
-        var dialog: AlertDialog? = null
-        items.forEachIndexed { index, item ->
-            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
-            row.findViewById<TextView>(R.id.player_glass_sheet_label).text = item.label
-            row.isEnabled = item.enabled
-            row.isClickable = item.enabled
-            row.isFocusable = item.enabled
-            row.alpha = if (item.enabled) 1f else 0.42f
-            if (!item.enabled) {
-                row.foreground = null
-                applyGlassSheetRowVisual(row, false)
-            } else {
-                applyGlassSheetRowVisual(row, item.selected)
-            }
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            if (index < items.lastIndex) {
-                lp.bottomMargin = spacingPx
-            }
-            row.layoutParams = lp
-            row.setOnClickListener {
-                if (!item.enabled) return@setOnClickListener
-                dialog?.dismiss()
-                onSelected(item.action)
-            }
-            list.addView(row)
-        }
-        dialog = MaterialAlertDialogBuilder(this)
-            .setView(content)
-            .setOnDismissListener { scheduleHideControls() }
-            .create()
-        dialog.show()
-        dialog.applyPlayerGlassSheetChrome()
-        scroll.post { capPlayerGlassSheetScroll(scroll, 0) }
+        PlayerGlassSheetDialog.showSingleChoice(
+            context = this,
+            layoutInflater = layoutInflater,
+            titleRes = titleRes,
+            choices = items.map { item ->
+                PlayerGlassSheetChoice(
+                    value = item.action,
+                    label = item.label,
+                    selected = item.selected,
+                    enabled = item.enabled
+                )
+            },
+            onDismiss = ::scheduleHideControls,
+            onSelected = onSelected
+        )
     }
 
     private fun setupControls() {

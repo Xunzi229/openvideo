@@ -17,6 +17,8 @@ import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AspectRatio
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
+import com.example.openvideo.ui.player.PlayerGlassSheetChoice
+import com.example.openvideo.ui.player.PlayerGlassSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -78,17 +80,11 @@ class SettingsFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.row_default_ratio).setOnClickListener {
-            val ratios = AspectRatio.entries
-            val next = (ratios.indexOf(viewModel.defaultRatio) + 1) % ratios.size
-            viewModel.setDefaultRatio(ratios[next])
-            updateRatioLabel(tvRatio)
+            showDefaultRatioDialog(tvRatio)
         }
 
         view.findViewById<View>(R.id.row_default_speed).setOnClickListener {
-            val speeds = DefaultPlayerSettings.supportedSpeeds
-            val next = (speeds.indexOf(viewModel.defaultSpeed) + 1) % speeds.size
-            viewModel.setDefaultSpeed(speeds[next])
-            updateSpeedLabel(tvSpeed)
+            showDefaultSpeedDialog(tvSpeed)
         }
 
         view.findViewById<View>(R.id.row_clear_cache).setOnClickListener {
@@ -169,5 +165,52 @@ class SettingsFragment : Fragment() {
 
     private fun updateSpeedLabel(tv: TextView) {
         tv.text = "${viewModel.defaultSpeed}x"
+    }
+
+    private fun showDefaultRatioDialog(tvRatio: TextView) {
+        val ratios = AspectRatio.entries
+        PlayerGlassSheetDialog.showSingleChoice(
+            context = requireContext(),
+            layoutInflater = layoutInflater,
+            titleRes = R.string.settings_default_ratio,
+            choices = ratios.map { ratio ->
+                PlayerGlassSheetChoice(
+                    value = ratio,
+                    label = ratioLabel(ratio),
+                    selected = ratio == viewModel.defaultRatio
+                )
+            }
+        ) { ratio ->
+            viewModel.setDefaultRatio(ratio)
+            updateRatioLabel(tvRatio)
+        }
+    }
+
+    private fun showDefaultSpeedDialog(tvSpeed: TextView) {
+        val speeds = DefaultPlayerSettings.supportedSpeeds
+        PlayerGlassSheetDialog.showSingleChoice(
+            context = requireContext(),
+            layoutInflater = layoutInflater,
+            titleRes = R.string.settings_default_speed,
+            choices = speeds.map { speed ->
+                PlayerGlassSheetChoice(
+                    value = speed,
+                    label = "${speed}x",
+                    selected = speed == viewModel.defaultSpeed
+                )
+            }
+        ) { speed ->
+            viewModel.setDefaultSpeed(speed)
+            updateSpeedLabel(tvSpeed)
+        }
+    }
+
+    private fun ratioLabel(ratio: AspectRatio): String = when (ratio) {
+        AspectRatio.FIT -> getString(R.string.settings_ratio_fit)
+        AspectRatio.FILL -> getString(R.string.settings_ratio_fill)
+        AspectRatio.CROP -> getString(R.string.settings_ratio_crop)
+        AspectRatio.STRETCH -> getString(R.string.settings_ratio_stretch)
+        AspectRatio.RATIO_4_3 -> "4:3"
+        AspectRatio.RATIO_16_9 -> "16:9"
     }
 }

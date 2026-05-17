@@ -234,7 +234,7 @@ class PlayerActivityP9SlimmingSourceTest {
             "PlayerNotificationPermissionPolicy.requiresRuntimePermission",
             "PlayerPipCompatPolicy.isInPictureInPictureMode",
             "PlayerVolumeBoostApplyPolicy.shouldReapplyOnAudioSessionChange",
-            "PlayerQuickEntryDialogPolicy.sheetPaddingPx",
+            "PlayerGlassSheetDialog.showSingleChoice",
             "PlayerAbLoopButtonStylePolicy.shouldHighlight",
             "PlayerLockButtonStylePolicy.shouldUseAccentTint",
             "PlayerContentFrameResetPolicy.PIVOT",
