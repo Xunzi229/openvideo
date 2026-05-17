@@ -173,7 +173,7 @@ class VideoGridAdapter(
 
     override fun onViewRecycled(holder: ViewHolder) {
         holder.onLoadCleared()
-        Glide.with(holder.thumbnail).clear(holder.thumbnail)
+        Glide.with(holder.thumbnail.context.applicationContext).clear(holder.thumbnail)
         super.onViewRecycled(holder)
     }
 

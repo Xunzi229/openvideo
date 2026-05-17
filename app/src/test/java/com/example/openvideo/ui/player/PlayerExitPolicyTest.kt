@@ -48,8 +48,11 @@ class PlayerExitPolicyTest {
     }
 
     @Test
-    fun finishPresentationKeepsExitReleaseDelayPolicyDriven() {
-        assertEquals(250L, PlayerExitPolicy.finishPresentation().releaseDelayMs)
+    fun finishPresentationKeepsExitTimingPolicyDriven() {
+        val presentation = PlayerExitPolicy.finishPresentation()
+
+        assertEquals(250L, presentation.releaseDelayMs)
+        assertEquals(180L, presentation.finishDelayMs)
     }
 
     @Test

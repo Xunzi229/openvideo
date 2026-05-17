@@ -49,6 +49,16 @@ class PlayerExitFlashSourceTest {
             "Exit preparation should map APP_BASE backdrop to ov_bg_base",
             prepareExit.contains("PlayerExitBackdrop.APP_BASE") && prepareExit.contains("R.color.ov_bg_base")
         )
+        assertTrue(
+            "Exit preparation should show an app-colored scrim above the video surface so long-video teardown cannot flash the player black background",
+            prepareExit.contains("firstFrameScrim.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))")
+                && prepareExit.contains("firstFrameScrim.alpha = 1f")
+                && prepareExit.contains("firstFrameScrim.visibility = View.VISIBLE")
+        )
+        assertTrue(
+            "Exit preparation should hide player chrome above the app-colored exit scrim",
+            prepareExit.contains("controlsContainer.visibility = View.INVISIBLE")
+        )
     }
 
     @Test
@@ -92,6 +102,37 @@ class PlayerExitFlashSourceTest {
         assertTrue(
             "onDestroy should use the guarded release helper",
             onDestroy.contains("releasePlayerAfterExit()")
+        )
+    }
+
+    @Test
+    fun playerExitSettlesPortraitOrientationBeforeFinishingToAvoidReturnBlackFlash() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val finishPlayer = source
+            .substringAfter("private fun finishPlayer() {")
+            .substringBefore("\n    private fun suppressExitTransition()")
+        val settleExit = source
+            .substringAfter("private fun settleOrientationBeforeExit(")
+            .substringBefore("\n    private fun suppressExitTransition()")
+        val rebindControls = source
+            .substringAfter("private fun rebindControlsForConfiguration() {")
+            .substringBefore("\n    override fun onResume()")
+
+        assertTrue(
+            "Player exit should request portrait before finish so the landscape-to-portrait rotation happens behind the player exit scrim",
+            finishPlayer.indexOf("preparePlayerExitFrame()") in 0 until finishPlayer.indexOf("settleOrientationBeforeExit(presentation)") &&
+                settleExit.contains("requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT")
+        )
+        assertTrue(
+            "Player exit should delay finish until the portrait orientation request has a chance to settle",
+            settleExit.contains("handler.postDelayed({") &&
+                settleExit.contains("finish()") &&
+                settleExit.contains("presentation.finishDelayMs")
+        )
+        assertTrue(
+            "Orientation rebind during exit should restore the app-colored scrim on the freshly inflated player layout",
+            rebindControls.contains("if (exitState.isFinishing)") &&
+                rebindControls.contains("preparePlayerExitFrame()")
         )
     }
 

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -1818,11 +1819,19 @@ class PlayerActivity : AppCompatActivity() {
         if (!decision.shouldFinish) return
         dismissPlaybackNotification()
         preparePlayerExitFrame()
-        finish()
-        suppressExitTransition()
+        settleOrientationBeforeExit(presentation)
         handler.postDelayed({
             releasePlayerAfterExit()
         }, presentation.releaseDelayMs)
+    }
+
+    private fun settleOrientationBeforeExit(presentation: PlayerExitPresentation) {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        handler.postDelayed({
+            preparePlayerExitFrame()
+            finish()
+            suppressExitTransition()
+        }, presentation.finishDelayMs)
     }
 
     private fun suppressExitTransition() {
@@ -1856,6 +1865,17 @@ class PlayerActivity : AppCompatActivity() {
         }
         if (this::playerRoot.isInitialized) {
             playerRoot.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))
+        }
+        if (this::firstFrameScrim.isInitialized) {
+            firstFrameScrim.animate().cancel()
+            firstFrameScrim.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))
+            firstFrameScrim.alpha = 1f
+            firstFrameScrim.visibility = View.VISIBLE
+            firstFrameScrim.bringToFront()
+        }
+        if (this::controlsContainer.isInitialized) {
+            controlsContainer.animate().cancel()
+            controlsContainer.visibility = View.INVISIBLE
         }
         window.setBackgroundDrawableResource(backdropColorRes)
     }
@@ -1915,6 +1935,9 @@ class PlayerActivity : AppCompatActivity() {
         controlsContainer.alpha = if (controlsVisible) controlsChromeMaxAlpha() else 0f
         controlsContainer.visibility = if (controlsVisible) View.VISIBLE else View.GONE
         applyControlVisibility()
+        if (exitState.isFinishing) {
+            preparePlayerExitFrame()
+        }
         controlsContainer.post { applyLandscapePlayerGeometry() }
     }
 

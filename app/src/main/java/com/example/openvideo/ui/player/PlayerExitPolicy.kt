@@ -21,7 +21,8 @@ enum class PlayerExitTransitionStrategy {
 }
 
 data class PlayerExitPresentation(
-    val releaseDelayMs: Long
+    val releaseDelayMs: Long,
+    val finishDelayMs: Long
 )
 
 /** Semantic backdrop when hiding the video surface during exit (Activity maps to `R.color`). */
@@ -38,6 +39,7 @@ data class PlayerExitFrameDecision(
 
 object PlayerExitPolicy {
     private const val PLAYER_EXIT_RELEASE_DELAY_MS = 250L
+    private const val PLAYER_EXIT_FINISH_DELAY_MS = 180L
 
     fun requestFinish(state: PlayerExitState): PlayerFinishDecision {
         if (state.isFinishing) {
@@ -60,7 +62,10 @@ object PlayerExitPolicy {
     }
 
     fun finishPresentation(): PlayerExitPresentation =
-        PlayerExitPresentation(releaseDelayMs = PLAYER_EXIT_RELEASE_DELAY_MS)
+        PlayerExitPresentation(
+            releaseDelayMs = PLAYER_EXIT_RELEASE_DELAY_MS,
+            finishDelayMs = PLAYER_EXIT_FINISH_DELAY_MS
+        )
 
     fun transitionStrategyFor(sdkInt: Int): PlayerExitTransitionStrategy =
         if (sdkInt >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {

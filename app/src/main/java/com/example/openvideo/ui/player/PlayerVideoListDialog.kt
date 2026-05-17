@@ -138,6 +138,11 @@ class PlayerVideoListDialog(
                 .into(holder.thumb)
         }
 
+        override fun onViewRecycled(holder: VH) {
+            Glide.with(holder.thumb.context.applicationContext).clear(holder.thumb)
+            super.onViewRecycled(holder)
+        }
+
         override fun getItemCount(): Int = items.size
     }
 }
