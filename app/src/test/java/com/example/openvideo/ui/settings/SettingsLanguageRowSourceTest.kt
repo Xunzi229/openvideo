@@ -51,7 +51,7 @@ class SettingsLanguageRowSourceTest {
         assertTrue(speedBlock.contains("showExclusiveSettingsDialog"))
         assertTrue(ratioBlock.indexOf("showExclusiveSettingsDialog") < ratioBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
         assertTrue(speedBlock.indexOf("showExclusiveSettingsDialog") < speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
-        assertTrue(source.contains(".setOnDismissListener { onDismiss() }"))
+        assertTrue(source.contains("onDismiss = onDismiss"))
     }
 
     @Test

@@ -91,25 +91,29 @@ class SettingsFragment : Fragment() {
 
         view.findViewById<View>(R.id.row_clear_cache).setOnClickListener {
             showExclusiveSettingsDialog { onDismiss ->
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.dialog_clear_cache_title)
-                    .setMessage(R.string.dialog_clear_cache_message)
-                    .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearCache() }
-                    .setNegativeButton(R.string.action_cancel, null)
-                    .setOnDismissListener { onDismiss() }
-                    .show()
+                SettingsConfirmationActionSheet.show(
+                    context = requireContext(),
+                    titleRes = R.string.dialog_clear_cache_title,
+                    messageRes = R.string.dialog_clear_cache_message,
+                    confirmRes = R.string.action_clear,
+                    cancelRes = R.string.action_cancel,
+                    onDismiss = onDismiss,
+                    onConfirm = { viewModel.clearCache() }
+                )
             }
         }
 
         view.findViewById<View>(R.id.row_clear_history).setOnClickListener {
             showExclusiveSettingsDialog { onDismiss ->
-                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.dialog_clear_history_title)
-                    .setMessage(R.string.dialog_clear_history_message)
-                    .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearHistory() }
-                    .setNegativeButton(R.string.action_cancel, null)
-                    .setOnDismissListener { onDismiss() }
-                    .show()
+                SettingsConfirmationActionSheet.show(
+                    context = requireContext(),
+                    titleRes = R.string.dialog_clear_history_title,
+                    messageRes = R.string.dialog_clear_history_message,
+                    confirmRes = R.string.action_clear,
+                    cancelRes = R.string.action_cancel,
+                    onDismiss = onDismiss,
+                    onConfirm = { viewModel.clearHistory() }
+                )
             }
         }
 

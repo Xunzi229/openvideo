@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.playlist
 
+import android.app.Dialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -14,6 +15,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.ui.settings.SettingsConfirmationActionSheet
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
@@ -26,6 +28,7 @@ class PlaylistFragment : Fragment() {
     private lateinit var adapter: PlaylistAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
+    private var activePlaylistDialog: Dialog? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -87,43 +90,62 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun showPlaylistOptions(playlist: com.example.openvideo.data.local.PlaylistEntity) {
-        val options = arrayOf(
-            getString(R.string.playlist_option_rename),
-            getString(R.string.playlist_option_delete)
-        )
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(playlist.name)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> showRenameDialog(playlist)
-                    1 -> confirmDelete(playlist)
-                }
-            }
-            .show()
+        showExclusivePlaylistDialog { onDismiss ->
+            PlaylistOptionsActionSheet.show(
+                context = requireContext(),
+                playlistName = playlist.name,
+                onDismiss = onDismiss,
+                onRename = { showRenameDialog(playlist) },
+                onDelete = { confirmDelete(playlist) }
+            )
+        }
     }
 
     private fun showRenameDialog(playlist: com.example.openvideo.data.local.PlaylistEntity) {
-        val input = EditText(requireContext()).apply {
-            setText(playlist.name)
-            setPadding(48, 32, 48, 16)
+        showExclusivePlaylistDialog { onDismiss ->
+            PlaylistRenameActionSheet.show(
+                context = requireContext(),
+                initialName = playlist.name,
+                onDismiss = onDismiss,
+                onConfirm = { name ->
+                    viewModel.renamePlaylist(playlist.id, name)
+                }
+            )
         }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_rename_title)
-            .setView(input)
-            .setPositiveButton(R.string.action_ok) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) viewModel.renamePlaylist(playlist.id, name)
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
     }
 
     private fun confirmDelete(playlist: com.example.openvideo.data.local.PlaylistEntity) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_delete_title)
-            .setMessage(getString(R.string.playlist_delete_message, playlist.name))
-            .setPositiveButton(R.string.action_delete) { _, _ -> viewModel.deletePlaylist(playlist.id) }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        showExclusivePlaylistDialog { onDismiss ->
+            SettingsConfirmationActionSheet.show(
+                context = requireContext(),
+                titleRes = R.string.playlist_delete_title,
+                message = getString(R.string.playlist_delete_message, playlist.name),
+                confirmRes = R.string.action_delete,
+                cancelRes = R.string.action_cancel,
+                onDismiss = onDismiss,
+                onConfirm = { viewModel.deletePlaylist(playlist.id) }
+            )
+        }
+    }
+
+    private fun showExclusivePlaylistDialog(
+        showDialog: (onDismiss: () -> Unit) -> Dialog
+    ) {
+        val current = activePlaylistDialog
+        if (current?.isShowing == true) return
+        var dialog: Dialog? = null
+        val clearActiveDialog = {
+            if (activePlaylistDialog === dialog) {
+                activePlaylistDialog = null
+            }
+        }
+        dialog = showDialog(clearActiveDialog)
+        activePlaylistDialog = dialog
+    }
+
+    override fun onDestroyView() {
+        activePlaylistDialog?.dismiss()
+        activePlaylistDialog = null
+        super.onDestroyView()
     }
 }
