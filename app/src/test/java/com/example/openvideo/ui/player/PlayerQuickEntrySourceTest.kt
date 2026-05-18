@@ -46,6 +46,32 @@ class PlayerQuickEntrySourceTest {
         assertTrue(subtitleDialogBlock.contains("applySubtitlePresentation()"))
     }
 
+    @Test
+    fun quickDialogsUseSingleActiveDialogGate() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val sessionListBlock = source.substringAfter("private fun showSessionVideoListPanel()")
+            .substringBefore("\n    /** 与横屏齿轮按钮相同")
+        val settingsBlock = source.substringAfter("private fun openPlayerSettingsDialog()")
+            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+        val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    private fun showSpeedPickerDialog()")
+        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
+            .substringBefore("\n    /**\n     * 让快速选择型 AlertDialog")
+        val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
+            .substringBefore("\n    private fun setupControls()")
+
+        assertTrue(source.contains("private var activePlayerDialog: Dialog? = null"))
+        assertTrue(source.contains("private fun showExclusivePlayerDialog("))
+        assertTrue(sessionListBlock.contains("showExclusivePlayerDialog"))
+        assertTrue(settingsBlock.contains("showExclusivePlayerDialog"))
+        assertTrue(aspectBlock.contains("showExclusivePlayerDialog"))
+        assertTrue(speedBlock.contains("showExclusivePlayerDialog"))
+        assertTrue(quickEntryBlock.contains("showExclusivePlayerDialog"))
+        assertTrue(aspectBlock.indexOf("showExclusivePlayerDialog") < aspectBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(speedBlock.indexOf("showExclusivePlayerDialog") < speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(quickEntryBlock.indexOf("showExclusivePlayerDialog") < quickEntryBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+    }
+
     private fun playerActivitySource(): Path {
         val relativePath = Paths.get(
             "src",

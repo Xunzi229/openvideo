@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import android.annotation.SuppressLint
+import android.app.Dialog
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
@@ -126,6 +127,7 @@ class PlayerActivity : AppCompatActivity() {
     private var controlsVisible = true
     private var isActivityForeground = false
     private var isSettingsOverlayVisible = false
+    private var activePlayerDialog: Dialog? = null
     private var controlsVisibleBeforeSettingsOverlay = true
     private val hideControlsRunnable = Runnable { hideControls() }
     private val hideGestureHudRunnable = Runnable { hideGestureHud() }
@@ -494,54 +496,65 @@ class PlayerActivity : AppCompatActivity() {
     private fun showSessionVideoListPanel() {
         val queue = viewModel.sessionQueue.value
         if (!PlayerSessionQueueChromePolicy.canOpenSessionListPanel(queue.size)) return
-        handler.removeCallbacks(hideControlsRunnable)
-        PlayerVideoListDialog(
-            context = this,
-            videos = queue,
-            playingVideoId = viewModel.playingVideoId,
-            onPick = { item ->
-                showFirstFrameScrim()
-                preApplyOrientationForItem(item)
-                viewModel.switchToVideo(item) {
-                    resetPlaybackSessionForNewVideo()
-                    currentVideoUriString = item.uri.toString()
-                    currentVideoPath = item.path
-                    tvTitle.text = item.title
-                    loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() }, item.path)
-                    applyPlayerSettings()
+        showExclusivePlayerDialog { onDismiss ->
+            handler.removeCallbacks(hideControlsRunnable)
+            PlayerVideoListDialog(
+                context = this,
+                videos = queue,
+                playingVideoId = viewModel.playingVideoId,
+                onPick = { item ->
+                    showFirstFrameScrim()
+                    preApplyOrientationForItem(item)
+                    viewModel.switchToVideo(item) {
+                        resetPlaybackSessionForNewVideo()
+                        currentVideoUriString = item.uri.toString()
+                        currentVideoPath = item.path
+                        tvTitle.text = item.title
+                        loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() }, item.path)
+                        applyPlayerSettings()
+                        scheduleHideControls()
+                    }
+                }
+            ).apply {
+                setOnDismissListener {
+                    onDismiss()
                     scheduleHideControls()
                 }
+            }.also { dialog ->
+                dialog.show()
             }
-        ).apply {
-            setOnDismissListener { scheduleHideControls() }
-        }.show()
+        }
     }
 
     /** 与横屏齿轮按钮相同：弹出播放器设置。竖屏底栏「更多」亦指向此处。 */
     private fun openPlayerSettingsDialog() {
-        handler.removeCallbacks(hideControlsRunnable)
-        controlsVisibleBeforeSettingsOverlay = controlsVisible
-        isSettingsOverlayVisible = true
-        hideChromeForSettingsOverlay()
-        val dialog = PlayerSettingsDialog(
-            context = this,
-            playerManager = playerManager,
-            viewModel = viewModel,
-            playerPrefs = playerPrefs,
-            onScreenBrightnessChanged = ::applyScreenBrightness,
-            onRequestPickSubtitle = {
-                pickSubtitleLauncher.launch(arrayOf("*/*"))
-            },
-            onAspectRatioChanged = ::applyDisplaySettings,
-            onPlayerPrefsReset = ::applyPlayerSettings
-        )
-        dialog.setOnDismissListener {
-            isSettingsOverlayVisible = false
-            restoreChromeAfterSettingsOverlay()
-            applyPlayerSettings()
-            scheduleHideControls()
+        showExclusivePlayerDialog { onDismiss ->
+            handler.removeCallbacks(hideControlsRunnable)
+            controlsVisibleBeforeSettingsOverlay = controlsVisible
+            isSettingsOverlayVisible = true
+            hideChromeForSettingsOverlay()
+            val dialog = PlayerSettingsDialog(
+                context = this,
+                playerManager = playerManager,
+                viewModel = viewModel,
+                playerPrefs = playerPrefs,
+                onScreenBrightnessChanged = ::applyScreenBrightness,
+                onRequestPickSubtitle = {
+                    pickSubtitleLauncher.launch(arrayOf("*/*"))
+                },
+                onAspectRatioChanged = ::applyDisplaySettings,
+                onPlayerPrefsReset = ::applyPlayerSettings
+            )
+            dialog.setOnDismissListener {
+                onDismiss()
+                isSettingsOverlayVisible = false
+                restoreChromeAfterSettingsOverlay()
+                applyPlayerSettings()
+                scheduleHideControls()
+            }
+            dialog.show()
+            dialog
         }
-        dialog.show()
     }
 
     private fun showAspectRatioQuickDialog() {
@@ -553,47 +566,72 @@ class PlayerActivity : AppCompatActivity() {
             AspectRatio.CROP to R.string.settings_ratio_crop,
             AspectRatio.STRETCH to R.string.settings_ratio_stretch
         )
-        PlayerGlassSheetDialog.showSingleChoice(
-            context = this,
-            layoutInflater = layoutInflater,
-            titleRes = R.string.player_sheet_aspect_ratio,
-            choices = ratios.map { (ratio, titleRes) ->
-                PlayerGlassSheetChoice(
-                    value = ratio,
-                    label = getString(titleRes),
-                    selected = ratio == playerPrefs.aspectRatio
-                )
-            },
-            onDismiss = ::scheduleHideControls
-        ) { ratio ->
-            playerPrefs.aspectRatio = ratio
-            viewModel.setAspectRatio(ratio)
-            applyDisplaySettings()
+        showExclusivePlayerDialog { onDismiss ->
+            PlayerGlassSheetDialog.showSingleChoice(
+                context = this,
+                layoutInflater = layoutInflater,
+                titleRes = R.string.player_sheet_aspect_ratio,
+                choices = ratios.map { (ratio, titleRes) ->
+                    PlayerGlassSheetChoice(
+                        value = ratio,
+                        label = getString(titleRes),
+                        selected = ratio == playerPrefs.aspectRatio
+                    )
+                },
+                onDismiss = {
+                    onDismiss()
+                    scheduleHideControls()
+                }
+            ) { ratio ->
+                playerPrefs.aspectRatio = ratio
+                viewModel.setAspectRatio(ratio)
+                applyDisplaySettings()
+            }
         }
     }
 
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
-        PlayerGlassSheetDialog.showSingleChoice(
-            context = this,
-            layoutInflater = layoutInflater,
-            titleRes = R.string.player_pick_speed,
-            choices = speeds.map { speed ->
-                PlayerGlassSheetChoice(
-                    value = speed,
-                    label = "${speed}x",
-                    selected = speed == playerPrefs.speed
+        showExclusivePlayerDialog { onDismiss ->
+            PlayerGlassSheetDialog.showSingleChoice(
+                context = this,
+                layoutInflater = layoutInflater,
+                titleRes = R.string.player_pick_speed,
+                choices = speeds.map { speed ->
+                    PlayerGlassSheetChoice(
+                        value = speed,
+                        label = "${speed}x",
+                        selected = speed == playerPrefs.speed
+                    )
+                },
+                onDismiss = {
+                    onDismiss()
+                    scheduleHideControls()
+                }
+            ) { speed ->
+                playerPrefs.speed = speed
+                viewModel.setSpeed(
+                    speed,
+                    PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch)
                 )
-            },
-            onDismiss = ::scheduleHideControls
-        ) { speed ->
-            playerPrefs.speed = speed
-            viewModel.setSpeed(
-                speed,
-                PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch)
-            )
-            findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(speed)
+                findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(speed)
+            }
         }
+    }
+
+    private fun showExclusivePlayerDialog(
+        showDialog: (onDismiss: () -> Unit) -> Dialog
+    ) {
+        val current = activePlayerDialog
+        if (current?.isShowing == true) return
+        var dialog: Dialog? = null
+        val clearActiveDialog = {
+            if (activePlayerDialog === dialog) {
+                activePlayerDialog = null
+            }
+        }
+        dialog = showDialog(clearActiveDialog)
+        activePlayerDialog = dialog
     }
 
     /**
@@ -713,22 +751,27 @@ class PlayerActivity : AppCompatActivity() {
         items: List<PlayerQuickEntryItem>,
         onSelected: (PlayerQuickEntryAction) -> Unit
     ) {
-        handler.removeCallbacks(hideControlsRunnable)
-        PlayerGlassSheetDialog.showSingleChoice(
-            context = this,
-            layoutInflater = layoutInflater,
-            titleRes = titleRes,
-            choices = items.map { item ->
-                PlayerGlassSheetChoice(
-                    value = item.action,
-                    label = item.label,
-                    selected = item.selected,
-                    enabled = item.enabled
-                )
-            },
-            onDismiss = ::scheduleHideControls,
-            onSelected = onSelected
-        )
+        showExclusivePlayerDialog { onDismiss ->
+            handler.removeCallbacks(hideControlsRunnable)
+            PlayerGlassSheetDialog.showSingleChoice(
+                context = this,
+                layoutInflater = layoutInflater,
+                titleRes = titleRes,
+                choices = items.map { item ->
+                    PlayerGlassSheetChoice(
+                        value = item.action,
+                        label = item.label,
+                        selected = item.selected,
+                        enabled = item.enabled
+                    )
+                },
+                onDismiss = {
+                    onDismiss()
+                    scheduleHideControls()
+                },
+                onSelected = onSelected
+            )
+        }
     }
 
     private fun setupControls() {
@@ -2195,7 +2238,16 @@ class PlayerActivity : AppCompatActivity() {
             this,
             android.Manifest.permission.POST_NOTIFICATIONS
         ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        if (PlayerNotificationPermissionPolicy.shouldRequestPermission(requiresPermission, granted)) {
+        val permissionPrefs = getSharedPreferences(PREFS_NOTIFICATION_PERMISSION, Context.MODE_PRIVATE)
+        val requestedBefore = permissionPrefs.getBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, false)
+        if (PlayerNotificationPermissionPolicy.shouldRequestPermission(
+                requiresPermission = requiresPermission,
+                granted = granted,
+                requestedBefore = requestedBefore,
+                notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled
+            )
+        ) {
+            permissionPrefs.edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()
             runCatching {
                 notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
@@ -2346,6 +2398,8 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG_CONTENT_FRAME = "OVContentFrame"
+        private const val PREFS_NOTIFICATION_PERMISSION = "notification_permission"
+        private const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"

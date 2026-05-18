@@ -38,6 +38,23 @@ class SettingsLanguageRowSourceTest {
     }
 
     @Test
+    fun settingsDialogsUseSingleActiveDialogGate() {
+        val source = settingsFragmentSource()
+        val ratioBlock = source.substringAfter("private fun showDefaultRatioDialog(tvRatio: TextView)")
+            .substringBefore("\n    private fun showDefaultSpeedDialog")
+        val speedBlock = source.substringAfter("private fun showDefaultSpeedDialog(tvSpeed: TextView)")
+            .substringBefore("\n    private fun ratioLabel")
+
+        assertTrue(source.contains("private var activeSettingsDialog: Dialog? = null"))
+        assertTrue(source.contains("private fun showExclusiveSettingsDialog("))
+        assertTrue(ratioBlock.contains("showExclusiveSettingsDialog"))
+        assertTrue(speedBlock.contains("showExclusiveSettingsDialog"))
+        assertTrue(ratioBlock.indexOf("showExclusiveSettingsDialog") < ratioBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(speedBlock.indexOf("showExclusiveSettingsDialog") < speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(source.contains(".setOnDismissListener { onDismiss() }"))
+    }
+
+    @Test
     fun languageRowRefreshesVisibleLabelImmediatelyAfterSavingPreference() {
         val source = settingsFragmentSource()
 

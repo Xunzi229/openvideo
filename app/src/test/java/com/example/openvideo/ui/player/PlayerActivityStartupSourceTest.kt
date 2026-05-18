@@ -66,6 +66,23 @@ class PlayerActivityStartupSourceTest {
         assertTrue(source.contains("tvSubtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE"))
     }
 
+    @Test
+    fun notificationPermissionRequestIsRememberedAndDoesNotGatePlayback() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val permissionBlock = source.substringAfter("private fun ensureNotificationPermission()")
+            .substringBefore("\n    private fun registerPlaybackNotificationHandlers()")
+        val startServiceBlock = source.substringAfter("private fun startPlaybackServiceIfNeeded")
+            .substringBefore("\n    private fun stopPlaybackService")
+
+        assertTrue(permissionBlock.contains("KEY_NOTIFICATION_PERMISSION_REQUESTED"))
+        assertTrue(permissionBlock.contains("requestedBefore ="))
+        assertTrue(permissionBlock.contains("notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled"))
+        assertTrue(permissionBlock.contains(".edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()"))
+        assertTrue(permissionBlock.contains("notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)"))
+        assertTrue(startServiceBlock.contains("PlayerBackgroundServicePolicy.startDecision("))
+        assertTrue(startServiceBlock.contains("runCatching { ContextCompat.startForegroundService(this, intent) }"))
+    }
+
     private fun playerActivitySource(): Path {
         val relativePath = Paths.get(
             "src",

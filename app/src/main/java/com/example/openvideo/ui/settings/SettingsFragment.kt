@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.settings
 
+import android.app.Dialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -26,6 +27,7 @@ import kotlinx.coroutines.launch
 class SettingsFragment : Fragment() {
 
     private val viewModel: SettingsViewModel by activityViewModels()
+    private var activeSettingsDialog: Dialog? = null
 
     companion object {
         private val PROJECT_REPO_URI: Uri = Uri.parse("https://github.com/Xunzi229/openvideo")
@@ -88,21 +90,27 @@ class SettingsFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.row_clear_cache).setOnClickListener {
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.dialog_clear_cache_title)
-                .setMessage(R.string.dialog_clear_cache_message)
-                .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearCache() }
-                .setNegativeButton(R.string.action_cancel, null)
-                .show()
+            showExclusiveSettingsDialog { onDismiss ->
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.dialog_clear_cache_title)
+                    .setMessage(R.string.dialog_clear_cache_message)
+                    .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearCache() }
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .setOnDismissListener { onDismiss() }
+                    .show()
+            }
         }
 
         view.findViewById<View>(R.id.row_clear_history).setOnClickListener {
-            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.dialog_clear_history_title)
-                .setMessage(R.string.dialog_clear_history_message)
-                .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearHistory() }
-                .setNegativeButton(R.string.action_cancel, null)
-                .show()
+            showExclusiveSettingsDialog { onDismiss ->
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.dialog_clear_history_title)
+                    .setMessage(R.string.dialog_clear_history_message)
+                    .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearHistory() }
+                    .setNegativeButton(R.string.action_cancel, null)
+                    .setOnDismissListener { onDismiss() }
+                    .show()
+            }
         }
 
         view.findViewById<View>(R.id.row_project_repo).setOnClickListener {
@@ -169,40 +177,67 @@ class SettingsFragment : Fragment() {
 
     private fun showDefaultRatioDialog(tvRatio: TextView) {
         val ratios = AspectRatio.entries
-        PlayerGlassSheetDialog.showSingleChoice(
-            context = requireContext(),
-            layoutInflater = layoutInflater,
-            titleRes = R.string.settings_default_ratio,
-            choices = ratios.map { ratio ->
-                PlayerGlassSheetChoice(
-                    value = ratio,
-                    label = ratioLabel(ratio),
-                    selected = ratio == viewModel.defaultRatio
-                )
+        showExclusiveSettingsDialog { onDismiss ->
+            PlayerGlassSheetDialog.showSingleChoice(
+                context = requireContext(),
+                layoutInflater = layoutInflater,
+                titleRes = R.string.settings_default_ratio,
+                choices = ratios.map { ratio ->
+                    PlayerGlassSheetChoice(
+                        value = ratio,
+                        label = ratioLabel(ratio),
+                        selected = ratio == viewModel.defaultRatio
+                    )
+                },
+                onDismiss = onDismiss
+            ) { ratio ->
+                viewModel.setDefaultRatio(ratio)
+                updateRatioLabel(tvRatio)
             }
-        ) { ratio ->
-            viewModel.setDefaultRatio(ratio)
-            updateRatioLabel(tvRatio)
         }
     }
 
     private fun showDefaultSpeedDialog(tvSpeed: TextView) {
         val speeds = DefaultPlayerSettings.supportedSpeeds
-        PlayerGlassSheetDialog.showSingleChoice(
-            context = requireContext(),
-            layoutInflater = layoutInflater,
-            titleRes = R.string.settings_default_speed,
-            choices = speeds.map { speed ->
-                PlayerGlassSheetChoice(
-                    value = speed,
-                    label = "${speed}x",
-                    selected = speed == viewModel.defaultSpeed
-                )
+        showExclusiveSettingsDialog { onDismiss ->
+            PlayerGlassSheetDialog.showSingleChoice(
+                context = requireContext(),
+                layoutInflater = layoutInflater,
+                titleRes = R.string.settings_default_speed,
+                choices = speeds.map { speed ->
+                    PlayerGlassSheetChoice(
+                        value = speed,
+                        label = "${speed}x",
+                        selected = speed == viewModel.defaultSpeed
+                    )
+                },
+                onDismiss = onDismiss
+            ) { speed ->
+                viewModel.setDefaultSpeed(speed)
+                updateSpeedLabel(tvSpeed)
             }
-        ) { speed ->
-            viewModel.setDefaultSpeed(speed)
-            updateSpeedLabel(tvSpeed)
         }
+    }
+
+    private fun showExclusiveSettingsDialog(
+        showDialog: (onDismiss: () -> Unit) -> Dialog
+    ) {
+        val current = activeSettingsDialog
+        if (current?.isShowing == true) return
+        var dialog: Dialog? = null
+        val clearActiveDialog = {
+            if (activeSettingsDialog === dialog) {
+                activeSettingsDialog = null
+            }
+        }
+        dialog = showDialog(clearActiveDialog)
+        activeSettingsDialog = dialog
+    }
+
+    override fun onDestroyView() {
+        activeSettingsDialog?.dismiss()
+        activeSettingsDialog = null
+        super.onDestroyView()
     }
 
     private fun ratioLabel(ratio: AspectRatio): String = when (ratio) {
