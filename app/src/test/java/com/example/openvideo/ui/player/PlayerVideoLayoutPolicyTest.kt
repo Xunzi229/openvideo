@@ -8,9 +8,9 @@ import org.junit.Test
 class PlayerVideoLayoutPolicyTest {
 
     @Test
-    fun unknownVideoDimensionsKeepSafeDefaults() {
+    fun unknownVideoDimensionsDeferOrientationLock() {
         assertEquals(
-            PlayerOrientationPolicy.defaultOrientation(),
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
             PlayerVideoLayoutPolicy.orientationForVideo(width = 0, height = 720)
         )
         assertEquals(

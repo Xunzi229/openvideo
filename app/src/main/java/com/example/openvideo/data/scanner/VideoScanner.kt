@@ -241,16 +241,19 @@ class VideoScanner @Inject constructor(
         return videos
     }
 
-    private fun videoProjection(): Array<String> = arrayOf(
-        MediaStore.Video.Media._ID,
-        MediaStore.Video.Media.DISPLAY_NAME,
-        MediaStore.Video.Media.DATA,
-        MediaStore.Video.Media.DURATION,
-        MediaStore.Video.Media.SIZE,
-        MediaStore.Video.Media.WIDTH,
-        MediaStore.Video.Media.HEIGHT,
-        MediaStore.Video.Media.DATE_ADDED
-    )
+    private fun videoProjection(): Array<String> = buildList {
+        add(MediaStore.Video.Media._ID)
+        add(MediaStore.Video.Media.DISPLAY_NAME)
+        add(MediaStore.Video.Media.DATA)
+        add(MediaStore.Video.Media.DURATION)
+        add(MediaStore.Video.Media.SIZE)
+        add(MediaStore.Video.Media.WIDTH)
+        add(MediaStore.Video.Media.HEIGHT)
+        add(MediaStore.Video.Media.DATE_ADDED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            add(MediaStore.Video.Media.ORIENTATION)
+        }
+    }.toTypedArray()
 
     private fun readVideoItem(cursor: android.database.Cursor, collection: Uri = videoCollectionUri()): VideoItem? {
         val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
@@ -261,14 +264,21 @@ class VideoScanner @Inject constructor(
         val widthCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.WIDTH)
         val heightCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.HEIGHT)
         val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+        val orientationCol = cursor.getColumnIndex(MediaStore.Video.Media.ORIENTATION)
 
         val id = cursor.getLong(idCol)
         val name = cursor.getString(nameCol) ?: "Unknown"
         val path = cursor.getString(dataCol) ?: ""
         val duration = cursor.getLong(durationCol)
         val size = cursor.getLong(sizeCol)
-        val width = cursor.getInt(widthCol)
-        val height = cursor.getInt(heightCol)
+        val rawWidth = cursor.getInt(widthCol)
+        val rawHeight = cursor.getInt(heightCol)
+        val orientation = if (orientationCol >= 0) cursor.getInt(orientationCol) else 0
+        val (width, height) = MediaStoreVideoDimensionsPolicy.displayDimensions(
+            width = rawWidth,
+            height = rawHeight,
+            orientationDegrees = orientation
+        )
         val dateAdded = cursor.getLong(dateCol)
 
         val contentUri = ContentUris.withAppendedId(collection, id)

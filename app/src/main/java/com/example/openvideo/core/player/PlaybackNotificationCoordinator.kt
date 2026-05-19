@@ -1,5 +1,6 @@
 package com.example.openvideo.core.player
 
+import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.data.model.VideoItem
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,6 +20,7 @@ class PlaybackNotificationCoordinator @Inject constructor() {
         val videoWidth: Int,
         val videoHeight: Int,
         val queue: List<VideoItem>,
+        val loopMode: LoopMode,
         val isPlaying: Boolean,
         val positionMs: Long,
         val durationMs: Long

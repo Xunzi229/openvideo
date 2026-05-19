@@ -213,11 +213,7 @@ class PlayerActivity : AppCompatActivity() {
         // (player_bg / player_panel_bg / player_title_primary ...) to dark, so it stays
         // dark without forcing the night mode flag globally.
         super.onCreate(savedInstanceState)
-        requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
-            width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
-            height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0),
-            autoOrientationByVideo = playerPrefs.autoOrientationByVideo
-        )
+        applyInitialVideoOrientation()
         pickSubtitleLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@registerForActivityResult
             val subtitles = subtitleLoader.loadFromUri(uri)
@@ -1795,12 +1791,39 @@ class PlayerActivity : AppCompatActivity() {
         ) {
             return
         }
-        requestedOrientation = PlayerVideoLayoutPolicy.orientationForVideo(
+        val targetOrientation = PlayerVideoLayoutPolicy.orientationForVideo(
             width = width,
             height = height,
             pixelWidthHeightRatio = pixelWidthHeightRatio,
             unappliedRotationDegrees = unappliedRotationDegrees
         )
+        if (requestedOrientation == targetOrientation) return
+        requestedOrientation = targetOrientation
+    }
+
+    private fun applyInitialVideoOrientation() {
+        val (width, height) = resolveInitialVideoDimensions()
+        requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
+            width = width,
+            height = height,
+            autoOrientationByVideo = playerPrefs.autoOrientationByVideo
+        )
+    }
+
+    private fun resolveInitialVideoDimensions(): Pair<Int, Int> {
+        var width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
+        var height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
+        if (width > 0 && height > 0) return width to height
+
+        val videoId = intent.getLongExtra("video_id", 0L)
+        if (videoId != 0L) {
+            intent.sessionVideoQueue().firstOrNull { it.id == videoId }?.let { item ->
+                if (item.width > 0 && item.height > 0) {
+                    return item.width to item.height
+                }
+            }
+        }
+        return width to height
     }
 
     /**
@@ -2288,6 +2311,7 @@ class PlayerActivity : AppCompatActivity() {
                 videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
                 videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0),
                 queue = viewModel.sessionQueue.value,
+                loopMode = playerPrefs.loopMode,
                 isPlaying = player?.isPlaying == true,
                 positionMs = player?.currentPosition ?: 0L,
                 durationMs = player?.duration?.takeIf { it > 0L } ?: 0L
@@ -2322,9 +2346,9 @@ class PlayerActivity : AppCompatActivity() {
         if (!PlayerSessionQueueChromePolicy.canOpenSessionListPanel(queue.size)) return
         val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }
         val targetIndex = if (forward) {
-            PlayerQueueSkipPolicy.nextIndex(currentIndex, queue.size)
+            PlayerQueueSkipPolicy.nextIndex(currentIndex, queue.size, playerPrefs.loopMode)
         } else {
-            PlayerQueueSkipPolicy.previousIndex(currentIndex, queue.size)
+            PlayerQueueSkipPolicy.previousIndex(currentIndex, queue.size, playerPrefs.loopMode)
         } ?: return
         val item = queue[targetIndex]
         showFirstFrameScrim()

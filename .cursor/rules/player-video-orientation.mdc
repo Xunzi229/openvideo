@@ -1,0 +1,34 @@
+---
+description: 播放器视频横竖屏进入逻辑 — 禁止先横后竖闪屏；MediaStore 显示尺寸与 Policy 唯一决策链
+globs:
+  - app/src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt
+  - app/src/main/java/com/example/openvideo/ui/player/PlayerVideoLayoutPolicy.kt
+  - app/src/main/java/com/example/openvideo/ui/player/PlayerControlState.kt
+  - app/src/main/java/com/example/openvideo/ui/player/PlayerVideoOrientationApplyPolicy.kt
+  - app/src/main/java/com/example/openvideo/ui/player/PlayerOrientationTogglePolicy.kt
+  - app/src/main/java/com/example/openvideo/data/scanner/VideoScanner.kt
+  - app/src/main/java/com/example/openvideo/data/scanner/MediaStoreVideoDimensionsPolicy.kt
+  - app/src/main/java/com/example/openvideo/data/model/VideoItem.kt
+  - app/src/main/AndroidManifest.xml
+  - design/rules/player-video-orientation.md
+alwaysApply: false
+---
+
+# 播放器横竖屏（强制规则）
+
+**完整契约：** [design/rules/player-video-orientation.md](design/rules/player-video-orientation.md)
+
+编辑播放器方向、MediaStore 扫描宽高、或 `PlayerActivity` Manifest 时**必须**遵守：
+
+## 不可破坏的行为
+
+1. 竖屏视频进入即竖屏、横屏视频进入即横屏；**禁止**先横屏再由 `onVideoSizeChanged` 转竖屏的闪屏回归。
+2. 方向阈值（≥1.2 横、≤0.8 竖）**只**在 `PlayerVideoLayoutPolicy.orientationForVideo()` 实现；`PlayerOrientationPolicy` 只委托，不得复制 ratio 逻辑。
+3. `VideoScanner` 写入 `VideoItem` 前必须用 `MediaStoreVideoDimensionsPolicy` 处理 `ORIENTATION`；禁止用 MediaStore 原始 WIDTH/HEIGHT 判 UI 方向。
+4. `autoOrientationByVideo=true` 且尺寸未知 → `SCREEN_ORIENTATION_UNSPECIFIED`，**禁止** fallback 横屏。
+5. `PlayerActivity`：`applyInitialVideoOrientation()` 在 `setContentView` 前；`onVideoSizeChanged` 仅当 target ≠ 当前方向才改 `requestedOrientation`；尊重 `userOverrodeOrientation`；切歌时 `preApplyOrientationForItem` + 复位用户覆盖。
+6. Manifest：`PlayerActivity` 保持 `android:screenOrientation="unspecified"`，勿改回 `sensor` 或默认横屏。
+
+## 改后必跑
+
+`MediaStoreVideoDimensionsPolicyTest`、`PlayerOrientationPolicyTest`、`PlayerVideoLayoutPolicyTest`、`PlayerVideoOrientationApplyPolicyTest`

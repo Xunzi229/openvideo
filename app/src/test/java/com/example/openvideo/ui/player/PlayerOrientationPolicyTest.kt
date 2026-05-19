@@ -31,9 +31,9 @@ class PlayerOrientationPolicyTest {
     }
 
     @Test
-    fun invalidResolutionFallsBackToDefaultOrientation() {
+    fun invalidResolutionDefersOrientationUntilVideoSizeKnown() {
         assertEquals(
-            PlayerOrientationPolicy.defaultOrientation(),
+            ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED,
             PlayerOrientationPolicy.orientationForVideo(width = 0, height = 1280)
         )
     }

@@ -25,16 +25,9 @@ class MediaSessionManager @Inject constructor(
         return session
     }
 
-    fun updatePlaybackState(state: Int, position: Long, speed: Float) {
+    fun updatePlaybackState(state: Int, position: Long, speed: Float, actions: Long) {
         val playbackState = PlaybackStateCompat.Builder()
-            .setActions(
-                PlaybackStateCompat.ACTION_PLAY or
-                    PlaybackStateCompat.ACTION_PAUSE or
-                    PlaybackStateCompat.ACTION_PLAY_PAUSE or
-                    PlaybackStateCompat.ACTION_SEEK_TO or
-                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
-                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
-            )
+            .setActions(actions)
             .setState(state, position, speed, SystemClock.elapsedRealtime())
             .build()
         mediaSession?.setPlaybackState(playbackState)

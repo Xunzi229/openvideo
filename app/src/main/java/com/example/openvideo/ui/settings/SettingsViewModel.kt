@@ -14,6 +14,8 @@ import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.prefs.SettingsBackupExporter
+import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.core.update.GitHubReleaseChecker
 import com.example.openvideo.core.update.UpdateApkInstaller
@@ -200,6 +202,15 @@ class SettingsViewModel @Inject constructor(
             repository.clearHistory()
         }
     }
+
+    fun buildSettingsExportJson(): String =
+        SettingsBackupExporter.exportJson(playerPrefs, appPrefs)
+
+    suspend fun writeSettingsExportTo(context: Context, uri: Uri): SettingsBackupFileWriter.Result =
+        withContext(Dispatchers.IO) {
+            val json = buildSettingsExportJson()
+            SettingsBackupFileWriter.writeJson(context.contentResolver, uri, json)
+        }
 
     private fun computeCacheSize() {
         viewModelScope.launch(Dispatchers.IO) {

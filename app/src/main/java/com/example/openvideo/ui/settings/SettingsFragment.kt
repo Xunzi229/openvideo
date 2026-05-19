@@ -9,6 +9,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -16,6 +18,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.prefs.SettingsBackupFileWriter
+import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.ui.player.PlayerGlassSheetChoice
@@ -28,6 +32,28 @@ class SettingsFragment : Fragment() {
 
     private val viewModel: SettingsViewModel by activityViewModels()
     private var activeSettingsDialog: Dialog? = null
+
+    private val exportSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument(SettingsBackupSchema.MIME_TYPE)
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        viewLifecycleOwner.lifecycleScope.launch {
+            when (viewModel.writeSettingsExportTo(requireContext(), uri)) {
+                is SettingsBackupFileWriter.Result.Success ->
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_toast_export_success,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                is SettingsBackupFileWriter.Result.Failure ->
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_toast_export_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+            }
+        }
+    }
 
     companion object {
         private val PROJECT_REPO_URI: Uri = Uri.parse("https://github.com/Xunzi229/openvideo")
@@ -115,6 +141,10 @@ class SettingsFragment : Fragment() {
                     onConfirm = { viewModel.clearHistory() }
                 )
             }
+        }
+
+        view.findViewById<View>(R.id.row_export_settings).setOnClickListener {
+            exportSettingsLauncher.launch(SettingsBackupSchema.SUGGESTED_FILENAME)
         }
 
         view.findViewById<View>(R.id.row_project_repo).setOnClickListener {

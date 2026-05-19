@@ -18,7 +18,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import android.support.v4.media.session.MediaSessionCompat
-import android.support.v4.media.session.PlaybackStateCompat
 import androidx.media.session.MediaButtonReceiver
 import com.example.openvideo.R
 import com.example.openvideo.ui.player.PlayerTimeFormatter
@@ -198,7 +197,8 @@ class PlaybackService : Service() {
         val isPlaying: Boolean,
         val positionMs: Long,
         val durationMs: Long,
-        val hasQueue: Boolean,
+        val canSkipToPrevious: Boolean,
+        val canSkipToNext: Boolean,
         val contentIntent: PendingIntent?
     )
 
@@ -225,13 +225,15 @@ class PlaybackService : Service() {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
         }
+        val skipCapabilities = PlaybackNotificationSkipCapabilityPolicy.fromSnapshot(snapshot)
         return NotificationPayload(
             title = title,
             statusText = notificationStatusText(isPlaying, positionMs, durationMs),
             isPlaying = isPlaying,
             positionMs = positionMs,
             durationMs = durationMs,
-            hasQueue = (snapshot?.queue?.size ?: 0) > 1,
+            canSkipToPrevious = skipCapabilities.canSkipToPrevious,
+            canSkipToNext = skipCapabilities.canSkipToNext,
             contentIntent = contentIntent
         )
     }
@@ -271,10 +273,14 @@ class PlaybackService : Service() {
             .setContentIntent(payload.contentIntent)
 
         val mediaStyle = MediaNotificationCompat.MediaStyle().setMediaSession(sessionToken)
-        if (payload.hasQueue) {
-            mediaStyle.setShowActionsInCompactView(0, 1, 2)
-        } else {
-            mediaStyle.setShowActionsInCompactView(0)
+        val compactIndices = addMediaStyleActions(
+            builder = builder,
+            canSkipPrevious = payload.canSkipToPrevious,
+            canSkipNext = payload.canSkipToNext,
+            isPlaying = payload.isPlaying
+        )
+        if (compactIndices.isNotEmpty()) {
+            mediaStyle.setShowActionsInCompactView(*compactIndices)
         }
         builder.setStyle(mediaStyle)
 
@@ -285,16 +291,19 @@ class PlaybackService : Service() {
             builder.setProgress(PROGRESS_MAX, progress, false)
         }
 
-        addMediaStyleActions(builder, payload.hasQueue, payload.isPlaying)
         return builder.build()
     }
 
     private fun addMediaStyleActions(
         builder: NotificationCompat.Builder,
-        hasQueue: Boolean,
+        canSkipPrevious: Boolean,
+        canSkipNext: Boolean,
         isPlaying: Boolean
-    ) {
-        if (hasQueue) {
+    ): IntArray {
+        val compactIndices = mutableListOf<Int>()
+        var actionIndex = 0
+
+        if (canSkipPrevious) {
             builder.addAction(
                 NotificationCompat.Action(
                     R.drawable.ic_skip_previous,
@@ -302,6 +311,7 @@ class PlaybackService : Service() {
                     servicePendingIntent(REQUEST_PREVIOUS, ACTION_SKIP_TO_PREVIOUS)
                 )
             )
+            compactIndices.add(actionIndex++)
         }
         builder.addAction(
             NotificationCompat.Action(
@@ -313,7 +323,8 @@ class PlaybackService : Service() {
                 servicePendingIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE)
             )
         )
-        if (hasQueue) {
+        compactIndices.add(actionIndex++)
+        if (canSkipNext) {
             builder.addAction(
                 NotificationCompat.Action(
                     R.drawable.ic_skip_next,
@@ -321,7 +332,9 @@ class PlaybackService : Service() {
                     servicePendingIntent(REQUEST_NEXT, ACTION_SKIP_TO_NEXT)
                 )
             )
+            compactIndices.add(actionIndex++)
         }
+        return compactIndices.toIntArray()
     }
 
     private fun buildPlaybackRemoteViews(payload: NotificationPayload): RemoteViews {
@@ -348,19 +361,23 @@ class PlaybackService : Service() {
             servicePendingIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE)
         )
 
-        if (payload.hasQueue) {
+        if (payload.canSkipToPrevious) {
             views.setViewVisibility(R.id.btn_previous, View.VISIBLE)
-            views.setViewVisibility(R.id.btn_next, View.VISIBLE)
             views.setOnClickPendingIntent(
                 R.id.btn_previous,
                 servicePendingIntent(REQUEST_PREVIOUS, ACTION_SKIP_TO_PREVIOUS)
             )
+        } else {
+            views.setViewVisibility(R.id.btn_previous, View.GONE)
+        }
+
+        if (payload.canSkipToNext) {
+            views.setViewVisibility(R.id.btn_next, View.VISIBLE)
             views.setOnClickPendingIntent(
                 R.id.btn_next,
                 servicePendingIntent(REQUEST_NEXT, ACTION_SKIP_TO_NEXT)
             )
         } else {
-            views.setViewVisibility(R.id.btn_previous, View.GONE)
             views.setViewVisibility(R.id.btn_next, View.GONE)
         }
 
@@ -383,17 +400,27 @@ class PlaybackService : Service() {
     }
 
     private fun syncMediaSession(isPlaying: Boolean, positionMs: Long) {
-        val state = if (isPlaying) {
-            PlaybackStateCompat.STATE_PLAYING
-        } else {
-            PlaybackStateCompat.STATE_PAUSED
-        }
+        val skipCapabilities = PlaybackNotificationSkipCapabilityPolicy.fromSnapshot(
+            playbackCoordinator.snapshot
+        )
         val speed = if (isPlaying) {
             playerManager.player?.playbackParameters?.speed ?: 1f
         } else {
             0f
         }
-        mediaSessionManager.updatePlaybackState(state, positionMs, speed)
+        val update = MediaSessionPlaybackStatePolicy.resolve(
+            isPlaying = isPlaying,
+            positionMs = positionMs,
+            speed = speed,
+            canSkipToNext = skipCapabilities.canSkipToNext,
+            canSkipToPrevious = skipCapabilities.canSkipToPrevious
+        )
+        mediaSessionManager.updatePlaybackState(
+            update.state,
+            update.positionMs,
+            update.speed,
+            update.actions
+        )
     }
 
     private fun servicePendingIntent(requestCode: Int, action: String): PendingIntent =

@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import android.content.pm.ActivityInfo
 import com.example.openvideo.core.prefs.AspectRatio
 
 /** Display-oriented frame size in pixels (after rotation / pixel aspect). */
@@ -39,12 +40,12 @@ object PlayerVideoLayoutPolicy {
             pixelWidthHeightRatio = pixelWidthHeightRatio,
             unappliedRotationDegrees = unappliedRotationDegrees
         )
-        if (ratio <= 0f) return PlayerOrientationPolicy.defaultOrientation()
+        if (ratio <= 0f) return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
         return when {
-            ratio >= 1.2f -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            ratio <= 0.8f -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            else -> android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+            ratio >= 1.2f -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            ratio <= 0.8f -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
         }
     }
 

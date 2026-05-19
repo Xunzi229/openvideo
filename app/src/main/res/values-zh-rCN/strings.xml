@@ -387,6 +387,10 @@
     <string name="settings_section_storage">存储管理</string>
     <string name="settings_clear_cache">清除缩略图缓存</string>
     <string name="settings_clear_history">清除播放历史</string>
+    <string name="settings_section_backup">备份</string>
+    <string name="settings_export_settings">导出设置</string>
+    <string name="settings_toast_export_success">设置已导出</string>
+    <string name="settings_toast_export_failed">导出失败</string>
     <string name="settings_notifications">通知设置</string>
     <string name="settings_notifications_title">通知设置</string>
     <string name="playback_notification_channel_name">后台播放</string>
