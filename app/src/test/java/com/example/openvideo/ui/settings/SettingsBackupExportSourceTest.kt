@@ -12,12 +12,15 @@ class SettingsBackupExportSourceTest {
     fun settingsFragmentUsesCreateDocumentExportFlow() {
         val fragment = settingsFragmentSource()
         val viewModel = settingsViewModelSource()
+        val policy = settingsBackupUiPolicySource()
 
+        assertTrue(fragment.contains("bindBackupSection(view)"))
+        assertTrue(fragment.contains("SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE"))
+        assertTrue(policy.contains("SETTINGS_EXPORT_ENTRY_VISIBLE = false"))
         assertTrue(fragment.contains("ActivityResultContracts.CreateDocument(SettingsBackupSchema.MIME_TYPE)"))
         assertTrue(fragment.contains("exportSettingsLauncher.launch(SettingsBackupSchema.SUGGESTED_FILENAME)"))
         assertTrue(fragment.contains("viewModel.writeSettingsExportTo(requireContext(), uri)"))
-        assertTrue(fragment.contains("R.string.settings_toast_export_success"))
-        assertTrue(fragment.contains("R.string.settings_toast_export_failed"))
+        assertTrue(fragment.contains("R.id.settings_backup_section"))
         assertTrue(fragment.contains("R.id.row_export_settings"))
         assertTrue(viewModel.contains("SettingsBackupExporter.exportJson(playerPrefs, appPrefs)"))
         assertTrue(viewModel.contains("SettingsBackupFileWriter.writeJson(context.contentResolver, uri, json)"))
@@ -36,6 +39,10 @@ class SettingsBackupExportSourceTest {
 
     private fun settingsViewModelSource(): String = loadSource(
         "ui", "settings", "SettingsViewModel.kt"
+    )
+
+    private fun settingsBackupUiPolicySource(): String = loadSource(
+        "ui", "settings", "SettingsBackupUiPolicy.kt"
     )
 
     private fun fileWriterSource(): String = loadSource(

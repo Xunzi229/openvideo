@@ -143,9 +143,7 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        view.findViewById<View>(R.id.row_export_settings).setOnClickListener {
-            exportSettingsLauncher.launch(SettingsBackupSchema.SUGGESTED_FILENAME)
-        }
+        bindBackupSection(view)
 
         view.findViewById<View>(R.id.row_project_repo).setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, PROJECT_REPO_URI))
@@ -250,6 +248,18 @@ class SettingsFragment : Fragment() {
                 viewModel.setDefaultSpeed(speed)
                 updateSpeedLabel(tvSpeed)
             }
+        }
+    }
+
+    private fun bindBackupSection(view: View) {
+        val section = view.findViewById<View>(R.id.settings_backup_section)
+        if (!SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE) {
+            section.visibility = View.GONE
+            return
+        }
+        section.visibility = View.VISIBLE
+        view.findViewById<View>(R.id.row_export_settings).setOnClickListener {
+            exportSettingsLauncher.launch(SettingsBackupSchema.SUGGESTED_FILENAME)
         }
     }
 
