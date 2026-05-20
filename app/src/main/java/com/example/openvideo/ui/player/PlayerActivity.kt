@@ -51,6 +51,7 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.R as Media3UiR
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
+import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlaybackNotificationCoordinator
 import com.example.openvideo.core.player.PlaybackServiceIntents
@@ -261,7 +262,7 @@ class PlayerActivity : AppCompatActivity() {
 
         val warmResume = viewModel.isActiveSessionFor(id)
         if (!warmResume) {
-            viewModel.initialize(Uri.parse(uriString), title, id, videoPath)
+            viewModel.initialize(LocalMediaUriPolicy.playbackUri(uriString), title, id, videoPath)
             startupTrace.record(PlayerStartupTrace.Events.PLAYER_INITIALIZED)
         }
 

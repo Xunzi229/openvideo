@@ -522,6 +522,8 @@
     <string name="playlist_delete_message">确定删除「%s」？</string>
     <string name="playlist_clear_title">清空播放列表</string>
     <string name="playlist_clear_message">确定清空「%s」中的所有视频？</string>
+    <string name="playlist_video_missing">该文件已不可用，已从列表中移除。</string>
+    <string name="playlist_item_source_media_library">媒体库</string>
     <string name="playlist_option_rename">重命名</string>
     <string name="playlist_option_delete">删除</string>
     <string name="multi_select_count">%d 已选择</string>

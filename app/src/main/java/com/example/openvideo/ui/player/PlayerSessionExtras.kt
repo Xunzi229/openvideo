@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.data.local.HistoryEntity
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.data.model.VideoItem
@@ -32,7 +33,7 @@ fun Bundle.toVideoItemOrNull(): VideoItem? {
             id = getLong("id"),
             title = getString("title").orEmpty(),
             path = getString("path").orEmpty(),
-            uri = Uri.parse(uriStr),
+            uri = LocalMediaUriPolicy.playbackUri(uriStr),
             duration = getLong("duration"),
             size = getLong("size"),
             width = getInt("width"),
@@ -64,7 +65,7 @@ fun Intent.sessionVideoQueue(): List<VideoItem> {
 }
 
 fun HistoryEntity.toSessionVideoItem(): VideoItem {
-    val uri = Uri.parse(path)
+    val uri = LocalMediaUriPolicy.playbackUri(path)
     return VideoItem(
         id = videoId,
         title = title,
@@ -80,7 +81,7 @@ fun HistoryEntity.toSessionVideoItem(): VideoItem {
 }
 
 fun PlaylistVideoEntity.toSessionVideoItem(): VideoItem {
-    val uri = Uri.parse(videoPath)
+    val uri = LocalMediaUriPolicy.playbackUri(videoPath)
     return VideoItem(
         id = videoId,
         title = videoTitle,

@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -74,7 +75,12 @@ class PlaylistDetailFragment : Fragment() {
         emptyView = view.findViewById(R.id.tv_empty)
 
         adapter = PlaylistVideoAdapter(
-            onClick = { video ->
+            onClick = click@{ video ->
+                if (!PlaylistVideoAvailabilityPolicy.isAvailable(video.videoPath)) {
+                    Toast.makeText(requireContext(), R.string.playlist_video_missing, Toast.LENGTH_SHORT).show()
+                    viewModel.removeStalePlaylistVideos(playlistId, listOf(video.videoId))
+                    return@click
+                }
                 val queue = playlistVideosSnapshot.map { it.toSessionVideoItem() }
                 val orderedQueue = PlayerEpisodeOrderingPolicy.orderQueueIfEligible(queue)
                 val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
@@ -97,13 +103,24 @@ class PlaylistDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.getPlaylistVideos(playlistId).collect { list ->
-                    playlistVideosSnapshot = list.sortedBy { it.position }
-                    adapter.submitList(playlistVideosSnapshot)
-                    emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
-                    recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
+                    val sorted = list.sortedBy { it.position }
+                    val staleIds = PlaylistVideoAvailabilityPolicy.staleVideoIds(sorted)
+                    if (staleIds.isNotEmpty()) {
+                        viewModel.removeStalePlaylistVideos(playlistId, staleIds)
+                    }
+                    val visible = PlaylistVideoAvailabilityPolicy.filterPlayable(sorted)
+                    playlistVideosSnapshot = visible
+                    adapter.submitList(visible)
+                    emptyView.visibility = if (visible.isEmpty()) View.VISIBLE else View.GONE
+                    recyclerView.visibility = if (visible.isEmpty()) View.GONE else View.VISIBLE
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        viewModel.pruneMissingFilesFromPlaylist(playlistId)
     }
 
     private fun confirmClear() {

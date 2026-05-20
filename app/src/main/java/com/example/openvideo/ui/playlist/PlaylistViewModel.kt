@@ -60,6 +60,23 @@ class PlaylistViewModel @Inject constructor(
         }
     }
 
+    fun removeStalePlaylistVideos(playlistId: Long, videoIds: List<Long>) {
+        if (videoIds.isEmpty()) return
+        viewModelScope.launch {
+            videoIds.forEach { videoId ->
+                playlistDao.removeVideo(playlistId, videoId)
+            }
+        }
+    }
+
+    fun pruneMissingFilesFromPlaylist(playlistId: Long) {
+        viewModelScope.launch {
+            val list = playlistDao.getVideosOnce(playlistId)
+            val stale = PlaylistVideoAvailabilityPolicy.staleVideoIds(list)
+            removeStalePlaylistVideos(playlistId, stale)
+        }
+    }
+
     fun clearPlaylist(playlistId: Long) {
         viewModelScope.launch {
             playlistDao.clearVideos(playlistId)
