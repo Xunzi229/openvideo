@@ -23,7 +23,7 @@
     <string name="filter_latest">Latest</string>
     <string name="filter_hollywood">Hollywood</string>
 
-    <!-- Playback notification (channel + RemoteViews; default locale English) -->
+    <!-- Playback notification (channel + custom controls; default locale English) -->
     <string name="playback_notification_channel_name">Playback</string>
     <string name="playback_notification_channel_description">Media controls while playing in the background</string>
     <string name="playback_notification_status_playing">Playing</string>

@@ -214,6 +214,7 @@ class PlayerActivity : AppCompatActivity() {
         // (player_bg / player_panel_bg / player_title_primary ...) to dark, so it stays
         // dark without forcing the night mode flag globally.
         super.onCreate(savedInstanceState)
+        suppressNotificationOpenTransition(intent)
         applyInitialVideoOrientation()
         pickSubtitleLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri == null) return@registerForActivityResult
@@ -329,7 +330,21 @@ class PlayerActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        suppressNotificationOpenTransition(intent)
         reattachPlayerSurfaceFromBackground()
+    }
+
+    private fun suppressNotificationOpenTransition(intent: Intent) {
+        if (!intent.getBooleanExtra(EXTRA_FROM_PLAYBACK_NOTIFICATION, false)) return
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+                overrideOpenTransitionCompat()
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                overridePendingTransition(0, 0)
+            }
+        }
     }
 
     private fun applyPlayerSettings() {
@@ -1920,6 +1935,11 @@ class PlayerActivity : AppCompatActivity() {
         overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
     }
 
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    private fun overrideOpenTransitionCompat() {
+        overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
+    }
+
     private fun preparePlayerExitFrame() {
         val frame = PlayerExitPolicy.exitFrameDecision(this::playerView.isInitialized)
         if (!frame.shouldPrepare) return
@@ -2428,5 +2448,6 @@ class PlayerActivity : AppCompatActivity() {
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"
+        const val EXTRA_FROM_PLAYBACK_NOTIFICATION = "from_playback_notification"
     }
 }

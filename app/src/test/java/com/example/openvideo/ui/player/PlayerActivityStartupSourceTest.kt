@@ -83,6 +83,24 @@ class PlayerActivityStartupSourceTest {
         assertTrue(startServiceBlock.contains("runCatching { ContextCompat.startForegroundService(this, intent) }"))
     }
 
+    @Test
+    fun notificationResumeSuppressesOpenTransitionAndOnlyReattachesPlayer() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val onCreate = source.substringAfter("override fun onCreate(savedInstanceState: Bundle?) {")
+            .substringBefore("\n    private fun applyPlayerSettings()")
+        val onNewIntent = source.substringAfter("override fun onNewIntent(intent: Intent) {")
+            .substringBefore("\n    private fun applyPlayerSettings()")
+
+        assertTrue(source.contains("const val EXTRA_FROM_PLAYBACK_NOTIFICATION"))
+        assertTrue(source.contains("private fun suppressNotificationOpenTransition("))
+        assertTrue(onCreate.contains("suppressNotificationOpenTransition(intent)"))
+        assertTrue(onNewIntent.contains("suppressNotificationOpenTransition(intent)"))
+        assertTrue(onNewIntent.contains("reattachPlayerSurfaceFromBackground()"))
+        assertTrue(onNewIntent.indexOf("suppressNotificationOpenTransition(intent)") < onNewIntent.indexOf("reattachPlayerSurfaceFromBackground()"))
+        assertTrue(onNewIntent.contains("setIntent(intent)"))
+        assertTrue(onNewIntent.indexOf("setIntent(intent)") < onNewIntent.indexOf("reattachPlayerSurfaceFromBackground()"))
+    }
+
     private fun playerActivitySource(): Path {
         val relativePath = Paths.get(
             "src",

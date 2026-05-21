@@ -38,7 +38,10 @@ object PlaybackServiceIntents {
 
     fun openPlayer(context: Context, snapshot: PlaybackNotificationCoordinator.Snapshot): Intent =
         Intent(context, PlayerActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                Intent.FLAG_ACTIVITY_NO_ANIMATION
+            putExtra(PlayerActivity.EXTRA_FROM_PLAYBACK_NOTIFICATION, true)
             putExtra("video_uri", snapshot.videoUri)
             putExtra("video_title", snapshot.title)
             putExtra("video_id", snapshot.videoId)

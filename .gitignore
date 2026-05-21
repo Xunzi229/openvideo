@@ -30,3 +30,8 @@ keys/
 release/
 docs/
 scripts/
+resume_flash_before_frames
+resume_flash_after_frames
+tools/adb/*.png
+tools/adb/*.mp4
+tools/adb/*_frames/

@@ -4,23 +4,20 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.util.Log
 import android.view.View
 import android.widget.RemoteViews
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
-import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
-import androidx.media.app.NotificationCompat as MediaNotificationCompat
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.media.session.MediaButtonReceiver
 import com.example.openvideo.R
-import com.example.openvideo.ui.player.PlayerTimeFormatter
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -35,9 +32,11 @@ class PlaybackService : Service() {
     private val refreshHandler = Handler(Looper.getMainLooper())
     private var progressUpdatesRunning = false
 
-    companion object {
-        private const val TAG = "PlaybackService"
+    private var lastUiNotifyKey: String? = null
+    private var lastMetadataTitle: String? = null
+    private var lastMetadataDuration: Long? = null
 
+    companion object {
         const val ACTION_START = "com.example.openvideo.action.START_PLAYBACK_SERVICE"
         const val ACTION_REFRESH = "com.example.openvideo.action.REFRESH_PLAYBACK_NOTIFICATION"
         const val ACTION_TOGGLE_PLAY_PAUSE = "com.example.openvideo.action.TOGGLE_PLAY_PAUSE"
@@ -50,7 +49,6 @@ class PlaybackService : Service() {
         // v2：提高重要性；已创建的 Channel 无法通过代码升级
         private const val CHANNEL_ID = "playback_channel_v2"
         private const val NOTIFICATION_ID = 1
-        private const val PROGRESS_MAX = 1000
         private const val PLAYING_REFRESH_MS = 500L
         private const val PAUSED_REFRESH_MS = 2000L
 
@@ -179,16 +177,29 @@ class PlaybackService : Service() {
             payload.durationMs
         )
         syncMediaSession(payload.isPlaying, payload.positionMs)
-        mediaSessionManager.updateMetadata(payload.title, payload.durationMs)
-
-        val notification = runCatching {
-            buildCustomNotification(payload)
-        }.getOrElse { error ->
-            Log.w(TAG, "Custom notification failed, using MediaStyle fallback", error)
-            buildMediaStyleNotification(payload)
+        if (payload.title != lastMetadataTitle || payload.durationMs != lastMetadataDuration) {
+            mediaSessionManager.updateMetadata(payload.title, payload.durationMs)
+            lastMetadataTitle = payload.title
+            lastMetadataDuration = payload.durationMs
         }
 
-        startForeground(NOTIFICATION_ID, notification)
+        val uiKey = playbackNotificationUiKey(payload)
+        if (uiKey == lastUiNotifyKey) {
+            return
+        }
+        lastUiNotifyKey = uiKey
+
+        startForeground(NOTIFICATION_ID, buildCustomNotification(payload))
+    }
+
+    private fun playbackNotificationUiKey(payload: NotificationPayload): String {
+        return listOf(
+            payload.title,
+            payload.isPlaying,
+            payload.canSkipToPrevious,
+            payload.canSkipToNext,
+            payload.durationMs
+        ).joinToString("|")
     }
 
     private data class NotificationPayload(
@@ -222,13 +233,14 @@ class PlaybackService : Service() {
                 this,
                 REQUEST_OPEN_PLAYER,
                 PlaybackServiceIntents.openPlayer(this, it),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ActivityOptions.makeCustomAnimation(this, 0, 0).toBundle()
             )
         }
         val skipCapabilities = PlaybackNotificationSkipCapabilityPolicy.fromSnapshot(snapshot)
         return NotificationPayload(
             title = title,
-            statusText = notificationStatusText(isPlaying, positionMs, durationMs),
+            statusText = notificationStatusText(isPlaying),
             isPlaying = isPlaying,
             positionMs = positionMs,
             durationMs = durationMs,
@@ -240,7 +252,7 @@ class PlaybackService : Service() {
 
     private fun buildCustomNotification(payload: NotificationPayload): android.app.Notification {
         val remoteViews = buildPlaybackRemoteViews(payload)
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_playback)
             .setContentTitle(payload.title)
             .setContentText(payload.statusText)
@@ -251,105 +263,17 @@ class PlaybackService : Service() {
             .setContentIntent(payload.contentIntent)
             .setCustomContentView(remoteViews)
             .setCustomBigContentView(remoteViews)
-        mediaSessionManager.getSessionToken()?.let { token ->
-            // Lock screen / BT AVRCP need a MediaSession on the Notification; collapsed custom RemoteViews alone are not enough on many OEM builds.
-            builder.setStyle(MediaNotificationCompat.DecoratedMediaCustomViewStyle().setMediaSession(token))
-        }
-        return builder.build()
-    }
-
-    private fun buildMediaStyleNotification(payload: NotificationPayload): android.app.Notification {
-        val sessionToken = mediaSessionManager.getSessionToken()
-            ?: return buildCustomNotification(payload)
-
-        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_stat_playback)
-            .setContentTitle(payload.title)
-            .setContentText(payload.statusText)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOnlyAlertOnce(true)
-            .setShowWhen(false)
-            .setOngoing(payload.isPlaying)
-            .setContentIntent(payload.contentIntent)
-
-        val mediaStyle = MediaNotificationCompat.MediaStyle().setMediaSession(sessionToken)
-        val compactIndices = addMediaStyleActions(
-            builder = builder,
-            canSkipPrevious = payload.canSkipToPrevious,
-            canSkipNext = payload.canSkipToNext,
-            isPlaying = payload.isPlaying
-        )
-        if (compactIndices.isNotEmpty()) {
-            mediaStyle.setShowActionsInCompactView(*compactIndices)
-        }
-        builder.setStyle(mediaStyle)
-
-        if (payload.durationMs > 0L) {
-            val progress = ((payload.positionMs * PROGRESS_MAX) / payload.durationMs)
-                .toInt()
-                .coerceIn(0, PROGRESS_MAX)
-            builder.setProgress(PROGRESS_MAX, progress, false)
-        }
-
-        return builder.build()
-    }
-
-    private fun addMediaStyleActions(
-        builder: NotificationCompat.Builder,
-        canSkipPrevious: Boolean,
-        canSkipNext: Boolean,
-        isPlaying: Boolean
-    ): IntArray {
-        val compactIndices = mutableListOf<Int>()
-        var actionIndex = 0
-
-        if (canSkipPrevious) {
-            builder.addAction(
-                NotificationCompat.Action(
-                    R.drawable.ic_skip_previous,
-                    getString(R.string.playback_notification_previous),
-                    servicePendingIntent(REQUEST_PREVIOUS, ACTION_SKIP_TO_PREVIOUS)
-                )
-            )
-            compactIndices.add(actionIndex++)
-        }
-        builder.addAction(
-            NotificationCompat.Action(
-                if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play,
-                getString(
-                    if (isPlaying) R.string.playback_notification_pause
-                    else R.string.playback_notification_play
-                ),
-                servicePendingIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE)
-            )
-        )
-        compactIndices.add(actionIndex++)
-        if (canSkipNext) {
-            builder.addAction(
-                NotificationCompat.Action(
-                    R.drawable.ic_skip_next,
-                    getString(R.string.playback_notification_next),
-                    servicePendingIntent(REQUEST_NEXT, ACTION_SKIP_TO_NEXT)
-                )
-            )
-            compactIndices.add(actionIndex++)
-        }
-        return compactIndices.toIntArray()
+            .build()
     }
 
     private fun buildPlaybackRemoteViews(payload: NotificationPayload): RemoteViews {
         val views = RemoteViews(packageName, R.layout.notification_playback)
         views.setTextViewText(R.id.notification_title, payload.title)
-        views.setTextViewText(R.id.notification_progress_text, payload.statusText)
-
-        if (payload.durationMs > 0L) {
-            views.setViewVisibility(R.id.notification_progress, View.VISIBLE)
-            val progress = ((payload.positionMs * PROGRESS_MAX) / payload.durationMs)
-                .toInt()
-                .coerceIn(0, PROGRESS_MAX)
-            views.setProgressBar(R.id.notification_progress, PROGRESS_MAX, progress, false)
-        } else {
-            views.setViewVisibility(R.id.notification_progress, View.GONE)
+        views.setTextViewText(R.id.notification_status_text, payload.statusText)
+        payload.contentIntent?.let { openPlayerIntent ->
+            views.setOnClickPendingIntent(R.id.notification_root, openPlayerIntent)
+            views.setOnClickPendingIntent(R.id.notification_title, openPlayerIntent)
+            views.setOnClickPendingIntent(R.id.notification_status_text, openPlayerIntent)
         }
 
         views.setImageViewResource(
@@ -361,43 +285,36 @@ class PlaybackService : Service() {
             servicePendingIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE)
         )
 
+        views.setViewVisibility(
+            R.id.btn_previous,
+            if (payload.canSkipToPrevious) View.VISIBLE else View.INVISIBLE
+        )
         if (payload.canSkipToPrevious) {
-            views.setViewVisibility(R.id.btn_previous, View.VISIBLE)
             views.setOnClickPendingIntent(
                 R.id.btn_previous,
                 servicePendingIntent(REQUEST_PREVIOUS, ACTION_SKIP_TO_PREVIOUS)
             )
-        } else {
-            views.setViewVisibility(R.id.btn_previous, View.GONE)
         }
 
+        views.setViewVisibility(
+            R.id.btn_next,
+            if (payload.canSkipToNext) View.VISIBLE else View.INVISIBLE
+        )
         if (payload.canSkipToNext) {
-            views.setViewVisibility(R.id.btn_next, View.VISIBLE)
             views.setOnClickPendingIntent(
                 R.id.btn_next,
                 servicePendingIntent(REQUEST_NEXT, ACTION_SKIP_TO_NEXT)
             )
-        } else {
-            views.setViewVisibility(R.id.btn_next, View.GONE)
         }
 
         return views
     }
 
-    private fun notificationStatusText(
-        isPlaying: Boolean,
-        positionMs: Long,
-        durationMs: Long
-    ): String {
-        val status = getString(
+    private fun notificationStatusText(isPlaying: Boolean): String =
+        getString(
             if (isPlaying) R.string.playback_notification_status_playing
             else R.string.playback_notification_status_paused
         )
-        if (durationMs <= 0L) return status
-        return "$status · ${PlayerTimeFormatter.format(positionMs)} / ${
-            PlayerTimeFormatter.format(durationMs)
-        }"
-    }
 
     private fun syncMediaSession(isPlaying: Boolean, positionMs: Long) {
         val skipCapabilities = PlaybackNotificationSkipCapabilityPolicy.fromSnapshot(
@@ -433,6 +350,9 @@ class PlaybackService : Service() {
 
     private fun dismissNotificationAndStop() {
         stopProgressUpdates()
+        lastUiNotifyKey = null
+        lastMetadataTitle = null
+        lastMetadataDuration = null
         playbackCoordinator.clearSnapshot()
         mediaSessionManager.markStopped()
         mediaSessionManager.clearMetadata()
@@ -453,6 +373,9 @@ class PlaybackService : Service() {
         MediaButtonReceiver.handleIntent(mediaSession, intent)
         when (intent?.action) {
             ACTION_START -> {
+                lastUiNotifyKey = null
+                lastMetadataTitle = null
+                lastMetadataDuration = null
                 val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
                 val isPlaying = intent.getBooleanExtra(EXTRA_IS_PLAYING, playerManager.isPlaying)
                 publishNotification(titleOverride = title, isPlayingOverride = isPlaying)

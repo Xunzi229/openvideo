@@ -58,7 +58,11 @@ class PlaybackServiceIntentsSourceTest {
             .substringBefore("\n\n    private fun serviceAction(")
 
         assertTrue(openBlock.contains("FLAG_ACTIVITY_SINGLE_TOP"))
-        assertTrue(openBlock.contains("FLAG_ACTIVITY_CLEAR_TOP"))
+        assertTrue(openBlock.contains("FLAG_ACTIVITY_REORDER_TO_FRONT"))
+        assertFalse(openBlock.contains("FLAG_ACTIVITY_CLEAR_TOP"))
+        assertTrue(openBlock.contains("FLAG_ACTIVITY_NO_ANIMATION"))
+        assertTrue(openBlock.contains("PlayerActivity.EXTRA_FROM_PLAYBACK_NOTIFICATION"))
+        assertTrue(openBlock.contains("putExtra(PlayerActivity.EXTRA_FROM_PLAYBACK_NOTIFICATION, true)"))
         assertTrue(openBlock.contains("putSessionQueue(snapshot.queue)"))
     }
 

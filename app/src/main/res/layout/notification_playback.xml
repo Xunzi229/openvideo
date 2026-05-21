@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/notification_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -19,27 +20,20 @@
         android:textStyle="bold" />
 
     <TextView
-        android:id="@+id/notification_progress_text"
+        android:id="@+id/notification_status_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:textColor="#99000000"
         android:textSize="12sp" />
 
-    <ProgressBar
-        android:id="@+id/notification_progress"
-        style="@android:style/Widget.ProgressBar.Horizontal"
-        android:layout_width="match_parent"
-        android:layout_height="4dp"
-        android:layout_marginTop="8dp"
-        android:max="1000" />
-
     <LinearLayout
+        android:id="@+id/notification_transport_row"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="52dp"
         android:layout_marginTop="10dp"
         android:layout_marginBottom="4dp"
-        android:gravity="center_horizontal"
+        android:gravity="center_horizontal|center_vertical"
         android:orientation="horizontal">
 
         <ImageView

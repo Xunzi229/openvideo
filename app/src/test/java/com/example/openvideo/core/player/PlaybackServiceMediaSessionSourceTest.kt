@@ -21,9 +21,11 @@ class PlaybackServiceMediaSessionSourceTest {
     }
 
     @Test
-    fun customNotificationAttachesMediaSessionTokenForLockScreen() {
+    fun customNotificationKeepsMediaSessionStateSeparateFromNotificationLayout() {
         val source = playbackServiceSource()
-        assertTrue(source.contains("DecoratedMediaCustomViewStyle().setMediaSession(token)"))
+        assertTrue(source.contains("syncMediaSession(payload.isPlaying, payload.positionMs)"))
+        assertFalse(source.contains("NotificationCompat.DecoratedCustomViewStyle()"))
+        assertFalse(source.contains("MediaNotificationCompat.MediaStyle()"))
     }
 
     @Test
