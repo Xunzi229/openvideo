@@ -68,6 +68,13 @@ class PlayerGesturePolicyTest {
     }
 
     @Test
+    fun excludesBottomFifthFromVerticalLevelGestures() {
+        assertTrue(PlayerGesturePolicy.allowsVerticalLevelGesture(yPx = 800f, screenHeightPx = 1000))
+        assertFalse(PlayerGesturePolicy.allowsVerticalLevelGesture(yPx = 801f, screenHeightPx = 1000))
+        assertFalse(PlayerGesturePolicy.allowsVerticalLevelGesture(yPx = 999f, screenHeightPx = 1000))
+    }
+
+    @Test
     fun verticalGestureActionMapsBySide() {
         assertEquals(
             GestureAction.BRIGHTNESS,

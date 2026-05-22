@@ -8,6 +8,8 @@ enum class PlayerSwipeAxis { HORIZONTAL, VERTICAL, NONE }
 
 object PlayerGesturePolicy {
     private const val SEEK_WINDOW_MS = 60_000L
+    /** 屏幕底部该比例区域不响应上下滑亮度/音量，避免与系统全面屏上滑回桌面冲突。 */
+    const val VERTICAL_LEVEL_GESTURE_EXCLUDED_BOTTOM_FRACTION = 0.2f
 
     fun gestureSlopPx(sensitivity: Int): Int = when (sensitivity) {
         1 -> 60
@@ -27,6 +29,12 @@ object PlayerGesturePolicy {
     fun swipeSide(x: Float, screenWidthPx: Int): PlayerSwipeSide {
         if (screenWidthPx <= 0) return PlayerSwipeSide.NONE
         return if (x < screenWidthPx / 2f) PlayerSwipeSide.LEFT else PlayerSwipeSide.RIGHT
+    }
+
+    fun allowsVerticalLevelGesture(yPx: Float, screenHeightPx: Int): Boolean {
+        if (screenHeightPx <= 0) return false
+        val allowedMaxY = screenHeightPx * (1f - VERTICAL_LEVEL_GESTURE_EXCLUDED_BOTTOM_FRACTION)
+        return yPx <= allowedMaxY
     }
 
     fun shouldApplyHorizontalSeekOnRelease(

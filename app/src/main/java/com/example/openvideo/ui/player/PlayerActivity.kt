@@ -1307,6 +1307,7 @@ class PlayerActivity : AppCompatActivity() {
         var zoomPanAnchorX = 0f
         var zoomPanAnchorY = 0f
         var zoomPanMoved = false
+        var verticalLevelGestureAllowed = false
         val gestureSlop = gestureSlopPx()
         val zoomAllowed = { PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio) }
 
@@ -1387,6 +1388,10 @@ class PlayerActivity : AppCompatActivity() {
                     seekGestureAnchorPositionMs = viewModel.uiState.value.currentPosition
                     isEdgeSwipe = PlayerGesturePolicy.isEdgeSwipe(event.x, resources.displayMetrics.widthPixels)
                     swipeSide = PlayerGesturePolicy.swipeSide(event.x, resources.displayMetrics.widthPixels)
+                    verticalLevelGestureAllowed = PlayerGesturePolicy.allowsVerticalLevelGesture(
+                        yPx = event.y,
+                        screenHeightPx = resources.displayMetrics.heightPixels
+                    )
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.x - startX
@@ -1395,7 +1400,11 @@ class PlayerActivity : AppCompatActivity() {
                     if (!isHorizontalSwipe && !isVerticalSwipe) {
                         when (PlayerGesturePolicy.dominantAxis(dx, dy, gestureSlop)) {
                             PlayerSwipeAxis.HORIZONTAL -> isHorizontalSwipe = true
-                            PlayerSwipeAxis.VERTICAL -> isVerticalSwipe = true
+                            PlayerSwipeAxis.VERTICAL -> {
+                                if (verticalLevelGestureAllowed) {
+                                    isVerticalSwipe = true
+                                }
+                            }
                             PlayerSwipeAxis.NONE -> {}
                         }
                     }
