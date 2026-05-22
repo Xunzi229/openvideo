@@ -7,7 +7,8 @@ enum class PlayerGestureHudKind {
     BRIGHTNESS,
     VOLUME,
     SPEED,
-    LOCK
+    LOCK,
+    ZOOM
 }
 
 data class PlayerGestureHud(
@@ -63,6 +64,14 @@ object PlayerGestureHudPolicy {
             kind = PlayerGestureHudKind.SPEED,
             primaryText = "${String.format(java.util.Locale.US, "%.2f", speed).trimEnd('0').trimEnd('.')}x"
         )
+
+    fun zoom(manualScale: Float): PlayerGestureHud {
+        val percent = (PlayerVideoZoomPolicy.clampScale(manualScale) * 100f).roundToInt()
+        return PlayerGestureHud(
+            kind = PlayerGestureHudKind.ZOOM,
+            primaryText = "$percent%"
+        )
+    }
 
     fun doubleTapSeek(
         previous: DoubleTapSeekState?,

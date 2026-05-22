@@ -40,7 +40,7 @@ class PlayerContentFrameSourceTest {
             .substringBefore("\n    @OptIn(UnstableApi::class)\n    private fun videoRenderView()")
 
         assertTrue(displayBlock.contains("applyPlayerContentFrameTransform()"))
-        assertTrue(transformBlock.contains("PlayerContentFrameApplyPolicy.resolveTransform"))
+        assertTrue(transformBlock.contains("PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom"))
         assertTrue(transformBlock.contains("PlayerVideoLayoutPolicy.displayFrameSize"))
         assertFalse(
             "Transform math must stay in policy, not Activity.",

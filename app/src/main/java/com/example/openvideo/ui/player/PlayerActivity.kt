@@ -18,6 +18,7 @@ import android.os.SystemClock
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -41,7 +42,6 @@ import androidx.core.view.isVisible
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
@@ -65,9 +65,7 @@ import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.settings.DefaultPlayerSettings
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlin.math.abs
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -116,6 +114,8 @@ class PlayerActivity : AppCompatActivity() {
     private var landRightFloatColumn: View? = null
 
     private var contentFrameTransformRetryPosted = false
+    private var manualVideoZoom = PlayerVideoZoomState.IDENTITY
+    private var cachedBaseContentFrameTransform = PlayerContentFrameTransform.IDENTITY
 
     private val landscapeGeometryListener =
         View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -155,6 +155,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private lateinit var gestureDetector: GestureDetector
+    private lateinit var pinchZoomDetector: ScaleGestureDetector
     private var currentBrightness = 0.5f
     private var currentVolume = 0.5f
     private var isSeeking = false
@@ -398,6 +399,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applyDisplaySettings() {
+        if (!PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) {
+            manualVideoZoom = PlayerVideoZoomState.IDENTITY
+        }
         setPlayerResizeMode()
         applyPlayerContentAspectRatio()
         applyPlayerContentFrameTransform()
@@ -430,20 +434,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {
-        lifecycleScope.launch {
-            val subtitles = withContext(Dispatchers.IO) {
-                PlayerSubtitleLoadCoordinator.load(uriString, videoPath, subtitleLoader)
-            }
-            val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, showToast)
-            if (decision.shouldApplyToPlayer) {
-                viewModel.setSubtitles(subtitles)
-            }
-            when (decision.toastKind) {
-                PlayerSubtitleLoadToastKind.LOADED ->
-                    Toast.makeText(this@PlayerActivity, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
-                PlayerSubtitleLoadToastKind.FAILED ->
-                    Toast.makeText(this@PlayerActivity, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
-                PlayerSubtitleLoadToastKind.NONE -> Unit
+        viewModel.loadSubtitles(uriString, videoPath, showToast) { decision ->
+            PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)?.let { messageRes ->
+                Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
             }
             startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
         }
@@ -1218,6 +1211,7 @@ class PlayerActivity : AppCompatActivity() {
         doubleTapSeekAnchorPositionMs = reset.doubleTapSeekAnchorPositionMs
         keepGestureHudAfterActionUp = reset.keepGestureHudAfterActionUp
         isAwaitingFirstFrame = reset.awaitFirstFrame
+        manualVideoZoom = reset.manualVideoZoom
         lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()
         btnAbLoop?.clearColorFilter()
         hideGestureHud()
@@ -1225,6 +1219,32 @@ class PlayerActivity : AppCompatActivity() {
 
     @SuppressLint("ClickableViewAccessibility")
     private fun initGestures() {
+        pinchZoomDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                    if (!PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) return false
+                    return true
+                }
+
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    manualVideoZoom = manualVideoZoom.copy(
+                        scale = PlayerVideoZoomPolicy.applyScaleFactor(
+                            currentScale = manualVideoZoom.scale,
+                            scaleFactor = detector.scaleFactor
+                        )
+                    )
+                    applyPlayerContentFrameTransform()
+                    showGestureHud(PlayerGestureHudPolicy.zoom(manualVideoZoom.scale), autoHide = false)
+                    return true
+                }
+
+                override fun onScaleEnd(detector: ScaleGestureDetector) {
+                    handler.postDelayed(hideGestureHudRunnable, PlayerGestureHudDisplayPolicy.AUTO_HIDE_DELAY_MS)
+                }
+            }
+        )
+
         gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 if (isScreenLocked) {
@@ -1239,6 +1259,14 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.GESTURE_PLAYBACK, isScreenLocked)) {
+                    return true
+                }
+                if (PlayerVideoZoomGesturePolicy.doubleTapResetsZoom(
+                        zoomAllowed = PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio),
+                        manual = manualVideoZoom
+                    )
+                ) {
+                    resetManualVideoZoom(showHud = true)
                     return true
                 }
                 when (playerPrefs.doubleTapAction) {
@@ -1273,7 +1301,13 @@ class PlayerActivity : AppCompatActivity() {
         var isVerticalSwipe = false
         var isEdgeSwipe = false
         var swipeSide = PlayerSwipeSide.NONE
+        var zoomPanStartX = 0f
+        var zoomPanStartY = 0f
+        var zoomPanAnchorX = 0f
+        var zoomPanAnchorY = 0f
+        var zoomPanMoved = false
         val gestureSlop = gestureSlopPx()
+        val zoomAllowed = { PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio) }
 
         gestureOverlay.setOnTouchListener { _, event ->
             if (isScreenLocked) {
@@ -1284,6 +1318,60 @@ class PlayerActivity : AppCompatActivity() {
                 if (decision.revealLockedControls) showLockedControls()
                 return@setOnTouchListener decision.consumeTouch
             }
+
+            if (zoomAllowed()) {
+                pinchZoomDetector.onTouchEvent(event)
+            }
+            if (zoomAllowed() && (event.pointerCount >= 2 || pinchZoomDetector.isInProgress)) {
+                if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) {
+                    isHorizontalSwipe = false
+                    isVerticalSwipe = false
+                    pendingSeekTarget = null
+                    seekGestureAnchorPositionMs = null
+                }
+                return@setOnTouchListener true
+            }
+
+            if (PlayerVideoZoomGesturePolicy.interceptsSingleFingerGestures(zoomAllowed(), manualVideoZoom)) {
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        zoomPanStartX = event.x
+                        zoomPanStartY = event.y
+                        zoomPanAnchorX = manualVideoZoom.panX
+                        zoomPanAnchorY = manualVideoZoom.panY
+                        zoomPanMoved = false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = event.x - zoomPanStartX
+                        val dy = event.y - zoomPanStartY
+                        if (abs(dx) > gestureSlop || abs(dy) > gestureSlop) {
+                            zoomPanMoved = true
+                            val (panX, panY) = PlayerVideoZoomPolicy.panFromDrag(
+                                anchorPanX = zoomPanAnchorX,
+                                anchorPanY = zoomPanAnchorY,
+                                dragDx = dx,
+                                dragDy = dy,
+                                baseScale = cachedBaseContentFrameTransform.scale,
+                                manualScale = manualVideoZoom.scale,
+                                frameWidth = playerView.width,
+                                frameHeight = playerView.height,
+                                viewportWidth = playerView.width,
+                                viewportHeight = playerView.height
+                            )
+                            manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
+                            applyPlayerContentFrameTransform()
+                        }
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        if (!zoomPanMoved) {
+                            gestureDetector.onTouchEvent(event)
+                        }
+                    }
+                    MotionEvent.ACTION_CANCEL -> Unit
+                }
+                return@setOnTouchListener true
+            }
+
             gestureDetector.onTouchEvent(event)
 
             when (event.action) {
@@ -1367,6 +1455,14 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
             true
+        }
+    }
+
+    private fun resetManualVideoZoom(showHud: Boolean = false) {
+        manualVideoZoom = PlayerVideoZoomState.IDENTITY
+        applyPlayerContentFrameTransform()
+        if (showHud) {
+            showGestureHud(PlayerGestureHudPolicy.zoom(PlayerVideoZoomPolicy.MIN_SCALE))
         }
     }
 
@@ -2164,13 +2260,37 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
         contentFrameTransformRetryPosted = false
-        val transform = PlayerContentFrameApplyPolicy.resolveTransform(
+        cachedBaseContentFrameTransform = PlayerContentFrameApplyPolicy.resolveTransform(
             contentFrameMode = playerPrefs.contentFrameMode,
             aspectRatio = playerPrefs.aspectRatio,
             sourceWidth = frameSize.width,
             sourceHeight = frameSize.height,
             viewportWidth = playerView.width,
             viewportHeight = playerView.height
+        )
+        if (PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) {
+            val (panX, panY) = PlayerVideoZoomPolicy.clampPanOffset(
+                panX = manualVideoZoom.panX,
+                panY = manualVideoZoom.panY,
+                baseScale = cachedBaseContentFrameTransform.scale,
+                manualScale = manualVideoZoom.scale,
+                frameWidth = contentFrame.width,
+                frameHeight = contentFrame.height,
+                viewportWidth = playerView.width,
+                viewportHeight = playerView.height
+            )
+            manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
+        }
+        val transform = PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
+            contentFrameMode = playerPrefs.contentFrameMode,
+            aspectRatio = playerPrefs.aspectRatio,
+            sourceWidth = frameSize.width,
+            sourceHeight = frameSize.height,
+            viewportWidth = playerView.width,
+            viewportHeight = playerView.height,
+            manualZoom = manualVideoZoom,
+            frameWidth = contentFrame.width,
+            frameHeight = contentFrame.height
         )
         applyContentFrameTransform(contentFrame, frameSize, transform)
     }

@@ -12,6 +12,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.view.View
 import android.widget.RemoteViews
+import androidx.core.content.ContextCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.getSystemService
@@ -270,6 +271,14 @@ class PlaybackService : Service() {
         val views = RemoteViews(packageName, R.layout.notification_playback)
         views.setTextViewText(R.id.notification_title, payload.title)
         views.setTextViewText(R.id.notification_status_text, payload.statusText)
+        views.setTextColor(
+            R.id.notification_title,
+            ContextCompat.getColor(this, R.color.playback_notification_title)
+        )
+        views.setTextColor(
+            R.id.notification_status_text,
+            ContextCompat.getColor(this, R.color.playback_notification_status)
+        )
         payload.contentIntent?.let { openPlayerIntent ->
             views.setOnClickPendingIntent(R.id.notification_root, openPlayerIntent)
             views.setOnClickPendingIntent(R.id.notification_title, openPlayerIntent)

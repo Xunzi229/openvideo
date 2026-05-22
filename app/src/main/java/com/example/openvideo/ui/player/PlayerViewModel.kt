@@ -12,6 +12,7 @@ import com.example.openvideo.core.player.RenderMode
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.ContentFrameMode
 import com.example.openvideo.core.subtitle.SubtitleItem
+import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,7 +42,8 @@ data class PlayerUiState(
 class PlayerViewModel @Inject constructor(
     private val playerManager: PlayerManager,
     private val repository: VideoRepository,
-    private val playerPrefs: com.example.openvideo.core.prefs.PlayerPrefs
+    private val playerPrefs: com.example.openvideo.core.prefs.PlayerPrefs,
+    private val subtitleLoader: SubtitleLoader
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlayerUiState())
@@ -218,6 +220,24 @@ class PlayerViewModel @Inject constructor(
 
     fun setSubtitles(subtitles: List<SubtitleItem>) {
         _uiState.value = _uiState.value.copy(subtitles = subtitles)
+    }
+
+    fun loadSubtitles(
+        uriString: String,
+        videoPath: String,
+        showToast: Boolean = false,
+        onFinished: (PlayerSubtitleLoadApplyDecision) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val subtitles = withContext(Dispatchers.IO) {
+                PlayerSubtitleLoadCoordinator.load(uriString, videoPath, subtitleLoader)
+            }
+            val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, showToast)
+            if (decision.shouldApplyToPlayer) {
+                setSubtitles(subtitles)
+            }
+            onFinished(decision)
+        }
     }
 
     fun getCurrentSubtitle(): String {

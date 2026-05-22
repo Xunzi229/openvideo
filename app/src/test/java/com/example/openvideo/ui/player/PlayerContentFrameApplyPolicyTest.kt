@@ -33,4 +33,22 @@ class PlayerContentFrameApplyPolicyTest {
         )
         assertEquals(PlayerContentFrameTransform.IDENTITY, transform)
     }
+
+    @Test
+    fun resolveTransformWithManualZoomComposesOnTopOfBase() {
+        val transform = PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
+            contentFrameMode = ContentFrameMode.OFF,
+            aspectRatio = AspectRatio.FIT,
+            sourceWidth = 1920,
+            sourceHeight = 1080,
+            viewportWidth = 1080,
+            viewportHeight = 1920,
+            manualZoom = PlayerVideoZoomState(scale = 2f),
+            frameWidth = 1080,
+            frameHeight = 1920
+        )
+        assertEquals(2f, transform.scale, 0.001f)
+        assertEquals(-540f, transform.translationX, 0.001f)
+        assertEquals(-960f, transform.translationY, 0.001f)
+    }
 }

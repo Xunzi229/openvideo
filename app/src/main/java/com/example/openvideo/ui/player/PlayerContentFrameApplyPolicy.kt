@@ -31,4 +31,38 @@ object PlayerContentFrameApplyPolicy {
             crop = plan.crop
         )
     }
+
+    fun resolveTransformWithManualZoom(
+        contentFrameMode: ContentFrameMode,
+        aspectRatio: AspectRatio,
+        sourceWidth: Int,
+        sourceHeight: Int,
+        viewportWidth: Int,
+        viewportHeight: Int,
+        manualZoom: PlayerVideoZoomState,
+        frameWidth: Int,
+        frameHeight: Int
+    ): PlayerContentFrameTransform {
+        val base = resolveTransform(
+            contentFrameMode = contentFrameMode,
+            aspectRatio = aspectRatio,
+            sourceWidth = sourceWidth,
+            sourceHeight = sourceHeight,
+            viewportWidth = viewportWidth,
+            viewportHeight = viewportHeight
+        )
+        if (!PlayerVideoZoomPolicy.allowsManualZoom(aspectRatio) ||
+            !PlayerVideoZoomPolicy.isActive(manualZoom)
+        ) {
+            return base
+        }
+        return PlayerVideoZoomPolicy.composeTransform(
+            base = base,
+            manual = manualZoom,
+            frameWidth = frameWidth,
+            frameHeight = frameHeight,
+            viewportWidth = viewportWidth,
+            viewportHeight = viewportHeight
+        )
+    }
 }

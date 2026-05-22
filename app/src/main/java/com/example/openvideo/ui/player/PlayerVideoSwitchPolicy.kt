@@ -11,7 +11,8 @@ data class PlayerVideoSwitchReset(
     val doubleTapSeekState: DoubleTapSeekState?,
     val doubleTapSeekAnchorPositionMs: Long?,
     val keepGestureHudAfterActionUp: Boolean,
-    val awaitFirstFrame: Boolean
+    val awaitFirstFrame: Boolean,
+    val manualVideoZoom: PlayerVideoZoomState
 )
 
 object PlayerVideoSwitchPolicy {
@@ -28,6 +29,7 @@ object PlayerVideoSwitchPolicy {
             doubleTapSeekState = null,
             doubleTapSeekAnchorPositionMs = null,
             keepGestureHudAfterActionUp = false,
-            awaitFirstFrame = true
+            awaitFirstFrame = true,
+            manualVideoZoom = PlayerVideoZoomState.IDENTITY
         )
 }

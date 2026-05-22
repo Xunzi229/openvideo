@@ -27,5 +27,6 @@ class PlayerVideoSwitchPolicyTest {
         val state = PlayerVideoSwitchPolicy.resetForNewVideo()
 
         assertEquals(true, state.awaitFirstFrame)
+        assertEquals(PlayerVideoZoomState.IDENTITY, state.manualVideoZoom)
     }
 }
