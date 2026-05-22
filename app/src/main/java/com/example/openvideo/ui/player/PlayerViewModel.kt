@@ -77,6 +77,9 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun initialize(uri: Uri, title: String, id: Long, path: String = "") {
+        playerListener?.let { playerManager.removeListener(it) }
+        playerListener = null
+
         videoId = id
         videoUri = uri
         videoPath = path

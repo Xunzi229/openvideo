@@ -65,6 +65,8 @@ class PlayerManager @Inject constructor(
     var aspectRatio = AspectRatio.FIT
 
     fun initialize(mediaUri: Uri? = null): ExoPlayer {
+        // Singleton：Activity / PlaybackService 共用；再次 initialize 必须先 release，否则会 orphan 旧 ExoPlayer 继续出声。
+        release()
         audioDiagnostics = PlayerAudioDiagnostics(
             ffmpegExtensionAvailable = isFfmpegExtensionAvailable()
         )

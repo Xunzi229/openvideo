@@ -911,6 +911,7 @@ class PlayerActivity : AppCompatActivity() {
             if (controlsVisible) hideControls() else showControls()
         }
 
+        playerListener?.let { viewModel.player?.removeListener(it) }
         playerListener = object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updatePlayPauseIcon(

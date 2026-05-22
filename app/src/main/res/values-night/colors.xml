@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Custom playback notification RemoteViews (dark shade / dark app theme) -->
+    <color name="playback_notification_title">#DEFFFFFF</color>
+    <color name="playback_notification_status">#99FFFFFF</color>
+    <color name="playback_notification_icon">#FFFFFFFF</color>
+    <color name="playback_notification_progress">@color/player_accent</color>
+    <color name="playback_notification_progress_track">#33FFFFFF</color>
+</resources>
