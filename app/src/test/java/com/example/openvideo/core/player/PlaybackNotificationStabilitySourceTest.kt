@@ -12,6 +12,8 @@ class PlaybackNotificationStabilitySourceTest {
     @Test
     fun notificationUiDedupKeyDoesNotIncludeChangingPlaybackPosition() {
         val source = playbackServiceSource()
+        val publishBlock = source.substringAfter("private fun publishNotification(")
+            .substringBefore("\n    private fun playbackNotificationUiKey(")
         val keyBlock = source.substringAfter("private fun playbackNotificationUiKey(")
             .substringBefore("\n    private data class NotificationPayload")
 
@@ -21,6 +23,9 @@ class PlaybackNotificationStabilitySourceTest {
         assertFalse(keyBlock.contains("payload.statusText"))
         assertFalse(keyBlock.contains("payload.positionMs"))
         assertFalse(keyBlock.contains("progress"))
+
+        assertTrue(publishBlock.contains("PlaybackNotificationProgressPolicy.progressBucket"))
+        assertTrue(publishBlock.contains("lastProgressBucket"))
     }
 
     @Test
@@ -49,6 +54,17 @@ class PlaybackNotificationStabilitySourceTest {
         assertTrue(layout.contains("android:id=\"@+id/btn_previous\""))
         assertTrue(layout.contains("android:id=\"@+id/btn_play_pause\""))
         assertTrue(layout.contains("android:id=\"@+id/btn_next\""))
+        assertTrue(layout.contains("android:id=\"@+id/notification_progress\""))
+        assertTrue(layout.contains("android:id=\"@+id/notification_progress_row\""))
+        assertTrue(layout.contains("android:id=\"@+id/notification_time_elapsed\""))
+        assertTrue(layout.contains("android:id=\"@+id/notification_time_duration\""))
+        assertTrue(layout.contains("android:id=\"@+id/seek_zone_0\""))
+        assertFalse(layout.contains("<View android:id=\"@+id/seek_zone_0\""))
+        assertTrue(service.contains("applyPlaybackNotificationProgress"))
+        assertTrue(service.contains("PlaybackNotificationProgressPolicy.barState"))
+        assertTrue(service.contains("PlaybackNotificationProgressPolicy.timeLabels"))
+        assertTrue(service.contains("PlaybackNotificationSeekPolicy"))
+        assertTrue(service.contains("ACTION_SEEK_TO_MS"))
     }
 
     private fun playbackServiceSource(): String = loadSource(

@@ -25,4 +25,7 @@
     <!-- Custom playback notification RemoteViews (light shade) -->
     <color name="playback_notification_title">#DE000000</color>
     <color name="playback_notification_status">#99000000</color>
+    <color name="playback_notification_icon">#FF000000</color>
+    <color name="playback_notification_progress">@color/player_accent</color>
+    <color name="playback_notification_progress_track">#33000000</color>
 </resources>

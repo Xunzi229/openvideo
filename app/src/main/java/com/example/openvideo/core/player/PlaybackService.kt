@@ -34,6 +34,7 @@ class PlaybackService : Service() {
     private var progressUpdatesRunning = false
 
     private var lastUiNotifyKey: String? = null
+    private var lastProgressBucket: Long = -1L
     private var lastMetadataTitle: String? = null
     private var lastMetadataDuration: Long? = null
 
@@ -43,9 +44,11 @@ class PlaybackService : Service() {
         const val ACTION_TOGGLE_PLAY_PAUSE = "com.example.openvideo.action.TOGGLE_PLAY_PAUSE"
         const val ACTION_SKIP_TO_NEXT = "com.example.openvideo.action.SKIP_TO_NEXT"
         const val ACTION_SKIP_TO_PREVIOUS = "com.example.openvideo.action.SKIP_TO_PREVIOUS"
+        const val ACTION_SEEK_TO_MS = "com.example.openvideo.action.SEEK_TO_MS"
         const val ACTION_DISMISS = "com.example.openvideo.action.DISMISS_PLAYBACK_NOTIFICATION"
         const val EXTRA_TITLE = "extra_title"
         const val EXTRA_IS_PLAYING = "extra_is_playing"
+        const val EXTRA_SEEK_POSITION_MS = "extra_seek_position_ms"
 
         // v2：提高重要性；已创建的 Channel 无法通过代码升级
         private const val CHANNEL_ID = "playback_channel_v2"
@@ -57,6 +60,22 @@ class PlaybackService : Service() {
         private const val REQUEST_PREVIOUS = 11
         private const val REQUEST_TOGGLE = 12
         private const val REQUEST_NEXT = 13
+        private const val REQUEST_SEEK_ZONE_BASE = 20
+
+        private val SEEK_ZONE_VIEW_IDS = intArrayOf(
+            R.id.seek_zone_0,
+            R.id.seek_zone_1,
+            R.id.seek_zone_2,
+            R.id.seek_zone_3,
+            R.id.seek_zone_4,
+            R.id.seek_zone_5,
+            R.id.seek_zone_6,
+            R.id.seek_zone_7,
+            R.id.seek_zone_8,
+            R.id.seek_zone_9,
+            R.id.seek_zone_10,
+            R.id.seek_zone_11
+        )
     }
 
     private val progressRefreshRunnable = object : Runnable {
@@ -167,6 +186,15 @@ class PlaybackService : Service() {
         publishNotification()
     }
 
+    private fun handleSeekToMs(positionMs: Long) {
+        playerManager.seekTo(positionMs)
+        publishNotification()
+        if (progressUpdatesRunning) {
+            refreshHandler.removeCallbacks(progressRefreshRunnable)
+            refreshHandler.post(progressRefreshRunnable)
+        }
+    }
+
     private fun publishNotification(
         titleOverride: String? = null,
         isPlayingOverride: Boolean? = null
@@ -185,10 +213,12 @@ class PlaybackService : Service() {
         }
 
         val uiKey = playbackNotificationUiKey(payload)
-        if (uiKey == lastUiNotifyKey) {
+        val progressBucket = PlaybackNotificationProgressPolicy.progressBucket(payload.positionMs)
+        if (uiKey == lastUiNotifyKey && progressBucket == lastProgressBucket) {
             return
         }
         lastUiNotifyKey = uiKey
+        lastProgressBucket = progressBucket
 
         startForeground(NOTIFICATION_ID, buildCustomNotification(payload))
     }
@@ -289,6 +319,7 @@ class PlaybackService : Service() {
             R.id.btn_play_pause,
             if (payload.isPlaying) R.drawable.ic_pause else R.drawable.ic_play
         )
+        applyPlaybackNotificationIconTint(views)
         views.setOnClickPendingIntent(
             R.id.btn_play_pause,
             servicePendingIntent(REQUEST_TOGGLE, ACTION_TOGGLE_PLAY_PAUSE)
@@ -316,7 +347,58 @@ class PlaybackService : Service() {
             )
         }
 
+        applyPlaybackNotificationProgress(views, payload)
+
         return views
+    }
+
+    private fun applyPlaybackNotificationProgress(
+        views: RemoteViews,
+        payload: NotificationPayload
+    ) {
+        val bar = PlaybackNotificationProgressPolicy.barState(
+            positionMs = payload.positionMs,
+            durationMs = payload.durationMs
+        )
+        val times = PlaybackNotificationProgressPolicy.timeLabels(
+            positionMs = payload.positionMs,
+            durationMs = payload.durationMs
+        )
+        val statusColor = ContextCompat.getColor(this, R.color.playback_notification_status)
+
+        views.setViewVisibility(
+            R.id.notification_progress_row,
+            if (bar.visible) View.VISIBLE else View.GONE
+        )
+        if (!bar.visible) {
+            return
+        }
+
+        views.setTextViewText(R.id.notification_time_elapsed, times.elapsed)
+        views.setTextViewText(R.id.notification_time_duration, times.duration)
+        views.setTextColor(R.id.notification_time_elapsed, statusColor)
+        views.setTextColor(R.id.notification_time_duration, statusColor)
+        views.setProgressBar(R.id.notification_progress, bar.max, bar.progress, false)
+
+        for (zoneIndex in 0 until PlaybackNotificationSeekPolicy.ZONE_COUNT) {
+            val viewId = SEEK_ZONE_VIEW_IDS[zoneIndex]
+            val seekMs = PlaybackNotificationSeekPolicy.seekPositionMs(
+                zoneIndex = zoneIndex,
+                durationMs = payload.durationMs
+            )
+            views.setOnClickPendingIntent(
+                viewId,
+                seekZonePendingIntent(zoneIndex, seekMs)
+            )
+        }
+    }
+
+    private fun applyPlaybackNotificationIconTint(views: RemoteViews) {
+        val iconColor = ContextCompat.getColor(this, R.color.playback_notification_icon)
+        listOf(R.id.btn_previous, R.id.btn_play_pause, R.id.btn_next).forEach { viewId ->
+            @Suppress("DEPRECATION")
+            views.setInt(viewId, "setColorFilter", iconColor)
+        }
     }
 
     private fun notificationStatusText(isPlaying: Boolean): String =
@@ -357,9 +439,21 @@ class PlaybackService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+    private fun seekZonePendingIntent(zoneIndex: Int, positionMs: Long): PendingIntent =
+        PendingIntent.getService(
+            this,
+            REQUEST_SEEK_ZONE_BASE + zoneIndex,
+            Intent(this, PlaybackService::class.java).apply {
+                action = ACTION_SEEK_TO_MS
+                putExtra(EXTRA_SEEK_POSITION_MS, positionMs)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
     private fun dismissNotificationAndStop() {
         stopProgressUpdates()
         lastUiNotifyKey = null
+        lastProgressBucket = -1L
         lastMetadataTitle = null
         lastMetadataDuration = null
         playbackCoordinator.clearSnapshot()
@@ -383,6 +477,7 @@ class PlaybackService : Service() {
         when (intent?.action) {
             ACTION_START -> {
                 lastUiNotifyKey = null
+                lastProgressBucket = -1L
                 lastMetadataTitle = null
                 lastMetadataDuration = null
                 val title = intent.getStringExtra(EXTRA_TITLE).orEmpty()
@@ -397,6 +492,10 @@ class PlaybackService : Service() {
             ACTION_TOGGLE_PLAY_PAUSE -> handleTogglePlayPause()
             ACTION_SKIP_TO_NEXT -> handleSkipToNext()
             ACTION_SKIP_TO_PREVIOUS -> handleSkipToPrevious()
+            ACTION_SEEK_TO_MS -> {
+                val positionMs = intent.getLongExtra(EXTRA_SEEK_POSITION_MS, 0L)
+                handleSeekToMs(positionMs)
+            }
         }
         return START_NOT_STICKY
     }
