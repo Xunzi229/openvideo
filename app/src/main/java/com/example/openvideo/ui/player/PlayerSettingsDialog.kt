@@ -523,12 +523,9 @@ class PlayerSettingsDialog(
     }
 
     private fun buildAspectPage() {
-        addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)
-        addAspectRow(context.getString(R.string.settings_ratio_16_9), AspectRatio.RATIO_16_9)
-        addAspectRow(context.getString(R.string.settings_ratio_4_3), AspectRatio.RATIO_4_3)
-        addAspectRow(context.getString(R.string.player_sheet_original_ratio), AspectRatio.FIT)
-        addAspectRow(context.getString(R.string.settings_ratio_crop), AspectRatio.CROP)
-        addAspectRow(context.getString(R.string.settings_ratio_stretch), AspectRatio.STRETCH)
+        PlayerAspectRatioOptions.entries.forEach { option ->
+            addAspectRow(context.getString(option.labelRes), option.ratio)
+        }
     }
 
     private fun buildDisplayPage() {

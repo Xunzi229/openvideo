@@ -572,24 +572,16 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showAspectRatioQuickDialog() {
-        val ratios = listOf(
-            AspectRatio.FIT to R.string.player_sheet_fit_screen,
-            AspectRatio.FILL to R.string.player_sheet_fill_screen,
-            AspectRatio.RATIO_16_9 to R.string.settings_ratio_16_9,
-            AspectRatio.RATIO_4_3 to R.string.settings_ratio_4_3,
-            AspectRatio.CROP to R.string.settings_ratio_crop,
-            AspectRatio.STRETCH to R.string.settings_ratio_stretch
-        )
         showExclusivePlayerDialog { onDismiss ->
             PlayerGlassSheetDialog.showSingleChoice(
                 context = this,
                 layoutInflater = layoutInflater,
                 titleRes = R.string.player_sheet_aspect_ratio,
-                choices = ratios.map { (ratio, titleRes) ->
+                choices = PlayerAspectRatioOptions.entries.map { option ->
                     PlayerGlassSheetChoice(
-                        value = ratio,
-                        label = getString(titleRes),
-                        selected = ratio == playerPrefs.aspectRatio
+                        value = option.ratio,
+                        label = getString(option.labelRes),
+                        selected = option.ratio == playerPrefs.aspectRatio
                     )
                 },
                 onDismiss = {
@@ -597,8 +589,13 @@ class PlayerActivity : AppCompatActivity() {
                     scheduleHideControls()
                 }
             ) { ratio ->
-                playerPrefs.aspectRatio = ratio
-                viewModel.setAspectRatio(ratio)
+                val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
+                    aspectRatio = ratio,
+                    currentContentFrameMode = playerPrefs.contentFrameMode
+                )
+                playerPrefs.aspectRatio = selection.aspectRatio
+                selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }
+                viewModel.setAspectRatio(selection.aspectRatio)
                 applyDisplaySettings()
             }
         }

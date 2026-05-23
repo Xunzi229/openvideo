@@ -86,6 +86,19 @@ class PlayerQuickEntrySourceTest {
         assertTrue(quickEntryBlock.indexOf("showExclusivePlayerDialog") < quickEntryBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
     }
 
+    @Test
+    fun aspectQuickDialogUsesSettingsOptionsAndSelectionPolicy() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    private fun showSpeedPickerDialog()")
+
+        assertTrue(aspectBlock.contains("PlayerAspectRatioOptions.entries"))
+        assertTrue(aspectBlock.contains("PlayerContentFrameSettingsPolicy.onAspectRatioSelected("))
+        assertTrue(aspectBlock.contains("currentContentFrameMode = playerPrefs.contentFrameMode"))
+        assertTrue(aspectBlock.contains("selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }"))
+        assertFalse(aspectBlock.contains("AspectRatio.FIT to R.string.player_sheet_fit_screen"))
+    }
+
     private fun playerActivitySource(): Path {
         val relativePath = Paths.get(
             "src",

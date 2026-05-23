@@ -213,17 +213,35 @@ object PlayerSmartCropBlackBorderDetector {
 
     private fun hasContentInRow(width: Int, y: Int, isBlackPixel: (Int, Int) -> Boolean): Boolean {
         var nonBlack = 0
+        var maxRun = 0
+        var currentRun = 0
         for (x in 0 until width) {
-            if (!isBlackPixel(x, y)) nonBlack++
+            if (!isBlackPixel(x, y)) {
+                nonBlack++
+                currentRun++
+                if (currentRun > maxRun) maxRun = currentRun
+            } else {
+                currentRun = 0
+            }
         }
-        return nonBlack.toFloat() / width > CONTENT_LINE_RATIO
+        val requiredRun = (width * CONTENT_RUN_FRACTION).toInt().coerceAtLeast(3)
+        return nonBlack.toFloat() / width > CONTENT_LINE_RATIO && maxRun >= requiredRun
     }
 
     private fun hasContentInColumn(height: Int, x: Int, isBlackPixel: (Int, Int) -> Boolean): Boolean {
         var nonBlack = 0
+        var maxRun = 0
+        var currentRun = 0
         for (y in 0 until height) {
-            if (!isBlackPixel(x, y)) nonBlack++
+            if (!isBlackPixel(x, y)) {
+                nonBlack++
+                currentRun++
+                if (currentRun > maxRun) maxRun = currentRun
+            } else {
+                currentRun = 0
+            }
         }
-        return nonBlack.toFloat() / height > CONTENT_LINE_RATIO
+        val requiredRun = (height * CONTENT_RUN_FRACTION).toInt().coerceAtLeast(3)
+        return nonBlack.toFloat() / height > CONTENT_LINE_RATIO && maxRun >= requiredRun
     }
 }

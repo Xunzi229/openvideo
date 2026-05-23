@@ -57,14 +57,22 @@ class PlayerSettingsDialogTest {
 
     @Test
     fun aspectPageHasOnlyOneFitStyleOption() {
+        val optionsSource = String(Files.readAllBytes(playerAspectRatioOptionsSource()))
+
+        assertFalse(optionsSource.contains("R.string.player_sheet_fit_screen"))
+        assertTrue(optionsSource.contains("R.string.player_sheet_original_ratio"))
+        assertTrue(optionsSource.contains("AspectRatio.FIT"))
+    }
+
+    @Test
+    fun aspectPageUsesSharedPlayerAspectOptions() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val aspectPageBlock = dialogSource
             .substringAfter("private fun buildAspectPage()")
             .substringBefore("\n    private fun buildDisplayPage")
 
-        assertFalse(aspectPageBlock.contains("R.string.player_sheet_fit_screen"))
-        assertTrue(aspectPageBlock.contains("R.string.player_sheet_original_ratio"))
-        assertTrue(aspectPageBlock.contains("AspectRatio.FIT"))
+        assertTrue(aspectPageBlock.contains("PlayerAspectRatioOptions.entries"))
+        assertFalse(aspectPageBlock.contains("addAspectRow(context.getString(R.string.player_sheet_fill_screen), AspectRatio.FILL)"))
     }
 
     @Test
@@ -498,6 +506,24 @@ class PlayerSettingsDialogTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerAspectRatioOptionsSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerAspectRatioOptions.kt"
         )
         return sequenceOf(
             relativePath,

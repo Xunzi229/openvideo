@@ -3,8 +3,27 @@ package com.example.openvideo.ui.player
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 class PlayerSmartCropBlackBorderDetectorTest {
+
+    @Test
+    fun contentBoundsUseCurrentDeviceTunedThresholds() {
+        val source = String(Files.readAllBytes(detectorSource()))
+
+        assertEquals(
+            "Expected the user-tuned line ratio to stay aligned with device testing.",
+            1,
+            Regex("""CONTENT_LINE_RATIO\s*=\s*0\.01f""").findAll(source).count()
+        )
+        assertEquals(
+            "Expected the user-tuned run fraction to stay aligned with device testing.",
+            1,
+            Regex("""CONTENT_RUN_FRACTION\s*=\s*0\.01f""").findAll(source).count()
+        )
+    }
 
     @Test
     fun detectsAllEdgesWhenContentIsCenteredInsideLargeBlackCanvas() {
@@ -143,5 +162,20 @@ class PlayerSmartCropBlackBorderDetectorTest {
         val bounds = PlayerSmartCropBlackBorderDetector.detectContentBounds(100, 80) { _, _ -> true }
 
         assertNull(bounds)
+    }
+
+    private fun detectorSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerSmartCropBlackBorderDetector.kt"
+        )
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
     }
 }
