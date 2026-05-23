@@ -17,11 +17,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.example.openvideo.R
-import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
+import com.example.openvideo.ui.player.PlayerAspectRatioOptions
 import com.example.openvideo.ui.player.PlayerGlassSheetChoice
 import com.example.openvideo.ui.player.PlayerGlassSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
@@ -193,14 +193,8 @@ class SettingsFragment : Fragment() {
     }
 
     private fun updateRatioLabel(tv: TextView) {
-        tv.text = when (viewModel.defaultRatio) {
-            AspectRatio.FIT -> getString(R.string.settings_ratio_fit)
-            AspectRatio.FILL -> getString(R.string.settings_ratio_fill)
-            AspectRatio.CROP -> getString(R.string.settings_ratio_crop)
-            AspectRatio.STRETCH -> getString(R.string.settings_ratio_stretch)
-            AspectRatio.RATIO_4_3 -> "4:3"
-            AspectRatio.RATIO_16_9 -> "16:9"
-        }
+        val option = PlayerAspectRatioOptions.entries.firstOrNull { it.ratio == viewModel.defaultRatio }
+        tv.text = option?.let { getString(it.labelRes) }.orEmpty()
     }
 
     private fun updateSpeedLabel(tv: TextView) {
@@ -208,17 +202,16 @@ class SettingsFragment : Fragment() {
     }
 
     private fun showDefaultRatioDialog(tvRatio: TextView) {
-        val ratios = AspectRatio.entries
         showExclusiveSettingsDialog { onDismiss ->
             PlayerGlassSheetDialog.showSingleChoice(
                 context = requireContext(),
                 layoutInflater = layoutInflater,
                 titleRes = R.string.settings_default_ratio,
-                choices = ratios.map { ratio ->
+                choices = PlayerAspectRatioOptions.entries.map { option ->
                     PlayerGlassSheetChoice(
-                        value = ratio,
-                        label = ratioLabel(ratio),
-                        selected = ratio == viewModel.defaultRatio
+                        value = option.ratio,
+                        label = getString(option.labelRes),
+                        selected = option.ratio == viewModel.defaultRatio
                     )
                 },
                 onDismiss = onDismiss
@@ -284,12 +277,4 @@ class SettingsFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun ratioLabel(ratio: AspectRatio): String = when (ratio) {
-        AspectRatio.FIT -> getString(R.string.settings_ratio_fit)
-        AspectRatio.FILL -> getString(R.string.settings_ratio_fill)
-        AspectRatio.CROP -> getString(R.string.settings_ratio_crop)
-        AspectRatio.STRETCH -> getString(R.string.settings_ratio_stretch)
-        AspectRatio.RATIO_4_3 -> "4:3"
-        AspectRatio.RATIO_16_9 -> "16:9"
-    }
 }

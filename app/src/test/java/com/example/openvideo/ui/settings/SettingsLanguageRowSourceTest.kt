@@ -30,11 +30,25 @@ class SettingsLanguageRowSourceTest {
         assertTrue(glassDialogSource.contains("R.layout.dialog_player_glass_sheet"))
         assertTrue(glassDialogSource.contains("R.layout.item_player_glass_sheet_row"))
         assertTrue(source.contains("DefaultPlayerSettings.supportedSpeeds"))
-        assertTrue(source.contains("AspectRatio.entries"))
+        assertTrue(source.contains("PlayerAspectRatioOptions.entries"))
         assertTrue(source.contains("viewModel.setDefaultRatio(ratio)"))
         assertTrue(source.contains("viewModel.setDefaultSpeed(speed)"))
         assertFalse(source.contains("ratios[next]"))
         assertFalse(source.contains("speeds[next]"))
+    }
+
+    @Test
+    fun defaultRatioDialogUsesPlayerAspectOptionsForOrderAndLabels() {
+        val source = settingsFragmentSource()
+        val ratioBlock = source.substringAfter("private fun showDefaultRatioDialog(tvRatio: TextView)")
+            .substringBefore("\n    private fun showDefaultSpeedDialog")
+
+        assertTrue(source.contains("import com.example.openvideo.ui.player.PlayerAspectRatioOptions"))
+        assertTrue(ratioBlock.contains("PlayerAspectRatioOptions.entries"))
+        assertTrue(ratioBlock.contains("value = option.ratio"))
+        assertTrue(ratioBlock.contains("label = getString(option.labelRes)"))
+        assertFalse(ratioBlock.contains("AspectRatio.entries"))
+        assertFalse(source.contains("private fun ratioLabel("))
     }
 
     @Test
@@ -43,7 +57,7 @@ class SettingsLanguageRowSourceTest {
         val ratioBlock = source.substringAfter("private fun showDefaultRatioDialog(tvRatio: TextView)")
             .substringBefore("\n    private fun showDefaultSpeedDialog")
         val speedBlock = source.substringAfter("private fun showDefaultSpeedDialog(tvSpeed: TextView)")
-            .substringBefore("\n    private fun ratioLabel")
+            .substringBefore("\n    private fun bindBackupSection")
 
         assertTrue(source.contains("private var activeSettingsDialog: Dialog? = null"))
         assertTrue(source.contains("private fun showExclusiveSettingsDialog("))
