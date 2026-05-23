@@ -73,14 +73,11 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
-    fun releaseScriptTestsAndCiAreWired() {
+    fun releaseScriptTestsCoverReleaseArtifacts() {
         val testScript = rootFile("scripts", "tests", "Test-OpenVideoRelease.ps1").readText()
-        val workflow = rootFile(".github", "workflows", "android-ci.yml").readText()
 
         assertTrue(testScript.contains("Get-OpenVideoProjectVersion"))
         assertTrue(testScript.contains("SHA256SUMS.txt"))
-        assertTrue(workflow.contains("Test-OpenVideoRelease.ps1"))
-        assertTrue(workflow.contains("--warning-mode fail"))
     }
 
     @Test

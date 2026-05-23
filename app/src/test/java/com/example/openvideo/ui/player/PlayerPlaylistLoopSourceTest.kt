@@ -36,8 +36,15 @@ class PlayerPlaylistLoopSourceTest {
             .substringAfter("private fun playNextQueueVideoAfterEnded(queue: List<VideoItem>, nextIndex: Int?)")
             .substringBefore("\n    private fun", missingDelimiterValue = "")
 
-        assertTrue(nextHandler.contains("viewModel.switchToVideo(queue[nextIndex])"))
+        assertTrue(nextHandler.contains("switchSessionVideo(queue[nextIndex])"))
         assertTrue(nextHandler.contains("applyPlayerSettings()"))
+
+        val switchHandler = source
+            .substringAfter("private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {})")
+            .substringBefore("\n    private fun", missingDelimiterValue = "")
+
+        assertTrue(switchHandler.contains("viewModel.switchToVideo(item)"))
+        assertTrue(switchHandler.contains("resetPlaybackSessionForNewVideo()"))
     }
 
     private fun playerActivitySource(): Path {

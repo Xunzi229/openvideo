@@ -57,6 +57,7 @@ import com.example.openvideo.core.player.PlaybackNotificationCoordinator
 import com.example.openvideo.core.player.PlaybackServiceIntents
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.prefs.ContentFrameMode
 import com.example.openvideo.core.prefs.DoubleTapAction
 import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
@@ -116,6 +117,9 @@ class PlayerActivity : AppCompatActivity() {
     private var contentFrameTransformRetryPosted = false
     private var manualVideoZoom = PlayerVideoZoomState.IDENTITY
     private var cachedBaseContentFrameTransform = PlayerContentFrameTransform.IDENTITY
+    private var smartCropViewportFillFraction: Float? = null
+    private var smartCropViewportScale: PlayerContentFrameViewportScale? = null
+    private var smartCropCropExpansionFraction: Float = 0f
 
     private val landscapeGeometryListener =
         View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -593,6 +597,49 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleSmartCropQuickToggle() {
+        val frameSize = contentFrameSourceSize(
+            width = null,
+            height = null,
+            pixelWidthHeightRatio = null,
+            unappliedRotationDegrees = null
+        )
+        val decision = PlayerSmartCropPolicy.quickToggleDecision(
+            currentMode = playerPrefs.contentFrameMode,
+            currentAspectRatio = playerPrefs.aspectRatio,
+            sourceWidth = frameSize.width,
+            sourceHeight = frameSize.height,
+            viewportWidth = playerView.width,
+            viewportHeight = playerView.height
+        )
+        val nextMode = decision.contentFrameMode
+        if (nextMode == null) {
+            Toast.makeText(this, R.string.player_smart_crop_unavailable, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        decision.aspectRatioOverride?.let { ratio ->
+            playerPrefs.aspectRatio = ratio
+            viewModel.setAspectRatio(ratio)
+        }
+        playerPrefs.contentFrameMode = decision.contentFrameMode
+        smartCropViewportFillFraction = decision.viewportFillFraction
+        smartCropViewportScale = decision.viewportScale
+        smartCropCropExpansionFraction = decision.cropExpansionFraction
+        manualVideoZoom = PlayerVideoZoomState.IDENTITY
+        applyDisplaySettings()
+        Toast.makeText(
+            this,
+            if (nextMode == ContentFrameMode.OFF) {
+                R.string.player_smart_crop_off
+            } else {
+                R.string.player_smart_crop_applied
+            },
+            Toast.LENGTH_SHORT
+        ).show()
+        scheduleHideControls()
+    }
+
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
         showExclusivePlayerDialog { onDismiss ->
@@ -844,6 +891,10 @@ class PlayerActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.tv_land_speed)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
             showSpeedPickerDialog()
+        }
+
+        findViewById<View>(R.id.btn_land_smart_crop)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
+            handleSmartCropQuickToggle()
         }
 
         findViewById<View>(R.id.btn_land_aspect)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
@@ -2318,13 +2369,49 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
         contentFrameTransformRetryPosted = false
+        val landscapeViewport = playerView.width > playerView.height
+        val smartCropActive = smartCropViewportScale != null && landscapeViewport
+        val transformContentFrameMode = if (!landscapeViewport) {
+            ContentFrameMode.OFF
+        } else {
+            playerPrefs.contentFrameMode
+        }
+        val restoredSmartCropDecision = if (!smartCropActive && landscapeViewport) {
+            PlayerSmartCropPolicy.restoredViewportDecision(
+                restoredMode = transformContentFrameMode,
+                sourceWidth = frameSize.width,
+                sourceHeight = frameSize.height,
+                viewportWidth = playerView.width,
+                viewportHeight = playerView.height
+            )
+        } else {
+            PlayerSmartCropDecision(contentFrameMode = null)
+        }
+        val transformViewportFillFraction = if (smartCropActive) {
+            smartCropViewportFillFraction ?: PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION
+        } else {
+            restoredSmartCropDecision.viewportFillFraction ?: 1f
+        }
+        val transformViewportScale = if (smartCropActive) {
+            smartCropViewportScale ?: PlayerContentFrameViewportScale.FILL
+        } else {
+            restoredSmartCropDecision.viewportScale ?: PlayerContentFrameViewportScale.FILL
+        }
+        val transformCropExpansionFraction = if (smartCropActive) {
+            smartCropCropExpansionFraction
+        } else {
+            restoredSmartCropDecision.cropExpansionFraction
+        }
         cachedBaseContentFrameTransform = PlayerContentFrameApplyPolicy.resolveTransform(
-            contentFrameMode = playerPrefs.contentFrameMode,
+            contentFrameMode = transformContentFrameMode,
             aspectRatio = playerPrefs.aspectRatio,
             sourceWidth = frameSize.width,
             sourceHeight = frameSize.height,
             viewportWidth = playerView.width,
-            viewportHeight = playerView.height
+            viewportHeight = playerView.height,
+            viewportFillFraction = transformViewportFillFraction,
+            viewportScale = transformViewportScale,
+            cropExpansionFraction = transformCropExpansionFraction
         )
         if (PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) {
             val (panX, panY) = PlayerVideoZoomPolicy.clampPanOffset(
@@ -2340,7 +2427,7 @@ class PlayerActivity : AppCompatActivity() {
             manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
         }
         val transform = PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
-            contentFrameMode = playerPrefs.contentFrameMode,
+            contentFrameMode = transformContentFrameMode,
             aspectRatio = playerPrefs.aspectRatio,
             sourceWidth = frameSize.width,
             sourceHeight = frameSize.height,
@@ -2348,9 +2435,20 @@ class PlayerActivity : AppCompatActivity() {
             viewportHeight = playerView.height,
             manualZoom = manualVideoZoom,
             frameWidth = contentFrame.width,
-            frameHeight = contentFrame.height
+            frameHeight = contentFrame.height,
+            viewportFillFraction = transformViewportFillFraction,
+            viewportScale = transformViewportScale,
+            cropExpansionFraction = transformCropExpansionFraction
         )
-        applyContentFrameTransform(contentFrame, frameSize, transform)
+        applyContentFrameTransform(
+            contentFrame = contentFrame,
+            frameSize = frameSize,
+            transform = transform,
+            transformContentFrameMode = transformContentFrameMode,
+            transformViewportFillFraction = transformViewportFillFraction,
+            transformViewportScale = transformViewportScale,
+            transformCropExpansionFraction = transformCropExpansionFraction
+        )
     }
 
     private fun contentFrameSourceSize(
@@ -2405,7 +2503,11 @@ class PlayerActivity : AppCompatActivity() {
     private fun applyContentFrameTransform(
         contentFrame: AspectRatioFrameLayout,
         frameSize: DisplayFrameSize,
-        transform: PlayerContentFrameTransform
+        transform: PlayerContentFrameTransform,
+        transformContentFrameMode: ContentFrameMode,
+        transformViewportFillFraction: Float,
+        transformViewportScale: PlayerContentFrameViewportScale,
+        transformCropExpansionFraction: Float
     ) {
         contentFrame.pivotX = PlayerContentFrameResetPolicy.PIVOT
         contentFrame.pivotY = PlayerContentFrameResetPolicy.PIVOT
@@ -2416,8 +2518,9 @@ class PlayerActivity : AppCompatActivity() {
         if (com.example.openvideo.BuildConfig.DEBUG) {
             android.util.Log.d(
                 TAG_CONTENT_FRAME,
-                "mode=${playerPrefs.contentFrameMode.key} aspect=${playerPrefs.aspectRatio.key} " +
+                "mode=${transformContentFrameMode.key} prefMode=${playerPrefs.contentFrameMode.key} aspect=${playerPrefs.aspectRatio.key} " +
                     "frame=${frameSize.width}x${frameSize.height} viewport=${playerView.width}x${playerView.height} " +
+                    "viewportFill=$transformViewportFillFraction viewportScale=$transformViewportScale cropExpand=$transformCropExpansionFraction " +
                     "scale=${transform.scale} tx=${transform.translationX} ty=${transform.translationY}"
             )
         }

@@ -367,6 +367,16 @@
             android:textStyle="bold" />
 
         <ImageButton
+            android:id="@+id/btn_land_smart_crop"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_player_lock_button"
+            android:contentDescription="@string/player_action_smart_crop"
+            android:src="@drawable/ic_cut"
+            app:tint="@color/player_icon" />
+
+        <ImageButton
             android:id="@+id/btn_land_aspect"
             android:layout_width="46dp"
             android:layout_height="46dp"

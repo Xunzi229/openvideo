@@ -3,6 +3,7 @@ package com.example.openvideo.ui.player
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.ContentFrameMode
 import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Normalized crop rectangle in **display-oriented** source space (0..1).
@@ -25,6 +26,18 @@ data class NormalizedRect(
 
     val widthFraction: Float get() = right - left
     val heightFraction: Float get() = bottom - top
+
+    fun expanded(fraction: Float): NormalizedRect {
+        if (!fraction.isFinite() || fraction <= 0f) return this
+        val horizontalPad = widthFraction * fraction / 2f
+        val verticalPad = heightFraction * fraction / 2f
+        return NormalizedRect(
+            left = (left - horizontalPad).coerceAtLeast(0f),
+            top = (top - verticalPad).coerceAtLeast(0f),
+            right = (right + horizontalPad).coerceAtMost(1f),
+            bottom = (bottom + verticalPad).coerceAtMost(1f)
+        )
+    }
 
     companion object {
         val FULL = NormalizedRect(0f, 0f, 1f, 1f)
@@ -66,6 +79,11 @@ enum class PlayerContentFrameMode {
     FIT_FULL,
     /** Zoom the [NormalizedRect] crop so it fills the viewport. */
     ZOOM_CROP
+}
+
+enum class PlayerContentFrameViewportScale {
+    FILL,
+    FIT_INSIDE
 }
 
 /** Resolved crop + transform for one playback frame. */
@@ -232,15 +250,25 @@ object PlayerContentFramePolicy {
     fun transformToFillViewport(
         viewportWidth: Int,
         viewportHeight: Int,
-        content: ContentFrameRect
+        content: ContentFrameRect,
+        viewportFillFraction: Float = 1f,
+        viewportScale: PlayerContentFrameViewportScale = PlayerContentFrameViewportScale.FILL,
+        contentFrameLeft: Float = 0f,
+        contentFrameTop: Float = 0f
     ): PlayerContentFrameTransform {
         if (viewportWidth <= 0 || viewportHeight <= 0) return PlayerContentFrameTransform.IDENTITY
         if (content.width <= 0f || content.height <= 0f) return PlayerContentFrameTransform.IDENTITY
 
-        val scale = max(
-            viewportWidth / content.width,
-            viewportHeight / content.height
-        )
+        val targetFraction = viewportFillFraction
+            .takeIf { it.isFinite() && it > 0f }
+            ?.coerceAtMost(1f)
+            ?: 1f
+        val widthScale = viewportWidth * targetFraction / content.width
+        val heightScale = viewportHeight * targetFraction / content.height
+        val scale = when (viewportScale) {
+            PlayerContentFrameViewportScale.FILL -> max(widthScale, heightScale)
+            PlayerContentFrameViewportScale.FIT_INSIDE -> min(widthScale, heightScale)
+        }
         val contentCenterX = content.left + content.width / 2f
         val contentCenterY = content.top + content.height / 2f
         val viewportCenterX = viewportWidth / 2f
@@ -248,8 +276,8 @@ object PlayerContentFramePolicy {
 
         return PlayerContentFrameTransform(
             scale = scale,
-            translationX = viewportCenterX - scale * contentCenterX,
-            translationY = viewportCenterY - scale * contentCenterY
+            translationX = viewportCenterX - contentFrameLeft - scale * contentCenterX,
+            translationY = viewportCenterY - contentFrameTop - scale * contentCenterY
         )
     }
 
@@ -259,13 +287,30 @@ object PlayerContentFramePolicy {
         sourceHeight: Int,
         viewportWidth: Int,
         viewportHeight: Int,
-        crop: NormalizedRect
+        crop: NormalizedRect,
+        viewportFillFraction: Float = 1f,
+        viewportScale: PlayerContentFrameViewportScale = PlayerContentFrameViewportScale.FILL,
+        cropExpansionFraction: Float = 0f
     ): PlayerContentFrameTransform {
         if (mode == PlayerContentFrameMode.FIT_FULL || isFullFrameCrop(crop)) {
             return PlayerContentFrameTransform.IDENTITY
         }
         val fitted = fittedVideoRect(sourceWidth, sourceHeight, viewportWidth, viewportHeight)
-        val content = contentFrameInViewport(fitted, crop)
-        return transformToFillViewport(viewportWidth, viewportHeight, content)
+        val expandedCrop = crop.expanded(cropExpansionFraction)
+        val content = ContentFrameRect(
+            left = expandedCrop.left * fitted.width,
+            top = expandedCrop.top * fitted.height,
+            width = expandedCrop.widthFraction * fitted.width,
+            height = expandedCrop.heightFraction * fitted.height
+        )
+        return transformToFillViewport(
+            viewportWidth = viewportWidth,
+            viewportHeight = viewportHeight,
+            content = content,
+            viewportFillFraction = viewportFillFraction,
+            viewportScale = viewportScale,
+            contentFrameLeft = fitted.left,
+            contentFrameTop = fitted.top
+        )
     }
 }

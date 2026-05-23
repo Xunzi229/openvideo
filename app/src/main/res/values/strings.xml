@@ -462,8 +462,12 @@
     <string name="player_action_screenshot">Screenshot</string>
     <string name="player_action_ab_loop">AB loop</string>
     <string name="player_action_pip">Picture-in-picture</string>
+    <string name="player_action_smart_crop">Smart crop</string>
     <string name="player_action_fullscreen">Fullscreen</string>
     <string name="player_action_lock">Lock</string>
+    <string name="player_smart_crop_applied">Smart crop applied</string>
+    <string name="player_smart_crop_off">Smart crop off</string>
+    <string name="player_smart_crop_unavailable">No smart crop suggestion for this video</string>
     <string name="player_video_list_title">List</string>
     <string name="player_portrait_speed">Speed</string>
     <string name="player_portrait_quality">Quality</string>

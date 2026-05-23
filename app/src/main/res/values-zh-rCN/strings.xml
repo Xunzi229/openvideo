@@ -458,8 +458,12 @@
     <string name="player_action_screenshot">截图</string>
     <string name="player_action_ab_loop">AB循环</string>
     <string name="player_action_pip">画中画</string>
+    <string name="player_action_smart_crop">智能裁边</string>
     <string name="player_action_fullscreen">全屏</string>
     <string name="player_action_lock">锁定</string>
+    <string name="player_smart_crop_applied">已应用智能裁边</string>
+    <string name="player_smart_crop_off">已关闭智能裁边</string>
+    <string name="player_smart_crop_unavailable">当前视频没有可用的智能裁边建议</string>
     <string name="player_video_list_title">列表</string>
     <string name="player_portrait_speed">倍速</string>
     <string name="player_portrait_quality">清晰度</string>

@@ -15,8 +15,12 @@ class PlayerHistorySourceTest {
             .substringBefore("\n    private fun applyPlayerSettings()")
 
         assertTrue(
-            "PlayerActivity should pass video_path into PlayerViewModel so local playback history keeps a playable local path",
-            onCreate.contains("viewModel.initialize(Uri.parse(uriString), title, id, videoPath)")
+            "PlayerActivity should sanitize the playback URI before initializing the player",
+            onCreate.contains("LocalMediaUriPolicy.playbackUri(uriString)")
+        )
+        assertTrue(
+            "PlayerActivity should still pass video_path into PlayerViewModel so local playback history keeps a playable local path",
+            onCreate.contains("viewModel.initialize(LocalMediaUriPolicy.playbackUri(uriString), title, id, videoPath)")
         )
     }
 

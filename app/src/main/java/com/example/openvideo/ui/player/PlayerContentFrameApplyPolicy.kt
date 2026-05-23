@@ -14,8 +14,14 @@ object PlayerContentFrameApplyPolicy {
         sourceWidth: Int,
         sourceHeight: Int,
         viewportWidth: Int,
-        viewportHeight: Int
+        viewportHeight: Int,
+        viewportFillFraction: Float = 1f,
+        viewportScale: PlayerContentFrameViewportScale = PlayerContentFrameViewportScale.FILL,
+        cropExpansionFraction: Float = 0f
     ): PlayerContentFrameTransform {
+        if (viewportWidth <= viewportHeight) {
+            return PlayerContentFrameTransform.IDENTITY
+        }
         val plan = PlayerContentFramePolicy.playbackPlan(
             contentFrameMode = contentFrameMode,
             aspectRatio = aspectRatio,
@@ -28,7 +34,10 @@ object PlayerContentFrameApplyPolicy {
             sourceHeight = sourceHeight,
             viewportWidth = viewportWidth,
             viewportHeight = viewportHeight,
-            crop = plan.crop
+            crop = plan.crop,
+            viewportFillFraction = viewportFillFraction,
+            viewportScale = viewportScale,
+            cropExpansionFraction = cropExpansionFraction
         )
     }
 
@@ -41,7 +50,10 @@ object PlayerContentFrameApplyPolicy {
         viewportHeight: Int,
         manualZoom: PlayerVideoZoomState,
         frameWidth: Int,
-        frameHeight: Int
+        frameHeight: Int,
+        viewportFillFraction: Float = 1f,
+        viewportScale: PlayerContentFrameViewportScale = PlayerContentFrameViewportScale.FILL,
+        cropExpansionFraction: Float = 0f
     ): PlayerContentFrameTransform {
         val base = resolveTransform(
             contentFrameMode = contentFrameMode,
@@ -49,7 +61,10 @@ object PlayerContentFrameApplyPolicy {
             sourceWidth = sourceWidth,
             sourceHeight = sourceHeight,
             viewportWidth = viewportWidth,
-            viewportHeight = viewportHeight
+            viewportHeight = viewportHeight,
+            viewportFillFraction = viewportFillFraction,
+            viewportScale = viewportScale,
+            cropExpansionFraction = cropExpansionFraction
         )
         if (!PlayerVideoZoomPolicy.allowsManualZoom(aspectRatio) ||
             !PlayerVideoZoomPolicy.isActive(manualZoom)
