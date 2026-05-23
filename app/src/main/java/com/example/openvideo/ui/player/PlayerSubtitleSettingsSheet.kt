@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import android.content.DialogInterface
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -19,7 +20,19 @@ import com.example.openvideo.core.prefs.SubtitleBgStyle
 class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
     override val layoutResId: Int = R.layout.activity_player_subtitle_settings
 
+    override fun settingsSheetPanelRootId(): Int = R.id.subtitle_settings_panel_root
+
+    override fun settingsSheetPlayerPrefs(): PlayerPrefs = playerPrefs
+
     @Inject lateinit var playerPrefs: PlayerPrefs
+
+    var onDismissListener: (() -> Unit)? = null
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        onDismissListener?.invoke()
+        onDismissListener = null
+    }
 
     private val pickSubtitleLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -29,10 +42,6 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             playerPrefs.externalSubtitleUri = uri.toString()
             dismiss()
         }
-    }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.activity_player_subtitle_settings, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -99,6 +108,13 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
                 updateSubtitlePreview()
             }
         })
+
+        PlayerSubtitleColorSwatchBinder.bind(
+            root = view.findViewById(R.id.subtitle_color_swatch_row),
+            playerPrefs = playerPrefs,
+            density = resources.displayMetrics.density,
+            onColorChanged = { updateSubtitlePreview() }
+        )
 
         val subtitleBgStyles = SubtitleBgStyle.entries.toTypedArray()
         var bgIndex = subtitleBgStyles.indexOf(playerPrefs.subtitleBgStyle).takeIf { it >= 0 } ?: 1

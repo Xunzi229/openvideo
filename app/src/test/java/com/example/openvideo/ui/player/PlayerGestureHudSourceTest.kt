@@ -104,6 +104,8 @@ class PlayerGestureHudSourceTest {
         val source = sourceFile("PlayerActivity.kt").readText()
 
         assertTrue(source.contains("resetPlaybackSessionForNewVideo()"))
+        assertTrue(source.contains("switchSessionVideo("))
+        assertTrue(source.contains("dismissSubtitleSettingsSheet()"))
         assertTrue(source.contains("PlayerVideoSwitchPolicy.resetForNewVideo()"))
         assertTrue(source.contains("abLoopState = reset.abLoopState"))
         assertTrue(source.contains("doubleTapSeekState = reset.doubleTapSeekState"))

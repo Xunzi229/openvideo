@@ -43,6 +43,7 @@ class PlayerStartupTrace(
         const val PLAYER_VIEW_ATTACHED = "player_view_attached"
         const val SUBTITLE_SCAN_FINISHED = "subtitle_scan_finished"
         const val PREPARE_READY = "prepare_ready"
+        const val READY_AFTER_BUFFERING = "ready_after_buffering"
         const val FIRST_FRAME_RENDERED = "first_frame_rendered"
         const val FIRST_FRAME_TIMEOUT = "first_frame_timeout"
     }

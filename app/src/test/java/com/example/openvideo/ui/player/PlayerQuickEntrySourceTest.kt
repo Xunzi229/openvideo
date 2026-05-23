@@ -44,6 +44,9 @@ class PlayerQuickEntrySourceTest {
         assertTrue(subtitleDialogBlock.contains("playerPrefs.subtitleDelayMs += action.deltaMs"))
         assertTrue(subtitleDialogBlock.contains("playerPrefs.subtitleDelayMs = 0"))
         assertTrue(subtitleDialogBlock.contains("applySubtitlePresentation()"))
+        assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryAction.OpenSubtitleSettings"))
+        assertTrue(subtitleDialogBlock.contains("openSubtitleSettingsSheet()"))
+        assertFalse(subtitleDialogBlock.contains("OpenSubtitleSettings ->\n                    openPlayerSettingsDialog()"))
     }
 
     @Test

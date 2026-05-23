@@ -176,6 +176,7 @@ class PlayerActivity : AppCompatActivity() {
     // 防止 onVideoSizeChanged 等回调把用户操作冲掉。切到下一首视频时复位。
     private var userOverrodeOrientation = false
     private var isLongPressing = false
+    private var playbackWasBuffering = false
     private var doubleTapSeekState: DoubleTapSeekState? = null
     private var doubleTapSeekAnchorPositionMs: Long? = null
     private var keepGestureHudAfterActionUp = false
@@ -508,10 +509,7 @@ class PlayerActivity : AppCompatActivity() {
                 videos = queue,
                 playingVideoId = viewModel.playingVideoId,
                 onPick = { item ->
-                    showFirstFrameScrim()
-                    preApplyOrientationForItem(item)
-                    viewModel.switchToVideo(item) {
-                        resetPlaybackSessionForNewVideo()
+                    switchSessionVideo(item) {
                         currentVideoUriString = item.uri.toString()
                         currentVideoPath = item.path
                         tvTitle.text = item.title
@@ -745,9 +743,43 @@ class PlayerActivity : AppCompatActivity() {
                 PlayerQuickEntryAction.PickSubtitleFile ->
                     pickSubtitleLauncher.launch(arrayOf("*/*"))
                 PlayerQuickEntryAction.OpenSubtitleSettings ->
-                    openPlayerSettingsDialog()
+                    openSubtitleSettingsSheet()
                 else -> Unit
             }
+        }
+    }
+
+    private fun openSubtitleSettingsSheet() {
+        if (supportFragmentManager.findFragmentByTag(SUBTITLE_SETTINGS_SHEET_TAG) != null) return
+        handler.removeCallbacks(hideControlsRunnable)
+        controlsVisibleBeforeSettingsOverlay = controlsVisible
+        isSettingsOverlayVisible = true
+        hideChromeForSettingsOverlay()
+        PlayerSubtitleSettingsSheet().apply {
+            onDismissListener = ::onSubtitleSettingsSheetDismissed
+        }.show(supportFragmentManager, SUBTITLE_SETTINGS_SHEET_TAG)
+    }
+
+    private fun onSubtitleSettingsSheetDismissed() {
+        if (!isSettingsOverlayVisible) return
+        isSettingsOverlayVisible = false
+        restoreChromeAfterSettingsOverlay()
+        applyPlayerSettings()
+        scheduleHideControls()
+    }
+
+    private fun dismissSubtitleSettingsSheet() {
+        (supportFragmentManager.findFragmentByTag(SUBTITLE_SETTINGS_SHEET_TAG) as? PlayerSubtitleSettingsSheet)
+            ?.dismissAllowingStateLoss()
+    }
+
+    private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {}) {
+        dismissSubtitleSettingsSheet()
+        showFirstFrameScrim()
+        preApplyOrientationForItem(item)
+        viewModel.switchToVideo(item) {
+            resetPlaybackSessionForNewVideo()
+            onSwitched()
         }
     }
 
@@ -931,6 +963,19 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                val readyTraceUpdate = PlayerPlaybackReadyTracePolicy.onPlaybackStateChanged(
+                    playbackState = playbackState,
+                    wasBuffering = playbackWasBuffering,
+                    hasRecordedPrepareReady = startupTrace.hasRecorded(PlayerStartupTrace.Events.PREPARE_READY)
+                )
+                playbackWasBuffering = readyTraceUpdate.nextWasBuffering
+                when (readyTraceUpdate.readyTraceEvent) {
+                    PlayerPlaybackReadyTracePolicy.ReadyTraceEvent.RECOVERED_AFTER_BUFFERING ->
+                        startupTrace.record(PlayerStartupTrace.Events.READY_AFTER_BUFFERING)
+                    PlayerPlaybackReadyTracePolicy.ReadyTraceEvent.FIRST_PREPARE_READY,
+                    null -> Unit
+                }
+
                 if (playbackState == Player.STATE_READY) {
                     val state = viewModel.uiState.value
                     applyPlaybackTickSeek(state.currentPosition, state.duration)
@@ -1182,11 +1227,8 @@ class PlayerActivity : AppCompatActivity() {
         if (nextIndex == null) return
 
         isSwitchingQueueAfterEnded = true
-        showFirstFrameScrim()
-        preApplyOrientationForItem(queue[nextIndex])
-        viewModel.switchToVideo(queue[nextIndex]) {
+        switchSessionVideo(queue[nextIndex]) {
             isSwitchingQueueAfterEnded = false
-            resetPlaybackSessionForNewVideo()
             currentVideoUriString = queue[nextIndex].uri.toString()
             currentVideoPath = queue[nextIndex].path
             tvTitle.text = queue[nextIndex].title
@@ -1213,6 +1255,7 @@ class PlayerActivity : AppCompatActivity() {
         keepGestureHudAfterActionUp = reset.keepGestureHudAfterActionUp
         isAwaitingFirstFrame = reset.awaitFirstFrame
         manualVideoZoom = reset.manualVideoZoom
+        playbackWasBuffering = false
         lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()
         btnAbLoop?.clearColorFilter()
         hideGestureHud()
@@ -2502,10 +2545,7 @@ class PlayerActivity : AppCompatActivity() {
             PlayerQueueSkipPolicy.previousIndex(currentIndex, queue.size, playerPrefs.loopMode)
         } ?: return
         val item = queue[targetIndex]
-        showFirstFrameScrim()
-        preApplyOrientationForItem(item)
-        viewModel.switchToVideo(item) {
-            resetPlaybackSessionForNewVideo()
+        switchSessionVideo(item) {
             currentVideoUriString = item.uri.toString()
             currentVideoPath = item.path
             tvTitle.text = item.title
@@ -2572,6 +2612,7 @@ class PlayerActivity : AppCompatActivity() {
         )
 
     companion object {
+        private const val SUBTITLE_SETTINGS_SHEET_TAG = "player_subtitle_settings_sheet"
         private const val TAG_CONTENT_FRAME = "OVContentFrame"
         private const val PREFS_NOTIFICATION_PERMISSION = "notification_permission"
         private const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"

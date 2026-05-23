@@ -10,6 +10,25 @@ import java.nio.file.Paths
 class PlayerSettingsActivityIntegrationTest {
 
     @Test
+    fun subtitleSettingsSheetHidesControlsWhileOpenAndRestoresOnDismiss() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val openBlock = source
+            .substringAfter("private fun openSubtitleSettingsSheet()")
+            .substringBefore("\n    private fun onSubtitleSettingsSheetDismissed()")
+        val dismissBlock = source
+            .substringAfter("private fun onSubtitleSettingsSheetDismissed()")
+            .substringBefore("\n    private fun dismissSubtitleSettingsSheet()")
+
+        assertTrue(openBlock.contains("hideChromeForSettingsOverlay()"))
+        assertTrue(openBlock.contains("isSettingsOverlayVisible = true"))
+        assertTrue(openBlock.contains("onDismissListener = ::onSubtitleSettingsSheetDismissed"))
+        assertTrue(dismissBlock.contains("restoreChromeAfterSettingsOverlay()"))
+        assertTrue(dismissBlock.contains("isSettingsOverlayVisible = false"))
+        assertTrue(dismissBlock.contains("applyPlayerSettings()"))
+        assertTrue(dismissBlock.contains("scheduleHideControls()"))
+    }
+
+    @Test
     fun settingsSheetWeakensControlsAndImmediatePreferencesAffectPlaybackChrome() {
         val source = String(Files.readAllBytes(playerActivitySource()))
 

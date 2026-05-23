@@ -72,6 +72,7 @@ class PlayerStartupTraceTest {
         assertEquals("player_view_attached", PlayerStartupTrace.Events.PLAYER_VIEW_ATTACHED)
         assertEquals("subtitle_scan_finished", PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
         assertEquals("prepare_ready", PlayerStartupTrace.Events.PREPARE_READY)
+        assertEquals("ready_after_buffering", PlayerStartupTrace.Events.READY_AFTER_BUFFERING)
         assertEquals("first_frame_rendered", PlayerStartupTrace.Events.FIRST_FRAME_RENDERED)
         assertEquals("first_frame_timeout", PlayerStartupTrace.Events.FIRST_FRAME_TIMEOUT)
     }

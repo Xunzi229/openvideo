@@ -240,6 +240,8 @@ class PlayerActivityP9SlimmingSourceTest {
             "PlayerContentFrameResetPolicy.PIVOT",
             "PlayerGesturePolicy.shouldApplyVerticalSeekOnRelease",
             "PlayerGesturePolicy.isValidDoubleTapSeekSide",
+            "PlayerGesturePolicy.allowsVerticalLevelGesture",
+            "PlayerPlaybackReadyTracePolicy.onPlaybackStateChanged",
             "PlayerSettingsSheetStylePolicy.supportsBackdropBlur"
         )
         for (snippet in required) {

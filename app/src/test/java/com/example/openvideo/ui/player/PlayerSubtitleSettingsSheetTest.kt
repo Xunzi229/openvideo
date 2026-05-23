@@ -22,6 +22,10 @@ class PlayerSubtitleSettingsSheetTest {
         val layout = String(Files.readAllBytes(playerSubtitleSettingsLayout()))
 
         assertTrue(layout.contains("@+id/tv_subtitle_preview"))
+        assertTrue(layout.contains("@+id/subtitle_settings_panel_root"))
+        assertTrue(layout.contains("@drawable/bg_player_settings_sheet"))
+        assertTrue(layout.contains("@+id/swatch_subtitle_color_0"))
+        assertTrue(layout.contains("@+id/subtitle_color_swatch_row"))
         assertTrue(layout.contains("@+id/tv_subtitle_delay_value"))
         assertTrue(layout.contains("@+id/btn_subtitle_delay_minus"))
         assertTrue(layout.contains("@+id/btn_subtitle_delay_plus"))
@@ -39,9 +43,34 @@ class PlayerSubtitleSettingsSheetTest {
             assertTrue(source.contains("tv_subtitle_delay_value"))
             assertTrue(source.contains("updateSubtitlePreview()"))
             assertTrue(source.contains("PlayerSubtitleSettingsPreviewPolicy.apply"))
+            assertTrue(source.contains("PlayerSubtitleColorSwatchBinder.bind"))
             assertTrue(source.contains("updateSubtitleDelayText()"))
             assertTrue(source.contains("playerPrefs.subtitleDelayMs"))
         }
+        val sheetSource = String(Files.readAllBytes(playerSubtitleSettingsSheetSource()))
+        val baseSheetSource = String(Files.readAllBytes(baseSettingsSheetSource()))
+        assertTrue(sheetSource.contains("settingsSheetPanelRootId()"))
+        assertTrue(baseSheetSource.contains("PlayerSettingsSheetChrome.applyDialogChrome"))
+        assertTrue(baseSheetSource.contains("DialogFragment"))
+        assertFalse(baseSheetSource.contains("BottomSheetDialogFragment"))
+    }
+
+    private fun baseSettingsSheetSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "BaseSettingsSheet.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
     }
 
     private fun playerSubtitleSettingsSheetSource(): Path {

@@ -96,6 +96,13 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
             }
         })
 
+        PlayerSubtitleColorSwatchBinder.bind(
+            root = findViewById(R.id.subtitle_color_swatch_row),
+            playerPrefs = playerPrefs,
+            density = resources.displayMetrics.density,
+            onColorChanged = { updateSubtitlePreview() }
+        )
+
         // Subtitle background
         val subtitleBgStyles = com.example.openvideo.core.prefs.SubtitleBgStyle.entries.toTypedArray()
         var bgIndex = subtitleBgStyles.indexOf(playerPrefs.subtitleBgStyle).takeIf { it >= 0 } ?: 1

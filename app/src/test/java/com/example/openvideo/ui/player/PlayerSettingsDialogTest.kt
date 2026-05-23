@@ -20,8 +20,9 @@ class PlayerSettingsDialogTest {
         assertTrue(source.contains("setupPrimaryGrid()"))
         assertTrue(source.contains("showDetailPage("))
         assertTrue(source.contains("showPrimaryPage()"))
-        assertTrue(source.contains("PlayerSettingsLayoutPolicy.panelBounds"))
-        assertTrue(source.contains("PlayerSettingsLayoutPolicy.panelGravity"))
+        assertTrue(source.contains("PlayerSettingsSheetChrome.applyWindowLayout"))
+        assertTrue(source.contains("PlayerSettingsSheetChrome.applyBackdrop"))
+        assertTrue(source.contains("PlayerSettingsSheetChrome.applyPanelOpacity"))
 
         assertFalse(source.contains("PlayerDisplaySettingsActivity"))
         assertFalse(source.contains("PlayerPlaybackSettingsActivity"))
@@ -88,6 +89,19 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun subtitlePageUsesInlineColorSwatchesInsteadOfTextChoiceRow() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val subtitlePage = dialogSource
+            .substringAfter("private fun buildSubtitlePage()")
+            .substringBefore("\n    private fun buildAspectPage()")
+
+        assertTrue(subtitlePage.contains("addSubtitleColorSwatchRow()"))
+        assertFalse(subtitlePage.contains("title = context.getString(R.string.settings_subtitle_color)"))
+        assertTrue(dialogSource.contains("private fun addSubtitleColorSwatchRow()"))
+        assertTrue(dialogSource.contains("PlayerSubtitleColorSwatchBinder.bindSwatches"))
+    }
+
+    @Test
     fun playlistAndShareActionsAreWiredToRealPlaybackData() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val viewModelSource = String(Files.readAllBytes(playerViewModelSource()))
@@ -114,6 +128,7 @@ class PlayerSettingsDialogTest {
     @Test
     fun playerSettingsSheetUsesTransparentGlassOverVideo() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val chromeSource = String(Files.readAllBytes(playerSettingsSheetChromeSource()))
         val prefsSource = String(Files.readAllBytes(playerPrefsSource()))
         val portraitSheet = String(Files.readAllBytes(playerSettingsSheetDrawable()))
         val landscapeSheet = String(Files.readAllBytes(playerSettingsLandscapeSheetDrawable()))
@@ -131,12 +146,14 @@ class PlayerSettingsDialogTest {
         }
 
         assertTrue(
-            "Android 12+ blur radius is applied from prefs via applySheetWindowBackdrop.",
-            dialogSource.contains("applySheetWindowBackdrop") && dialogSource.contains("setBackgroundBlurRadius")
+            "Android 12+ blur radius is applied from prefs via shared sheet chrome.",
+            dialogSource.contains("PlayerSettingsSheetChrome.applyBackdrop") &&
+                chromeSource.contains("setBackgroundBlurRadius")
         )
         assertTrue(
             "Dim strength comes from prefs.",
-            dialogSource.contains("settingsSheetBackdropDimPercent") && dialogSource.contains("setDimAmount")
+            dialogSource.contains("settingsSheetBackdropDimPercent") &&
+                chromeSource.contains("setDimAmount")
         )
         assertTrue(
             "Player settings panel should default to 60% opacity when the user has not changed it.",
@@ -147,13 +164,14 @@ class PlayerSettingsDialogTest {
     @Test
     fun playerSettingsSheetLooksLikeAFloatingRightGlassPanel() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val chromeSource = String(Files.readAllBytes(playerSettingsSheetChromeSource()))
         val layout = String(Files.readAllBytes(playerSettingsLayout()))
         val landscapeSheet = String(Files.readAllBytes(playerSettingsLandscapeSheetDrawable()))
 
-        assertTrue(dialogSource.contains("PlayerSettingsLayoutPolicy.landscapeMarginPx("))
-        assertTrue(dialogSource.contains("attributes = attributes.apply"))
-        assertTrue(dialogSource.contains("x = PlayerSettingsLayoutPolicy.landscapeMarginPx"))
-        assertTrue(dialogSource.contains("decorView.elevation = dp(20).toFloat()"))
+        assertTrue(chromeSource.contains("PlayerSettingsLayoutPolicy.landscapeMarginPx("))
+        assertTrue(chromeSource.contains("PlayerSettingsLayoutPolicy.panelBounds"))
+        assertTrue(chromeSource.contains("window.decorView.elevation = 20f * density"))
+        assertTrue(dialogSource.contains("PlayerSettingsSheetChrome.applyWindowLayout"))
 
         assertTrue(layout.contains("android:elevation=\"20dp\""))
         assertTrue(layout.contains("android:scrollbarThumbVertical=\"@drawable/bg_player_settings_scrollbar_thumb\""))
@@ -412,6 +430,24 @@ class PlayerSettingsDialogTest {
             "ui",
             "player",
             "PlayerSettingsDialog.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerSettingsSheetChromeSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerSettingsSheetChrome.kt"
         )
         return sequenceOf(
             relativePath,

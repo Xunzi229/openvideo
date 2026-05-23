@@ -168,20 +168,14 @@ class PlayerSettingsDialog(
             false
         }
 
-        window?.apply {
-            val width = context.resources.displayMetrics.widthPixels
-            val height = context.resources.displayMetrics.heightPixels
-            val density = context.resources.displayMetrics.density
-            val bounds = PlayerSettingsLayoutPolicy.panelBounds(width, height, density)
-            setLayout(bounds.width, bounds.height)
-            setGravity(PlayerSettingsLayoutPolicy.panelGravity(width, height))
-            attributes = attributes.apply {
-                x = PlayerSettingsLayoutPolicy.landscapeMarginPx(width, height, density)
-            }
-            applySheetWindowBackdrop()
-            setBackgroundDrawableResource(android.R.color.transparent)
-            decorView.setPadding(0, 0, 0, 0)
-            decorView.elevation = dp(20).toFloat()
+        window?.let {
+            PlayerSettingsSheetChrome.applyWindowLayout(
+                it,
+                context.resources.displayMetrics.widthPixels,
+                context.resources.displayMetrics.heightPixels,
+                context.resources.displayMetrics.density
+            )
+            PlayerSettingsSheetChrome.applyBackdrop(it, playerPrefs, context.resources.displayMetrics.density)
         }
 
         runCatching {
@@ -214,7 +208,7 @@ class PlayerSettingsDialog(
     override fun onStart() {
         super.onStart()
         applySettingsSheetOpacity()
-        applySheetWindowBackdrop()
+        window?.let { PlayerSettingsSheetChrome.applyBackdrop(it, playerPrefs, context.resources.displayMetrics.density) }
     }
 
     override fun dismiss() {
@@ -318,22 +312,15 @@ class PlayerSettingsDialog(
      * 滑块存的是「不透明度」百分比：100%=完全不透明，0%=最透明。
      * `alpha` 与不透明度一致，不与「透明度」反向。
      */
-    private fun panelAlphaFromStoredOpacityPercent(percent: Int): Float =
-        percent.coerceIn(0, 100) / 100f
 
     private fun applySettingsSheetOpacity() {
         if (!::settingsPanelRoot.isInitialized) return
-        settingsPanelRoot.alpha = panelAlphaFromStoredOpacityPercent(playerPrefs.settingsPanelOpacity)
+        PlayerSettingsSheetChrome.applyPanelOpacity(settingsPanelRoot, playerPrefs)
     }
 
     private fun applySheetWindowBackdrop() {
-        window?.apply {
-            setDimAmount(playerPrefs.settingsSheetBackdropDimPercent.coerceIn(0, 100) / 100f)
-            addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val blurDp = playerPrefs.settingsSheetBackdropBlurDp.coerceIn(0, 64)
-                setBackgroundBlurRadius(if (blurDp > 0) dp(blurDp) else 0)
-            }
+        window?.let {
+            PlayerSettingsSheetChrome.applyBackdrop(it, playerPrefs, context.resources.displayMetrics.density)
         }
     }
 
@@ -515,15 +502,7 @@ class PlayerSettingsDialog(
         ) { value ->
             playerPrefs.subtitleSize = value
         }
-        addChoiceRow(
-            title = context.getString(R.string.settings_subtitle_color),
-            value = context.getString(subtitleColorOptionFor(playerPrefs.subtitleColor).labelRes),
-            options = subtitleColorOptions.map { context.getString(it.labelRes) }
-        ) { selected ->
-            subtitleColorOptions.firstOrNull { context.getString(it.labelRes) == selected }?.let {
-                playerPrefs.subtitleColor = it.color
-            }
-        }
+        addSubtitleColorSwatchRow()
         addChoiceRow(
             title = context.getString(R.string.settings_subtitle_bg),
             value = subtitleBgLabel(playerPrefs.subtitleBgStyle),
@@ -1449,6 +1428,49 @@ class PlayerSettingsDialog(
         addDivider(detailContainer)
     }
 
+    private fun addSubtitleColorSwatchRow() {
+        val density = context.resources.displayMetrics.density
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(8), 0, dp(8))
+        }
+        row.addView(TextView(context).apply {
+            text = context.getString(R.string.settings_subtitle_color)
+            setTextColor(Color.WHITE)
+            textSize = 15f
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+            includeFontPadding = false
+        })
+        val swatchRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+            }
+        }
+        val swatches = PlayerSubtitleColorPolicy.options.mapIndexed { index, _ ->
+            PlayerSubtitleColorSwatchBinder.createSwatchView(context, dp(36)).also { swatch ->
+                val lp = swatch.layoutParams as LinearLayout.LayoutParams
+                if (index > 0) lp.marginStart = dp(16)
+                swatchRow.addView(swatch)
+            }
+        }
+        PlayerSubtitleColorSwatchBinder.bindSwatches(
+            swatches = swatches,
+            context = context,
+            playerPrefs = playerPrefs,
+            density = density,
+            onColorChanged = {}
+        )
+        row.addView(swatchRow)
+        detailContainer.addView(row)
+        addDivider(detailContainer)
+    }
+
     private fun addChoiceRow(
         title: String,
         value: String,
@@ -1580,20 +1602,6 @@ class PlayerSettingsDialog(
 
     private fun subtitleEncodingLabel(value: String): String =
         if (value == "auto") context.getString(R.string.settings_encoding_auto) else value
-
-    private data class SubtitleColorOption(val labelRes: Int, val color: Int)
-
-    private val subtitleColorOptions: Array<SubtitleColorOption> by lazy {
-        arrayOf(
-            SubtitleColorOption(R.string.player_settings_subtitle_color_white, 0xFFFFFFFF.toInt()),
-            SubtitleColorOption(R.string.player_settings_subtitle_color_yellow, 0xFFFFEB3B.toInt()),
-            SubtitleColorOption(R.string.player_settings_subtitle_color_green, 0xFF8BC34A.toInt()),
-            SubtitleColorOption(R.string.player_settings_subtitle_color_blue, 0xFF64B5F6.toInt())
-        )
-    }
-
-    private fun subtitleColorOptionFor(color: Int): SubtitleColorOption =
-        subtitleColorOptions.firstOrNull { it.color == color } ?: subtitleColorOptions.first()
 
     private fun <T : View> requireView(id: Int): T =
         findViewById<T>(id) ?: error("Missing player settings view: $id")
