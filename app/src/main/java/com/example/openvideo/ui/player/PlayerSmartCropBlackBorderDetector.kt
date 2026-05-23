@@ -3,6 +3,7 @@ package com.example.openvideo.ui.player
 object PlayerSmartCropBlackBorderDetector {
     private const val MIN_BORDER_FRACTION = 0.08f
     private const val BLACK_LINE_RATIO = 0.92f
+    private const val CONTENT_LINE_RATIO = 0.02f
 
     data class ContentBounds(
         val left: Int,
@@ -62,20 +63,11 @@ object PlayerSmartCropBlackBorderDetector {
     ): ContentBounds? {
         if (width <= 0 || height <= 0) return null
 
-        var left = width
-        var top = height
-        var right = -1
-        var bottom = -1
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                if (!isBlackPixel(x, y)) {
-                    if (x < left) left = x
-                    if (x + 1 > right) right = x + 1
-                    if (y < top) top = y
-                    if (y + 1 > bottom) bottom = y + 1
-                }
-            }
-        }
+        val top = firstContentRow(width, height, isBlackPixel) ?: return null
+        val bottom = lastContentRow(width, height, isBlackPixel) ?: return null
+        val left = firstContentColumn(width, height, isBlackPixel) ?: return null
+        val right = lastContentColumn(width, height, isBlackPixel) ?: return null
+
         if (right <= left || bottom <= top) return null
         return ContentBounds(left = left, top = top, right = right, bottom = bottom)
     }
@@ -130,5 +122,49 @@ object PlayerSmartCropBlackBorderDetector {
             if (isBlackPixel(x, y)) black++
         }
         return black.toFloat() / height >= BLACK_LINE_RATIO
+    }
+
+    private fun firstContentRow(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        for (y in 0 until height) {
+            if (hasContentInRow(width, y, isBlackPixel)) return y
+        }
+        return null
+    }
+
+    private fun lastContentRow(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        for (y in height - 1 downTo 0) {
+            if (hasContentInRow(width, y, isBlackPixel)) return y + 1
+        }
+        return null
+    }
+
+    private fun firstContentColumn(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        for (x in 0 until width) {
+            if (hasContentInColumn(height, x, isBlackPixel)) return x
+        }
+        return null
+    }
+
+    private fun lastContentColumn(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        for (x in width - 1 downTo 0) {
+            if (hasContentInColumn(height, x, isBlackPixel)) return x + 1
+        }
+        return null
+    }
+
+    private fun hasContentInRow(width: Int, y: Int, isBlackPixel: (Int, Int) -> Boolean): Boolean {
+        var nonBlack = 0
+        for (x in 0 until width) {
+            if (!isBlackPixel(x, y)) nonBlack++
+        }
+        return nonBlack.toFloat() / width > CONTENT_LINE_RATIO
+    }
+
+    private fun hasContentInColumn(height: Int, x: Int, isBlackPixel: (Int, Int) -> Boolean): Boolean {
+        var nonBlack = 0
+        for (y in 0 until height) {
+            if (!isBlackPixel(x, y)) nonBlack++
+        }
+        return nonBlack.toFloat() / height > CONTENT_LINE_RATIO
     }
 }

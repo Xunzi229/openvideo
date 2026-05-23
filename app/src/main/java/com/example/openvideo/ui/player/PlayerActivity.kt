@@ -10,7 +10,6 @@ import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
@@ -606,30 +605,54 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun handleSmartCropQuickToggle() {
+        logSmartCrop(
+            "smartCropClick activeMode=${smartCropContentFrameMode?.key} override=$smartCropTransformOverride " +
+                "viewport=${playerView.width}x${playerView.height}"
+        )
         if (smartCropContentFrameMode != null || smartCropTransformOverride != null) {
             clearSmartCropSession()
             applyDisplaySettings()
+            logSmartCrop("smartCropClick toggledOff")
             Toast.makeText(this, R.string.player_smart_crop_off, Toast.LENGTH_SHORT).show()
             scheduleHideControls()
             return
         }
-        hideControls()
+        hideControlsForSmartCropCapture()
         playerView.postDelayed({
             captureSmartCropVisualBounds { bounds ->
+                logSmartCrop("smartCropVisualBounds $bounds")
                 if (bounds != null && applySmartCropBounds(bounds)) {
                     Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
                     scheduleHideControls()
                     return@captureSmartCropVisualBounds
                 }
-                captureSmartCropBlackBorders { blackBorders ->
-                    if (blackBorders == null) {
-                        Toast.makeText(this, R.string.player_smart_crop_unavailable, Toast.LENGTH_SHORT).show()
-                        return@captureSmartCropBlackBorders
+                captureSmartCropRenderBounds { renderBounds ->
+                    logSmartCrop("smartCropRenderBounds $renderBounds")
+                    if (renderBounds != null && applySmartCropBounds(renderBounds)) {
+                        Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
+                        scheduleHideControls()
+                        return@captureSmartCropRenderBounds
                     }
-                    applySmartCropQuickToggle(blackBorders)
+                    captureSmartCropBlackBorders { blackBorders ->
+                        logSmartCrop("smartCropBlackBorders $blackBorders")
+                        if (blackBorders == null) {
+                            Toast.makeText(this, R.string.player_smart_crop_unavailable, Toast.LENGTH_SHORT).show()
+                            return@captureSmartCropBlackBorders
+                        }
+                        applySmartCropQuickToggle(blackBorders)
+                    }
                 }
             }
-        }, PlayerChromePolicy.CHROME_FADE_DURATION_MS + 50L)
+        }, SMART_CROP_CAPTURE_DELAY_MS)
+    }
+
+    private fun hideControlsForSmartCropCapture() {
+        handler.removeCallbacks(hideControlsRunnable)
+        controlsVisible = false
+        controlsContainer.animate().cancel()
+        controlsContainer.alpha = 0f
+        controlsContainer.visibility = View.GONE
+        applyControlVisibility()
     }
 
     private fun clearSmartCropSession() {
@@ -642,6 +665,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun applySmartCropBounds(bounds: PlayerSmartCropBlackBorderDetector.ContentBounds): Boolean {
+        if (playerView.width <= playerView.height) return false
         val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
             ?: return false
         val playerLocation = IntArray(2)
@@ -658,7 +682,13 @@ class PlayerActivity : AppCompatActivity() {
             contentRight = bounds.right,
             contentBottom = bounds.bottom
         )
-        if (!borders.hasAllEdges) return false
+        if (!borders.hasAllEdges) {
+            logSmartCrop(
+                "smartCropBoundsRejected bounds=${bounds.left},${bounds.top}-${bounds.right},${bounds.bottom} " +
+                    "borders=$borders viewport=${playerView.width}x${playerView.height}"
+            )
+            return false
+        }
         smartCropContentFrameMode = null
         smartCropViewportFillFraction = PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION
         smartCropViewportScale = PlayerContentFrameViewportScale.FIT_INSIDE
@@ -677,9 +707,20 @@ class PlayerActivity : AppCompatActivity() {
             contentFrameLeft = contentFrameLeft,
             contentFrameTop = contentFrameTop
         )
+        logSmartCrop(
+            "smartCropBoundsApplied bounds=${bounds.left},${bounds.top}-${bounds.right},${bounds.bottom} " +
+                "viewport=${playerView.width}x${playerView.height} contentFrame=$contentFrameLeft,$contentFrameTop " +
+                "transform=$smartCropTransformOverride"
+        )
         manualVideoZoom = PlayerVideoZoomState.IDENTITY
         applyDisplaySettings()
         return true
+    }
+
+    private fun logSmartCrop(message: String) {
+        if (com.example.openvideo.BuildConfig.DEBUG) {
+            android.util.Log.d(TAG_CONTENT_FRAME, message)
+        }
     }
 
     private fun applySmartCropQuickToggle(blackBorders: PlayerSmartCropBlackBorders) {
@@ -760,6 +801,65 @@ class PlayerActivity : AppCompatActivity() {
                 bitmap.recycle()
             },
             Handler(Looper.getMainLooper())
+        )
+    }
+
+    private fun captureSmartCropRenderBounds(
+        callback: (PlayerSmartCropBlackBorderDetector.ContentBounds?) -> Unit
+    ) {
+        val videoView = videoRenderView()
+        when (videoView) {
+            is TextureView -> {
+                val bitmap = videoView.bitmap ?: run {
+                    callback(null)
+                    return
+                }
+                val bounds = detectSmartCropContentBounds(bitmap)?.offsetSmartCropBoundsFrom(videoView)
+                callback(bounds)
+                bitmap.recycle()
+            }
+            is SurfaceView -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+                    videoView.width <= 0 ||
+                    videoView.height <= 0
+                ) {
+                    callback(null)
+                    return
+                }
+                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)
+                PixelCopy.request(
+                    videoView,
+                    bitmap,
+                    { result ->
+                        val bounds = if (result == PixelCopy.SUCCESS) {
+                            detectSmartCropContentBounds(bitmap)?.offsetSmartCropBoundsFrom(videoView)
+                        } else {
+                            null
+                        }
+                        callback(bounds)
+                        bitmap.recycle()
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+            }
+            else -> callback(null)
+        }
+    }
+
+    private fun PlayerSmartCropBlackBorderDetector.ContentBounds.offsetSmartCropBoundsFrom(
+        child: View
+    ): PlayerSmartCropBlackBorderDetector.ContentBounds {
+        val playerLocation = IntArray(2)
+        val childLocation = IntArray(2)
+        playerView.getLocationOnScreen(playerLocation)
+        child.getLocationOnScreen(childLocation)
+        val dx = childLocation[0] - playerLocation[0]
+        val dy = childLocation[1] - playerLocation[1]
+        return PlayerSmartCropBlackBorderDetector.ContentBounds(
+            left = left + dx,
+            top = top + dy,
+            right = right + dx,
+            bottom = bottom + dy
         )
     }
 
@@ -852,10 +952,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun isSmartCropBlackPixel(pixel: Int): Boolean =
-        Color.alpha(pixel) > 0 &&
-            Color.red(pixel) <= SMART_CROP_BLACK_CHANNEL_MAX &&
-            Color.green(pixel) <= SMART_CROP_BLACK_CHANNEL_MAX &&
-            Color.blue(pixel) <= SMART_CROP_BLACK_CHANNEL_MAX
+        PlayerSmartCropPixelPolicy.isBlackArgb(pixel)
 
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
@@ -2945,7 +3042,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val TAG_CONTENT_FRAME = "OVContentFrame"
         private const val PREFS_NOTIFICATION_PERMISSION = "notification_permission"
         private const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
-        private const val SMART_CROP_BLACK_CHANNEL_MAX = 32
+        private const val SMART_CROP_CAPTURE_DELAY_MS = 120L
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"

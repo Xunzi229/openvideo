@@ -100,6 +100,25 @@ class PlayerSmartCropBlackBorderDetectorTest {
     }
 
     @Test
+    fun contentBoundsIgnoreSparseCompressionNoiseInBlackBorder() {
+        val bounds = PlayerSmartCropBlackBorderDetector.detectContentBounds(100, 80) { x, y ->
+            val insideContent = x in 20 until 70 && y in 10 until 60
+            val sparseBorderNoise = (x + y) % 97 == 0
+            !insideContent && !sparseBorderNoise
+        }
+
+        assertEquals(
+            PlayerSmartCropBlackBorderDetector.ContentBounds(
+                left = 20,
+                top = 10,
+                right = 70,
+                bottom = 60
+            ),
+            bounds
+        )
+    }
+
+    @Test
     fun contentBoundsReturnsNullForAllBlackFrame() {
         val bounds = PlayerSmartCropBlackBorderDetector.detectContentBounds(100, 80) { _, _ -> true }
 
