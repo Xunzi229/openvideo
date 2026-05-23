@@ -34,9 +34,38 @@ class PlayerSmartCropSourceTest {
             .substringBefore("\n    private fun showAspectRatioQuickDialog()")
 
         assertTrue(block.contains("PlayerSmartCropPolicy.quickToggleDecision("))
-        assertTrue(block.contains("playerPrefs.contentFrameMode = decision.contentFrameMode"))
+        assertTrue(block.contains("smartCropContentFrameMode = decision.contentFrameMode"))
         assertTrue(block.contains("decision.aspectRatioOverride?.let"))
         assertTrue(block.contains("applyDisplaySettings()"))
+    }
+
+    @Test
+    fun smartCropHandlerDoesNotPersistContentFrameMode() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val block = source.substringAfter("private fun handleSmartCropQuickToggle() {")
+            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+
+        assertTrue(!block.contains("playerPrefs.contentFrameMode = decision.contentFrameMode"))
+    }
+
+    @Test
+    fun smartCropHandlerDoesNotTreatPersistedContentFrameModeAsActiveSmartCrop() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val block = source.substringAfter("private fun handleSmartCropQuickToggle() {")
+            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+
+        assertTrue(block.contains("currentMode = activeSmartCropMode ?: ContentFrameMode.OFF"))
+        assertTrue(!block.contains("currentMode = activeSmartCropMode ?: playerPrefs.contentFrameMode"))
+    }
+
+    @Test
+    fun restoredPortraitContentFrameModeIsSuppressedUnlessSmartCropSessionIsActive() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val block = source.substringAfter("val transformContentFrameMode = if (!landscapeViewport) {")
+            .substringBefore("\n        val restoredSmartCropDecision")
+
+        assertTrue(block.contains("smartCropContentFrameMode == null && frameSize.width < frameSize.height"))
+        assertTrue(block.contains("ContentFrameMode.OFF"))
     }
 
     private fun landscapeControlsSource(): Path =

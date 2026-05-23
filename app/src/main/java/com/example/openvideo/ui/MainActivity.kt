@@ -5,6 +5,9 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.openvideo.R
+import com.example.openvideo.core.player.PlaybackServiceIntents
+import com.example.openvideo.core.player.PlayerManager
+import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.core.ui.WindowSizeHelper
 import com.example.openvideo.ui.home.HomeFragment
@@ -14,9 +17,13 @@ import com.example.openvideo.ui.settings.SettingsFragment
 import com.example.openvideo.ui.settings.SettingsViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    @Inject lateinit var playerManager: PlayerManager
+    @Inject lateinit var playerPrefs: PlayerPrefs
 
     var breakpoint: ScreenBreakpoint = ScreenBreakpoint.COMPACT
         private set
@@ -54,9 +61,29 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        pauseHiddenPlayerIfNeeded()
+    }
+
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         breakpoint = WindowSizeHelper.computeBreakpoint(this)
+    }
+
+    private fun pauseHiddenPlayerIfNeeded() {
+        val player = playerManager.player
+        val decision = MainActivityPlaybackGuardPolicy.onResume(
+            backgroundAudio = playerPrefs.bgAudio,
+            playerExists = player != null,
+            isPlayingOrRequested = player?.isPlaying == true || player?.playWhenReady == true
+        )
+        if (decision.pausePlayer) {
+            player?.pause()
+        }
+        if (decision.stopPlaybackService) {
+            runCatching { stopService(PlaybackServiceIntents.stop(this)) }
+        }
     }
 
     private fun loadFragment(fragment: Fragment) {

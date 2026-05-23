@@ -9,6 +9,9 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -18,7 +21,10 @@ import android.os.SystemClock
 import android.util.TypedValue
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.PixelCopy
 import android.view.ScaleGestureDetector
+import android.view.SurfaceView
+import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -117,6 +123,8 @@ class PlayerActivity : AppCompatActivity() {
     private var contentFrameTransformRetryPosted = false
     private var manualVideoZoom = PlayerVideoZoomState.IDENTITY
     private var cachedBaseContentFrameTransform = PlayerContentFrameTransform.IDENTITY
+    private var smartCropContentFrameMode: ContentFrameMode? = null
+    private var smartCropTransformOverride: PlayerContentFrameTransform? = null
     private var smartCropViewportFillFraction: Float? = null
     private var smartCropViewportScale: PlayerContentFrameViewportScale? = null
     private var smartCropCropExpansionFraction: Float = 0f
@@ -598,19 +606,98 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun handleSmartCropQuickToggle() {
+        if (smartCropContentFrameMode != null || smartCropTransformOverride != null) {
+            clearSmartCropSession()
+            applyDisplaySettings()
+            Toast.makeText(this, R.string.player_smart_crop_off, Toast.LENGTH_SHORT).show()
+            scheduleHideControls()
+            return
+        }
+        hideControls()
+        playerView.postDelayed({
+            captureSmartCropVisualBounds { bounds ->
+                if (bounds != null && applySmartCropBounds(bounds)) {
+                    Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
+                    scheduleHideControls()
+                    return@captureSmartCropVisualBounds
+                }
+                captureSmartCropBlackBorders { blackBorders ->
+                    if (blackBorders == null) {
+                        Toast.makeText(this, R.string.player_smart_crop_unavailable, Toast.LENGTH_SHORT).show()
+                        return@captureSmartCropBlackBorders
+                    }
+                    applySmartCropQuickToggle(blackBorders)
+                }
+            }
+        }, PlayerChromePolicy.CHROME_FADE_DURATION_MS + 50L)
+    }
+
+    private fun clearSmartCropSession() {
+        smartCropContentFrameMode = null
+        smartCropTransformOverride = null
+        smartCropViewportFillFraction = null
+        smartCropViewportScale = null
+        smartCropCropExpansionFraction = 0f
+        manualVideoZoom = PlayerVideoZoomState.IDENTITY
+    }
+
+    private fun applySmartCropBounds(bounds: PlayerSmartCropBlackBorderDetector.ContentBounds): Boolean {
+        val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
+            ?: return false
+        val playerLocation = IntArray(2)
+        val contentFrameLocation = IntArray(2)
+        playerView.getLocationOnScreen(playerLocation)
+        contentFrame.getLocationOnScreen(contentFrameLocation)
+        val contentFrameLeft = (contentFrameLocation[0] - playerLocation[0]).toFloat()
+        val contentFrameTop = (contentFrameLocation[1] - playerLocation[1]).toFloat()
+        val borders = PlayerSmartCropBlackBorderDetector.detectFromContentRect(
+            viewportWidth = playerView.width,
+            viewportHeight = playerView.height,
+            contentLeft = bounds.left,
+            contentTop = bounds.top,
+            contentRight = bounds.right,
+            contentBottom = bounds.bottom
+        )
+        if (!borders.hasAllEdges) return false
+        smartCropContentFrameMode = null
+        smartCropViewportFillFraction = PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION
+        smartCropViewportScale = PlayerContentFrameViewportScale.FIT_INSIDE
+        smartCropCropExpansionFraction = 0f
+        smartCropTransformOverride = PlayerContentFramePolicy.transformToFillViewport(
+            viewportWidth = playerView.width,
+            viewportHeight = playerView.height,
+            content = ContentFrameRect(
+                left = bounds.left - contentFrameLeft,
+                top = bounds.top - contentFrameTop,
+                width = bounds.width.toFloat(),
+                height = bounds.height.toFloat()
+            ),
+            viewportFillFraction = PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION,
+            viewportScale = PlayerContentFrameViewportScale.FIT_INSIDE,
+            contentFrameLeft = contentFrameLeft,
+            contentFrameTop = contentFrameTop
+        )
+        manualVideoZoom = PlayerVideoZoomState.IDENTITY
+        applyDisplaySettings()
+        return true
+    }
+
+    private fun applySmartCropQuickToggle(blackBorders: PlayerSmartCropBlackBorders) {
         val frameSize = contentFrameSourceSize(
             width = null,
             height = null,
             pixelWidthHeightRatio = null,
             unappliedRotationDegrees = null
         )
+        val activeSmartCropMode = smartCropContentFrameMode
         val decision = PlayerSmartCropPolicy.quickToggleDecision(
-            currentMode = playerPrefs.contentFrameMode,
+            currentMode = activeSmartCropMode ?: ContentFrameMode.OFF,
             currentAspectRatio = playerPrefs.aspectRatio,
             sourceWidth = frameSize.width,
             sourceHeight = frameSize.height,
             viewportWidth = playerView.width,
-            viewportHeight = playerView.height
+            viewportHeight = playerView.height,
+            blackBorders = blackBorders
         )
         val nextMode = decision.contentFrameMode
         if (nextMode == null) {
@@ -622,7 +709,8 @@ class PlayerActivity : AppCompatActivity() {
             playerPrefs.aspectRatio = ratio
             viewModel.setAspectRatio(ratio)
         }
-        playerPrefs.contentFrameMode = decision.contentFrameMode
+        smartCropContentFrameMode = decision.contentFrameMode.takeIf { it != ContentFrameMode.OFF }
+        smartCropTransformOverride = null
         smartCropViewportFillFraction = decision.viewportFillFraction
         smartCropViewportScale = decision.viewportScale
         smartCropCropExpansionFraction = decision.cropExpansionFraction
@@ -639,6 +727,135 @@ class PlayerActivity : AppCompatActivity() {
         ).show()
         scheduleHideControls()
     }
+
+    private fun captureSmartCropVisualBounds(
+        callback: (PlayerSmartCropBlackBorderDetector.ContentBounds?) -> Unit
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+            playerView.width <= 0 ||
+            playerView.height <= 0
+        ) {
+            callback(null)
+            return
+        }
+        val location = IntArray(2)
+        playerView.getLocationInWindow(location)
+        val sourceRect = Rect(
+            location[0],
+            location[1],
+            location[0] + playerView.width,
+            location[1] + playerView.height
+        )
+        val bitmap = Bitmap.createBitmap(playerView.width, playerView.height, Bitmap.Config.ARGB_8888)
+        PixelCopy.request(
+            window,
+            sourceRect,
+            bitmap,
+            { result ->
+                if (result == PixelCopy.SUCCESS) {
+                    callback(detectSmartCropContentBounds(bitmap))
+                } else {
+                    callback(null)
+                }
+                bitmap.recycle()
+            },
+            Handler(Looper.getMainLooper())
+        )
+    }
+
+    private fun captureSmartCropBlackBorders(callback: (PlayerSmartCropBlackBorders?) -> Unit) {
+        val videoView = videoRenderView()
+        val geometryBorders = detectSmartCropGeometryBlackBorders(videoView)
+        if (geometryBorders?.hasAllEdges == true) {
+            callback(geometryBorders)
+            return
+        }
+        when (videoView) {
+            is TextureView -> {
+                val bitmap = videoView.bitmap ?: run {
+                    callback(null)
+                    return
+                }
+                val pixelBorders = detectSmartCropBlackBorders(bitmap)
+                callback(pixelBorders)
+                bitmap.recycle()
+            }
+            is SurfaceView -> {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
+                    videoView.width <= 0 ||
+                    videoView.height <= 0
+                ) {
+                    callback(null)
+                    return
+                }
+                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)
+                PixelCopy.request(
+                    videoView,
+                    bitmap,
+                    { result ->
+                        if (result == PixelCopy.SUCCESS) {
+                            val pixelBorders = detectSmartCropBlackBorders(bitmap)
+                            callback(pixelBorders)
+                        } else {
+                            callback(null)
+                        }
+                        bitmap.recycle()
+                    },
+                    Handler(Looper.getMainLooper())
+                )
+            }
+            else -> callback(null)
+        }
+    }
+
+    private fun detectSmartCropGeometryBlackBorders(videoView: View?): PlayerSmartCropBlackBorders? {
+        if (videoView == null || playerView.width <= 0 || playerView.height <= 0) return null
+        val playerLocation = IntArray(2)
+        val contentLocation = IntArray(2)
+        playerView.getLocationOnScreen(playerLocation)
+        videoView.getLocationOnScreen(contentLocation)
+
+        val contentLeft = contentLocation[0] - playerLocation[0]
+        val contentTop = contentLocation[1] - playerLocation[1]
+        val contentRight = contentLeft + videoView.width
+        val contentBottom = contentTop + videoView.height
+        return PlayerSmartCropBlackBorderDetector.detectFromContentRect(
+            viewportWidth = playerView.width,
+            viewportHeight = playerView.height,
+            contentLeft = contentLeft,
+            contentTop = contentTop,
+            contentRight = contentRight,
+            contentBottom = contentBottom
+        )
+    }
+
+    private fun detectSmartCropBlackBorders(bitmap: Bitmap): PlayerSmartCropBlackBorders {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        return PlayerSmartCropBlackBorderDetector.detect(width, height) { x, y ->
+            isSmartCropBlackPixel(pixels[y * width + x])
+        }
+    }
+
+    private fun detectSmartCropContentBounds(
+        bitmap: Bitmap
+    ): PlayerSmartCropBlackBorderDetector.ContentBounds? {
+        val width = bitmap.width
+        val height = bitmap.height
+        val pixels = IntArray(width * height)
+        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
+        return PlayerSmartCropBlackBorderDetector.detectContentBounds(width, height) { x, y ->
+            isSmartCropBlackPixel(pixels[y * width + x])
+        }
+    }
+
+    private fun isSmartCropBlackPixel(pixel: Int): Boolean =
+        Color.alpha(pixel) > 0 &&
+            Color.red(pixel) <= SMART_CROP_BLACK_CHANNEL_MAX &&
+            Color.green(pixel) <= SMART_CROP_BLACK_CHANNEL_MAX &&
+            Color.blue(pixel) <= SMART_CROP_BLACK_CHANNEL_MAX
 
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
@@ -2370,11 +2587,13 @@ class PlayerActivity : AppCompatActivity() {
         }
         contentFrameTransformRetryPosted = false
         val landscapeViewport = playerView.width > playerView.height
-        val smartCropActive = smartCropViewportScale != null && landscapeViewport
+        val smartCropActive = (smartCropViewportScale != null || smartCropTransformOverride != null) && landscapeViewport
         val transformContentFrameMode = if (!landscapeViewport) {
             ContentFrameMode.OFF
+        } else if (smartCropContentFrameMode == null && frameSize.width < frameSize.height) {
+            ContentFrameMode.OFF
         } else {
-            playerPrefs.contentFrameMode
+            smartCropContentFrameMode ?: playerPrefs.contentFrameMode
         }
         val restoredSmartCropDecision = if (!smartCropActive && landscapeViewport) {
             PlayerSmartCropPolicy.restoredViewportDecision(
@@ -2402,17 +2621,18 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             restoredSmartCropDecision.cropExpansionFraction
         }
-        cachedBaseContentFrameTransform = PlayerContentFrameApplyPolicy.resolveTransform(
-            contentFrameMode = transformContentFrameMode,
-            aspectRatio = playerPrefs.aspectRatio,
-            sourceWidth = frameSize.width,
-            sourceHeight = frameSize.height,
-            viewportWidth = playerView.width,
-            viewportHeight = playerView.height,
-            viewportFillFraction = transformViewportFillFraction,
-            viewportScale = transformViewportScale,
-            cropExpansionFraction = transformCropExpansionFraction
-        )
+        cachedBaseContentFrameTransform = smartCropTransformOverride
+            ?: PlayerContentFrameApplyPolicy.resolveTransform(
+                contentFrameMode = transformContentFrameMode,
+                aspectRatio = playerPrefs.aspectRatio,
+                sourceWidth = frameSize.width,
+                sourceHeight = frameSize.height,
+                viewportWidth = playerView.width,
+                viewportHeight = playerView.height,
+                viewportFillFraction = transformViewportFillFraction,
+                viewportScale = transformViewportScale,
+                cropExpansionFraction = transformCropExpansionFraction
+            )
         if (PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) {
             val (panX, panY) = PlayerVideoZoomPolicy.clampPanOffset(
                 panX = manualVideoZoom.panX,
@@ -2426,20 +2646,21 @@ class PlayerActivity : AppCompatActivity() {
             )
             manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
         }
-        val transform = PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
-            contentFrameMode = transformContentFrameMode,
-            aspectRatio = playerPrefs.aspectRatio,
-            sourceWidth = frameSize.width,
-            sourceHeight = frameSize.height,
-            viewportWidth = playerView.width,
-            viewportHeight = playerView.height,
-            manualZoom = manualVideoZoom,
-            frameWidth = contentFrame.width,
-            frameHeight = contentFrame.height,
-            viewportFillFraction = transformViewportFillFraction,
-            viewportScale = transformViewportScale,
-            cropExpansionFraction = transformCropExpansionFraction
-        )
+        val transform = smartCropTransformOverride
+            ?: PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
+                contentFrameMode = transformContentFrameMode,
+                aspectRatio = playerPrefs.aspectRatio,
+                sourceWidth = frameSize.width,
+                sourceHeight = frameSize.height,
+                viewportWidth = playerView.width,
+                viewportHeight = playerView.height,
+                manualZoom = manualVideoZoom,
+                frameWidth = contentFrame.width,
+                frameHeight = contentFrame.height,
+                viewportFillFraction = transformViewportFillFraction,
+                viewportScale = transformViewportScale,
+                cropExpansionFraction = transformCropExpansionFraction
+            )
         applyContentFrameTransform(
             contentFrame = contentFrame,
             frameSize = frameSize,
@@ -2724,6 +2945,7 @@ class PlayerActivity : AppCompatActivity() {
         private const val TAG_CONTENT_FRAME = "OVContentFrame"
         private const val PREFS_NOTIFICATION_PERMISSION = "notification_permission"
         private const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
+        private const val SMART_CROP_BLACK_CHANNEL_MAX = 32
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"
