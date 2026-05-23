@@ -377,6 +377,16 @@
             app:tint="@color/player_icon" />
 
         <ImageButton
+            android:id="@+id/btn_land_subtitles"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_player_lock_button"
+            android:contentDescription="@string/player_portrait_subtitles"
+            android:src="@drawable/ic_subtitles"
+            app:tint="@color/player_icon" />
+
+        <ImageButton
             android:id="@+id/btn_land_pip_float"
             android:layout_width="46dp"
             android:layout_height="46dp"

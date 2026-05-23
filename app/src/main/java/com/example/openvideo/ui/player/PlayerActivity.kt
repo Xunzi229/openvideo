@@ -850,6 +850,11 @@ class PlayerActivity : AppCompatActivity() {
             showAspectRatioQuickDialog()
         }
 
+        findViewById<View>(R.id.btn_land_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
+            showSubtitleQuickDialog()
+            scheduleHideControls()
+        }
+
         findViewById<View>(R.id.btn_land_pip_float)?.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) {
             enterPipModeIfSupported()
         }

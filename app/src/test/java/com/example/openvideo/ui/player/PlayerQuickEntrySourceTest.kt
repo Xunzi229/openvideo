@@ -10,6 +10,17 @@ import java.nio.file.Paths
 class PlayerQuickEntrySourceTest {
 
     @Test
+    fun landscapeSubtitleButtonUsesDedicatedQuickDialog() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val block = source.substringAfter(
+            "findViewById<View>(R.id.btn_land_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
+        ).substringBefore("\n        }\n\n        findViewById<View>(R.id.btn_land_pip_float)")
+
+        assertTrue(block.contains("showSubtitleQuickDialog()"))
+        assertFalse(block.contains("pickSubtitleLauncher.launch"))
+    }
+
+    @Test
     fun portraitQuickButtonsUseDedicatedAudioAndSubtitleDialogs() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val audioButtonBlock = source.substringAfter(
