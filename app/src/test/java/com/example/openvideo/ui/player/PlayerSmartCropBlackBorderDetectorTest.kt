@@ -119,6 +119,26 @@ class PlayerSmartCropBlackBorderDetectorTest {
     }
 
     @Test
+    fun contentBoundsIgnoreThinTextOutsideMainPicture() {
+        val bounds = PlayerSmartCropBlackBorderDetector.detectContentBounds(100, 80) { x, y ->
+            val insideContent = x in 20 until 70 && y in 20 until 60
+            val thinTitleText = x in 35 until 65 && y in 8 until 10
+            val thinSubtitleText = x in 30 until 75 && y in 66 until 68
+            !insideContent && !thinTitleText && !thinSubtitleText
+        }
+
+        assertEquals(
+            PlayerSmartCropBlackBorderDetector.ContentBounds(
+                left = 20,
+                top = 20,
+                right = 70,
+                bottom = 60
+            ),
+            bounds
+        )
+    }
+
+    @Test
     fun contentBoundsReturnsNullForAllBlackFrame() {
         val bounds = PlayerSmartCropBlackBorderDetector.detectContentBounds(100, 80) { _, _ -> true }
 

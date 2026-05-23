@@ -59,6 +59,17 @@ class PlayerSmartCropSourceTest {
     }
 
     @Test
+    fun smartCropSamplesVideoRenderBeforeVisualFallback() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val block = source.substringAfter("playerView.postDelayed({")
+            .substringBefore("\n        }, SMART_CROP_CAPTURE_DELAY_MS)")
+
+        assertTrue(block.indexOf("captureSmartCropRenderBounds") >= 0)
+        assertTrue(block.indexOf("captureSmartCropVisualBounds") >= 0)
+        assertTrue(block.indexOf("captureSmartCropRenderBounds") < block.indexOf("captureSmartCropVisualBounds"))
+    }
+
+    @Test
     fun restoredPortraitContentFrameModeIsSuppressedUnlessSmartCropSessionIsActive() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val block = source.substringAfter("val transformContentFrameMode = if (!landscapeViewport) {")
@@ -66,6 +77,21 @@ class PlayerSmartCropSourceTest {
 
         assertTrue(block.contains("smartCropContentFrameMode == null && frameSize.width < frameSize.height"))
         assertTrue(block.contains("ContentFrameMode.OFF"))
+    }
+
+    @Test
+    fun smartCropTransformOverrideOnlyAppliesInLandscapeViewport() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val block = source.substringAfter("private fun applyPlayerContentFrameTransform(")
+            .substringBefore("\n    private fun contentFrameSourceSize(")
+
+        assertTrue(block.contains("val smartCropActive ="))
+        assertTrue(block.contains("&& landscapeViewport"))
+        assertTrue(block.contains("val activeSmartCropTransformOverride = smartCropTransformOverride.takeIf { smartCropActive }"))
+        assertTrue(block.contains("cachedBaseContentFrameTransform = activeSmartCropTransformOverride"))
+        assertTrue(block.contains("val transform = activeSmartCropTransformOverride"))
+        assertTrue(!block.contains("cachedBaseContentFrameTransform = smartCropTransformOverride"))
+        assertTrue(!block.contains("val transform = smartCropTransformOverride"))
     }
 
     private fun landscapeControlsSource(): Path =

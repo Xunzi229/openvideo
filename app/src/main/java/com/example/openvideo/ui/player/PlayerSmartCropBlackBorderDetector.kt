@@ -3,7 +3,8 @@ package com.example.openvideo.ui.player
 object PlayerSmartCropBlackBorderDetector {
     private const val MIN_BORDER_FRACTION = 0.08f
     private const val BLACK_LINE_RATIO = 0.92f
-    private const val CONTENT_LINE_RATIO = 0.02f
+    private const val CONTENT_LINE_RATIO = 0.01f
+    private const val CONTENT_RUN_FRACTION = 0.01f
 
     data class ContentBounds(
         val left: Int,
@@ -125,31 +126,89 @@ object PlayerSmartCropBlackBorderDetector {
     }
 
     private fun firstContentRow(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        val requiredRun = (height * CONTENT_RUN_FRACTION).toInt().coerceAtLeast(3)
         for (y in 0 until height) {
-            if (hasContentInRow(width, y, isBlackPixel)) return y
+            if (hasContentRunFromRow(width, height, y, requiredRun, isBlackPixel)) return y
         }
         return null
     }
 
     private fun lastContentRow(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        val requiredRun = (height * CONTENT_RUN_FRACTION).toInt().coerceAtLeast(3)
         for (y in height - 1 downTo 0) {
-            if (hasContentInRow(width, y, isBlackPixel)) return y + 1
+            if (hasContentRunToRow(width, y, requiredRun, isBlackPixel)) return y + 1
         }
         return null
     }
 
     private fun firstContentColumn(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        val requiredRun = (width * CONTENT_RUN_FRACTION).toInt().coerceAtLeast(3)
         for (x in 0 until width) {
-            if (hasContentInColumn(height, x, isBlackPixel)) return x
+            if (hasContentRunFromColumn(width, height, x, requiredRun, isBlackPixel)) return x
         }
         return null
     }
 
     private fun lastContentColumn(width: Int, height: Int, isBlackPixel: (Int, Int) -> Boolean): Int? {
+        val requiredRun = (width * CONTENT_RUN_FRACTION).toInt().coerceAtLeast(3)
         for (x in width - 1 downTo 0) {
-            if (hasContentInColumn(height, x, isBlackPixel)) return x + 1
+            if (hasContentRunToColumn(height, x, requiredRun, isBlackPixel)) return x + 1
         }
         return null
+    }
+
+    private fun hasContentRunFromRow(
+        width: Int,
+        height: Int,
+        startY: Int,
+        requiredRun: Int,
+        isBlackPixel: (Int, Int) -> Boolean
+    ): Boolean {
+        if (startY + requiredRun > height) return false
+        for (y in startY until startY + requiredRun) {
+            if (!hasContentInRow(width, y, isBlackPixel)) return false
+        }
+        return true
+    }
+
+    private fun hasContentRunToRow(
+        width: Int,
+        endY: Int,
+        requiredRun: Int,
+        isBlackPixel: (Int, Int) -> Boolean
+    ): Boolean {
+        if (endY - requiredRun + 1 < 0) return false
+        for (y in endY downTo endY - requiredRun + 1) {
+            if (!hasContentInRow(width, y, isBlackPixel)) return false
+        }
+        return true
+    }
+
+    private fun hasContentRunFromColumn(
+        width: Int,
+        height: Int,
+        startX: Int,
+        requiredRun: Int,
+        isBlackPixel: (Int, Int) -> Boolean
+    ): Boolean {
+        if (startX + requiredRun > width) return false
+        for (x in startX until startX + requiredRun) {
+            if (!hasContentInColumn(height, x, isBlackPixel)) return false
+        }
+        return true
+    }
+
+    private fun hasContentRunToColumn(
+        height: Int,
+        endX: Int,
+        requiredRun: Int,
+        isBlackPixel: (Int, Int) -> Boolean
+    ): Boolean {
+        if (endX - requiredRun + 1 < 0) return false
+        for (x in endX downTo endX - requiredRun + 1) {
+            if (!hasContentInColumn(height, x, isBlackPixel)) return false
+        }
+        return true
     }
 
     private fun hasContentInRow(width: Int, y: Int, isBlackPixel: (Int, Int) -> Boolean): Boolean {

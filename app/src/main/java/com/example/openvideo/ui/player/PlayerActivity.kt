@@ -619,19 +619,19 @@ class PlayerActivity : AppCompatActivity() {
         }
         hideControlsForSmartCropCapture()
         playerView.postDelayed({
-            captureSmartCropVisualBounds { bounds ->
-                logSmartCrop("smartCropVisualBounds $bounds")
-                if (bounds != null && applySmartCropBounds(bounds)) {
+            captureSmartCropRenderBounds { renderBounds ->
+                logSmartCrop("smartCropRenderBounds $renderBounds")
+                if (renderBounds != null && applySmartCropBounds(renderBounds)) {
                     Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
                     scheduleHideControls()
-                    return@captureSmartCropVisualBounds
+                    return@captureSmartCropRenderBounds
                 }
-                captureSmartCropRenderBounds { renderBounds ->
-                    logSmartCrop("smartCropRenderBounds $renderBounds")
-                    if (renderBounds != null && applySmartCropBounds(renderBounds)) {
+                captureSmartCropVisualBounds { bounds ->
+                    logSmartCrop("smartCropVisualBounds $bounds")
+                    if (bounds != null && applySmartCropBounds(bounds)) {
                         Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
                         scheduleHideControls()
-                        return@captureSmartCropRenderBounds
+                        return@captureSmartCropVisualBounds
                     }
                     captureSmartCropBlackBorders { blackBorders ->
                         logSmartCrop("smartCropBlackBorders $blackBorders")
@@ -2685,6 +2685,7 @@ class PlayerActivity : AppCompatActivity() {
         contentFrameTransformRetryPosted = false
         val landscapeViewport = playerView.width > playerView.height
         val smartCropActive = (smartCropViewportScale != null || smartCropTransformOverride != null) && landscapeViewport
+        val activeSmartCropTransformOverride = smartCropTransformOverride.takeIf { smartCropActive }
         val transformContentFrameMode = if (!landscapeViewport) {
             ContentFrameMode.OFF
         } else if (smartCropContentFrameMode == null && frameSize.width < frameSize.height) {
@@ -2718,7 +2719,7 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             restoredSmartCropDecision.cropExpansionFraction
         }
-        cachedBaseContentFrameTransform = smartCropTransformOverride
+        cachedBaseContentFrameTransform = activeSmartCropTransformOverride
             ?: PlayerContentFrameApplyPolicy.resolveTransform(
                 contentFrameMode = transformContentFrameMode,
                 aspectRatio = playerPrefs.aspectRatio,
@@ -2743,7 +2744,7 @@ class PlayerActivity : AppCompatActivity() {
             )
             manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
         }
-        val transform = smartCropTransformOverride
+        val transform = activeSmartCropTransformOverride
             ?: PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
                 contentFrameMode = transformContentFrameMode,
                 aspectRatio = playerPrefs.aspectRatio,
