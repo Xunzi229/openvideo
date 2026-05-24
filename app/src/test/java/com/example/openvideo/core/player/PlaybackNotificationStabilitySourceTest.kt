@@ -15,7 +15,7 @@ class PlaybackNotificationStabilitySourceTest {
         val publishBlock = source.substringAfter("private fun publishNotification(")
             .substringBefore("\n    private fun playbackNotificationUiKey(")
         val keyBlock = source.substringAfter("private fun playbackNotificationUiKey(")
-            .substringBefore("\n    private data class NotificationPayload")
+            .substringBefore("\n    private fun resolveNotificationPayload")
 
         assertTrue(keyBlock.contains("payload.title"))
         assertTrue(keyBlock.contains("payload.isPlaying"))
@@ -31,20 +31,24 @@ class PlaybackNotificationStabilitySourceTest {
     @Test
     fun playbackNotificationUsesCenteredCustomTransportControls() {
         val service = playbackServiceSource()
+        val renderer = playbackNotificationRendererSource()
         val layout = loadSource(
             Paths.get("src", "main", "res", "layout", "notification_playback.xml")
         )
 
-        assertTrue(service.contains("R.layout.notification_playback"))
-        assertTrue(service.contains("setCustomContentView"))
-        assertTrue(service.contains("setCustomBigContentView"))
+        assertTrue(service.contains("notificationRenderer.build(payload)"))
+        assertTrue(renderer.contains("R.layout.notification_playback"))
+        assertTrue(renderer.contains("setCustomContentView"))
+        assertTrue(renderer.contains("setCustomBigContentView"))
         assertFalse(service.contains("NotificationCompat.DecoratedCustomViewStyle()"))
         assertFalse(service.contains("MediaNotificationCompat.MediaStyle()"))
-        assertFalse(service.contains("ic_notification_action_spacer"))
-        assertTrue(service.contains("R.id.notification_root"))
-        assertTrue(service.contains("R.id.notification_title"))
-        assertTrue(service.contains("R.id.notification_status_text"))
-        assertTrue(service.contains("payload.contentIntent?.let"))
+        assertFalse(renderer.contains("NotificationCompat.DecoratedCustomViewStyle()"))
+        assertFalse(renderer.contains("MediaNotificationCompat.MediaStyle()"))
+        assertFalse(renderer.contains("ic_notification_action_spacer"))
+        assertTrue(renderer.contains("R.id.notification_root"))
+        assertTrue(renderer.contains("R.id.notification_title"))
+        assertTrue(renderer.contains("R.id.notification_status_text"))
+        assertTrue(renderer.contains("payload.contentIntent?.let"))
         assertTrue(service.contains("ActivityOptions.makeCustomAnimation(this, 0, 0).toBundle()"))
 
         assertTrue(layout.contains("android:id=\"@+id/notification_root\""))
@@ -60,11 +64,11 @@ class PlaybackNotificationStabilitySourceTest {
         assertTrue(layout.contains("android:id=\"@+id/notification_time_duration\""))
         assertTrue(layout.contains("android:id=\"@+id/seek_zone_0\""))
         assertFalse(layout.contains("<View android:id=\"@+id/seek_zone_0\""))
-        assertTrue(service.contains("applyPlaybackNotificationProgress"))
-        assertTrue(service.contains("PlaybackNotificationProgressPolicy.barState"))
-        assertTrue(service.contains("PlaybackNotificationProgressPolicy.timeLabels"))
-        assertTrue(service.contains("PlaybackNotificationSeekPolicy"))
-        assertTrue(service.contains("ACTION_SEEK_TO_MS"))
+        assertTrue(renderer.contains("applyPlaybackNotificationProgress"))
+        assertTrue(renderer.contains("PlaybackNotificationProgressPolicy.barState"))
+        assertTrue(renderer.contains("PlaybackNotificationProgressPolicy.timeLabels"))
+        assertTrue(renderer.contains("PlaybackNotificationSeekPolicy"))
+        assertTrue(renderer.contains("ACTION_SEEK_TO_MS"))
     }
 
     private fun playbackServiceSource(): String = loadSource(
@@ -78,6 +82,20 @@ class PlaybackNotificationStabilitySourceTest {
             "core",
             "player",
             "PlaybackService.kt"
+        )
+    )
+
+    private fun playbackNotificationRendererSource(): String = loadSource(
+        Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "core",
+            "player",
+            "PlaybackNotificationRenderer.kt"
         )
     )
 

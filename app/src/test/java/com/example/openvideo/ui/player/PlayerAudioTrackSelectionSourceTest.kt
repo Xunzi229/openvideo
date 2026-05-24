@@ -11,16 +11,20 @@ class PlayerAudioTrackSelectionSourceTest {
 
     @Test
     fun playerManagerExposesAndSelectsMedia3AudioTracks() {
-        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val managerSource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerAudioTrackController.kt")))
 
-        assertTrue(source.contains("fun currentAudioTracks()"))
+        assertTrue(managerSource.contains("fun currentAudioTracks()"))
+        assertTrue(managerSource.contains("audioTracks.currentAudioTracks()"))
         assertTrue(source.contains("currentTracks.groups"))
         assertTrue(source.contains("C.TRACK_TYPE_AUDIO"))
-        assertTrue(source.contains("fun selectAudioTrack("))
+        assertTrue(managerSource.contains("fun selectAudioTrack("))
+        assertTrue(managerSource.contains("audioTracks.selectAudioTrack(groupIndex, trackIndex)"))
         assertTrue(source.contains("TrackSelectionOverride"))
         assertTrue(source.contains("clearOverridesOfType(C.TRACK_TYPE_AUDIO)"))
         assertTrue(source.contains("setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false)"))
-        assertTrue(source.contains("fun disableAudioTrack()"))
+        assertTrue(managerSource.contains("fun disableAudioTrack()"))
+        assertTrue(managerSource.contains("audioTracks.disableAudioTrack()"))
         assertTrue(source.contains("setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)"))
     }
 
@@ -54,6 +58,7 @@ class PlayerAudioTrackSelectionSourceTest {
     @Test
     fun phaseTwoRecordsRuntimeAudioDecoderDiagnostics() {
         val managerSource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val availabilitySource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerAudioExtensionAvailability.kt")))
         val dialogSource = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsDialog.kt")))
         val strings = String(Files.readAllBytes(resFile("values", "strings.xml")))
 
@@ -61,7 +66,8 @@ class PlayerAudioTrackSelectionSourceTest {
         assertTrue(managerSource.contains("onAudioDecoderInitialized"))
         assertTrue(managerSource.contains("onAudioInputFormatChanged"))
         assertTrue(managerSource.contains("onPlayerError"))
-        assertTrue(managerSource.contains("isFfmpegExtensionAvailable"))
+        assertTrue(managerSource.contains("PlayerAudioExtensionAvailability.isFfmpegExtensionAvailable()"))
+        assertTrue(availabilitySource.contains("fun isFfmpegExtensionAvailable"))
         assertTrue(dialogSource.contains("viewModel.audioDiagnostics()"))
         assertTrue(dialogSource.contains("player_settings_info_ffmpeg_extension"))
         assertTrue(dialogSource.contains("player_settings_info_audio_input_format"))

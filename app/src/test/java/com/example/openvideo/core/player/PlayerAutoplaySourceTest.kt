@@ -26,7 +26,8 @@ class PlayerAutoplaySourceTest {
 
     @Test
     fun videoAdjustmentsAreSkippedWhenValuesHaveNotChanged() {
-        val source = String(Files.readAllBytes(playerManagerSource()))
+        val source = String(Files.readAllBytes(playerVideoEffectsControllerSource()))
+        val managerSource = String(Files.readAllBytes(playerManagerSource()))
         val method = source.substringAfter("fun applyVideoAdjustments(")
             .substringBefore("\n    private fun saturationMatrix")
 
@@ -37,6 +38,8 @@ class PlayerAutoplaySourceTest {
                 && method.contains("if (lastVideoAdjustments == nextAdjustments) return")
                 && method.contains("lastVideoAdjustments = nextAdjustments")
         )
+        assertTrue(managerSource.contains("fun applyVideoAdjustments("))
+        assertTrue(managerSource.contains("videoEffects.applyVideoAdjustments(brightness, contrast, saturation)"))
     }
 
     private fun playerManagerSource(): Path {
@@ -50,6 +53,24 @@ class PlayerAutoplaySourceTest {
             "core",
             "player",
             "PlayerManager.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerVideoEffectsControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "core",
+            "player",
+            "PlayerVideoEffectsController.kt"
         )
         return sequenceOf(
             relativePath,

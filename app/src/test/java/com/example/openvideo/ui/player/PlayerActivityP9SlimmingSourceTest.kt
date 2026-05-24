@@ -148,10 +148,12 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun settingsSheetStyleUsesPolicy() {
-        val block = playerActivitySource().substringAfter("private fun androidx.appcompat.app.AlertDialog.applyPlayerSheetStyle()")
-            .substringBefore("\n    private fun showAudioTrackQuickDialog()")
-        assertTrue(block.contains("PlayerSettingsSheetStylePolicy.compute("))
-        assertFalse(block.contains("settingsPanelOpacity.coerceIn(0, 100) / 100f"))
+        val source = playerActivitySource()
+        val glassSheet = playerGlassSheetDialogSource()
+        assertTrue(glassSheet.contains("PlayerSettingsSheetChrome.applyBackdrop"))
+        assertTrue(glassSheet.contains("PlayerSettingsSheetChrome.applyPanelOpacity"))
+        assertFalse(source.contains("private fun androidx.appcompat.app.AlertDialog.applyPlayerSheetStyle()"))
+        assertFalse(source.contains("settingsPanelOpacity.coerceIn(0, 100) / 100f"))
     }
 
     @Test
@@ -242,10 +244,12 @@ class PlayerActivityP9SlimmingSourceTest {
             "PlayerGesturePolicy.isValidDoubleTapSeekSide",
             "PlayerGesturePolicy.allowsVerticalLevelGesture",
             "PlayerPlaybackReadyTracePolicy.onPlaybackStateChanged",
-            "PlayerSettingsSheetStylePolicy.supportsBackdropBlur"
+            "PlayerSettingsSheetChrome.applyBackdrop"
         )
+        val glassSheet = playerGlassSheetDialogSource()
         for (snippet in required) {
-            assertTrue("Expected policy wiring `$snippet`.", source.contains(snippet))
+            val haystack = if (snippet.startsWith("PlayerSettingsSheetChrome.")) glassSheet else source
+            assertTrue("Expected policy wiring `$snippet`.", haystack.contains(snippet))
         }
     }
 
@@ -301,6 +305,25 @@ class PlayerActivityP9SlimmingSourceTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        val path: Path = sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+        return String(Files.readAllBytes(path))
+    }
+
+    private fun playerGlassSheetDialogSource(): String {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerGlassSheetDialog.kt"
         )
         val path: Path = sequenceOf(
             relativePath,

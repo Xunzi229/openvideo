@@ -77,16 +77,20 @@ class CompatibilityImplementationTest {
 
     @Test
     fun volumeBoostUsesLoudnessEnhancerInsteadOfInvalidPlayerVolume() {
-        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val manager = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerAudioEffectsController.kt")))
 
+        assertTrue(manager.contains("audioEffects.setVolumeBoost(enabled)"))
         assertTrue(source.contains("LoudnessEnhancer"))
         assertTrue(source.contains("setTargetGain"))
     }
 
     @Test
     fun playerScreenshotsUseMediaStoreOnAndroidQAndAbove() {
-        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val manager = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerMediaExportController.kt")))
 
+        assertTrue(manager.contains("mediaExport.takeScreenshot(videoView, callback)"))
         assertTrue(source.contains("MediaStore.Images.Media.getContentUri"))
         assertTrue(source.contains("MediaStore.MediaColumns.RELATIVE_PATH"))
         assertTrue(source.contains("IS_PENDING"))

@@ -1,47 +1,22 @@
 package com.example.openvideo.core.player
 
-import android.content.ContentValues
 import android.content.Context
-import android.graphics.Bitmap
-import android.media.MediaCodec
-import android.media.MediaExtractor
-import android.media.MediaFormat
-import android.media.MediaMuxer
-import android.media.audiofx.Equalizer
-import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
-import android.os.Build
-import android.os.Environment
-import android.os.Handler
-import android.os.Looper
-import android.view.PixelCopy
-import android.view.SurfaceView
-import android.view.TextureView
 import androidx.annotation.OptIn
-import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.DecoderReuseEvaluation
-import androidx.media3.effect.Brightness
-import androidx.media3.effect.Contrast
-import androidx.media3.effect.RgbMatrix
-import androidx.media3.effect.ScaleAndRotateTransformation
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
-import android.provider.MediaStore
-import java.io.File
-import java.io.FileOutputStream
-import java.nio.ByteBuffer
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -59,6 +34,13 @@ class PlayerManager @Inject constructor(
 
     private var trackSelector: DefaultTrackSelector? = null
     private var audioDiagnostics = PlayerAudioDiagnostics()
+    private val videoEffects = PlayerVideoEffectsController { player }
+    private val audioEffects = PlayerAudioEffectsController { player }
+    private val audioTracks = PlayerAudioTrackController(
+        playerProvider = { player },
+        onMuteChanged = ::setMuted
+    )
+    private val mediaExport = PlayerMediaExportController(context)
 
     var decodeMode = DecodeMode.HARD
     var renderMode = RenderMode.SURFACE
@@ -68,7 +50,7 @@ class PlayerManager @Inject constructor(
         // Singleton：Activity / PlaybackService 共用；再次 initialize 必须先 release，否则会 orphan 旧 ExoPlayer 继续出声。
         release()
         audioDiagnostics = PlayerAudioDiagnostics(
-            ffmpegExtensionAvailable = isFfmpegExtensionAvailable()
+            ffmpegExtensionAvailable = PlayerAudioExtensionAvailability.isFfmpegExtensionAvailable()
         )
         trackSelector = DefaultTrackSelector(context)
         val bufferingProfile = PlayerBufferingPolicy.profileFor(mediaUri?.toString().orEmpty())
@@ -96,9 +78,8 @@ class PlayerManager @Inject constructor(
     }
 
     fun release() {
-        clearEffects()
-        releaseLoudnessEnhancer()
-        releaseEqualizer()
+        videoEffects.clearEffects()
+        audioEffects.releaseAll()
         player?.release()
         player = null
         trackSelector = null
@@ -149,11 +130,7 @@ class PlayerManager @Inject constructor(
 
     fun setVolumeBoost(enabled: Boolean) {
         player?.volume = 1.0f
-        if (enabled) {
-            enableLoudnessEnhancer()
-        } else {
-            releaseLoudnessEnhancer()
-        }
+        audioEffects.setVolumeBoost(enabled)
     }
 
     fun setMuted(muted: Boolean) {
@@ -161,51 +138,17 @@ class PlayerManager @Inject constructor(
     }
 
     fun currentAudioTracks(): List<PlayerAudioTrackInfo> {
-        val player = player ?: return emptyList()
-        return player.currentTracks.groups
-            .mapIndexedNotNull { groupIndex, group ->
-                if (group.type != C.TRACK_TYPE_AUDIO) return@mapIndexedNotNull null
-                (0 until group.length).map { trackIndex ->
-                    val format = group.getTrackFormat(trackIndex)
-                    PlayerAudioTrackInfo(
-                        groupIndex = groupIndex,
-                        trackIndex = trackIndex,
-                        mimeType = format.sampleMimeType.orEmpty(),
-                        language = format.language,
-                        channelCount = format.channelCount,
-                        sampleRate = format.sampleRate,
-                        bitrate = format.bitrate,
-                        selected = group.isTrackSelected(trackIndex),
-                        supported = group.isTrackSupported(trackIndex)
-                    )
-                }
-            }
-            .flatten()
+        return audioTracks.currentAudioTracks()
     }
 
     fun currentAudioDiagnostics(): PlayerAudioDiagnostics = audioDiagnostics
 
     fun selectAudioTrack(groupIndex: Int, trackIndex: Int) {
-        val player = player ?: return
-        val group = player.currentTracks.groups.getOrNull(groupIndex) ?: return
-        if (group.type != C.TRACK_TYPE_AUDIO || trackIndex !in 0 until group.length) return
-        player.trackSelectionParameters = player.trackSelectionParameters
-            .buildUpon()
-            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
-            .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false)
-            .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, trackIndex))
-            .build()
-        setMuted(false)
+        audioTracks.selectAudioTrack(groupIndex, trackIndex)
     }
 
     fun disableAudioTrack() {
-        val player = player ?: return
-        player.trackSelectionParameters = player.trackSelectionParameters
-            .buildUpon()
-            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
-            .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)
-            .build()
-        setMuted(true)
+        audioTracks.disableAudioTrack()
     }
 
     private fun audioDiagnosticsListener(): AnalyticsListener =
@@ -245,18 +188,6 @@ class PlayerManager @Inject constructor(
                 )
             }
         }
-
-    private fun isFfmpegExtensionAvailable(): Boolean {
-        return FFMPEG_LIBRARY_CLASS_NAMES.any { className ->
-            runCatching {
-                val libraryClass = Class.forName(className)
-                val isAvailable = runCatching {
-                    libraryClass.getMethod("isAvailable").invoke(null) as? Boolean
-                }.getOrNull()
-                isAvailable ?: true
-            }.getOrDefault(false)
-        }
-    }
 
     private fun String?.needsSoftwareAudioFallback(): Boolean {
         val normalized = this?.lowercase() ?: return false
@@ -302,21 +233,12 @@ class PlayerManager @Inject constructor(
     }
 
     // P1: Video Filters
-    private val activeEffects = mutableListOf<androidx.media3.common.Effect>()
-    private var lastVideoAdjustments: VideoAdjustments? = null
-
     fun setBrightness(value: Float) {
-        lastVideoAdjustments = null
-        activeEffects.removeAll { it is Brightness }
-        activeEffects.add(Brightness(value))
-        applyEffects()
+        videoEffects.setBrightness(value)
     }
 
     fun setContrast(value: Float) {
-        lastVideoAdjustments = null
-        activeEffects.removeAll { it is Contrast }
-        activeEffects.add(Contrast(value))
-        applyEffects()
+        videoEffects.setContrast(value)
     }
 
     fun applyVideoAdjustments(
@@ -324,288 +246,45 @@ class PlayerManager @Inject constructor(
         contrast: Float,
         saturation: Float
     ) {
-        val nextAdjustments = VideoAdjustments(brightness, contrast, saturation)
-        if (lastVideoAdjustments == nextAdjustments) return
-        lastVideoAdjustments = nextAdjustments
-        activeEffects.removeAll { it is Brightness || it is Contrast || it is RgbMatrix }
-        if (brightness != 0f) {
-            activeEffects.add(Brightness(brightness))
-        }
-        if (contrast != 0f) {
-            activeEffects.add(Contrast(contrast))
-        }
-        if (saturation != 0f) {
-            activeEffects.add(saturationMatrix(saturation))
-        }
-        applyEffects()
-    }
-
-    private fun saturationMatrix(value: Float): RgbMatrix {
-        val scale = (1f + value).coerceAtLeast(0f)
-        val inverse = 1f - scale
-        val red = 0.213f * inverse
-        val green = 0.715f * inverse
-        val blue = 0.072f * inverse
-        val matrix = floatArrayOf(
-            red + scale, green, blue, 0f,
-            red, green + scale, blue, 0f,
-            red, green, blue + scale, 0f,
-            0f, 0f, 0f, 1f
-        )
-        return object : RgbMatrix {
-            override fun getMatrix(presentationTimeUs: Long, useHdr: Boolean): FloatArray = matrix
-        }
+        videoEffects.applyVideoAdjustments(brightness, contrast, saturation)
     }
 
     fun setRotation(degrees: Float) {
-        lastVideoAdjustments = null
-        activeEffects.removeAll { it is ScaleAndRotateTransformation }
-        activeEffects.add(ScaleAndRotateTransformation.Builder().setRotationDegrees(degrees).build())
-        applyEffects()
+        videoEffects.setRotation(degrees)
     }
 
     fun clearEffects() {
-        lastVideoAdjustments = null
-        activeEffects.clear()
-        player?.setVideoEffects(emptyList())
+        videoEffects.clearEffects()
     }
-
-    private fun applyEffects() {
-        player?.setVideoEffects(activeEffects.toList())
-    }
-
-    private data class VideoAdjustments(
-        val brightness: Float,
-        val contrast: Float,
-        val saturation: Float
-    )
 
     // P1: Equalizer
-    private var equalizer: Equalizer? = null
-    private var loudnessEnhancer: LoudnessEnhancer? = null
-
     fun initEqualizer(audioSessionId: Int) {
-        releaseEqualizer()
-        try {
-            equalizer = Equalizer(0, audioSessionId)
-            equalizer?.enabled = true
-        } catch (e: Exception) {
-            equalizer = null
-        }
+        audioEffects.initEqualizer(audioSessionId)
     }
 
     fun releaseEqualizer() {
-        equalizer?.release()
-        equalizer = null
+        audioEffects.releaseEqualizer()
     }
 
     fun setEqualizerPreset(preset: Short) {
-        equalizer?.usePreset(preset)
+        audioEffects.setEqualizerPreset(preset)
     }
 
     fun getEqualizerPresets(): List<String> {
-        val eq = equalizer ?: return emptyList()
-        return (0 until eq.numberOfPresets).map { eq.getPresetName(it.toShort()) }
+        return audioEffects.getEqualizerPresets()
     }
 
     fun setEqualizerBand(band: Short, level: Short) {
-        equalizer?.setBandLevel(band, level)
-    }
-
-    private fun enableLoudnessEnhancer() {
-        val audioSessionId = player?.audioSessionId ?: C.AUDIO_SESSION_ID_UNSET
-        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) return
-
-        releaseLoudnessEnhancer()
-        loudnessEnhancer = runCatching {
-            LoudnessEnhancer(audioSessionId).apply {
-                setTargetGain(VOLUME_BOOST_MILLIBELS)
-                enabled = true
-            }
-        }.getOrNull()
-    }
-
-    private fun releaseLoudnessEnhancer() {
-        loudnessEnhancer?.release()
-        loudnessEnhancer = null
+        audioEffects.setEqualizerBand(band, level)
     }
 
     // P1: Screenshot
     fun takeScreenshot(videoView: android.view.View, callback: (Boolean, String?) -> Unit) {
-        when (videoView) {
-            is TextureView -> {
-                val bitmap = videoView.bitmap ?: run {
-                    callback(false, null)
-                    return
-                }
-                saveScreenshot(bitmap, callback)
-                bitmap.recycle()
-            }
-            is SurfaceView -> {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                    callback(false, null)
-                    return
-                }
-                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)
-                PixelCopy.request(
-                    videoView,
-                    bitmap,
-                    { result ->
-                        if (result == PixelCopy.SUCCESS) {
-                            saveScreenshot(bitmap, callback)
-                        } else {
-                            callback(false, null)
-                        }
-                        bitmap.recycle()
-                    },
-                    Handler(Looper.getMainLooper())
-                )
-            }
-            else -> callback(false, null)
-        }
+        mediaExport.takeScreenshot(videoView, callback)
     }
 
     fun exportClip(sourceUri: Uri, startMs: Long, endMs: Long, callback: (Boolean, String?) -> Unit) {
-        Thread {
-            val result = runCatching {
-                if (startMs < 0L || endMs <= startMs) return@runCatching null
-                val source = context.contentResolver.openFileDescriptor(sourceUri, "r") ?: return@runCatching null
-                source.use { descriptor ->
-                    val extractor = MediaExtractor()
-                    val muxer: MediaMuxer
-                    val outputFile = clipOutputFile()
-                    try {
-                        extractor.setDataSource(descriptor.fileDescriptor)
-                        muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-                    } catch (error: Exception) {
-                        extractor.release()
-                        throw error
-                    }
-
-                    val trackMap = mutableMapOf<Int, Int>()
-                    for (trackIndex in 0 until extractor.trackCount) {
-                        val format = extractor.getTrackFormat(trackIndex)
-                        val mime = format.getString(MediaFormat.KEY_MIME).orEmpty()
-                        if (mime.startsWith("video/") || mime.startsWith("audio/")) {
-                            extractor.selectTrack(trackIndex)
-                            trackMap[trackIndex] = muxer.addTrack(format)
-                        }
-                    }
-                    if (trackMap.isEmpty()) {
-                        muxer.release()
-                        extractor.release()
-                        return@runCatching null
-                    }
-
-                    val startUs = startMs * 1000L
-                    val endUs = endMs * 1000L
-                    val buffer = ByteBuffer.allocate(CLIP_BUFFER_BYTES)
-                    val info = MediaCodec.BufferInfo()
-
-                    muxer.start()
-                    extractor.seekTo(startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
-                    var muxerStarted = true
-                    try {
-                        while (true) {
-                            val trackIndex = extractor.sampleTrackIndex
-                            if (trackIndex < 0) break
-                            val sampleTimeUs = extractor.sampleTime
-                            if (sampleTimeUs > endUs) break
-                            val outputTrack = trackMap[trackIndex]
-                            if (outputTrack != null) {
-                                buffer.clear()
-                                val sampleSize = extractor.readSampleData(buffer, 0)
-                                if (sampleSize < 0) break
-                                var bufferFlags = 0
-                                if ((extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC) != 0) {
-                                    bufferFlags = bufferFlags or MediaCodec.BUFFER_FLAG_KEY_FRAME
-                                }
-                                if ((extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_PARTIAL_FRAME) != 0) {
-                                    bufferFlags = bufferFlags or MediaCodec.BUFFER_FLAG_PARTIAL_FRAME
-                                }
-                                info.set(
-                                    0,
-                                    sampleSize,
-                                    (sampleTimeUs - startUs).coerceAtLeast(0L),
-                                    bufferFlags
-                                )
-                                muxer.writeSampleData(outputTrack, buffer, info)
-                            }
-                            extractor.advance()
-                        }
-                    } finally {
-                        runCatching {
-                            if (muxerStarted) {
-                                muxer.stop()
-                                muxerStarted = false
-                            }
-                        }
-                        muxer.release()
-                        extractor.release()
-                    }
-                    outputFile.absolutePath
-                }
-            }.getOrNull()
-
-            Handler(Looper.getMainLooper()).post {
-                callback(result != null, result)
-            }
-        }.start()
+        mediaExport.exportClip(sourceUri, startMs, endMs, callback)
     }
 
-    private fun saveScreenshot(bitmap: Bitmap, callback: (Boolean, String?) -> Unit) {
-        val name = "screenshot_${System.currentTimeMillis()}.jpg"
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val values = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, name)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_PICTURES}/OpenVideo")
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                }
-                val uri = context.contentResolver.insert(
-                    MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY),
-                    values
-                ) ?: run {
-                    callback(false, null)
-                    return
-                }
-                context.contentResolver.openOutputStream(uri)?.use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                } ?: run {
-                    callback(false, null)
-                    return
-                }
-                values.clear()
-                values.put(MediaStore.MediaColumns.IS_PENDING, 0)
-                context.contentResolver.update(uri, values, null, null)
-                callback(true, uri.toString())
-            } else {
-                val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "OpenVideo")
-                if (!dir.exists()) dir.mkdirs()
-                val file = File(dir, name)
-                FileOutputStream(file).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
-                }
-                callback(true, file.absolutePath)
-            }
-        } catch (_: Exception) {
-            callback(false, null)
-        }
-    }
-
-    private fun clipOutputFile(): File {
-        val dir = File(context.getExternalFilesDir(Environment.DIRECTORY_MOVIES), "OpenVideo")
-        if (!dir.exists()) dir.mkdirs()
-        return File(dir, "clip_${System.currentTimeMillis()}.mp4")
-    }
-
-    private companion object {
-        const val VOLUME_BOOST_MILLIBELS = 600
-        const val CLIP_BUFFER_BYTES = 1024 * 1024
-        val FFMPEG_LIBRARY_CLASS_NAMES = arrayOf(
-            "androidx.media3.decoder.ffmpeg.FfmpegLibrary",
-            "org.jellyfin.media3.ext.ffmpeg.FfmpegLibrary"
-        )
-    }
 }

@@ -11,19 +11,21 @@ class PlayerScreenshotSourceTest {
     @Test
     fun screenshotsSupportTextureViewRenderer() {
         val managerSource = String(Files.readAllBytes(playerManagerSource()))
+        val mediaExportSource = String(Files.readAllBytes(playerMediaExportControllerSource()))
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
 
         assertTrue(
             "PlayerManager screenshot API should accept a View so both TextureView and SurfaceView renderers are supported",
             managerSource.contains("fun takeScreenshot(videoView: android.view.View")
         )
+        assertTrue(managerSource.contains("mediaExport.takeScreenshot(videoView, callback)"))
         assertTrue(
             "Screenshot capture should use TextureView.bitmap when PlayerView renders through a TextureView",
-            managerSource.contains("is TextureView") && managerSource.contains("videoView.bitmap")
+            mediaExportSource.contains("is TextureView") && mediaExportSource.contains("videoView.bitmap")
         )
         assertTrue(
             "Screenshot capture should keep PixelCopy for SurfaceView fallback",
-            managerSource.contains("is SurfaceView") && managerSource.contains("PixelCopy.request")
+            mediaExportSource.contains("is SurfaceView") && mediaExportSource.contains("PixelCopy.request")
         )
         assertTrue(
             "PlayerActivity should pass the current video renderer view to screenshot capture",
@@ -43,6 +45,24 @@ class PlayerScreenshotSourceTest {
             "core",
             "player",
             "PlayerManager.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerMediaExportControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "core",
+            "player",
+            "PlayerMediaExportController.kt"
         )
         return sequenceOf(
             relativePath,

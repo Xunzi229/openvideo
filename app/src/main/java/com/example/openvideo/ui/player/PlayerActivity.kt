@@ -1051,26 +1051,6 @@ class PlayerActivity : AppCompatActivity() {
         activePlayerDialog = dialog
     }
 
-    /**
-     * 让快速选择型 AlertDialog 继承「播放器设置」面板的不透明度与背景暗化 / 模糊，
-     * 与 [PlayerSettingsDialog] 视觉一致。必须在 `dialog.show()` 之后调用。
-     */
-    private fun androidx.appcompat.app.AlertDialog.applyPlayerSheetStyle() {
-        val w = window ?: return
-        val style = PlayerSettingsSheetStylePolicy.compute(
-            panelOpacityPercent = playerPrefs.settingsPanelOpacity,
-            backdropDimPercent = playerPrefs.settingsSheetBackdropDimPercent,
-            backdropBlurDp = playerPrefs.settingsSheetBackdropBlurDp,
-            density = resources.displayMetrics.density
-        )
-        w.decorView.alpha = style.panelAlpha
-        w.setDimAmount(style.dimAmount)
-        w.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
-            w.setBackgroundBlurRadius(style.backdropBlurRadiusPx)
-        }
-    }
-
     private fun showAudioTrackQuickDialog() {
         val state = PlayerQuickEntryPolicy.audioEntry(
             tracks = viewModel.audioTracks(),
