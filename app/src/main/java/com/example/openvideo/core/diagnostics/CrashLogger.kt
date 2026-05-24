@@ -42,6 +42,18 @@ object CrashLogger {
         )
     }
 
+    /**
+     * 读取最新的播放器错误日志文本（source=player），用于「复制诊断信息」功能。
+     * 若无日志文件则返回 null。
+     */
+    fun readLatestPlayerErrorLog(context: Context): String? = runCatching {
+        val dir = File(context.applicationContext.filesDir, DIR_NAME)
+        if (!dir.exists()) return null
+        dir.listFiles { file ->
+            file.name.startsWith(CrashCategoryPolicy.SOURCE_PLAYER + "_")
+        }?.maxByOrNull { it.lastModified() }?.readText()
+    }.getOrNull()
+
     fun logDiagnostic(context: Context, name: String, body: String) {
         runCatching {
             val safeName = name.replace(Regex("[^A-Za-z0-9_-]"), "_")

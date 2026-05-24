@@ -1,9 +1,9 @@
 package com.example.openvideo.ui.settings
 
 /**
- * 设置备份 UI 开关。底层 Schema/Exporter 已实现；用户可见入口暂隐藏，
- * 待 Web 侧备份方案就绪后再开放（见 design/rules/settings-backup-deferred.md）。
+ * 设置备份/恢复 UI 开关。导出导入基础设施均已实现。
  */
 object SettingsBackupUiPolicy {
-    const val SETTINGS_EXPORT_ENTRY_VISIBLE = false
+    const val SETTINGS_EXPORT_ENTRY_VISIBLE = true
+    const val SETTINGS_IMPORT_ENTRY_VISIBLE = true
 }

@@ -27,6 +27,8 @@ class HomeMediaScanSourceTest {
 
         assertTrue(source.contains("MediaLibraryEmptyState.PERMISSION_DENIED"))
         assertTrue(source.contains("MediaLibraryEmptyState.SCAN_ERROR"))
+        assertTrue(source.contains("MediaLibraryEmptyState.NO_FAVORITES"))
+        assertTrue(source.contains("R.string.media_library_empty_favorites"))
         assertTrue(source.contains("checkPermissionAndLoad()"))
         assertTrue(source.contains("MediaLibraryScanLoadingUi.bind"))
         assertTrue(layout.contains("include_media_library_scan_loading"))

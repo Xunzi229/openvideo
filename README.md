@@ -13,12 +13,11 @@ Problems this project aims to solve:
 - Android Studio with AGP 9 support, or the checked-in Gradle wrapper
 - JDK 17
 - Gradle **9.5**, Android Gradle Plugin **9.0.1**
-- Kotlin **2.2.10**, KSP **2.2.10-2.0.2**
+- Kotlin **2.2.10**, KSP **2.3.7**
 - Android SDK **compileSdk 35**, **minSdk 23**
 
-The project uses AGP 9 built-in Kotlin support. `android.disallowKotlinSourceSets=false`
-is currently kept in `gradle.properties` as a temporary compatibility bridge for KSP
-generated sources.
+The project uses AGP 9 built-in Kotlin support. KSP generated sources are validated by
+the normal debug, unit test, and release build pipeline.
 
 ## Build
 

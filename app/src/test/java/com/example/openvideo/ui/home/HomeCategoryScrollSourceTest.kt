@@ -43,6 +43,23 @@ class HomeCategoryScrollSourceTest {
         assertFalse(method.contains("scrollToPosition"))
     }
 
+    @Test
+    fun categoryChipsShowFilteredCountsForEachCategory() {
+        val source = String(Files.readAllBytes(homeFragmentSource()))
+        val submitBody = source.substringAfter("private fun submitCategoryList(category: HomeCategory, list: List<VideoItem>) {")
+            .substringBefore("\n    private fun")
+        val updateBody = source.substringAfter("private fun updateCategoryChips(category: HomeCategory) {")
+            .substringBefore("\n    private fun")
+        val bindBody = source.substringAfter("private fun bindCategoryChip(")
+            .substringBefore("\n    private fun")
+
+        assertTrue(submitBody.contains("updateCategoryChips(activeCategory)"))
+        assertTrue(updateBody.contains("categoryLists[HomeCategory.ALL].orEmpty().size"))
+        assertTrue(updateBody.contains("categoryLists[HomeCategory.RECENT].orEmpty().size"))
+        assertTrue(updateBody.contains("categoryLists[HomeCategory.FAVORITES].orEmpty().size"))
+        assertTrue(bindBody.contains("R.string.home_filter_count"))
+    }
+
     private fun homeFragmentSource(): Path {
         val relativePath = Paths.get(
             "src",

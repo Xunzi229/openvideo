@@ -67,6 +67,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getInt(KEY_CONTROLS_AUTO_HIDE, 3)
         set(value) = putInt(KEY_CONTROLS_AUTO_HIDE, value)
 
+    var seekThumbnailEnabled: Boolean
+        get() = getBoolean(KEY_SEEK_THUMBNAIL_ENABLED, true)
+        set(value) = putBoolean(KEY_SEEK_THUMBNAIL_ENABLED, value)
+
     // ── 画面 ──
 
     var aspectRatio: AspectRatio
@@ -308,6 +312,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_OUTRO_SECONDS = "outro_seconds"
         private const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
         private const val KEY_CONTROLS_AUTO_HIDE = "controls_auto_hide"
+        private const val KEY_SEEK_THUMBNAIL_ENABLED = "seek_thumbnail_enabled"
 
         // 画面
         private const val KEY_ASPECT_RATIO = "aspect_ratio"

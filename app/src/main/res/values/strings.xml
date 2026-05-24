@@ -322,6 +322,7 @@
     <string name="media_library_scanning_count">Scanned %1$d videos…</string>
     <string name="media_library_permission_denied">Video access permission is required to scan local files</string>
     <string name="media_library_scan_error">Could not refresh the local library. Try again.</string>
+    <string name="media_library_empty_favorites">No favorites yet</string>
     <string name="media_library_empty_privacy">Videos are hidden by private folders</string>
     <string name="media_library_empty_filtered">No videos match the current filter</string>
     <string name="duration_format" formatted="false">%02d:%02d:%02d</string>
@@ -331,6 +332,7 @@
     <string name="home_filter_all">All</string>
     <string name="home_filter_recent">Recent</string>
     <string name="home_filter_favorite">Favorites</string>
+    <string name="home_filter_count">%1$s (%2$d)</string>
     <string name="home_filter_all_folders">All folders</string>
     <string name="home_filter_folder_with_count">%1$s (%2$d)</string>
     <string name="home_filter_folder_pinned_prefix">★ %1$s</string>
@@ -410,6 +412,10 @@
     <string name="settings_clear_history">Clear watch history</string>
     <string name="settings_section_backup">Backup</string>
     <string name="settings_export_settings">Export settings</string>
+    <string name="settings_import_settings">Import settings</string>
+    <string name="settings_toast_import_success">Settings imported successfully</string>
+    <string name="settings_toast_import_failed">Could not read the file</string>
+    <string name="settings_toast_import_parse_error">Invalid or unsupported settings file</string>
     <string name="settings_toast_export_success">Settings exported</string>
     <string name="settings_toast_export_failed">Export failed</string>
     <string name="settings_section_about">About</string>
@@ -453,7 +459,18 @@
     <string name="player_ab_loop_cancelled">AB loop cancelled</string>
     <string name="player_locked">Screen locked. Tap lock to unlock.</string>
     <string name="player_unlocked">Screen unlocked</string>
-    <string name="player_playback_error">Playback failed. Error logged.</string>
+    <string name="player_error_title_decode">Decoding Failed</string>
+    <string name="player_error_title_io">File Unavailable</string>
+    <string name="player_error_title_general">Playback Error</string>
+    <string name="player_error_desc_decode">This video could not be decoded. Try switching to software decoding.</string>
+    <string name="player_error_desc_io">The file could not be read. It may have been moved or deleted.</string>
+    <string name="player_error_desc_general">An error occurred during playback. The error has been logged.</string>
+    <string name="player_error_action_soft_decode">Software Decode</string>
+    <string name="player_error_action_retry">Retry</string>
+    <string name="player_error_action_copy_diag">Copy Diagnostics</string>
+    <string name="player_error_action_back">Back</string>
+    <string name="player_error_diag_copied">Diagnostics copied to clipboard</string>
+    <string name="player_error_diag_unavailable">No diagnostics available</string>
     <string name="player_action_back">Back</string>
     <string name="player_action_previous">Previous</string>
     <string name="player_action_play">Play</string>
@@ -469,6 +486,7 @@
     <string name="player_smart_crop_off">Smart crop off</string>
     <string name="player_smart_crop_unavailable">No smart crop suggestion for this video</string>
     <string name="player_video_list_title">List</string>
+    <string name="player_video_list_order_hint">Episodes play in detected episode order; otherwise this keeps the list order.</string>
     <string name="player_portrait_speed">Speed</string>
     <string name="player_portrait_quality">Quality</string>
     <string name="player_portrait_audio">Audio</string>

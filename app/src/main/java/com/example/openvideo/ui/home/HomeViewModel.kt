@@ -62,6 +62,8 @@ class HomeViewModel @Inject constructor(
     private val _scannedVideoCount = MutableStateFlow(0)
     private val _hiddenFilteredCount = MutableStateFlow(0)
     private val _hiddenFolders = MutableStateFlow<List<String>>(emptyList())
+    private val _permissionDenied = MutableStateFlow(false)
+    private val _scanError = MutableStateFlow(false)
     private val _searchQuery = MutableStateFlow("")
     private val _advancedFilters = MutableStateFlow(MediaLibraryAdvancedFilters())
     val advancedFilters: StateFlow<MediaLibraryAdvancedFilters> = _advancedFilters
@@ -95,17 +97,19 @@ class HomeViewModel @Inject constructor(
     private val recentCategoryVideos: Flow<List<VideoItem>> = combine(
         _videos,
         repository.getHistory(),
-        _hiddenFolders
-    ) { scanned, history, hiddenFolders ->
-        videosFromHistory(scanned, history, hiddenFolders)
+        _hiddenFolders,
+        _permissionDenied
+    ) { scanned, history, hiddenFolders, permissionDenied ->
+        videosFromHistory(scanned, history, hiddenFolders, permissionDenied)
     }
 
     private val favoriteCategoryVideos: Flow<List<VideoItem>> = combine(
         _videos,
         repository.getFavorites(),
-        _hiddenFolders
-    ) { scanned, favorites, hiddenFolders ->
-        videosFromFavorites(scanned, favorites, hiddenFolders)
+        _hiddenFolders,
+        _permissionDenied
+    ) { scanned, favorites, hiddenFolders, permissionDenied ->
+        videosFromFavorites(scanned, favorites, hiddenFolders, permissionDenied)
     }
 
     val allVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(allCategoryVideos)
@@ -263,26 +267,32 @@ class HomeViewModel @Inject constructor(
     val isLoading: StateFlow<Boolean> = _isLoading
     private val _scanProgress = MutableStateFlow<MediaLibraryScanProgress?>(null)
     val scanProgress: StateFlow<MediaLibraryScanProgress?> = _scanProgress
-    private val _permissionDenied = MutableStateFlow(false)
-    private val _scanError = MutableStateFlow(false)
-
     val emptyState: StateFlow<MediaLibraryEmptyState> = combine(
         _isLoading,
         _scannedVideoCount,
         videos,
         _hiddenFilteredCount,
         _permissionDenied,
-        _scanError
+        _scanError,
+        _category,
+        _selectedFolderKey,
+        _searchQuery,
+        _advancedFilters
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         val visibleVideos = values[2] as List<VideoItem>
+        val selectedFolderKey = values[7] as String?
+        val query = values[8] as String
+        val filters = values[9] as MediaLibraryAdvancedFilters
         MediaLibraryPolicy.emptyState(
             isLoading = values[0] as Boolean,
             scannedCount = values[1] as Int,
             visibleCount = visibleVideos.size,
             hiddenFilteredCount = values[3] as Int,
             permissionDenied = values[4] as Boolean,
-            scanError = values[5] as Boolean
+            scanError = values[5] as Boolean,
+            category = values[6] as HomeCategory,
+            hasActiveUserFilter = selectedFolderKey != null || query.isNotBlank() || filters.isActive()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MediaLibraryEmptyState.LOADING)
 
@@ -505,7 +515,8 @@ class HomeViewModel @Inject constructor(
     private fun videosFromHistory(
         scanned: List<VideoItem>,
         history: List<HistoryEntity>,
-        hiddenFolders: List<String>
+        hiddenFolders: List<String>,
+        permissionDenied: Boolean
     ): List<VideoItem> {
         val scannedById = scanned.associateBy { it.id }
         return history
@@ -516,6 +527,7 @@ class HomeViewModel @Inject constructor(
                         MediaLibraryPolicy.shouldExposeStoredFallback(
                             path = video.path,
                             hiddenFolders = hiddenFolders,
+                            permissionDenied = permissionDenied,
                             localFileExists = { candidatePath -> File(candidatePath).exists() }
                         )
                     }
@@ -525,7 +537,8 @@ class HomeViewModel @Inject constructor(
     private fun videosFromFavorites(
         scanned: List<VideoItem>,
         favorites: List<FavoriteEntity>,
-        hiddenFolders: List<String>
+        hiddenFolders: List<String>,
+        permissionDenied: Boolean
     ): List<VideoItem> {
         val scannedById = scanned.associateBy { it.id }
         return favorites
@@ -536,6 +549,7 @@ class HomeViewModel @Inject constructor(
                         MediaLibraryPolicy.shouldExposeStoredFallback(
                             path = video.path,
                             hiddenFolders = hiddenFolders,
+                            permissionDenied = permissionDenied,
                             localFileExists = { candidatePath -> File(candidatePath).exists() }
                         )
                     }

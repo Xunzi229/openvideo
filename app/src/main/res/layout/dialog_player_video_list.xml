@@ -32,6 +32,15 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/player_video_list_order_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/player_video_list_order_hint"
+            android:textColor="@color/player_text_secondary"
+            android:textSize="12sp" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/player_video_list_recycler"
             android:layout_width="match_parent"

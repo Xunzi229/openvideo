@@ -27,9 +27,14 @@ import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -113,6 +118,12 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var volumeIndicator: View
     private lateinit var volumeProgress: ProgressBar
 
+    private var seekThumbnailLoader: PlayerSeekThumbnailLoader? = null
+    private lateinit var seekThumbnailContainer: FrameLayout
+    private lateinit var seekThumbnailImage: ImageView
+    private lateinit var seekThumbnailTime: TextView
+    private lateinit var progressRow: View
+
     /** 横屏布局专有：底部工具栏「列表」入口。 */
     private var btnVideoList: View? = null
 
@@ -127,6 +138,16 @@ class PlayerActivity : AppCompatActivity() {
     private var smartCropViewportFillFraction: Float? = null
     private var smartCropViewportScale: PlayerContentFrameViewportScale? = null
     private var smartCropCropExpansionFraction: Float = 0f
+    private var smartCropToast: Toast? = null
+
+    // Error HUD views (initialized in initViews)
+    private lateinit var playerErrorHud: View
+    private lateinit var tvErrorTitle: TextView
+    private lateinit var tvErrorDesc: TextView
+    private var btnErrorSoftDecode: Button? = null
+    private var btnErrorRetry: Button? = null
+    private var btnErrorCopyDiag: Button? = null
+    private var btnErrorBack: Button? = null
 
     private val landscapeGeometryListener =
         View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
@@ -492,6 +513,19 @@ class PlayerActivity : AppCompatActivity() {
         btnVideoList = findViewById(R.id.btn_video_list)
         landRightFloatColumn = findViewById(R.id.land_right_float_column)
         controlsContainer.addOnLayoutChangeListener(landscapeGeometryListener)
+
+        playerErrorHud = findViewById(R.id.player_error_hud)
+        tvErrorTitle = findViewById(R.id.tv_error_title)
+        tvErrorDesc = findViewById(R.id.tv_error_desc)
+        btnErrorSoftDecode = findViewById(R.id.btn_error_soft_decode)
+        btnErrorRetry = findViewById(R.id.btn_error_retry)
+        btnErrorCopyDiag = findViewById(R.id.btn_error_copy_diag)
+        btnErrorBack = findViewById(R.id.btn_error_back)
+
+        seekThumbnailContainer = findViewById(R.id.seek_thumbnail_container)
+        seekThumbnailImage = findViewById(R.id.seek_thumbnail_image)
+        seekThumbnailTime = findViewById(R.id.seek_thumbnail_time)
+        progressRow = findViewById(R.id.progress_row)
     }
 
     private fun updateLandResolutionBadge() {
@@ -556,7 +590,7 @@ class PlayerActivity : AppCompatActivity() {
                 onRequestPickSubtitle = {
                     pickSubtitleLauncher.launch(arrayOf("*/*"))
                 },
-                onAspectRatioChanged = ::applyDisplaySettings,
+                onAspectRatioChanged = ::applyAspectRatioDisplayChange,
                 onPlayerPrefsReset = ::applyPlayerSettings
             )
             dialog.setOnDismissListener {
@@ -569,6 +603,11 @@ class PlayerActivity : AppCompatActivity() {
             dialog.show()
             dialog
         }
+    }
+
+    private fun applyAspectRatioDisplayChange() {
+        clearSmartCropSession()
+        applyDisplaySettings()
     }
 
     private fun showAspectRatioQuickDialog() {
@@ -596,6 +635,7 @@ class PlayerActivity : AppCompatActivity() {
                 playerPrefs.aspectRatio = selection.aspectRatio
                 selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }
                 viewModel.setAspectRatio(selection.aspectRatio)
+                clearSmartCropSession()
                 applyDisplaySettings()
             }
         }
@@ -610,30 +650,31 @@ class PlayerActivity : AppCompatActivity() {
             clearSmartCropSession()
             applyDisplaySettings()
             logSmartCrop("smartCropClick toggledOff")
-            Toast.makeText(this, R.string.player_smart_crop_off, Toast.LENGTH_SHORT).show()
+            showSmartCropToast(R.string.player_smart_crop_off)
             scheduleHideControls()
             return
         }
+        cancelSmartCropToast()
         hideControlsForSmartCropCapture()
         playerView.postDelayed({
             captureSmartCropRenderBounds { renderBounds ->
                 logSmartCrop("smartCropRenderBounds $renderBounds")
                 if (renderBounds != null && applySmartCropBounds(renderBounds)) {
-                    Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
+                    showSmartCropToast(R.string.player_smart_crop_applied)
                     scheduleHideControls()
                     return@captureSmartCropRenderBounds
                 }
                 captureSmartCropVisualBounds { bounds ->
                     logSmartCrop("smartCropVisualBounds $bounds")
                     if (bounds != null && applySmartCropBounds(bounds)) {
-                        Toast.makeText(this, R.string.player_smart_crop_applied, Toast.LENGTH_SHORT).show()
+                        showSmartCropToast(R.string.player_smart_crop_applied)
                         scheduleHideControls()
                         return@captureSmartCropVisualBounds
                     }
                     captureSmartCropBlackBorders { blackBorders ->
                         logSmartCrop("smartCropBlackBorders $blackBorders")
                         if (blackBorders == null) {
-                            Toast.makeText(this, R.string.player_smart_crop_unavailable, Toast.LENGTH_SHORT).show()
+                            showSmartCropToast(R.string.player_smart_crop_unavailable)
                             return@captureSmartCropBlackBorders
                         }
                         applySmartCropQuickToggle(blackBorders)
@@ -641,6 +682,17 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
         }, SMART_CROP_CAPTURE_DELAY_MS)
+    }
+
+    private fun showSmartCropToast(messageRes: Int) {
+        cancelSmartCropToast()
+        smartCropToast = Toast.makeText(this, messageRes, Toast.LENGTH_SHORT)
+        smartCropToast?.show()
+    }
+
+    private fun cancelSmartCropToast() {
+        smartCropToast?.cancel()
+        smartCropToast = null
     }
 
     private fun hideControlsForSmartCropCapture() {
@@ -739,7 +791,7 @@ class PlayerActivity : AppCompatActivity() {
         )
         val nextMode = decision.contentFrameMode
         if (nextMode == null) {
-            Toast.makeText(this, R.string.player_smart_crop_unavailable, Toast.LENGTH_SHORT).show()
+            showSmartCropToast(R.string.player_smart_crop_unavailable)
             return
         }
 
@@ -754,15 +806,13 @@ class PlayerActivity : AppCompatActivity() {
         smartCropCropExpansionFraction = decision.cropExpansionFraction
         manualVideoZoom = PlayerVideoZoomState.IDENTITY
         applyDisplaySettings()
-        Toast.makeText(
-            this,
+        showSmartCropToast(
             if (nextMode == ContentFrameMode.OFF) {
                 R.string.player_smart_crop_off
             } else {
                 R.string.player_smart_crop_applied
-            },
-            Toast.LENGTH_SHORT
-        ).show()
+            }
+        )
         scheduleHideControls()
     }
 
@@ -1282,6 +1332,37 @@ class PlayerActivity : AppCompatActivity() {
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
                     tvCurrentTime.text = formatTime(progress.toLong())
+
+                    // Seek thumbnail integration
+                    val loader = seekThumbnailLoader
+                    if (loader != null) {
+                        val currentVideoUri = viewModel.currentVideoUri
+                        if (currentVideoUri != null) {
+                            val duration = viewModel.uiState.value.duration
+                            val positionMs = PlayerSeekThumbnailPolicy.thumbnailPositionMs(progress, sb.max, duration)
+
+                            // Update time text
+                            seekThumbnailTime.text = formatTime(positionMs)
+
+                            // Load thumbnail
+                            loader.loadThumbnail(currentVideoUri, positionMs) { bitmap ->
+                                if (bitmap != null) {
+                                    seekThumbnailImage.setImageBitmap(bitmap)
+                                }
+                            }
+
+                            // Dynamic translationX alignment above the seek thumb
+                            val usableWidth = sb.width - sb.paddingLeft - sb.paddingRight
+                            val pct = if (sb.max > 0) progress.toFloat() / sb.max else 0f
+                            val absoluteSeekBarLeft = bottomPanel.left + progressRow.left + sb.left
+                            val thumbXInParent = absoluteSeekBarLeft + sb.paddingLeft + (usableWidth * pct) - (seekThumbnailContainer.width / 2f)
+
+                            seekThumbnailContainer.translationX = thumbXInParent.coerceIn(
+                                0f,
+                                (controlsContainer.width - seekThumbnailContainer.width).toFloat()
+                            )
+                        }
+                    }
                 }
             }
 
@@ -1289,6 +1370,16 @@ class PlayerActivity : AppCompatActivity() {
                 if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SEEK_BAR, isScreenLocked)) return
                 isSeeking = true
                 handler.removeCallbacks(hideControlsRunnable)
+
+                // Seek thumbnail integration
+                if (playerPrefs.seekThumbnailEnabled) {
+                    val currentVideoUri = viewModel.currentVideoUri
+                    val scheme = currentVideoUri?.scheme
+                    if (currentVideoUri != null && !PlayerSeekThumbnailPolicy.shouldSkipThumbnail(scheme)) {
+                        seekThumbnailLoader = PlayerSeekThumbnailLoader(this@PlayerActivity)
+                        seekThumbnailContainer.visibility = View.VISIBLE
+                    }
+                }
             }
 
             override fun onStopTrackingTouch(sb: SeekBar) {
@@ -1302,6 +1393,11 @@ class PlayerActivity : AppCompatActivity() {
                 )
                 isSeeking = false
                 scheduleHideControls()
+
+                // Seek thumbnail integration
+                seekThumbnailContainer.visibility = View.GONE
+                seekThumbnailLoader?.release()
+                seekThumbnailLoader = null
             }
         })
 
@@ -1347,6 +1443,7 @@ class PlayerActivity : AppCompatActivity() {
                     val state = viewModel.uiState.value
                     applyPlaybackTickSeek(state.currentPosition, state.duration)
                     hideFirstFrameScrimForAudioOnly()
+                    hidePlayerErrorHud()
                     onPrepareReady()
                 } else if (playbackState == Player.STATE_ENDED) {
                     handlePlaybackEnded()
@@ -1376,7 +1473,7 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun onPlayerError(error: PlaybackException) {
                 CrashLogger.logPlayerError(this@PlayerActivity, error)
-                Toast.makeText(this@PlayerActivity, R.string.player_playback_error, Toast.LENGTH_SHORT).show()
+                showPlayerErrorHud(error)
             }
 
             @Suppress("DEPRECATION")
@@ -1558,7 +1655,64 @@ class PlayerActivity : AppCompatActivity() {
         firstFrameScrim.visibility = if (presentation.visible) View.VISIBLE else View.GONE
     }
 
+    /**
+     * 展示播放错误 HUD。隐藏控制层和 scrim，绑定 [PlayerErrorPresentationPolicy] 的展示模型。
+     */
+    private fun showPlayerErrorHud(error: PlaybackException) {
+        val presentation = PlayerErrorPresentationPolicy.present(error.errorCode)
+
+        tvErrorTitle.text = getString(presentation.titleRes)
+        tvErrorDesc.text = getString(presentation.descRes)
+
+        val actions = presentation.actions
+        btnErrorSoftDecode?.visibility =
+            if (PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in actions) View.VISIBLE else View.GONE
+        btnErrorRetry?.visibility =
+            if (PlayerErrorPresentationPolicy.ErrorAction.RETRY in actions) View.VISIBLE else View.GONE
+        btnErrorCopyDiag?.visibility =
+            if (PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in actions) View.VISIBLE else View.GONE
+        btnErrorBack?.visibility =
+            if (PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in actions) View.VISIBLE else View.GONE
+
+        btnErrorSoftDecode?.setOnClickListener {
+            viewModel.setDecodeMode(DecodeMode.SOFT)
+            hidePlayerErrorHud()
+            viewModel.retryPlayback()
+        }
+        btnErrorRetry?.setOnClickListener {
+            hidePlayerErrorHud()
+            viewModel.retryPlayback()
+        }
+        btnErrorCopyDiag?.setOnClickListener {
+            val diagText = CrashLogger.readLatestPlayerErrorLog(this)
+            if (diagText.isNullOrBlank()) {
+                Toast.makeText(this, R.string.player_error_diag_unavailable, Toast.LENGTH_SHORT).show()
+            } else {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("OpenVideo Diagnostics", diagText))
+                Toast.makeText(this, R.string.player_error_diag_copied, Toast.LENGTH_SHORT).show()
+            }
+        }
+        btnErrorBack?.setOnClickListener {
+            finishPlayer()
+        }
+
+        // Hide normal chrome and scrim; show error HUD
+        controlsContainer.visibility = View.GONE
+        firstFrameScrim.visibility = View.GONE
+        playerErrorHud.visibility = View.VISIBLE
+    }
+
+    /** 播放恢复正常时隐藏错误 HUD，恢复控制层。 */
+    private fun hidePlayerErrorHud() {
+        if (!playerErrorHud.isVisible) return
+        playerErrorHud.visibility = View.GONE
+        controlsContainer.visibility = View.VISIBLE
+        showControls()
+    }
+
     private fun handlePlaybackEnded() {
+
         if (isSwitchingQueueAfterEnded) return
         val queue = viewModel.sessionQueue.value
         val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }

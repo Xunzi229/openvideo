@@ -13,6 +13,7 @@ object VideoFolderFilterPolicy {
             }
             .sortedWith(
                 compareByDescending<VideoFolderSummary> { it.isPinned }
+                    .thenByDescending { it.videoCount }
                     .thenBy { it.name.lowercase() }
                     .thenBy { it.key }
             )
@@ -29,6 +30,7 @@ object VideoFolderFilterPolicy {
             }
             .sortedWith(
                 compareByDescending<VideoFolder> { it.isPinned }
+                    .thenByDescending { it.videoCount }
                     .thenBy { it.name.lowercase() }
                     .thenBy { it.key }
             )

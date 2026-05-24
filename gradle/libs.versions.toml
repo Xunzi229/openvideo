@@ -1,7 +1,7 @@
 [versions]
 agp = "9.0.1"
 kotlin = "2.2.10"
-ksp = "2.2.10-2.0.2"
+ksp = "2.3.7"
 hilt = "2.59.1"
 room = "2.8.3"
 media3 = "1.5.1"

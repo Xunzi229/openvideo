@@ -167,6 +167,31 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
+            android:layout_marginStart="16dp"
+            android:background="@color/ov_divider" />
+
+        <!-- Import Settings -->
+        <LinearLayout
+            android:id="@+id/row_import_settings"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_import_settings"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
             android:background="@color/ov_divider" />
 
         </LinearLayout>

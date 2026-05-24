@@ -369,7 +369,7 @@ class PlayerSettingsDialogTest {
         assertTrue(aspectRowBlock.contains("onAspectRatioChanged()"))
 
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
-        assertTrue(activitySource.contains("onAspectRatioChanged = ::applyDisplaySettings"))
+        assertTrue(activitySource.contains("onAspectRatioChanged = ::applyAspectRatioDisplayChange"))
     }
 
     @Test

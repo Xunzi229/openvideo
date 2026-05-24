@@ -51,6 +51,7 @@ class PlayerViewModel @Inject constructor(
 
     private var videoId: Long = 0
     private var videoUri: Uri? = null
+    val currentVideoUri: Uri? get() = videoUri
     private var videoPath: String = ""
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
@@ -172,6 +173,15 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun togglePlayPause() = playerManager.togglePlayPause()
+
+    /**
+     * 播放出错后重新 prepare 当前媒体。
+     * 会重置 ExoPlayer 的 media item 并从当前记录的 videoUri 重新加载。
+     */
+    fun retryPlayback() {
+        val uri = videoUri ?: return
+        playerManager.setMediaUri(uri)
+    }
 
     fun seekForward(ms: Long = playerPrefs.seekInterval * 1000L) {
         playerManager.seekForward(ms)

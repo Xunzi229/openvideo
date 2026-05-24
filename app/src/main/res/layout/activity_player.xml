@@ -32,6 +32,96 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Playback error HUD overlay -->
+    <LinearLayout
+        android:id="@+id/player_error_hud"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:background="@color/player_bg"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:src="@drawable/ic_error_outline"
+            android:layout_marginBottom="16dp"
+            android:importantForAccessibility="no"
+            app:tint="@color/player_icon" />
+
+        <TextView
+            android:id="@+id/tv_error_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/player_title_primary"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/tv_error_desc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/player_text_secondary"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="28dp" />
+
+        <LinearLayout
+            android:id="@+id/error_action_row"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_gravity="center_horizontal">
+
+            <Button
+                android:id="@+id/btn_error_soft_decode"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/player_icon"
+                android:text="@string/player_error_action_soft_decode"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_error_retry"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/player_icon"
+                android:text="@string/player_error_action_retry"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_error_copy_diag"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/player_icon"
+                android:text="@string/player_error_action_copy_diag"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btn_error_back"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/player_icon"
+                android:text="@string/player_error_action_back"
+                android:visibility="gone" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
     <!-- Gesture overlay -->
     <View
         android:id="@+id/gesture_overlay"
@@ -105,6 +195,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_volume"
+            android:importantForAccessibility="no"
             app:tint="@color/player_icon" />
 
         <ProgressBar

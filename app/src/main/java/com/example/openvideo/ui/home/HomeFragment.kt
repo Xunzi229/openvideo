@@ -249,6 +249,7 @@ class HomeFragment : Fragment() {
                             MediaLibraryEmptyState.PERMISSION_DENIED -> getString(R.string.media_library_permission_denied)
                             MediaLibraryEmptyState.SCAN_ERROR -> getString(R.string.media_library_scan_error)
                             MediaLibraryEmptyState.NO_MEDIA -> getString(R.string.no_videos)
+                            MediaLibraryEmptyState.NO_FAVORITES -> getString(R.string.media_library_empty_favorites)
                             MediaLibraryEmptyState.FILTERED_BY_PRIVACY -> getString(R.string.media_library_empty_privacy)
                             MediaLibraryEmptyState.FILTERED_BY_QUERY_OR_FOLDER -> getString(R.string.media_library_empty_filtered)
                             MediaLibraryEmptyState.LOADING,
@@ -305,6 +306,7 @@ class HomeFragment : Fragment() {
         adapters.getValue(category).submitList(list) {
             jumpVideoListToTopIfNeeded(category)
         }
+        updateCategoryChips(activeCategory)
         if (category == activeCategory) updateActiveEmptyState()
     }
 
@@ -484,12 +486,32 @@ class HomeFragment : Fragment() {
     }
 
     private fun updateCategoryChips(category: HomeCategory) {
-        bindCategoryChip(chipAll, category == HomeCategory.ALL)
-        bindCategoryChip(chipRecent, category == HomeCategory.RECENT)
-        bindCategoryChip(chipFavorite, category == HomeCategory.FAVORITES)
+        bindCategoryChip(
+            chip = chipAll,
+            selected = category == HomeCategory.ALL,
+            labelRes = R.string.home_filter_all,
+            count = categoryLists[HomeCategory.ALL].orEmpty().size
+        )
+        bindCategoryChip(
+            chip = chipRecent,
+            selected = category == HomeCategory.RECENT,
+            labelRes = R.string.home_filter_recent,
+            count = categoryLists[HomeCategory.RECENT].orEmpty().size
+        )
+        bindCategoryChip(
+            chip = chipFavorite,
+            selected = category == HomeCategory.FAVORITES,
+            labelRes = R.string.home_filter_favorite,
+            count = categoryLists[HomeCategory.FAVORITES].orEmpty().size
+        )
     }
 
-    private fun bindCategoryChip(chip: Chip, selected: Boolean) {
+    private fun bindCategoryChip(
+        chip: Chip,
+        selected: Boolean,
+        labelRes: Int,
+        count: Int
+    ) {
         val background = ContextCompat.getColor(
             requireContext(),
             if (selected) R.color.ov_accent_blue else R.color.ov_bg_elevated
@@ -506,6 +528,7 @@ class HomeFragment : Fragment() {
         chip.chipBackgroundColor = ColorStateList.valueOf(background)
         chip.chipStrokeColor = ColorStateList.valueOf(stroke)
         chip.setTextColor(text)
+        chip.text = getString(R.string.home_filter_count, getString(labelRes), count)
     }
 
     private fun bindFolderChips() {

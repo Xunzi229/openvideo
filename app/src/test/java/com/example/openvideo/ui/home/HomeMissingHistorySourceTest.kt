@@ -13,6 +13,8 @@ class HomeMissingHistorySourceTest {
         val source = String(Files.readAllBytes(homeViewModelSource()))
 
         assertTrue(source.contains("shouldExposeStoredFallback"))
+        assertTrue(source.contains("_permissionDenied"))
+        assertTrue(source.contains("permissionDenied = permissionDenied"))
         assertTrue(source.contains("File(candidatePath).exists()"))
         assertTrue(source.contains("videosFromHistory"))
         assertTrue(source.contains("videosFromFavorites"))

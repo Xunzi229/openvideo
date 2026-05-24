@@ -16,6 +16,8 @@ import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SettingsBackupExporter
 import com.example.openvideo.core.prefs.SettingsBackupFileWriter
+import com.example.openvideo.core.prefs.SettingsBackupImporter
+import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.core.update.GitHubReleaseChecker
 import com.example.openvideo.core.update.UpdateApkInstaller
@@ -210,6 +212,35 @@ class SettingsViewModel @Inject constructor(
         withContext(Dispatchers.IO) {
             val json = buildSettingsExportJson()
             SettingsBackupFileWriter.writeJson(context.contentResolver, uri, json)
+        }
+
+    /** 设置导入结果。 */
+    sealed class ImportResult {
+        object Success : ImportResult()
+        data class ParseFailure(val reason: SettingsBackupSchema.Reason) : ImportResult()
+        object ReadFailure : ImportResult()
+    }
+
+    /**
+     * 从 [uri] 读取 JSON，解析并导入到 PlayerPrefs / AppPrefs。
+     * 在 IO 线程执行，调用方可在 Main 上收取 [ImportResult]。
+     */
+    suspend fun readAndImportSettings(context: Context, uri: Uri): ImportResult =
+        withContext(Dispatchers.IO) {
+            val json = try {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.readText()
+                    ?: return@withContext ImportResult.ReadFailure
+            } catch (_: Exception) {
+                return@withContext ImportResult.ReadFailure
+            }
+            when (val result = SettingsBackupSchema.decode(json)) {
+                is SettingsBackupSchema.ParseResult.Success -> {
+                    SettingsBackupImporter.apply(result.document, playerPrefs, appPrefs)
+                    ImportResult.Success
+                }
+                is SettingsBackupSchema.ParseResult.Failure ->
+                    ImportResult.ParseFailure(result.reason)
+            }
         }
 
     private fun computeCacheSize() {

@@ -9,6 +9,7 @@ enum class MediaLibraryEmptyState {
     SCAN_ERROR,
     NONE,
     NO_MEDIA,
+    NO_FAVORITES,
     FILTERED_BY_PRIVACY,
     FILTERED_BY_QUERY_OR_FOLDER
 }
@@ -76,8 +77,10 @@ object MediaLibraryPolicy {
     fun shouldExposeStoredFallback(
         path: String,
         hiddenFolders: List<String>,
+        permissionDenied: Boolean = false,
         localFileExists: (String) -> Boolean
     ): Boolean {
+        if (permissionDenied) return false
         if (isHiddenPath(path, hiddenFolders)) return false
         if (path.startsWith("content://")) return true
 
@@ -94,13 +97,18 @@ object MediaLibraryPolicy {
         visibleCount: Int,
         hiddenFilteredCount: Int = 0,
         permissionDenied: Boolean = false,
-        scanError: Boolean = false
+        scanError: Boolean = false,
+        category: HomeCategory = HomeCategory.ALL,
+        hasActiveUserFilter: Boolean = false
     ): MediaLibraryEmptyState {
         if (permissionDenied) return MediaLibraryEmptyState.PERMISSION_DENIED
         if (scanError) return MediaLibraryEmptyState.SCAN_ERROR
         if (isLoading) return MediaLibraryEmptyState.LOADING
         if (visibleCount > 0) return MediaLibraryEmptyState.NONE
         if (scannedCount == 0) return MediaLibraryEmptyState.NO_MEDIA
+        if (category == HomeCategory.FAVORITES && !hasActiveUserFilter) {
+            return MediaLibraryEmptyState.NO_FAVORITES
+        }
         return if (hiddenFilteredCount >= scannedCount) {
             MediaLibraryEmptyState.FILTERED_BY_PRIVACY
         } else {

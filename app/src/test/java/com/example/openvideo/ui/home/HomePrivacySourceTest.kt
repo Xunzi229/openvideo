@@ -13,8 +13,8 @@ class HomePrivacySourceTest {
         val source = String(Files.readAllBytes(homeViewModelSource()))
 
         assertTrue(source.contains("_hiddenFolders"))
-        assertTrue(source.contains("videosFromHistory(scanned, history, hiddenFolders)"))
-        assertTrue(source.contains("videosFromFavorites(scanned, favorites, hiddenFolders)"))
+        assertTrue(source.contains("videosFromHistory(scanned, history, hiddenFolders, permissionDenied)"))
+        assertTrue(source.contains("videosFromFavorites(scanned, favorites, hiddenFolders, permissionDenied)"))
         assertTrue(source.contains("MediaLibraryPolicy.shouldExposeStoredFallback("))
         assertTrue(source.contains("hiddenFolders = hiddenFolders"))
     }

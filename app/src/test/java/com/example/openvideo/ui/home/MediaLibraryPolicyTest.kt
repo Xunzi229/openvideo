@@ -110,6 +110,30 @@ class MediaLibraryPolicyTest {
     }
 
     @Test
+    fun emptyStateDistinguishesEmptyFavoritesFromMissingLibraryAndFilters() {
+        assertEquals(
+            MediaLibraryEmptyState.NO_FAVORITES,
+            MediaLibraryPolicy.emptyState(
+                isLoading = false,
+                scannedCount = 3,
+                visibleCount = 0,
+                category = HomeCategory.FAVORITES,
+                hasActiveUserFilter = false
+            )
+        )
+        assertEquals(
+            MediaLibraryEmptyState.FILTERED_BY_QUERY_OR_FOLDER,
+            MediaLibraryPolicy.emptyState(
+                isLoading = false,
+                scannedCount = 3,
+                visibleCount = 0,
+                category = HomeCategory.FAVORITES,
+                hasActiveUserFilter = true
+            )
+        )
+    }
+
+    @Test
     fun folderFilterKeyFallsBackWhenFolderNoLongerExists() {
         val folders = listOf("/storage/emulated/0/Movies", "/storage/emulated/0/DCIM")
 
@@ -142,6 +166,18 @@ class MediaLibraryPolicyTest {
             MediaLibraryPolicy.shouldExposeStoredFallback(
                 path = "/storage/emulated/0/Movies/existing.mp4",
                 hiddenFolders = emptyList(),
+                localFileExists = { true }
+            )
+        )
+    }
+
+    @Test
+    fun storedHistoryFallbackIsHiddenWhenMediaPermissionIsDenied() {
+        assertFalse(
+            MediaLibraryPolicy.shouldExposeStoredFallback(
+                path = "/storage/emulated/0/Movies/existing.mp4",
+                hiddenFolders = emptyList(),
+                permissionDenied = true,
                 localFileExists = { true }
             )
         )

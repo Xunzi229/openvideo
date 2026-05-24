@@ -91,6 +91,10 @@ android {
             keepDebugSymbols += "**/libffmpegJNI.so"
         }
     }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
 }
 
 dependencies {

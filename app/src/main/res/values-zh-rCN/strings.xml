@@ -301,6 +301,7 @@
     <string name="media_library_scanning_count">已扫描 %1$d 个视频…</string>
     <string name="media_library_permission_denied">需要视频访问权限才能扫描本地文件</string>
     <string name="media_library_scan_error">无法刷新本地媒体库，请重试</string>
+    <string name="media_library_empty_favorites">暂无收藏</string>
     <string name="media_library_empty_privacy">视频已被隐私文件夹隐藏</string>
     <string name="media_library_empty_filtered">当前筛选条件下暂无视频</string>
     <string name="duration_format" formatted="false">%02d:%02d:%02d</string>
@@ -310,6 +311,7 @@
     <string name="home_filter_all">全部</string>
     <string name="home_filter_recent">最近播放</string>
     <string name="home_filter_favorite">收藏</string>
+    <string name="home_filter_count">%1$s（%2$d）</string>
     <string name="home_filter_all_folders">全部文件夹</string>
     <string name="home_filter_folder_with_count">%1$s（%2$d）</string>
     <string name="home_filter_folder_pinned_prefix">★ %1$s</string>
@@ -389,6 +391,10 @@
     <string name="settings_clear_history">清除播放历史</string>
     <string name="settings_section_backup">备份</string>
     <string name="settings_export_settings">导出设置</string>
+    <string name="settings_import_settings">导入设置</string>
+    <string name="settings_toast_import_success">设置已成功导入</string>
+    <string name="settings_toast_import_failed">无法读取文件</string>
+    <string name="settings_toast_import_parse_error">不支持或无效的设置文件</string>
     <string name="settings_toast_export_success">设置已导出</string>
     <string name="settings_toast_export_failed">导出失败</string>
     <string name="settings_notifications">通知设置</string>
@@ -449,7 +455,18 @@
     <string name="player_ab_loop_cancelled">AB循环已取消</string>
     <string name="player_locked">屏幕已锁定，点击锁定按钮解锁</string>
     <string name="player_unlocked">屏幕已解锁</string>
-    <string name="player_playback_error">播放失败，已记录错误日志</string>
+    <string name="player_error_title_decode">解码失败</string>
+    <string name="player_error_title_io">文件不可用</string>
+    <string name="player_error_title_general">播放出错</string>
+    <string name="player_error_desc_decode">视频解码失败，可尝试切换为软件解码模式。</string>
+    <string name="player_error_desc_io">文件读取失败，文件可能已移动或被删除。</string>
+    <string name="player_error_desc_general">播放过程中发生错误，错误信息已记录到日志。</string>
+    <string name="player_error_action_soft_decode">软件解码</string>
+    <string name="player_error_action_retry">重试</string>
+    <string name="player_error_action_copy_diag">复制诊断信息</string>
+    <string name="player_error_action_back">返回</string>
+    <string name="player_error_diag_copied">诊断信息已复制到剪贴板</string>
+    <string name="player_error_diag_unavailable">暂无诊断信息</string>
     <string name="player_action_back">返回</string>
     <string name="player_action_previous">上一个</string>
     <string name="player_action_play">播放</string>
@@ -465,6 +482,7 @@
     <string name="player_smart_crop_off">已关闭智能裁边</string>
     <string name="player_smart_crop_unavailable">当前视频没有可用的智能裁边建议</string>
     <string name="player_video_list_title">列表</string>
+    <string name="player_video_list_order_hint">识别到集号时按集号播放，否则保持列表顺序。</string>
     <string name="player_portrait_speed">倍速</string>
     <string name="player_portrait_quality">清晰度</string>
     <string name="player_portrait_audio">音轨</string>

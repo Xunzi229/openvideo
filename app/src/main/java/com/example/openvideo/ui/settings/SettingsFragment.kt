@@ -55,6 +55,39 @@ class SettingsFragment : Fragment() {
         }
     }
 
+    private val importSettingsLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        viewLifecycleOwner.lifecycleScope.launch {
+            when (val result = viewModel.readAndImportSettings(requireContext(), uri)) {
+                is SettingsViewModel.ImportResult.Success -> {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_toast_import_success,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    // Recreate activity so theme / language changes take effect immediately
+                    activity?.recreate()
+                }
+                is SettingsViewModel.ImportResult.ParseFailure -> {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_toast_import_parse_error,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                is SettingsViewModel.ImportResult.ReadFailure -> {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.settings_toast_import_failed,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
     companion object {
         private val PROJECT_REPO_URI: Uri = Uri.parse("https://github.com/Xunzi229/openvideo")
     }
@@ -246,13 +279,24 @@ class SettingsFragment : Fragment() {
 
     private fun bindBackupSection(view: View) {
         val section = view.findViewById<View>(R.id.settings_backup_section)
-        if (!SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE) {
+        val exportVisible = SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE
+        val importVisible = SettingsBackupUiPolicy.SETTINGS_IMPORT_ENTRY_VISIBLE
+        if (!exportVisible && !importVisible) {
             section.visibility = View.GONE
             return
         }
         section.visibility = View.VISIBLE
-        view.findViewById<View>(R.id.row_export_settings).setOnClickListener {
+
+        val rowExport = view.findViewById<View>(R.id.row_export_settings)
+        rowExport.visibility = if (exportVisible) View.VISIBLE else View.GONE
+        rowExport.setOnClickListener {
             exportSettingsLauncher.launch(SettingsBackupSchema.SUGGESTED_FILENAME)
+        }
+
+        val rowImport = view.findViewById<View>(R.id.row_import_settings)
+        rowImport.visibility = if (importVisible) View.VISIBLE else View.GONE
+        rowImport.setOnClickListener {
+            importSettingsLauncher.launch(arrayOf(SettingsBackupSchema.MIME_TYPE, "*/*"))
         }
     }
 

@@ -81,12 +81,27 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
+    fun ciRunsDebugVerificationWithGradleWarningGate() {
+        val workflow = rootFile(".github", "workflows", "android.yml").readText()
+        val appBuild = rootFile("app", "build.gradle.kts").readText()
+
+        assertTrue(workflow.contains("actions/checkout@"))
+        assertTrue(workflow.contains("actions/setup-java@"))
+        assertTrue(workflow.contains("gradle/actions/setup-gradle@"))
+        assertTrue(workflow.contains("gradlew.bat :app:testDebugUnitTest --warning-mode fail"))
+        assertTrue(workflow.contains("gradlew.bat :app:assembleDebug --warning-mode fail"))
+        assertTrue(workflow.contains("gradlew.bat :app:lintDebug --warning-mode fail"))
+        assertFalse(workflow.contains("--warning-mode all"))
+        assertTrue(appBuild.contains("baseline = file(\"lint-baseline.xml\")"))
+    }
+
+    @Test
     fun androidGradlePluginAvoidsGradle10MultiStringDependencyDeprecation() {
         val versions = rootFile("gradle", "libs.versions.toml").readText()
 
         assertTrue(versions.contains("agp = \"9.0.1\""))
         assertTrue(versions.contains("kotlin = \"2.2.10\""))
-        assertTrue(versions.contains("ksp = \"2.2.10-2.0.2\""))
+        assertTrue(versions.contains("ksp = \"2.3.7\""))
         assertTrue(versions.contains("hilt = \"2.59.1\""))
         assertTrue(versions.contains("room = \"2.8.3\""))
         assertFalse(versions.contains("agp = \"8.7.3\""))
@@ -97,7 +112,7 @@ class ReleaseEngineeringSourceTest {
         assertFalse(rootBuild.contains("libs.plugins.kotlin.android"))
         assertFalse(appBuild.contains("libs.plugins.kotlin.android"))
         assertFalse(appBuild.contains("compilerOptions"))
-        assertTrue(gradleProperties.contains("android.disallowKotlinSourceSets=false"))
+        assertFalse(gradleProperties.contains("android.disallowKotlinSourceSets"))
         assertFalse(gradleProperties.contains("android.builtInKotlin=false"))
     }
 
@@ -109,10 +124,10 @@ class ReleaseEngineeringSourceTest {
         assertTrue(notes.contains("Gradle 10"))
         assertTrue(notes.contains("AGP 9.0.1"))
         assertTrue(notes.contains("Kotlin 2.2.10"))
-        assertTrue(notes.contains("KSP 2.2.10-2.0.2"))
+        assertTrue(notes.contains("KSP 2.3.7"))
         assertTrue(notes.contains("Room 2.8.3"))
         assertTrue(notes.contains("Dagger/Hilt 2.59.1"))
-        assertTrue(notes.contains("android.disallowKotlinSourceSets=false"))
+        assertFalse(notes.contains("android.disallowKotlinSourceSets"))
         assertTrue(notes.contains("--warning-mode fail"))
     }
 
@@ -125,8 +140,8 @@ class ReleaseEngineeringSourceTest {
             assertTrue(readme.contains("Gradle **9.5**"))
             assertTrue(readme.contains("9.0.1"))
             assertTrue(readme.contains("2.2.10"))
-            assertTrue(readme.contains("2.2.10-2.0.2"))
-            assertTrue(readme.contains("android.disallowKotlinSourceSets=false"))
+            assertTrue(readme.contains("2.3.7"))
+            assertFalse(readme.contains("android.disallowKotlinSourceSets"))
         }
     }
 
@@ -135,7 +150,7 @@ class ReleaseEngineeringSourceTest {
         val roadmap = rootFile("docs", "roadmap", "player-optimization-roadmap.md").readText()
 
         assertTrue(roadmap.contains("--warning-mode fail"))
-        assertTrue(roadmap.contains("android.disallowKotlinSourceSets=false"))
+        assertFalse(roadmap.contains("android.disallowKotlinSourceSets"))
     }
 
     private fun Path.readText(): String =
