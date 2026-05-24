@@ -40,6 +40,11 @@
 
     <style name="Widget.OpenVideo.PlayerSettings" parent="" />
 
+    <style name="Animation.OpenVideo.BottomSheet" parent="">
+        <item name="android:windowEnterAnimation">@anim/dialog_slide_in_bottom</item>
+        <item name="android:windowExitAnimation">@anim/dialog_slide_out_bottom</item>
+    </style>
+
     <style name="Widget.OpenVideo.PlayerSettings.NavItem">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">42dp</item>

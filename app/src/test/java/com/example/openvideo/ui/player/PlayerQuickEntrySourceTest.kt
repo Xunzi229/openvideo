@@ -87,6 +87,73 @@ class PlayerQuickEntrySourceTest {
     }
 
     @Test
+    fun speedAudioAndSubtitleQuickDialogsUseResponsivePlayerChrome() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val glassSheet = String(Files.readAllBytes(playerGlassSheetDialogSource()))
+        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog")
+        val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
+            .substringBefore("\n    private fun setupControls()")
+
+        assertTrue(source.contains("private fun quickChoiceChrome()"))
+        assertTrue(source.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM"))
+        assertTrue(speedBlock.contains("chrome = quickChoiceChrome()"))
+        assertTrue(quickEntryBlock.contains("chrome = quickChoiceChrome()"))
+        assertTrue(glassSheet.contains("enum class PlayerGlassSheetChrome"))
+        assertTrue(glassSheet.contains("PLAYER_BOTTOM"))
+        assertTrue(glassSheet.contains("PLAYER_SETTINGS_PANEL"))
+        assertTrue(glassSheet.contains("R.layout.dialog_player_quick_bottom_sheet"))
+        assertTrue(glassSheet.contains("R.layout.item_player_quick_bottom_sheet_row"))
+        assertTrue(glassSheet.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM,"))
+        assertTrue(glassSheet.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> Dialog(context).apply"))
+        assertTrue(glassSheet.contains("requestWindowFeature(Window.FEATURE_NO_TITLE)"))
+        assertTrue(glassSheet.contains("setContentView(content)"))
+        assertTrue(glassSheet.contains("setGravity(Gravity.BOTTOM)"))
+        assertTrue(glassSheet.contains("LayoutParams.MATCH_PARENT"))
+        assertTrue(glassSheet.contains("applyBottomRowVisual("))
+        assertFalse(glassSheet.substringAfter("private fun rowLayout(")
+            .substringBefore("\n    private fun applyChoiceState")
+            .contains("player_aspect_ratio_row_selected"))
+    }
+
+    @Test
+    fun landscapeSubtitleAspectAndSpeedUseSettingsPanelChrome() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val glassSheet = String(Files.readAllBytes(playerGlassSheetDialogSource()))
+        val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    private fun handleSmartCropQuickToggle()")
+        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog")
+        val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
+            .substringBefore("\n    private fun setupControls()")
+
+        assertTrue(source.contains("private fun quickChoiceChrome()"))
+        assertTrue(source.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
+        assertTrue(aspectBlock.contains("chrome = quickChoiceChrome()"))
+        assertTrue(aspectBlock.contains("playerPrefs = playerPrefs"))
+        assertTrue(speedBlock.contains("chrome = quickChoiceChrome()"))
+        assertTrue(speedBlock.contains("playerPrefs = playerPrefs"))
+        assertTrue(quickEntryBlock.contains("chrome = quickChoiceChrome()"))
+        assertTrue(quickEntryBlock.contains("playerPrefs = playerPrefs"))
+        assertTrue(glassSheet.contains("PLAYER_SETTINGS_PANEL"))
+        assertTrue(glassSheet.contains("PlayerSettingsSheetChrome.applyWindowLayout"))
+        assertTrue(glassSheet.contains("PlayerSettingsSheetChrome.applyBackdrop"))
+        assertTrue(glassSheet.contains("PlayerSettingsSheetChrome.applyPanelOpacity"))
+    }
+
+    @Test
+    fun speedAudioAndSubtitleQuickDialogsHidePlayerControlsWhileOpen() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog")
+        val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
+            .substringBefore("\n    private fun setupControls()")
+
+        assertTrue(speedBlock.indexOf("hideControls()") in 0 until speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(quickEntryBlock.indexOf("hideControls()") in 0 until quickEntryBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+    }
+
+    @Test
     fun aspectQuickDialogUsesSettingsOptionsAndSelectionPolicy() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
@@ -110,6 +177,24 @@ class PlayerQuickEntrySourceTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerGlassSheetDialogSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerGlassSheetDialog.kt"
         )
         return sequenceOf(
             relativePath,

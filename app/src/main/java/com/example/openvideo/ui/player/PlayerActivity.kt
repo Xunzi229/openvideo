@@ -623,6 +623,8 @@ class PlayerActivity : AppCompatActivity() {
                         selected = option.ratio == playerPrefs.aspectRatio
                     )
                 },
+                chrome = quickChoiceChrome(),
+                playerPrefs = playerPrefs,
                 onDismiss = {
                     onDismiss()
                     scheduleHideControls()
@@ -1004,6 +1006,8 @@ class PlayerActivity : AppCompatActivity() {
     private fun showSpeedPickerDialog() {
         val speeds = DefaultPlayerSettings.supportedSpeeds
         showExclusivePlayerDialog { onDismiss ->
+            handler.removeCallbacks(hideControlsRunnable)
+            hideControls()
             PlayerGlassSheetDialog.showSingleChoice(
                 context = this,
                 layoutInflater = layoutInflater,
@@ -1015,6 +1019,8 @@ class PlayerActivity : AppCompatActivity() {
                         selected = speed == playerPrefs.speed
                     )
                 },
+                chrome = quickChoiceChrome(),
+                playerPrefs = playerPrefs,
                 onDismiss = {
                     onDismiss()
                     scheduleHideControls()
@@ -1198,6 +1204,7 @@ class PlayerActivity : AppCompatActivity() {
     ) {
         showExclusivePlayerDialog { onDismiss ->
             handler.removeCallbacks(hideControlsRunnable)
+            hideControls()
             PlayerGlassSheetDialog.showSingleChoice(
                 context = this,
                 layoutInflater = layoutInflater,
@@ -1210,6 +1217,8 @@ class PlayerActivity : AppCompatActivity() {
                         enabled = item.enabled
                     )
                 },
+                chrome = quickChoiceChrome(),
+                playerPrefs = playerPrefs,
                 onDismiss = {
                     onDismiss()
                     scheduleHideControls()
@@ -1218,6 +1227,13 @@ class PlayerActivity : AppCompatActivity() {
             )
         }
     }
+
+    private fun quickChoiceChrome(): PlayerGlassSheetChrome =
+        if (PlayerConfigurationOrientationPolicy.isLandscape(resources.configuration.orientation)) {
+            PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL
+        } else {
+            PlayerGlassSheetChrome.PLAYER_BOTTOM
+        }
 
     private fun setupControls() {
         btnPlay.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) { togglePlayPauseAndSyncIcon() }

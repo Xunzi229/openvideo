@@ -1,21 +1,28 @@
 ---
-description: Player centered «glass sheet» picker dialogs — layout, tokens, and Activity hooks
+description: Player responsive single-choice dialogs — bottom portrait chrome and landscape settings-panel chrome
 globs:
   - app/src/main/java/com/example/openvideo/ui/player/**/*.kt
   - app/src/main/res/layout/dialog_player_glass_sheet.xml
   - app/src/main/res/layout/item_player_glass_sheet_row.xml
+  - app/src/main/res/layout/dialog_player_quick_bottom_sheet.xml
+  - app/src/main/res/layout/item_player_quick_bottom_sheet_row.xml
+  - app/src/main/res/anim/dialog_slide_in_bottom.xml
+  - app/src/main/res/anim/dialog_slide_out_bottom.xml
   - app/src/main/res/values/aspect_ratio_dialog_tokens.xml
+  - app/src/main/res/values/themes.xml
   - docs/player-glass-sheet-dialog.md
 alwaysApply: false
 ---
 
-# 播放器玻璃卡片单列弹窗
+# 播放器响应式单列选择弹窗
 
 完整约定见：**[docs/player-glass-sheet-dialog.md](docs/player-glass-sheet-dialog.md)**。
 
-编写或修改居中单列选项弹窗时遵守：
+编写或修改播放器内长宽比、倍速、音轨、字幕等单列选择弹窗时遵守：
 
-1. **布局**：`dialog_player_glass_sheet.xml` + `item_player_glass_sheet_row.xml`；不使用 `RadioButton` + `MaterialAlertDialog.setItems` 做同类产品感弹窗。
-2. **令牌**：颜色/间距用 `aspect_ratio_dialog_tokens.xml`（`player_aspect_*`），勿在 Kotlin 硬编码同色值。
-3. **窗口**：`show()` 后调用 `applyPlayerGlassSheetChrome()`，并 `scroll.post { capPlayerGlassSheetScroll(scroll, 0) }`；勿对同一弹窗再套 `applyPlayerSheetStyle()`（避免 `decorView` 整体变淡发糊）。
-4. **重用**：新业务逻辑照旧；UI 拼装复用 `inflatePlayerGlassSheet` / `applyGlassSheetRowVisual`（均在 `PlayerActivity.kt`）。
+1. **统一入口**：使用 `PlayerGlassSheetDialog.showSingleChoice(...)`，不要回退 `MaterialAlertDialog.setItems`、系统 `RadioButton` 或 Activity 内私有 inflate helper。
+2. **Chrome 分流**：播放页快捷项传 `chrome = quickChoiceChrome()` 和 `playerPrefs = playerPrefs`；竖屏应为 `PLAYER_BOTTOM`，横屏应为 `PLAYER_SETTINGS_PANEL`。
+3. **横屏样式**：`PLAYER_SETTINGS_PANEL` 必须复用 `PlayerSettingsSheetChrome.applyWindowLayout`、`applyBackdrop`、`applyPanelOpacity`，不要单独硬编码宽高或透明度。
+4. **竖屏样式**：`PLAYER_BOTTOM` 使用 `dialog_player_quick_bottom_sheet.xml` + `item_player_quick_bottom_sheet_row.xml`，从底部滑出，行为与选集样式一致。
+5. **控制层**：快捷弹窗打开前隐藏播放器 controls；弹窗可见时不要露出播放/暂停/进度条等底部控制。
+6. **方向策略**：`quickChoiceChrome()` 走 `PlayerConfigurationOrientationPolicy.isLandscape(...)`，不要在 Activity 里直接比较 `Configuration.ORIENTATION_LANDSCAPE`。

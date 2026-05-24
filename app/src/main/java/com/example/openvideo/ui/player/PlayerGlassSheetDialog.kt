@@ -9,7 +9,9 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.view.WindowManager
+import android.view.WindowManager.LayoutParams
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -17,6 +19,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
+import com.example.openvideo.core.prefs.PlayerPrefs
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.max
 import kotlin.math.min
@@ -28,6 +31,12 @@ data class PlayerGlassSheetChoice<T>(
     val enabled: Boolean = true
 )
 
+enum class PlayerGlassSheetChrome {
+    CENTER,
+    PLAYER_BOTTOM,
+    PLAYER_SETTINGS_PANEL
+}
+
 object PlayerGlassSheetDialog {
 
     fun <T> showSingleChoice(
@@ -35,15 +44,17 @@ object PlayerGlassSheetDialog {
         layoutInflater: LayoutInflater,
         titleRes: Int,
         choices: List<PlayerGlassSheetChoice<T>>,
+        chrome: PlayerGlassSheetChrome = PlayerGlassSheetChrome.CENTER,
+        playerPrefs: PlayerPrefs? = null,
         onDismiss: (() -> Unit)? = null,
         onSelected: (T) -> Unit
-    ): AlertDialog {
-        val (content, list, scroll) = inflate(context, layoutInflater, titleRes)
+    ): Dialog {
+        val (content, list, scroll) = inflate(context, layoutInflater, titleRes, chrome)
         val spacingPx = context.resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
-        var dialog: AlertDialog? = null
+        var dialog: Dialog? = null
 
         choices.forEachIndexed { index, choice ->
-            val row = layoutInflater.inflate(R.layout.item_player_glass_sheet_row, list, false)
+            val row = layoutInflater.inflate(rowLayout(chrome), list, false)
             row.findViewById<TextView>(R.id.player_glass_sheet_label).text = choice.label
             row.isEnabled = choice.enabled
             row.isClickable = choice.enabled
@@ -52,7 +63,7 @@ object PlayerGlassSheetDialog {
             if (!choice.enabled) {
                 row.foreground = null
             }
-            applyRowVisual(context, row, choice.selected && choice.enabled)
+            applyChoiceState(context, row, choice.selected && choice.enabled, chrome)
             row.layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -67,18 +78,43 @@ object PlayerGlassSheetDialog {
             list.addView(row)
         }
 
-        dialog = MaterialAlertDialogBuilder(context)
-            .setView(content)
-            .setOnDismissListener { onDismiss?.invoke() }
-            .create()
+        dialog = when (chrome) {
+            PlayerGlassSheetChrome.CENTER -> MaterialAlertDialogBuilder(context)
+                .setView(content)
+                .setOnDismissListener { onDismiss?.invoke() }
+                .create()
+            PlayerGlassSheetChrome.PLAYER_BOTTOM,
+            PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> Dialog(context).apply {
+                requestWindowFeature(Window.FEATURE_NO_TITLE)
+                setContentView(content)
+                setCanceledOnTouchOutside(true)
+                setOnDismissListener { onDismiss?.invoke() }
+            }
+        }
         dialog.show()
-        dialog.applyChrome()
+        dialog.applyChrome(chrome, playerPrefs, content)
         scroll.post { capScroll(scroll, 0) }
         return dialog
     }
 
-    fun Dialog.applyChrome() {
+    fun Dialog.applyChrome(
+        chrome: PlayerGlassSheetChrome = PlayerGlassSheetChrome.CENTER,
+        playerPrefs: PlayerPrefs? = null,
+        panelRoot: View? = null
+    ) {
         val window = window ?: return
+        if (chrome == PlayerGlassSheetChrome.PLAYER_BOTTOM) {
+            window.applyBottomChrome(context)
+            return
+        }
+        if (chrome == PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL) {
+            val prefs = playerPrefs ?: return
+            val dm = context.resources.displayMetrics
+            PlayerSettingsSheetChrome.applyWindowLayout(window, dm.widthPixels, dm.heightPixels, dm.density)
+            PlayerSettingsSheetChrome.applyBackdrop(window, prefs, dm.density)
+            panelRoot?.let { PlayerSettingsSheetChrome.applyPanelOpacity(it, prefs) }
+            return
+        }
         val context = context
         window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window.decorView.alpha = 1f
@@ -97,6 +133,27 @@ object PlayerGlassSheetDialog {
         }
         if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
             window.setBackgroundBlurRadius(max(1, (18f * dm.density).toInt()))
+        }
+    }
+
+    private fun android.view.Window.applyBottomChrome(context: Context) {
+        val dm = context.resources.displayMetrics
+        setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        setLayout(LayoutParams.MATCH_PARENT, (dm.heightPixels * 0.56f).toInt())
+        setGravity(Gravity.BOTTOM)
+        decorView.setPadding(0, 0, 0, 0)
+        decorView.elevation = context.resources.displayMetrics.density * 20f
+        addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        attributes = attributes.apply {
+            x = 0
+            y = 0
+            dimAmount = 0.12f
+            windowAnimations = R.style.Animation_OpenVideo_BottomSheet
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)
+        ) {
+            setBackgroundBlurRadius(max(1, (18f * dm.density).toInt()))
         }
     }
 
@@ -120,12 +177,52 @@ object PlayerGlassSheetDialog {
         row.translationZ = if (selected) 4f * density else 0f
     }
 
+    private fun rowLayout(chrome: PlayerGlassSheetChrome): Int =
+        when (chrome) {
+            PlayerGlassSheetChrome.CENTER -> R.layout.item_player_glass_sheet_row
+            PlayerGlassSheetChrome.PLAYER_BOTTOM,
+            PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> R.layout.item_player_quick_bottom_sheet_row
+        }
+
+    private fun applyChoiceState(
+        context: Context,
+        row: View,
+        selected: Boolean,
+        chrome: PlayerGlassSheetChrome
+    ) {
+        when (chrome) {
+            PlayerGlassSheetChrome.CENTER -> applyRowVisual(context, row, selected)
+            PlayerGlassSheetChrome.PLAYER_BOTTOM,
+            PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> applyBottomRowVisual(context, row, selected)
+        }
+    }
+
+    private fun applyBottomRowVisual(context: Context, row: View, selected: Boolean) {
+        row.setBackgroundResource(R.drawable.bg_player_touch)
+        val radio = row.findViewById<ImageView>(R.id.player_glass_sheet_radio)
+        radio.visibility = if (selected) View.VISIBLE else View.INVISIBLE
+        radio.setImageResource(R.drawable.ic_player_aspect_radio_on)
+        row.findViewById<TextView>(R.id.player_glass_sheet_label).setTextColor(
+            ContextCompat.getColor(
+                context,
+                if (selected) R.color.player_accent else R.color.player_title_normal
+            )
+        )
+        row.translationZ = 0f
+    }
+
     private fun inflate(
         context: Context,
         layoutInflater: LayoutInflater,
-        titleRes: Int
+        titleRes: Int,
+        chrome: PlayerGlassSheetChrome
     ): Triple<View, LinearLayout, NestedScrollView> {
-        val content = layoutInflater.inflate(R.layout.dialog_player_glass_sheet, null, false)
+        val layout = when (chrome) {
+            PlayerGlassSheetChrome.CENTER -> R.layout.dialog_player_glass_sheet
+            PlayerGlassSheetChrome.PLAYER_BOTTOM,
+            PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> R.layout.dialog_player_quick_bottom_sheet
+        }
+        val content = layoutInflater.inflate(layout, null, false)
         content.findViewById<TextView>(R.id.player_glass_sheet_title).setText(titleRes)
         val list = content.findViewById<LinearLayout>(R.id.player_glass_sheet_option_list)
         val scroll = content.findViewById<NestedScrollView>(R.id.player_glass_sheet_scroll)
