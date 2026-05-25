@@ -13,14 +13,14 @@ class SettingsBackupExportSourceTest {
         val fragment = settingsFragmentSource()
         val viewModel = settingsViewModelSource()
         val policy = settingsBackupUiPolicySource()
-        val deferredRule = rootFile("design", "rules", "settings-backup-deferred.md").readText()
+        val deferredRule = readRootFile("design", "rules", "settings-backup-deferred.md")
         val phasePlan = rootFile(
             "docs",
             "roadmap",
             "phases",
             "phase-0-stability-architecture",
             "README.md"
-        ).readText()
+        ).let { String(Files.readAllBytes(it)) }
 
         assertTrue(fragment.contains("bindBackupSection(view)"))
         assertTrue(fragment.contains("SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE"))
@@ -68,20 +68,28 @@ class SettingsBackupExportSourceTest {
     )
 
     private fun loadSource(vararg parts: String): String {
-        val relative = Paths.get("src", "main", "java", "com", "example", "openvideo", *parts)
-        val path = sequenceOf(
-            relative,
-            Paths.get("app").resolve(relative)
-        ).first(Files::exists)
-        return String(Files.readAllBytes(path))
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            *parts
+        )
+        return String(Files.readAllBytes(rootFile(relativePath)))
     }
 
     private fun rootFile(vararg parts: String): Path =
-        sequenceOf(
-            parts.fold(Paths.get("")) { path, part -> path.resolve(part) },
-            parts.fold(Paths.get("..")) { path, part -> path.resolve(part) }
-        ).first(Files::exists)
+        rootFile(parts.fold(Paths.get("")) { path, part -> path.resolve(part) })
 
-    private fun Path.readText(): String =
-        String(Files.readAllBytes(this))
+    private fun readRootFile(vararg parts: String): String =
+        String(Files.readAllBytes(rootFile(*parts)))
+
+    private fun rootFile(relativePath: Path): Path =
+        sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath),
+            Paths.get("..").resolve(relativePath)
+        ).first(Files::exists)
 }

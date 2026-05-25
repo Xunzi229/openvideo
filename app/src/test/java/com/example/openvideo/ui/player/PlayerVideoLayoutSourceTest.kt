@@ -13,14 +13,13 @@ class PlayerVideoLayoutSourceTest {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val listenerBlock = source.substringAfter("override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {")
             .substringBefore("\n            }")
-        val orientationBlock = source.substringAfter("private fun applyVideoOrientation")
-            .substringBefore("\n    private fun toggleScreenLock")
+        val orientationSource = String(Files.readAllBytes(playerVideoOrientationControllerSource()))
         val aspectRatioBlock = source.substringAfter("private fun applyPlayerContentAspectRatio() {")
             .substringBefore("\n    @OptIn(UnstableApi::class)\n    private fun videoRenderView()")
 
         assertTrue(listenerBlock.contains("videoSize.unappliedRotationDegrees"))
         assertTrue(listenerBlock.contains("videoSize.pixelWidthHeightRatio"))
-        assertTrue(orientationBlock.contains("PlayerVideoLayoutPolicy"))
+        assertTrue(orientationSource.contains("PlayerVideoLayoutPolicy"))
         assertTrue(aspectRatioBlock.contains("PlayerVideoLayoutPolicy"))
     }
 
@@ -35,6 +34,24 @@ class PlayerVideoLayoutSourceTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerVideoOrientationControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerVideoOrientationController.kt"
         )
         return sequenceOf(
             relativePath,

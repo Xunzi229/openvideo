@@ -68,11 +68,13 @@ class PlayerLockPauseSourceTest {
     @Test
     fun backgroundPlaybackServiceStartUsesPurePolicy() {
         val source = String(Files.readAllBytes(playerActivitySource()))
+        val controller = String(Files.readAllBytes(playerNotificationControllerSource()))
         val serviceStart = source.substringAfter("private fun startPlaybackServiceIfNeeded")
             .substringBefore("\n    private fun stopPlaybackService")
 
-        assertTrue(serviceStart.contains("PlayerBackgroundServicePolicy.startDecision("))
-        assertTrue(serviceStart.contains("if (!decision.shouldStart) return"))
+        assertTrue(serviceStart.contains("playbackNotifications.startIfNeeded(isPlaying)"))
+        assertTrue(controller.contains("PlayerBackgroundServicePolicy.startDecision("))
+        assertTrue(controller.contains("if (!decision.shouldStart) return"))
     }
 
     private fun playerActivitySource(): Path {
@@ -86,6 +88,24 @@ class PlayerLockPauseSourceTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerNotificationControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerPlaybackNotificationController.kt"
         )
         return sequenceOf(
             relativePath,

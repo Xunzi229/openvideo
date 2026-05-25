@@ -63,6 +63,7 @@ class CompatibilityImplementationTest {
     @Test
     fun backgroundAudioStartsForegroundPlaybackService() {
         val activity = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerActivity.kt")))
+        val notificationController = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerPlaybackNotificationController.kt")))
         val service = String(Files.readAllBytes(sourceFile("core", "player", "PlaybackService.kt")))
         val intents = String(Files.readAllBytes(sourceFile("core", "player", "PlaybackServiceIntents.kt")))
 
@@ -70,8 +71,8 @@ class CompatibilityImplementationTest {
         assertTrue(service.contains("startForeground"))
         assertTrue(activity.contains("startPlaybackServiceIfNeeded"))
         // ACTION_START routing is now centralized in PlaybackServiceIntents; the Activity goes
-        // through the helper instead of referencing the action string directly.
-        assertTrue(activity.contains("PlaybackServiceIntents.start("))
+        // through the notification controller/helper instead of referencing the action string directly.
+        assertTrue(notificationController.contains("PlaybackServiceIntents.start("))
         assertTrue(intents.contains("PlaybackService.ACTION_START"))
     }
 

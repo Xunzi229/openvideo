@@ -69,18 +69,21 @@ class PlayerActivityStartupSourceTest {
     @Test
     fun notificationPermissionRequestIsRememberedAndDoesNotGatePlayback() {
         val source = String(Files.readAllBytes(playerActivitySource()))
+        val controller = String(Files.readAllBytes(playerNotificationControllerSource()))
         val permissionBlock = source.substringAfter("private fun ensureNotificationPermission()")
             .substringBefore("\n    private fun registerPlaybackNotificationHandlers()")
         val startServiceBlock = source.substringAfter("private fun startPlaybackServiceIfNeeded")
             .substringBefore("\n    private fun stopPlaybackService")
 
-        assertTrue(permissionBlock.contains("KEY_NOTIFICATION_PERMISSION_REQUESTED"))
-        assertTrue(permissionBlock.contains("requestedBefore ="))
-        assertTrue(permissionBlock.contains("notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled"))
-        assertTrue(permissionBlock.contains(".edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()"))
-        assertTrue(permissionBlock.contains("notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)"))
-        assertTrue(startServiceBlock.contains("PlayerBackgroundServicePolicy.startDecision("))
-        assertTrue(startServiceBlock.contains("runCatching { ContextCompat.startForegroundService(this, intent) }"))
+        assertTrue(permissionBlock.contains("playbackNotifications.ensurePermission()"))
+        assertTrue(controller.contains("KEY_NOTIFICATION_PERMISSION_REQUESTED"))
+        assertTrue(controller.contains("requestedBefore ="))
+        assertTrue(controller.contains("notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled"))
+        assertTrue(controller.contains(".edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()"))
+        assertTrue(controller.contains("notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)"))
+        assertTrue(startServiceBlock.contains("playbackNotifications.startIfNeeded(isPlaying)"))
+        assertTrue(controller.contains("PlayerBackgroundServicePolicy.startDecision("))
+        assertTrue(controller.contains("runCatching { ContextCompat.startForegroundService(activity, intent) }"))
     }
 
     @Test
@@ -112,6 +115,24 @@ class PlayerActivityStartupSourceTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerNotificationControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerPlaybackNotificationController.kt"
         )
         return sequenceOf(
             relativePath,

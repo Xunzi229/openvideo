@@ -64,7 +64,6 @@ import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlaybackNotificationCoordinator
-import com.example.openvideo.core.player.PlaybackServiceIntents
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.ContentFrameMode
@@ -227,6 +226,45 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var pickSubtitleLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+    private val videoOrientation by lazy {
+        PlayerVideoOrientationController(
+            activity = this,
+            playerPrefs = playerPrefs,
+            userOverrodeOrientationProvider = { userOverrodeOrientation },
+            onUserOverrodeOrientationChanged = { userOverrodeOrientation = it }
+        )
+    }
+    private val playbackNotifications by lazy {
+        PlayerPlaybackNotificationController(
+            activity = this,
+            playerPrefs = playerPrefs,
+            viewModel = viewModel,
+            playbackCoordinator = playbackCoordinator,
+            notificationPermissionLauncher = notificationPermissionLauncher,
+            playerViewProvider = { if (this::playerView.isInitialized) playerView else null },
+            firstFrameScrimProvider = { if (this::firstFrameScrim.isInitialized) firstFrameScrim else null },
+            titleProvider = { if (this::tvTitle.isInitialized) tvTitle.text.toString() else null },
+            currentVideoUriStringProvider = { currentVideoUriString },
+            currentVideoPathProvider = { currentVideoPath },
+            intentProvider = { intent },
+            isActivityForegroundProvider = { isActivityForeground },
+            isAwaitingFirstFrameProvider = { isAwaitingFirstFrame },
+            isInPipModeProvider = ::isInPipModeCompat,
+            onTogglePlayPause = ::togglePlayPauseAndSyncIcon,
+            onSyncPlayPauseIcon = ::syncPlayPauseIcon,
+            onSwitchSessionVideo = ::switchSessionVideo,
+            onCurrentVideoChanged = { item ->
+                currentVideoUriString = item.uri.toString()
+                currentVideoPath = item.path
+                tvTitle.text = item.title
+            },
+            onLoadSubtitles = { uriString, videoPath ->
+                loadSubtitlesAsync(uriString, videoPath)
+            },
+            onApplyPlayerSettings = ::applyPlayerSettings,
+            onScheduleHideControls = ::scheduleHideControls
+        )
+    }
 
     // SharedPreferences listener for external subtitle URI written by settings sheet
     private lateinit var settingsPrefs: SharedPreferences
@@ -2463,60 +2501,21 @@ class PlayerActivity : AppCompatActivity() {
         height: Int,
         pixelWidthHeightRatio: Float = 1f,
         unappliedRotationDegrees: Int = 0
-    ) {
-        if (!PlayerVideoOrientationApplyPolicy.shouldApply(
-                autoOrientationByVideo = playerPrefs.autoOrientationByVideo,
-                userOverrodeOrientation = userOverrodeOrientation,
-                width = width,
-                height = height
-            )
-        ) {
-            return
-        }
-        val targetOrientation = PlayerVideoLayoutPolicy.orientationForVideo(
+    ) = videoOrientation.apply(
             width = width,
             height = height,
             pixelWidthHeightRatio = pixelWidthHeightRatio,
             unappliedRotationDegrees = unappliedRotationDegrees
         )
-        if (requestedOrientation == targetOrientation) return
-        requestedOrientation = targetOrientation
-    }
 
-    private fun applyInitialVideoOrientation() {
-        val (width, height) = resolveInitialVideoDimensions()
-        requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
-            width = width,
-            height = height,
-            autoOrientationByVideo = playerPrefs.autoOrientationByVideo
-        )
-    }
-
-    private fun resolveInitialVideoDimensions(): Pair<Int, Int> {
-        var width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
-        var height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-        if (width > 0 && height > 0) return width to height
-
-        val videoId = intent.getLongExtra("video_id", 0L)
-        if (videoId != 0L) {
-            intent.sessionVideoQueue().firstOrNull { it.id == videoId }?.let { item ->
-                if (item.width > 0 && item.height > 0) {
-                    return item.width to item.height
-                }
-            }
-        }
-        return width to height
-    }
+    private fun applyInitialVideoOrientation() = videoOrientation.applyInitial()
 
     /**
      * 切换视频前，用 MediaStore 已记录的宽高预设方向，避免「先横屏→再竖屏」过渡。
      * ExoPlayer 解码完成后 `onVideoSizeChanged` 会用精确尺寸再次校正。
      * 新视频开始播放时复位用户手动方向标志，让自动方向重新生效。
      */
-    private fun preApplyOrientationForItem(item: VideoItem) {
-        userOverrodeOrientation = false
-        applyVideoOrientation(width = item.width, height = item.height)
-    }
+    private fun preApplyOrientationForItem(item: VideoItem) = videoOrientation.preApplyForItem(item)
 
     private fun toggleScreenLock() {
         isScreenLocked = !isScreenLocked
@@ -3022,139 +3021,39 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun ensureNotificationPermission() {
-        val requiresPermission =
-            PlayerNotificationPermissionPolicy.requiresRuntimePermission(Build.VERSION.SDK_INT)
-        if (!requiresPermission) return
-        val granted = ContextCompat.checkSelfPermission(
-            this,
-            android.Manifest.permission.POST_NOTIFICATIONS
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-        val permissionPrefs = getSharedPreferences(PREFS_NOTIFICATION_PERMISSION, Context.MODE_PRIVATE)
-        val requestedBefore = permissionPrefs.getBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, false)
-        if (PlayerNotificationPermissionPolicy.shouldRequestPermission(
-                requiresPermission = requiresPermission,
-                granted = granted,
-                requestedBefore = requestedBefore,
-                notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled
-            )
-        ) {
-            permissionPrefs.edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()
-            runCatching {
-                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
+        playbackNotifications.ensurePermission()
     }
 
     private fun registerPlaybackNotificationHandlers() {
-        playbackCoordinator.registerHandlers(
-            onTogglePlayPause = {
-                togglePlayPauseAndSyncIcon()
-                syncPlaybackNotificationSnapshot()
-                refreshPlaybackNotificationIfRunning()
-            },
-            onSkipToNext = { skipQueueVideoFromNotification(forward = true) },
-            onSkipToPrevious = { skipQueueVideoFromNotification(forward = false) }
-        )
+        playbackNotifications.registerHandlers()
     }
 
     private fun reattachPlayerSurfaceFromBackground() {
-        if (!this::playerView.isInitialized) return
-        playerView.visibility = View.VISIBLE
-        playerView.player = viewModel.player
-        if (!PlayerFirstFrameScrimPolicy.scrimVisibleOnReattach(isAwaitingFirstFrame)) {
-            firstFrameScrim.visibility = View.GONE
-        }
-        syncPlayPauseIcon()
+        playbackNotifications.reattachPlayerSurfaceFromBackground()
     }
 
     private fun syncPlaybackNotificationSnapshot() {
-        if (!this::tvTitle.isInitialized) return
-        val player = viewModel.player
-        playbackCoordinator.updateSnapshot(
-            PlaybackNotificationCoordinator.Snapshot(
-                videoUri = currentVideoUriString,
-                title = tvTitle.text.toString(),
-                videoId = viewModel.playingVideoId,
-                videoPath = currentVideoPath,
-                videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
-                videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0),
-                queue = viewModel.sessionQueue.value,
-                loopMode = playerPrefs.loopMode,
-                isPlaying = player?.isPlaying == true,
-                positionMs = player?.currentPosition ?: 0L,
-                durationMs = player?.duration?.takeIf { it > 0L } ?: 0L
-            )
-        )
+        playbackNotifications.syncSnapshot()
     }
 
     private fun refreshPlaybackNotificationIfRunning() {
-        if (!PlayerNotificationRefreshPolicy.shouldRefreshBackgroundPlayback(
-                isFinishing = isFinishing,
-                backgroundAudio = playerPrefs.bgAudio,
-                notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled,
-                isActivityForeground = isActivityForeground
-            )
-        ) {
-            return
-        }
-        runCatching {
-            ContextCompat.startForegroundService(this, PlaybackServiceIntents.refresh(this))
-        }
+        playbackNotifications.refreshIfRunning()
     }
 
     private fun dismissPlaybackNotification() {
-        playbackCoordinator.clearSnapshot()
-        val intent = PlaybackServiceIntents.stop(this)
-        runCatching { startService(intent) }
-        runCatching { stopService(intent) }
+        playbackNotifications.dismiss()
     }
 
     private fun skipQueueVideoFromNotification(forward: Boolean) {
-        val queue = viewModel.sessionQueue.value
-        if (!PlayerSessionQueueChromePolicy.canOpenSessionListPanel(queue.size)) return
-        val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }
-        val targetIndex = if (forward) {
-            PlayerQueueSkipPolicy.nextIndex(currentIndex, queue.size, playerPrefs.loopMode)
-        } else {
-            PlayerQueueSkipPolicy.previousIndex(currentIndex, queue.size, playerPrefs.loopMode)
-        } ?: return
-        val item = queue[targetIndex]
-        switchSessionVideo(item) {
-            currentVideoUriString = item.uri.toString()
-            currentVideoPath = item.path
-            tvTitle.text = item.title
-            loadSubtitlesAsync(
-                playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() },
-                item.path
-            )
-            applyPlayerSettings()
-            syncPlaybackNotificationSnapshot()
-            refreshPlaybackNotificationIfRunning()
-            scheduleHideControls()
-        }
+        playbackNotifications.skipQueueVideo(forward)
     }
 
     private fun startPlaybackServiceIfNeeded(isPlaying: Boolean) {
-        if (isFinishing) return
-        val decision = PlayerBackgroundServicePolicy.startDecision(
-            backgroundAudio = playerPrefs.bgAudio,
-            isPlaying = isPlaying,
-            isActivityForeground = isActivityForeground,
-            isInPictureInPicture = isInPipModeCompat(),
-            notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled
-        )
-        if (!decision.shouldStart) return
-        syncPlaybackNotificationSnapshot()
-        val intent = PlaybackServiceIntents.start(
-            context = this,
-            title = tvTitle.text.toString(),
-            isPlaying = isPlaying
-        )
-        runCatching { ContextCompat.startForegroundService(this, intent) }
+        playbackNotifications.startIfNeeded(isPlaying)
     }
 
     private fun stopPlaybackService() {
-        runCatching { stopService(PlaybackServiceIntents.stop(this)) }
+        playbackNotifications.stop()
     }
 
     private fun applyPlaybackTickSeek(currentPositionMs: Long, durationMs: Long) {
@@ -3188,8 +3087,6 @@ class PlayerActivity : AppCompatActivity() {
     companion object {
         private const val SUBTITLE_SETTINGS_SHEET_TAG = "player_subtitle_settings_sheet"
         private const val TAG_CONTENT_FRAME = "OVContentFrame"
-        private const val PREFS_NOTIFICATION_PERMISSION = "notification_permission"
-        private const val KEY_NOTIFICATION_PERMISSION_REQUESTED = "notification_permission_requested"
         private const val SMART_CROP_CAPTURE_DELAY_MS = 120L
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"

@@ -69,13 +69,14 @@ class PlaybackServiceIntentsSourceTest {
     @Test
     fun playerActivityRoutesPlaybackServiceThroughHelper() {
         val activitySource = playerActivitySource()
+        val controllerSource = playerNotificationControllerSource()
         assertTrue(
             "Activity must build the start intent via PlaybackServiceIntents.start(...).",
-            activitySource.contains("PlaybackServiceIntents.start(")
+            controllerSource.contains("PlaybackServiceIntents.start(")
         )
         assertTrue(
             "Activity must build the stop intent via PlaybackServiceIntents.stop(...).",
-            activitySource.contains("PlaybackServiceIntents.stop(this)")
+            controllerSource.contains("PlaybackServiceIntents.stop(activity)")
         )
         assertFalse(
             "Activity must not inline PlaybackService.ACTION_START anymore.",
@@ -88,15 +89,18 @@ class PlaybackServiceIntentsSourceTest {
         )
         assertTrue(
             "Activity must sync notification snapshot before starting the service.",
-            activitySource.contains("syncPlaybackNotificationSnapshot()")
+            activitySource.contains("playbackNotifications.syncSnapshot()") &&
+                controllerSource.contains("syncSnapshot()")
         )
         assertTrue(
             "Activity must register notification control handlers.",
-            activitySource.contains("registerPlaybackNotificationHandlers()")
+            activitySource.contains("registerPlaybackNotificationHandlers()") &&
+                activitySource.contains("playbackNotifications.registerHandlers()")
         )
         assertTrue(
             "Activity must dismiss playback notification when exiting.",
-            activitySource.contains("dismissPlaybackNotification()")
+            activitySource.contains("dismissPlaybackNotification()") &&
+                activitySource.contains("playbackNotifications.dismiss()")
         )
     }
 
@@ -125,6 +129,20 @@ class PlaybackServiceIntentsSourceTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+    )
+
+    private fun playerNotificationControllerSource(): String = loadSource(
+        Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerPlaybackNotificationController.kt"
         )
     )
 

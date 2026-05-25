@@ -197,8 +197,9 @@ class PlayerActivityP9SlimmingSourceTest {
     @Test
     fun orientationGuardsUsePolicies() {
         val source = playerActivitySource()
+        val orientationController = playerVideoOrientationControllerSource()
         assertTrue(source.contains("PlayerConfigurationOrientationPolicy.isLandscape("))
-        assertTrue(source.contains("PlayerVideoOrientationApplyPolicy.shouldApply("))
+        assertTrue(orientationController.contains("PlayerVideoOrientationApplyPolicy.shouldApply("))
         assertFalse(source.contains("configuration.orientation == Configuration.ORIENTATION_LANDSCAPE"))
         assertFalse(source.contains("configuration.orientation != Configuration.ORIENTATION_LANDSCAPE"))
     }
@@ -247,8 +248,15 @@ class PlayerActivityP9SlimmingSourceTest {
             "PlayerSettingsSheetChrome.applyBackdrop"
         )
         val glassSheet = playerGlassSheetDialogSource()
+        val notificationController = playerNotificationControllerSource()
+        val orientationController = playerVideoOrientationControllerSource()
         for (snippet in required) {
-            val haystack = if (snippet.startsWith("PlayerSettingsSheetChrome.")) glassSheet else source
+            val haystack = when {
+                snippet.startsWith("PlayerSettingsSheetChrome.") -> glassSheet
+                snippet.startsWith("PlayerNotification") -> notificationController
+                snippet.startsWith("PlayerVideoOrientation") -> orientationController
+                else -> source
+            }
             assertTrue("Expected policy wiring `$snippet`.", haystack.contains(snippet))
         }
     }
@@ -324,6 +332,44 @@ class PlayerActivityP9SlimmingSourceTest {
             "ui",
             "player",
             "PlayerGlassSheetDialog.kt"
+        )
+        val path: Path = sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+        return String(Files.readAllBytes(path))
+    }
+
+    private fun playerNotificationControllerSource(): String {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerPlaybackNotificationController.kt"
+        )
+        val path: Path = sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+        return String(Files.readAllBytes(path))
+    }
+
+    private fun playerVideoOrientationControllerSource(): String {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerVideoOrientationController.kt"
         )
         val path: Path = sequenceOf(
             relativePath,
