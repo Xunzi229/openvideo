@@ -1,7 +1,5 @@
 package com.example.openvideo.ui.player
 
-import android.annotation.SuppressLint
-import android.app.Dialog
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
@@ -9,26 +7,15 @@ import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.util.TypedValue
-import android.view.GestureDetector
-import android.view.MotionEvent
-import android.view.PixelCopy
-import android.view.ScaleGestureDetector
-import android.view.SurfaceView
-import android.view.TextureView
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -56,26 +43,18 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
-import androidx.media3.ui.R as Media3UiR
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.media.LocalMediaUriPolicy
-import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlaybackNotificationCoordinator
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
-import com.example.openvideo.core.prefs.ContentFrameMode
-import com.example.openvideo.core.prefs.DoubleTapAction
-import com.example.openvideo.core.prefs.GestureAction
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.data.model.VideoItem
-import com.example.openvideo.ui.settings.DefaultPlayerSettings
 import dagger.hilt.android.AndroidEntryPoint
-import kotlin.math.abs
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -129,15 +108,7 @@ class PlayerActivity : AppCompatActivity() {
     /** 横屏右侧浮层（倍速 / 比例 / 画中画）。 */
     private var landRightFloatColumn: View? = null
 
-    private var contentFrameTransformRetryPosted = false
     private var manualVideoZoom = PlayerVideoZoomState.IDENTITY
-    private var cachedBaseContentFrameTransform = PlayerContentFrameTransform.IDENTITY
-    private var smartCropContentFrameMode: ContentFrameMode? = null
-    private var smartCropTransformOverride: PlayerContentFrameTransform? = null
-    private var smartCropViewportFillFraction: Float? = null
-    private var smartCropViewportScale: PlayerContentFrameViewportScale? = null
-    private var smartCropCropExpansionFraction: Float = 0f
-    private var smartCropToast: Toast? = null
 
     // Error HUD views (initialized in initViews)
     private lateinit var playerErrorHud: View
@@ -159,10 +130,8 @@ class PlayerActivity : AppCompatActivity() {
     private var controlsVisible = true
     private var isActivityForeground = false
     private var isSettingsOverlayVisible = false
-    private var activePlayerDialog: Dialog? = null
     private var controlsVisibleBeforeSettingsOverlay = true
     private val hideControlsRunnable = Runnable { hideControls() }
-    private val hideGestureHudRunnable = Runnable { hideGestureHud() }
     private val updateRunnable = object : Runnable {
         override fun run() {
             if (!isSeeking) {
@@ -185,8 +154,6 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private lateinit var gestureDetector: GestureDetector
-    private lateinit var pinchZoomDetector: ScaleGestureDetector
     private var currentBrightness = 0.5f
     private var currentVolume = 0.5f
     private var isSeeking = false
@@ -198,31 +165,19 @@ class PlayerActivity : AppCompatActivity() {
 
     // Screen lock state
     private var isScreenLocked = false
-    private var pendingSeekTarget: Long? = null
-    private var seekGestureAnchorPositionMs: Long? = null
     private var playerListener: Player.Listener? = null
     private var startupAnalyticsListener: androidx.media3.exoplayer.analytics.AnalyticsListener? = null
 
     // 一旦用户手动切过屏幕方向（点击全屏按钮等），本次视频会话内禁止自动方向覆盖，
     // 防止 onVideoSizeChanged 等回调把用户操作冲掉。切到下一首视频时复位。
     private var userOverrodeOrientation = false
-    private var isLongPressing = false
     private var playbackWasBuffering = false
-    private var doubleTapSeekState: DoubleTapSeekState? = null
-    private var doubleTapSeekAnchorPositionMs: Long? = null
-    private var keepGestureHudAfterActionUp = false
     private var hasSkippedIntro = false
     private var hasSkippedOutro = false
     private val startupTrace = PlayerStartupTrace()
-    private var hasLoggedFirstFrame = false
-    private var hasLoggedFirstFrameTimeout = false
-    private var isFirstFrameTimeoutPosted = false
-    private var isAwaitingFirstFrame = true
     private var lastHistorySavedPositionMs = 0L
 
     /** 单次手势起始亮度/音量（0–1），避免 MOVE 期间重复累加误差 */
-    private var brightnessGestureAnchor = 0.5f
-    private var volumeGestureAnchor = 0.5f
 
     private lateinit var pickSubtitleLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
@@ -232,6 +187,133 @@ class PlayerActivity : AppCompatActivity() {
             playerPrefs = playerPrefs,
             userOverrodeOrientationProvider = { userOverrodeOrientation },
             onUserOverrodeOrientationChanged = { userOverrodeOrientation = it }
+        )
+    }
+    private val quickDialogs by lazy {
+        PlayerQuickDialogController(
+            activity = this,
+            playerManager = playerManager,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            pickSubtitleLauncher = pickSubtitleLauncher,
+            handler = handler,
+            hideControlsRunnable = hideControlsRunnable,
+            controlsVisibleProvider = { controlsVisible },
+            onControlsVisibleBeforeSettingsOverlayChanged = { controlsVisibleBeforeSettingsOverlay = it },
+            isSettingsOverlayVisibleProvider = { isSettingsOverlayVisible },
+            onSettingsOverlayVisibleChanged = { isSettingsOverlayVisible = it },
+            onHideControls = ::hideControls,
+            onHideChromeForSettingsOverlay = ::hideChromeForSettingsOverlay,
+            onRestoreChromeAfterSettingsOverlay = ::restoreChromeAfterSettingsOverlay,
+            onScheduleHideControls = ::scheduleHideControls,
+            onApplyScreenBrightness = ::applyScreenBrightness,
+            onAspectRatioChanged = ::applyAspectRatioDisplayChange,
+            onApplyPlayerSettings = ::applyPlayerSettings,
+            onApplySubtitlePresentation = ::applySubtitlePresentation,
+            onSessionVideoPicked = { item ->
+                switchSessionVideo(item) {
+                    currentVideoUriString = item.uri.toString()
+                    currentVideoPath = item.path
+                    tvTitle.text = item.title
+                    loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() }, item.path)
+                    applyPlayerSettings()
+                    scheduleHideControls()
+                }
+            }
+        )
+    }
+    private val smartCrop: PlayerSmartCropController by lazy {
+        PlayerSmartCropController(
+            activity = this,
+            playerPrefs = playerPrefs,
+            viewModel = viewModel,
+            handler = handler,
+            hideControlsRunnable = hideControlsRunnable,
+            playerViewProvider = { playerView },
+            controlsContainerProvider = { controlsContainer },
+            contentFrameSourceSizeProvider = contentFrameTransforms::sourceSize,
+            videoRenderViewProvider = contentFrameTransforms::videoRenderView,
+            onControlsVisibleChanged = { controlsVisible = it },
+            onApplyControlVisibility = ::applyControlVisibility,
+            onResetManualVideoZoom = { manualVideoZoom = PlayerVideoZoomState.IDENTITY },
+            onApplyDisplaySettings = ::applyDisplaySettings,
+            onScheduleHideControls = ::scheduleHideControls
+        )
+    }
+    private val contentFrameTransforms: PlayerContentFrameTransformController by lazy {
+        PlayerContentFrameTransformController(
+            playerPrefs = playerPrefs,
+            viewModel = viewModel,
+            playerViewProvider = { playerView },
+            intentProvider = { intent },
+            manualVideoZoomProvider = { manualVideoZoom },
+            onManualVideoZoomChanged = { manualVideoZoom = it },
+            smartCropStateProvider = {
+                PlayerSmartCropTransformState(
+                    contentFrameMode = smartCrop.contentFrameMode,
+                    transformOverride = smartCrop.transformOverride,
+                    viewportFillFraction = smartCrop.viewportFillFraction,
+                    viewportScale = smartCrop.viewportScale,
+                    cropExpansionFraction = smartCrop.cropExpansionFraction
+                )
+            }
+        )
+    }
+    private val playerGestures: PlayerGestureController by lazy {
+        PlayerGestureController(
+            activity = this,
+            playerPrefs = playerPrefs,
+            viewModel = viewModel,
+            handler = handler,
+            gestureOverlayProvider = { gestureOverlay },
+            seekIndicatorProvider = { seekIndicator },
+            brightnessIndicatorProvider = { brightnessIndicator },
+            brightnessProgressProvider = { brightnessProgress },
+            volumeIndicatorProvider = { volumeIndicator },
+            volumeProgressProvider = { volumeProgress },
+            currentBrightnessProvider = { currentBrightness },
+            onCurrentBrightnessChanged = { currentBrightness = it },
+            currentVolumeProvider = { currentVolume },
+            onCurrentVolumeChanged = { currentVolume = it },
+            manualVideoZoomProvider = { manualVideoZoom },
+            onManualVideoZoomChanged = { manualVideoZoom = it },
+            baseContentFrameScaleProvider = { contentFrameTransforms.baseTransform.scale },
+            playerViewportWidthProvider = { playerView.width },
+            playerViewportHeightProvider = { playerView.height },
+            isScreenLockedProvider = { isScreenLocked },
+            controlsVisibleProvider = { controlsVisible },
+            onShowControls = ::showControls,
+            onHideControls = ::hideControls,
+            onShowLockedControls = ::showLockedControls,
+            onApplyContentFrameTransform = ::applyPlayerContentFrameTransform,
+            onSetWindowBrightness = ::setWindowBrightness,
+            onFinishPlayer = ::finishPlayer
+        )
+    }
+    private val firstFrames: PlayerFirstFrameController by lazy {
+        PlayerFirstFrameController(
+            activity = this,
+            handler = handler,
+            startupTrace = startupTrace,
+            firstFrameScrimProvider = { if (this::firstFrameScrim.isInitialized) firstFrameScrim else null },
+            hasVideoTrackProvider = ::hasVideoTrack
+        )
+    }
+    private val errorHud: PlayerErrorHudController by lazy {
+        PlayerErrorHudController(
+            activity = this,
+            viewModel = viewModel,
+            playerErrorHudProvider = { playerErrorHud },
+            titleProvider = { tvErrorTitle },
+            descProvider = { tvErrorDesc },
+            softDecodeButtonProvider = { btnErrorSoftDecode },
+            retryButtonProvider = { btnErrorRetry },
+            copyDiagnosticsButtonProvider = { btnErrorCopyDiag },
+            backButtonProvider = { btnErrorBack },
+            controlsContainerProvider = { controlsContainer },
+            firstFrameScrimProvider = { firstFrameScrim },
+            onShowControls = ::showControls,
+            onFinishPlayer = ::finishPlayer
         )
     }
     private val playbackNotifications by lazy {
@@ -248,7 +330,7 @@ class PlayerActivity : AppCompatActivity() {
             currentVideoPathProvider = { currentVideoPath },
             intentProvider = { intent },
             isActivityForegroundProvider = { isActivityForeground },
-            isAwaitingFirstFrameProvider = { isAwaitingFirstFrame },
+            isAwaitingFirstFrameProvider = { firstFrames.isAwaitingFirstFrame },
             isInPipModeProvider = ::isInPipModeCompat,
             onTogglePlayPause = ::togglePlayPauseAndSyncIcon,
             onSyncPlayPauseIcon = ::syncPlayPauseIcon,
@@ -342,7 +424,7 @@ class PlayerActivity : AppCompatActivity() {
         playerView.player = viewModel.player
         playerView.visibility = View.VISIBLE
         firstFrameScrim.visibility =
-            if (PlayerFirstFrameScrimPolicy.initialScrimVisible(isAwaitingFirstFrame, warmResume)) {
+            if (PlayerFirstFrameScrimPolicy.initialScrimVisible(firstFrames.isAwaitingFirstFrame, warmResume)) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -582,628 +664,33 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<View>(R.id.portrait_btn_episodes)?.isVisible = show
     }
 
-    private fun showSessionVideoListPanel() {
-        val queue = viewModel.sessionQueue.value
-        if (!PlayerSessionQueueChromePolicy.canOpenSessionListPanel(queue.size)) return
-        showExclusivePlayerDialog { onDismiss ->
-            handler.removeCallbacks(hideControlsRunnable)
-            PlayerVideoListDialog(
-                context = this,
-                videos = queue,
-                playingVideoId = viewModel.playingVideoId,
-                onPick = { item ->
-                    switchSessionVideo(item) {
-                        currentVideoUriString = item.uri.toString()
-                        currentVideoPath = item.path
-                        tvTitle.text = item.title
-                        loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() }, item.path)
-                        applyPlayerSettings()
-                        scheduleHideControls()
-                    }
-                }
-            ).apply {
-                setOnDismissListener {
-                    onDismiss()
-                    scheduleHideControls()
-                }
-            }.also { dialog ->
-                dialog.show()
-            }
-        }
-    }
+    private fun showSessionVideoListPanel() = quickDialogs.showSessionVideoListPanel()
 
     /** 与横屏齿轮按钮相同：弹出播放器设置。竖屏底栏「更多」亦指向此处。 */
-    private fun openPlayerSettingsDialog() {
-        showExclusivePlayerDialog { onDismiss ->
-            handler.removeCallbacks(hideControlsRunnable)
-            controlsVisibleBeforeSettingsOverlay = controlsVisible
-            isSettingsOverlayVisible = true
-            hideChromeForSettingsOverlay()
-            val dialog = PlayerSettingsDialog(
-                context = this,
-                playerManager = playerManager,
-                viewModel = viewModel,
-                playerPrefs = playerPrefs,
-                onScreenBrightnessChanged = ::applyScreenBrightness,
-                onRequestPickSubtitle = {
-                    pickSubtitleLauncher.launch(arrayOf("*/*"))
-                },
-                onAspectRatioChanged = ::applyAspectRatioDisplayChange,
-                onPlayerPrefsReset = ::applyPlayerSettings
-            )
-            dialog.setOnDismissListener {
-                onDismiss()
-                isSettingsOverlayVisible = false
-                restoreChromeAfterSettingsOverlay()
-                applyPlayerSettings()
-                scheduleHideControls()
-            }
-            dialog.show()
-            dialog
-        }
-    }
+    private fun openPlayerSettingsDialog() = quickDialogs.openPlayerSettingsDialog()
 
     private fun applyAspectRatioDisplayChange() {
         clearSmartCropSession()
         applyDisplaySettings()
     }
 
-    private fun showAspectRatioQuickDialog() {
-        showExclusivePlayerDialog { onDismiss ->
-            PlayerGlassSheetDialog.showSingleChoice(
-                context = this,
-                layoutInflater = layoutInflater,
-                titleRes = R.string.player_sheet_aspect_ratio,
-                choices = PlayerAspectRatioOptions.entries.map { option ->
-                    PlayerGlassSheetChoice(
-                        value = option.ratio,
-                        label = getString(option.labelRes),
-                        selected = option.ratio == playerPrefs.aspectRatio
-                    )
-                },
-                chrome = quickChoiceChrome(),
-                playerPrefs = playerPrefs,
-                onDismiss = {
-                    onDismiss()
-                    scheduleHideControls()
-                }
-            ) { ratio ->
-                val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
-                    aspectRatio = ratio,
-                    currentContentFrameMode = playerPrefs.contentFrameMode
-                )
-                playerPrefs.aspectRatio = selection.aspectRatio
-                selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }
-                viewModel.setAspectRatio(selection.aspectRatio)
-                clearSmartCropSession()
-                applyDisplaySettings()
-            }
-        }
-    }
+    private fun showAspectRatioQuickDialog() = quickDialogs.showAspectRatioQuickDialog()
 
-    private fun handleSmartCropQuickToggle() {
-        logSmartCrop(
-            "smartCropClick activeMode=${smartCropContentFrameMode?.key} override=$smartCropTransformOverride " +
-                "viewport=${playerView.width}x${playerView.height}"
-        )
-        if (smartCropContentFrameMode != null || smartCropTransformOverride != null) {
-            clearSmartCropSession()
-            applyDisplaySettings()
-            logSmartCrop("smartCropClick toggledOff")
-            showSmartCropToast(R.string.player_smart_crop_off)
-            scheduleHideControls()
-            return
-        }
-        cancelSmartCropToast()
-        hideControlsForSmartCropCapture()
-        playerView.postDelayed({
-            captureSmartCropRenderBounds { renderBounds ->
-                logSmartCrop("smartCropRenderBounds $renderBounds")
-                if (renderBounds != null && applySmartCropBounds(renderBounds)) {
-                    showSmartCropToast(R.string.player_smart_crop_applied)
-                    scheduleHideControls()
-                    return@captureSmartCropRenderBounds
-                }
-                captureSmartCropVisualBounds { bounds ->
-                    logSmartCrop("smartCropVisualBounds $bounds")
-                    if (bounds != null && applySmartCropBounds(bounds)) {
-                        showSmartCropToast(R.string.player_smart_crop_applied)
-                        scheduleHideControls()
-                        return@captureSmartCropVisualBounds
-                    }
-                    captureSmartCropBlackBorders { blackBorders ->
-                        logSmartCrop("smartCropBlackBorders $blackBorders")
-                        if (blackBorders == null) {
-                            showSmartCropToast(R.string.player_smart_crop_unavailable)
-                            return@captureSmartCropBlackBorders
-                        }
-                        applySmartCropQuickToggle(blackBorders)
-                    }
-                }
-            }
-        }, SMART_CROP_CAPTURE_DELAY_MS)
-    }
+    private fun handleSmartCropQuickToggle() = smartCrop.handleQuickToggle()
 
-    private fun showSmartCropToast(messageRes: Int) {
-        cancelSmartCropToast()
-        smartCropToast = Toast.makeText(this, messageRes, Toast.LENGTH_SHORT)
-        smartCropToast?.show()
-    }
+    private fun clearSmartCropSession() = smartCrop.clearSession()
 
-    private fun cancelSmartCropToast() {
-        smartCropToast?.cancel()
-        smartCropToast = null
-    }
+    private fun showSpeedPickerDialog() = quickDialogs.showSpeedPickerDialog()
 
-    private fun hideControlsForSmartCropCapture() {
-        handler.removeCallbacks(hideControlsRunnable)
-        controlsVisible = false
-        controlsContainer.animate().cancel()
-        controlsContainer.alpha = 0f
-        controlsContainer.visibility = View.GONE
-        applyControlVisibility()
-    }
+    private fun showAudioTrackQuickDialog() = quickDialogs.showAudioTrackQuickDialog()
 
-    private fun clearSmartCropSession() {
-        smartCropContentFrameMode = null
-        smartCropTransformOverride = null
-        smartCropViewportFillFraction = null
-        smartCropViewportScale = null
-        smartCropCropExpansionFraction = 0f
-        manualVideoZoom = PlayerVideoZoomState.IDENTITY
-    }
+    private fun showSubtitleQuickDialog() = quickDialogs.showSubtitleQuickDialog()
 
-    private fun applySmartCropBounds(bounds: PlayerSmartCropBlackBorderDetector.ContentBounds): Boolean {
-        if (playerView.width <= playerView.height) return false
-        val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
-            ?: return false
-        val playerLocation = IntArray(2)
-        val contentFrameLocation = IntArray(2)
-        playerView.getLocationOnScreen(playerLocation)
-        contentFrame.getLocationOnScreen(contentFrameLocation)
-        val contentFrameLeft = (contentFrameLocation[0] - playerLocation[0]).toFloat()
-        val contentFrameTop = (contentFrameLocation[1] - playerLocation[1]).toFloat()
-        val borders = PlayerSmartCropBlackBorderDetector.detectFromContentRect(
-            viewportWidth = playerView.width,
-            viewportHeight = playerView.height,
-            contentLeft = bounds.left,
-            contentTop = bounds.top,
-            contentRight = bounds.right,
-            contentBottom = bounds.bottom
-        )
-        if (!borders.hasAllEdges) {
-            logSmartCrop(
-                "smartCropBoundsRejected bounds=${bounds.left},${bounds.top}-${bounds.right},${bounds.bottom} " +
-                    "borders=$borders viewport=${playerView.width}x${playerView.height}"
-            )
-            return false
-        }
-        smartCropContentFrameMode = null
-        smartCropViewportFillFraction = PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION
-        smartCropViewportScale = PlayerContentFrameViewportScale.FIT_INSIDE
-        smartCropCropExpansionFraction = 0f
-        smartCropTransformOverride = PlayerContentFramePolicy.transformToFillViewport(
-            viewportWidth = playerView.width,
-            viewportHeight = playerView.height,
-            content = ContentFrameRect(
-                left = bounds.left - contentFrameLeft,
-                top = bounds.top - contentFrameTop,
-                width = bounds.width.toFloat(),
-                height = bounds.height.toFloat()
-            ),
-            viewportFillFraction = PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION,
-            viewportScale = PlayerContentFrameViewportScale.FIT_INSIDE,
-            contentFrameLeft = contentFrameLeft,
-            contentFrameTop = contentFrameTop
-        )
-        logSmartCrop(
-            "smartCropBoundsApplied bounds=${bounds.left},${bounds.top}-${bounds.right},${bounds.bottom} " +
-                "viewport=${playerView.width}x${playerView.height} contentFrame=$contentFrameLeft,$contentFrameTop " +
-                "transform=$smartCropTransformOverride"
-        )
-        manualVideoZoom = PlayerVideoZoomState.IDENTITY
-        applyDisplaySettings()
-        return true
-    }
+    private fun openSubtitleSettingsSheet() = quickDialogs.openSubtitleSettingsSheet()
 
-    private fun logSmartCrop(message: String) {
-        if (com.example.openvideo.BuildConfig.DEBUG) {
-            android.util.Log.d(TAG_CONTENT_FRAME, message)
-        }
-    }
+    private fun onSubtitleSettingsSheetDismissed() = quickDialogs.onSubtitleSettingsSheetDismissed()
 
-    private fun applySmartCropQuickToggle(blackBorders: PlayerSmartCropBlackBorders) {
-        val frameSize = contentFrameSourceSize(
-            width = null,
-            height = null,
-            pixelWidthHeightRatio = null,
-            unappliedRotationDegrees = null
-        )
-        val activeSmartCropMode = smartCropContentFrameMode
-        val decision = PlayerSmartCropPolicy.quickToggleDecision(
-            currentMode = activeSmartCropMode ?: ContentFrameMode.OFF,
-            currentAspectRatio = playerPrefs.aspectRatio,
-            sourceWidth = frameSize.width,
-            sourceHeight = frameSize.height,
-            viewportWidth = playerView.width,
-            viewportHeight = playerView.height,
-            blackBorders = blackBorders
-        )
-        val nextMode = decision.contentFrameMode
-        if (nextMode == null) {
-            showSmartCropToast(R.string.player_smart_crop_unavailable)
-            return
-        }
-
-        decision.aspectRatioOverride?.let { ratio ->
-            playerPrefs.aspectRatio = ratio
-            viewModel.setAspectRatio(ratio)
-        }
-        smartCropContentFrameMode = decision.contentFrameMode.takeIf { it != ContentFrameMode.OFF }
-        smartCropTransformOverride = null
-        smartCropViewportFillFraction = decision.viewportFillFraction
-        smartCropViewportScale = decision.viewportScale
-        smartCropCropExpansionFraction = decision.cropExpansionFraction
-        manualVideoZoom = PlayerVideoZoomState.IDENTITY
-        applyDisplaySettings()
-        showSmartCropToast(
-            if (nextMode == ContentFrameMode.OFF) {
-                R.string.player_smart_crop_off
-            } else {
-                R.string.player_smart_crop_applied
-            }
-        )
-        scheduleHideControls()
-    }
-
-    private fun captureSmartCropVisualBounds(
-        callback: (PlayerSmartCropBlackBorderDetector.ContentBounds?) -> Unit
-    ) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-            playerView.width <= 0 ||
-            playerView.height <= 0
-        ) {
-            callback(null)
-            return
-        }
-        val location = IntArray(2)
-        playerView.getLocationInWindow(location)
-        val sourceRect = Rect(
-            location[0],
-            location[1],
-            location[0] + playerView.width,
-            location[1] + playerView.height
-        )
-        val bitmap = Bitmap.createBitmap(playerView.width, playerView.height, Bitmap.Config.ARGB_8888)
-        PixelCopy.request(
-            window,
-            sourceRect,
-            bitmap,
-            { result ->
-                if (result == PixelCopy.SUCCESS) {
-                    callback(detectSmartCropContentBounds(bitmap))
-                } else {
-                    callback(null)
-                }
-                bitmap.recycle()
-            },
-            Handler(Looper.getMainLooper())
-        )
-    }
-
-    private fun captureSmartCropRenderBounds(
-        callback: (PlayerSmartCropBlackBorderDetector.ContentBounds?) -> Unit
-    ) {
-        val videoView = videoRenderView()
-        when (videoView) {
-            is TextureView -> {
-                val bitmap = videoView.bitmap ?: run {
-                    callback(null)
-                    return
-                }
-                val bounds = detectSmartCropContentBounds(bitmap)?.offsetSmartCropBoundsFrom(videoView)
-                callback(bounds)
-                bitmap.recycle()
-            }
-            is SurfaceView -> {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-                    videoView.width <= 0 ||
-                    videoView.height <= 0
-                ) {
-                    callback(null)
-                    return
-                }
-                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)
-                PixelCopy.request(
-                    videoView,
-                    bitmap,
-                    { result ->
-                        val bounds = if (result == PixelCopy.SUCCESS) {
-                            detectSmartCropContentBounds(bitmap)?.offsetSmartCropBoundsFrom(videoView)
-                        } else {
-                            null
-                        }
-                        callback(bounds)
-                        bitmap.recycle()
-                    },
-                    Handler(Looper.getMainLooper())
-                )
-            }
-            else -> callback(null)
-        }
-    }
-
-    private fun PlayerSmartCropBlackBorderDetector.ContentBounds.offsetSmartCropBoundsFrom(
-        child: View
-    ): PlayerSmartCropBlackBorderDetector.ContentBounds {
-        val playerLocation = IntArray(2)
-        val childLocation = IntArray(2)
-        playerView.getLocationOnScreen(playerLocation)
-        child.getLocationOnScreen(childLocation)
-        val dx = childLocation[0] - playerLocation[0]
-        val dy = childLocation[1] - playerLocation[1]
-        return PlayerSmartCropBlackBorderDetector.ContentBounds(
-            left = left + dx,
-            top = top + dy,
-            right = right + dx,
-            bottom = bottom + dy
-        )
-    }
-
-    private fun captureSmartCropBlackBorders(callback: (PlayerSmartCropBlackBorders?) -> Unit) {
-        val videoView = videoRenderView()
-        val geometryBorders = detectSmartCropGeometryBlackBorders(videoView)
-        if (geometryBorders?.hasAllEdges == true) {
-            callback(geometryBorders)
-            return
-        }
-        when (videoView) {
-            is TextureView -> {
-                val bitmap = videoView.bitmap ?: run {
-                    callback(null)
-                    return
-                }
-                val pixelBorders = detectSmartCropBlackBorders(bitmap)
-                callback(pixelBorders)
-                bitmap.recycle()
-            }
-            is SurfaceView -> {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
-                    videoView.width <= 0 ||
-                    videoView.height <= 0
-                ) {
-                    callback(null)
-                    return
-                }
-                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)
-                PixelCopy.request(
-                    videoView,
-                    bitmap,
-                    { result ->
-                        if (result == PixelCopy.SUCCESS) {
-                            val pixelBorders = detectSmartCropBlackBorders(bitmap)
-                            callback(pixelBorders)
-                        } else {
-                            callback(null)
-                        }
-                        bitmap.recycle()
-                    },
-                    Handler(Looper.getMainLooper())
-                )
-            }
-            else -> callback(null)
-        }
-    }
-
-    private fun detectSmartCropGeometryBlackBorders(videoView: View?): PlayerSmartCropBlackBorders? {
-        if (videoView == null || playerView.width <= 0 || playerView.height <= 0) return null
-        val playerLocation = IntArray(2)
-        val contentLocation = IntArray(2)
-        playerView.getLocationOnScreen(playerLocation)
-        videoView.getLocationOnScreen(contentLocation)
-
-        val contentLeft = contentLocation[0] - playerLocation[0]
-        val contentTop = contentLocation[1] - playerLocation[1]
-        val contentRight = contentLeft + videoView.width
-        val contentBottom = contentTop + videoView.height
-        return PlayerSmartCropBlackBorderDetector.detectFromContentRect(
-            viewportWidth = playerView.width,
-            viewportHeight = playerView.height,
-            contentLeft = contentLeft,
-            contentTop = contentTop,
-            contentRight = contentRight,
-            contentBottom = contentBottom
-        )
-    }
-
-    private fun detectSmartCropBlackBorders(bitmap: Bitmap): PlayerSmartCropBlackBorders {
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        return PlayerSmartCropBlackBorderDetector.detect(width, height) { x, y ->
-            isSmartCropBlackPixel(pixels[y * width + x])
-        }
-    }
-
-    private fun detectSmartCropContentBounds(
-        bitmap: Bitmap
-    ): PlayerSmartCropBlackBorderDetector.ContentBounds? {
-        val width = bitmap.width
-        val height = bitmap.height
-        val pixels = IntArray(width * height)
-        bitmap.getPixels(pixels, 0, width, 0, 0, width, height)
-        return PlayerSmartCropBlackBorderDetector.detectContentBounds(width, height) { x, y ->
-            isSmartCropBlackPixel(pixels[y * width + x])
-        }
-    }
-
-    private fun isSmartCropBlackPixel(pixel: Int): Boolean =
-        PlayerSmartCropPixelPolicy.isBlackArgb(pixel)
-
-    private fun showSpeedPickerDialog() {
-        val speeds = DefaultPlayerSettings.supportedSpeeds
-        showExclusivePlayerDialog { onDismiss ->
-            handler.removeCallbacks(hideControlsRunnable)
-            hideControls()
-            PlayerGlassSheetDialog.showSingleChoice(
-                context = this,
-                layoutInflater = layoutInflater,
-                titleRes = R.string.player_pick_speed,
-                choices = speeds.map { speed ->
-                    PlayerGlassSheetChoice(
-                        value = speed,
-                        label = "${speed}x",
-                        selected = speed == playerPrefs.speed
-                    )
-                },
-                chrome = quickChoiceChrome(),
-                playerPrefs = playerPrefs,
-                onDismiss = {
-                    onDismiss()
-                    scheduleHideControls()
-                }
-            ) { speed ->
-                playerPrefs.speed = speed
-                viewModel.setSpeed(
-                    speed,
-                    PlayerPlaybackSettings.pitchFor(speed, playerPrefs.speedPreservePitch)
-                )
-                findViewById<TextView>(R.id.tv_land_speed)?.text = landSpeedLabel(speed)
-            }
-        }
-    }
-
-    private fun showExclusivePlayerDialog(
-        showDialog: (onDismiss: () -> Unit) -> Dialog
-    ) {
-        val current = activePlayerDialog
-        if (current?.isShowing == true) return
-        var dialog: Dialog? = null
-        val clearActiveDialog = {
-            if (activePlayerDialog === dialog) {
-                activePlayerDialog = null
-            }
-        }
-        dialog = showDialog(clearActiveDialog)
-        activePlayerDialog = dialog
-    }
-
-    private fun showAudioTrackQuickDialog() {
-        val state = PlayerQuickEntryPolicy.audioEntry(
-            tracks = viewModel.audioTracks(),
-            audioMuted = playerPrefs.audioMuted,
-            trackLabel = { track ->
-                PlayerAudioDiagnosticsPolicy.quickTrackSummary(
-                    track = track,
-                    streamLabel = getString(R.string.player_settings_info_stream, track.groupIndex + 1)
-                )
-            }
-        )
-        val items = state.items.map { item ->
-            when (item.action) {
-                PlayerQuickEntryAction.DisableAudio ->
-                    item.copy(label = getString(R.string.player_sheet_disable))
-                PlayerQuickEntryAction.None ->
-                    item.copy(label = getString(R.string.player_settings_audio_track_none))
-                else -> item
-            }
-        }
-        showQuickEntryDialog(R.string.player_sheet_audio_track, items) { action ->
-            when (action) {
-                is PlayerQuickEntryAction.SelectAudioTrack -> {
-                    val track = viewModel.audioTracks().firstOrNull {
-                        it.groupIndex == action.groupIndex && it.trackIndex == action.trackIndex
-                    } ?: return@showQuickEntryDialog
-                    viewModel.selectAudioTrack(track)
-                }
-                PlayerQuickEntryAction.DisableAudio -> viewModel.disableAudioTrack()
-                else -> Unit
-            }
-        }
-    }
-
-    private fun showSubtitleQuickDialog() {
-        val state = PlayerQuickEntryPolicy.subtitleEntry(
-            hasLoadedSubtitles = viewModel.uiState.value.subtitles.isNotEmpty(),
-            subtitlesEnabled = playerPrefs.subtitlesEnabled,
-            subtitleDelayMs = playerPrefs.subtitleDelayMs
-        )
-        val items = state.items.map { item ->
-            when (val action = item.action) {
-                is PlayerQuickEntryAction.SetSubtitlesEnabled ->
-                    item.copy(label = getString(if (action.enabled) R.string.player_sheet_enable else R.string.settings_subtitle_track_off))
-                is PlayerQuickEntryAction.SubtitleDelayStatus ->
-                    item.copy(label = getString(R.string.player_quick_subtitle_delay_current, action.delayMs))
-                is PlayerQuickEntryAction.AdjustSubtitleDelay ->
-                    item.copy(
-                        label = getString(
-                            if (PlayerQuickEntryPolicy.subtitleDelayAdjustIsDecrease(action.deltaMs)) {
-                                R.string.player_quick_subtitle_delay_minus_in_dialog
-                            } else {
-                                R.string.player_quick_subtitle_delay_plus_in_dialog
-                            },
-                            kotlin.math.abs(action.deltaMs),
-                            playerPrefs.subtitleDelayMs
-                        )
-                    )
-                PlayerQuickEntryAction.ResetSubtitleDelay ->
-                    item.copy(label = getString(R.string.player_quick_subtitle_delay_reset))
-                PlayerQuickEntryAction.PickSubtitleFile ->
-                    item.copy(label = getString(R.string.player_sheet_select_subtitle_file))
-                PlayerQuickEntryAction.OpenSubtitleSettings ->
-                    item.copy(label = getString(R.string.player_quick_subtitle_more_settings))
-                PlayerQuickEntryAction.None ->
-                    item.copy(label = getString(R.string.player_quick_subtitle_none))
-                else -> item
-            }
-        }
-        showQuickEntryDialog(R.string.player_sheet_subtitles, items) { action ->
-            when (action) {
-                is PlayerQuickEntryAction.SetSubtitlesEnabled -> {
-                    playerPrefs.subtitlesEnabled = action.enabled
-                    applySubtitlePresentation()
-                }
-                is PlayerQuickEntryAction.AdjustSubtitleDelay -> {
-                    playerPrefs.subtitleDelayMs += action.deltaMs
-                    applySubtitlePresentation()
-                }
-                PlayerQuickEntryAction.ResetSubtitleDelay -> {
-                    playerPrefs.subtitleDelayMs = 0
-                    applySubtitlePresentation()
-                }
-                PlayerQuickEntryAction.PickSubtitleFile ->
-                    pickSubtitleLauncher.launch(arrayOf("*/*"))
-                PlayerQuickEntryAction.OpenSubtitleSettings ->
-                    openSubtitleSettingsSheet()
-                else -> Unit
-            }
-        }
-    }
-
-    private fun openSubtitleSettingsSheet() {
-        if (supportFragmentManager.findFragmentByTag(SUBTITLE_SETTINGS_SHEET_TAG) != null) return
-        handler.removeCallbacks(hideControlsRunnable)
-        controlsVisibleBeforeSettingsOverlay = controlsVisible
-        isSettingsOverlayVisible = true
-        hideChromeForSettingsOverlay()
-        PlayerSubtitleSettingsSheet().apply {
-            onDismissListener = ::onSubtitleSettingsSheetDismissed
-        }.show(supportFragmentManager, SUBTITLE_SETTINGS_SHEET_TAG)
-    }
-
-    private fun onSubtitleSettingsSheetDismissed() {
-        if (!isSettingsOverlayVisible) return
-        isSettingsOverlayVisible = false
-        restoreChromeAfterSettingsOverlay()
-        applyPlayerSettings()
-        scheduleHideControls()
-    }
-
-    private fun dismissSubtitleSettingsSheet() {
-        (supportFragmentManager.findFragmentByTag(SUBTITLE_SETTINGS_SHEET_TAG) as? PlayerSubtitleSettingsSheet)
-            ?.dismissAllowingStateLoss()
-    }
+    private fun dismissSubtitleSettingsSheet() = quickDialogs.dismissSubtitleSettingsSheet()
 
     private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {}) {
         dismissSubtitleSettingsSheet()
@@ -1214,44 +701,6 @@ class PlayerActivity : AppCompatActivity() {
             onSwitched()
         }
     }
-
-    private fun showQuickEntryDialog(
-        titleRes: Int,
-        items: List<PlayerQuickEntryItem>,
-        onSelected: (PlayerQuickEntryAction) -> Unit
-    ) {
-        showExclusivePlayerDialog { onDismiss ->
-            handler.removeCallbacks(hideControlsRunnable)
-            hideControls()
-            PlayerGlassSheetDialog.showSingleChoice(
-                context = this,
-                layoutInflater = layoutInflater,
-                titleRes = titleRes,
-                choices = items.map { item ->
-                    PlayerGlassSheetChoice(
-                        value = item.action,
-                        label = item.label,
-                        selected = item.selected,
-                        enabled = item.enabled
-                    )
-                },
-                chrome = quickChoiceChrome(),
-                playerPrefs = playerPrefs,
-                onDismiss = {
-                    onDismiss()
-                    scheduleHideControls()
-                },
-                onSelected = onSelected
-            )
-        }
-    }
-
-    private fun quickChoiceChrome(): PlayerGlassSheetChrome =
-        if (PlayerConfigurationOrientationPolicy.isLandscape(resources.configuration.orientation)) {
-            PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL
-        } else {
-            PlayerGlassSheetChrome.PLAYER_BOTTOM
-        }
 
     private fun setupControls() {
         btnPlay.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) { togglePlayPauseAndSyncIcon() }
@@ -1476,9 +925,9 @@ class PlayerActivity : AppCompatActivity() {
                 if (playbackState == Player.STATE_READY) {
                     val state = viewModel.uiState.value
                     applyPlaybackTickSeek(state.currentPosition, state.duration)
-                    hideFirstFrameScrimForAudioOnly()
-                    hidePlayerErrorHud()
-                    onPrepareReady()
+                    firstFrames.hideForAudioOnly()
+                    errorHud.hide()
+                    firstFrames.onPrepareReady()
                 } else if (playbackState == Player.STATE_ENDED) {
                     handlePlaybackEnded()
                 }
@@ -1492,22 +941,12 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onRenderedFirstFrame() {
-                hideFirstFrameScrim()
-                cancelFirstFrameTimeoutCheck()
-                if (!hasLoggedFirstFrame) {
-                    hasLoggedFirstFrame = true
-                    startupTrace.record(PlayerStartupTrace.Events.FIRST_FRAME_RENDERED)
-                    CrashLogger.logDiagnostic(
-                        this@PlayerActivity,
-                        "player_startup",
-                        startupTrace.format()
-                    )
-                }
+                firstFrames.onRenderedFirstFrame()
             }
 
             override fun onPlayerError(error: PlaybackException) {
                 CrashLogger.logPlayerError(this@PlayerActivity, error)
-                showPlayerErrorHud(error)
+                errorHud.show(error)
             }
 
             @Suppress("DEPRECATION")
@@ -1625,124 +1064,46 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showFirstFrameScrim() {
-        applyFirstFrameDecision(PlayerFirstFramePolicy.onShowForNewMedia())
+        firstFrames.showForNewMedia()
     }
 
     private fun hideFirstFrameScrim() {
-        applyFirstFrameDecision(
-            PlayerFirstFramePolicy.onRenderedFirstFrame(
-                isAwaitingFirstFrame = isAwaitingFirstFrame
-            )
-        )
-    }
-
-    private fun hideFirstFrameScrimForAudioOnly() {
-        applyFirstFrameDecision(
-            PlayerFirstFramePolicy.onReady(
-                isAwaitingFirstFrame = isAwaitingFirstFrame,
-                hasVideoTrack = hasVideoTrack()
-            )
-        )
+        firstFrames.hideOnRenderedFirstFrame()
     }
 
     /**
      * 第一次 `STATE_READY` 到达后打 `prepare_ready` 埋点并排程「首帧迟滞」检查。
      */
     private fun onPrepareReady() {
-        if (startupTrace.hasRecorded(PlayerStartupTrace.Events.PREPARE_READY)) return
-        startupTrace.recordOnce(PlayerStartupTrace.Events.PREPARE_READY)
-        scheduleFirstFrameTimeoutCheck()
+        firstFrames.onPrepareReady()
     }
 
     private fun scheduleFirstFrameTimeoutCheck() {
-        val delayMs = PlayerFirstFrameTimeoutPolicy.scheduleDelayMs(
-            hasVideoTrack = hasVideoTrack(),
-            firstFrameRendered = hasLoggedFirstFrame,
-            alreadyTimedOut = hasLoggedFirstFrameTimeout
-        ) ?: return
-        cancelFirstFrameTimeoutCheck()
-        handler.postDelayed(firstFrameTimeoutRunnable, delayMs)
-        isFirstFrameTimeoutPosted = true
+        firstFrames.onPrepareReady()
     }
 
     private fun cancelFirstFrameTimeoutCheck() {
-        if (!isFirstFrameTimeoutPosted) return
-        handler.removeCallbacks(firstFrameTimeoutRunnable)
-        isFirstFrameTimeoutPosted = false
+        firstFrames.cancelTimeoutCheck()
     }
 
     private val firstFrameTimeoutRunnable = Runnable {
-        isFirstFrameTimeoutPosted = false
-        if (hasLoggedFirstFrame || hasLoggedFirstFrameTimeout) return@Runnable
-        hasLoggedFirstFrameTimeout = true
-        startupTrace.recordOnce(PlayerStartupTrace.Events.FIRST_FRAME_TIMEOUT)
-        CrashLogger.logDiagnostic(this, "player_first_frame_timeout", startupTrace.format())
+        firstFrames.onPrepareReady()
     }
 
     private fun applyFirstFrameDecision(decision: PlayerFirstFrameDecision) {
-        isAwaitingFirstFrame = decision.nextAwaitingFirstFrame
-        if (!this::firstFrameScrim.isInitialized) return
-
-        val presentation = PlayerFirstFrameScrimPolicy.presentation(decision) ?: return
-        firstFrameScrim.animate().cancel()
-        firstFrameScrim.alpha = presentation.alpha
-        firstFrameScrim.visibility = if (presentation.visible) View.VISIBLE else View.GONE
+        if (decision.nextAwaitingFirstFrame) firstFrames.showForNewMedia() else firstFrames.hideOnRenderedFirstFrame()
     }
 
     /**
      * 展示播放错误 HUD。隐藏控制层和 scrim，绑定 [PlayerErrorPresentationPolicy] 的展示模型。
      */
     private fun showPlayerErrorHud(error: PlaybackException) {
-        val presentation = PlayerErrorPresentationPolicy.present(error.errorCode)
-
-        tvErrorTitle.text = getString(presentation.titleRes)
-        tvErrorDesc.text = getString(presentation.descRes)
-
-        val actions = presentation.actions
-        btnErrorSoftDecode?.visibility =
-            if (PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in actions) View.VISIBLE else View.GONE
-        btnErrorRetry?.visibility =
-            if (PlayerErrorPresentationPolicy.ErrorAction.RETRY in actions) View.VISIBLE else View.GONE
-        btnErrorCopyDiag?.visibility =
-            if (PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in actions) View.VISIBLE else View.GONE
-        btnErrorBack?.visibility =
-            if (PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in actions) View.VISIBLE else View.GONE
-
-        btnErrorSoftDecode?.setOnClickListener {
-            viewModel.setDecodeMode(DecodeMode.SOFT)
-            hidePlayerErrorHud()
-            viewModel.retryPlayback()
-        }
-        btnErrorRetry?.setOnClickListener {
-            hidePlayerErrorHud()
-            viewModel.retryPlayback()
-        }
-        btnErrorCopyDiag?.setOnClickListener {
-            val diagText = CrashLogger.readLatestPlayerErrorLog(this)
-            if (diagText.isNullOrBlank()) {
-                Toast.makeText(this, R.string.player_error_diag_unavailable, Toast.LENGTH_SHORT).show()
-            } else {
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                clipboard.setPrimaryClip(ClipData.newPlainText("OpenVideo Diagnostics", diagText))
-                Toast.makeText(this, R.string.player_error_diag_copied, Toast.LENGTH_SHORT).show()
-            }
-        }
-        btnErrorBack?.setOnClickListener {
-            finishPlayer()
-        }
-
-        // Hide normal chrome and scrim; show error HUD
-        controlsContainer.visibility = View.GONE
-        firstFrameScrim.visibility = View.GONE
-        playerErrorHud.visibility = View.VISIBLE
+        errorHud.show(error)
     }
 
     /** 播放恢复正常时隐藏错误 HUD，恢复控制层。 */
     private fun hidePlayerErrorHud() {
-        if (!playerErrorHud.isVisible) return
-        playerErrorHud.visibility = View.GONE
-        controlsContainer.visibility = View.VISIBLE
-        showControls()
+        errorHud.hide()
     }
 
     private fun handlePlaybackEnded() {
@@ -1803,404 +1164,15 @@ class PlayerActivity : AppCompatActivity() {
         abLoopState = reset.abLoopState
         abLoopPointA = reset.abLoopPointA
         abLoopPointB = reset.abLoopPointB
-        pendingSeekTarget = reset.pendingSeekTarget
-        seekGestureAnchorPositionMs = reset.seekGestureAnchorPositionMs
-        doubleTapSeekState = reset.doubleTapSeekState
-        doubleTapSeekAnchorPositionMs = reset.doubleTapSeekAnchorPositionMs
-        keepGestureHudAfterActionUp = reset.keepGestureHudAfterActionUp
-        isAwaitingFirstFrame = reset.awaitFirstFrame
+        firstFrames.resetForNewVideo(reset.awaitFirstFrame)
         manualVideoZoom = reset.manualVideoZoom
         playbackWasBuffering = false
         lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()
         btnAbLoop?.clearColorFilter()
-        hideGestureHud()
+        playerGestures.resetForNewVideo(reset)
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private fun initGestures() {
-        pinchZoomDetector = ScaleGestureDetector(
-            this,
-            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-                    if (!PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) return false
-                    return true
-                }
-
-                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                    manualVideoZoom = manualVideoZoom.copy(
-                        scale = PlayerVideoZoomPolicy.applyScaleFactor(
-                            currentScale = manualVideoZoom.scale,
-                            scaleFactor = detector.scaleFactor
-                        )
-                    )
-                    applyPlayerContentFrameTransform()
-                    showGestureHud(PlayerGestureHudPolicy.zoom(manualVideoZoom.scale), autoHide = false)
-                    return true
-                }
-
-                override fun onScaleEnd(detector: ScaleGestureDetector) {
-                    handler.postDelayed(hideGestureHudRunnable, PlayerGestureHudDisplayPolicy.AUTO_HIDE_DELAY_MS)
-                }
-            }
-        )
-
-        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (isScreenLocked) {
-                    if (PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.REVEAL_LOCKED_CHROME, isScreenLocked)) {
-                        showLockedControls()
-                    }
-                    return true
-                }
-                if (controlsVisible) hideControls() else showControls()
-                return true
-            }
-
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.GESTURE_PLAYBACK, isScreenLocked)) {
-                    return true
-                }
-                if (PlayerVideoZoomGesturePolicy.doubleTapResetsZoom(
-                        zoomAllowed = PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio),
-                        manual = manualVideoZoom
-                    )
-                ) {
-                    resetManualVideoZoom(showHud = true)
-                    return true
-                }
-                when (playerPrefs.doubleTapAction) {
-                    DoubleTapAction.PLAY_PAUSE -> viewModel.togglePlayPause()
-                    DoubleTapAction.FORWARD -> handleDoubleTapSeek(PlayerSwipeSide.RIGHT)
-                    DoubleTapAction.BACKWARD -> handleDoubleTapSeek(PlayerSwipeSide.LEFT)
-                    DoubleTapAction.NONE -> {}
-                }
-                return true
-            }
-
-            override fun onLongPress(e: MotionEvent) {
-                if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.GESTURE_PLAYBACK, isScreenLocked)) {
-                    return
-                }
-                val decision = PlayerLongPressPolicy.onPress(
-                    action = playerPrefs.longPressAction,
-                    requestedSpeed = playerPrefs.longPressSpeed,
-                    restoreSpeed = playerPrefs.speed
-                )
-                isLongPressing = decision.startLongPress
-                decision.targetSpeed?.let { speed ->
-                    viewModel.setSpeed(speed)
-                    showGestureHud(PlayerGestureHudPolicy.speed(speed), autoHide = false)
-                }
-            }
-        })
-
-        var startX = 0f
-        var startY = 0f
-        var isHorizontalSwipe = false
-        var isVerticalSwipe = false
-        var isEdgeSwipe = false
-        var swipeSide = PlayerSwipeSide.NONE
-        var zoomPanStartX = 0f
-        var zoomPanStartY = 0f
-        var zoomPanAnchorX = 0f
-        var zoomPanAnchorY = 0f
-        var zoomPanMoved = false
-        var verticalLevelGestureAllowed = false
-        val gestureSlop = gestureSlopPx()
-        val zoomAllowed = { PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio) }
-
-        gestureOverlay.setOnTouchListener { _, event ->
-            if (isScreenLocked) {
-                val decision = PlayerLockGesturePolicy.onTouch(
-                    isLocked = true,
-                    action = PlayerTouchActionPolicy.fromMotionActionMasked(event.actionMasked)
-                )
-                if (decision.revealLockedControls) showLockedControls()
-                return@setOnTouchListener decision.consumeTouch
-            }
-
-            if (zoomAllowed()) {
-                pinchZoomDetector.onTouchEvent(event)
-            }
-            if (zoomAllowed() && (event.pointerCount >= 2 || pinchZoomDetector.isInProgress)) {
-                if (event.actionMasked == MotionEvent.ACTION_POINTER_DOWN) {
-                    isHorizontalSwipe = false
-                    isVerticalSwipe = false
-                    pendingSeekTarget = null
-                    seekGestureAnchorPositionMs = null
-                }
-                return@setOnTouchListener true
-            }
-
-            if (PlayerVideoZoomGesturePolicy.interceptsSingleFingerGestures(zoomAllowed(), manualVideoZoom)) {
-                when (event.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        zoomPanStartX = event.x
-                        zoomPanStartY = event.y
-                        zoomPanAnchorX = manualVideoZoom.panX
-                        zoomPanAnchorY = manualVideoZoom.panY
-                        zoomPanMoved = false
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        val dx = event.x - zoomPanStartX
-                        val dy = event.y - zoomPanStartY
-                        if (abs(dx) > gestureSlop || abs(dy) > gestureSlop) {
-                            zoomPanMoved = true
-                            val (panX, panY) = PlayerVideoZoomPolicy.panFromDrag(
-                                anchorPanX = zoomPanAnchorX,
-                                anchorPanY = zoomPanAnchorY,
-                                dragDx = dx,
-                                dragDy = dy,
-                                baseScale = cachedBaseContentFrameTransform.scale,
-                                manualScale = manualVideoZoom.scale,
-                                frameWidth = playerView.width,
-                                frameHeight = playerView.height,
-                                viewportWidth = playerView.width,
-                                viewportHeight = playerView.height
-                            )
-                            manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
-                            applyPlayerContentFrameTransform()
-                        }
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        if (!zoomPanMoved) {
-                            gestureDetector.onTouchEvent(event)
-                        }
-                    }
-                    MotionEvent.ACTION_CANCEL -> Unit
-                }
-                return@setOnTouchListener true
-            }
-
-            gestureDetector.onTouchEvent(event)
-
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    startX = event.x
-                    startY = event.y
-                    isHorizontalSwipe = false
-                    isVerticalSwipe = false
-                    brightnessGestureAnchor = currentBrightness
-                    volumeGestureAnchor = currentVolume
-                    pendingSeekTarget = null
-                    seekGestureAnchorPositionMs = viewModel.uiState.value.currentPosition
-                    isEdgeSwipe = PlayerGesturePolicy.isEdgeSwipe(event.x, resources.displayMetrics.widthPixels)
-                    swipeSide = PlayerGesturePolicy.swipeSide(event.x, resources.displayMetrics.widthPixels)
-                    verticalLevelGestureAllowed = PlayerGesturePolicy.allowsVerticalLevelGesture(
-                        yPx = event.y,
-                        screenHeightPx = resources.displayMetrics.heightPixels
-                    )
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = event.x - startX
-                    val dy = event.y - startY
-
-                    if (!isHorizontalSwipe && !isVerticalSwipe) {
-                        when (PlayerGesturePolicy.dominantAxis(dx, dy, gestureSlop)) {
-                            PlayerSwipeAxis.HORIZONTAL -> isHorizontalSwipe = true
-                            PlayerSwipeAxis.VERTICAL -> {
-                                if (verticalLevelGestureAllowed) {
-                                    isVerticalSwipe = true
-                                }
-                            }
-                            PlayerSwipeAxis.NONE -> {}
-                        }
-                    }
-
-                    if (isHorizontalSwipe) {
-                        handleHorizontalSwipeAction(dx)
-                    } else if (isVerticalSwipe) {
-                        val action = resolveVerticalGestureAction(swipeSide)
-                        when (action) {
-                            GestureAction.BRIGHTNESS -> handleBrightnessGesture(dy)
-                            GestureAction.VOLUME -> handleVolumeGesture(dy)
-                            GestureAction.SEEK -> handleVerticalSeekGesture(dy)
-                            GestureAction.NONE -> {}
-                        }
-                    }
-                }
-                MotionEvent.ACTION_UP -> {
-                    // P1: Edge swipe back
-                    val dx = event.x - startX
-                    if (PlayerEdgeSwipeBackPolicy.shouldFinish(
-                            edgeSwipeBackEnabled = playerPrefs.edgeSwipeBack,
-                            isEdgeSwipe = isEdgeSwipe,
-                            isHorizontalSwipe = isHorizontalSwipe,
-                            dragDxPx = dx
-                        )
-                    ) {
-                        finishPlayer()
-                        return@setOnTouchListener true
-                    }
-
-                    if (PlayerGesturePolicy.shouldApplyHorizontalSeekOnRelease(
-                            isHorizontalSwipe = isHorizontalSwipe,
-                            horizontalSwipeAction = playerPrefs.horizontalSwipeAction
-                        )
-                    ) {
-                        applySeekGesture()
-                    } else if (isVerticalSwipe) {
-                        val verticalAction = resolveVerticalGestureAction(swipeSide)
-                        if (PlayerGesturePolicy.shouldApplyVerticalSeekOnRelease(isVerticalSwipe, verticalAction)) {
-                            applySeekGesture()
-                        }
-                    }
-                    if (keepGestureHudAfterActionUp) {
-                        keepGestureHudAfterActionUp = false
-                    } else {
-                        hideGestureHud()
-                    }
-
-                    // P1: Restore speed after long press
-                    releaseLongPressSpeed()
-                    seekGestureAnchorPositionMs = null
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    pendingSeekTarget = null
-                    seekGestureAnchorPositionMs = null
-                    hideGestureHud()
-                    releaseLongPressSpeed()
-                }
-            }
-            true
-        }
-    }
-
-    private fun resetManualVideoZoom(showHud: Boolean = false) {
-        manualVideoZoom = PlayerVideoZoomState.IDENTITY
-        applyPlayerContentFrameTransform()
-        if (showHud) {
-            showGestureHud(PlayerGestureHudPolicy.zoom(PlayerVideoZoomPolicy.MIN_SCALE))
-        }
-    }
-
-    private fun releaseLongPressSpeed() {
-        val release = PlayerLongPressPolicy.onRelease(
-            isLongPressing = isLongPressing,
-            restoreSpeed = playerPrefs.speed
-        )
-        isLongPressing = false
-        release.restoreSpeed?.let(viewModel::setSpeed)
-    }
-
-    private fun gestureSlopPx(): Int =
-        PlayerGesturePolicy.gestureSlopPx(playerPrefs.gestureSensitivity)
-
-    private fun handleHorizontalSwipeAction(dx: Float) {
-        PlayerGestureDispatchPolicy.onHorizontalSwipe(playerPrefs.horizontalSwipeAction) {
-            handleSeekGesture(dx)
-        }
-    }
-
-    private fun resolveVerticalGestureAction(side: PlayerSwipeSide): GestureAction =
-        PlayerGesturePolicy.verticalGestureAction(
-            side = side,
-            leftAction = playerPrefs.leftVerticalGesture,
-            rightAction = playerPrefs.rightVerticalGesture
-        )
-
-    private fun handleDoubleTapSeek(side: PlayerSwipeSide) {
-        if (!PlayerGesturePolicy.isValidDoubleTapSeekSide(side)) return
-
-        val intervalMs = PlayerDoubleTapSeekPolicy.intervalMs(playerPrefs.seekInterval)
-        val state = viewModel.uiState.value
-        val preview = PlayerDoubleTapSeekPolicy.preview(
-            previous = doubleTapSeekState,
-            tapSide = side,
-            intervalMs = intervalMs,
-            nowMs = SystemClock.uptimeMillis(),
-            anchorPositionMs = doubleTapSeekAnchorPositionMs,
-            currentPositionMs = state.currentPosition,
-            durationMs = state.duration
-        )
-        doubleTapSeekState = preview.nextState
-        keepGestureHudAfterActionUp = true
-        doubleTapSeekAnchorPositionMs = preview.anchorPositionMs
-
-        if (preview.seekable) {
-            viewModel.seekTo(preview.targetMs)
-        }
-        showGestureHud(PlayerGestureHudPolicy.seek(preview.targetMs, state.duration, preview.deltaMs))
-    }
-
-    private fun handleSeekGesture(dx: Float) {
-        val state = viewModel.uiState.value
-        val preview = PlayerSeekGesturePolicy.horizontalPreview(
-            anchorPositionMs = seekGestureAnchorPositionMs ?: state.currentPosition,
-            dx = dx,
-            screenWidthPx = resources.displayMetrics.widthPixels,
-            durationMs = state.duration,
-            sensitivity = playerPrefs.gestureSensitivity
-        )
-        pendingSeekTarget = preview.targetMs.takeIf { preview.seekable }
-        showGestureHud(PlayerGestureHudPolicy.seek(preview.targetMs, state.duration, preview.deltaMs), autoHide = false)
-    }
-
-    private fun handleVerticalSeekGesture(dy: Float) {
-        val state = viewModel.uiState.value
-        val preview = PlayerSeekGesturePolicy.verticalPreview(
-            anchorPositionMs = seekGestureAnchorPositionMs ?: state.currentPosition,
-            dy = dy,
-            screenHeightPx = resources.displayMetrics.heightPixels,
-            durationMs = state.duration,
-            sensitivity = playerPrefs.gestureSensitivity
-        )
-        pendingSeekTarget = preview.targetMs.takeIf { preview.seekable }
-        showGestureHud(PlayerGestureHudPolicy.seek(preview.targetMs, state.duration, preview.deltaMs), autoHide = false)
-    }
-
-    private fun applySeekGesture() {
-        val state = viewModel.uiState.value
-        // Re-read the target from the indicator text isn't reliable, recalculate
-        // The target was computed in handleSeekGesture, store it instead
-        pendingSeekTarget?.let { target ->
-            viewModel.seekTo(PlayerTimeline.safeSeekTarget(0, target, state.duration))
-            pendingSeekTarget = null
-            seekGestureAnchorPositionMs = null
-        }
-    }
-
-    private fun showGestureHud(hud: PlayerGestureHud, autoHide: Boolean = true) {
-        handler.removeCallbacks(hideGestureHudRunnable)
-        seekIndicator.text = PlayerGestureHudDisplayPolicy.indicatorText(hud)
-        seekIndicator.visibility = View.VISIBLE
-        if (autoHide) {
-            handler.postDelayed(hideGestureHudRunnable, PlayerGestureHudDisplayPolicy.AUTO_HIDE_DELAY_MS)
-        }
-    }
-
-    private fun hideGestureHud() {
-        handler.removeCallbacks(hideGestureHudRunnable)
-        seekIndicator.visibility = View.GONE
-        brightnessIndicator.visibility = View.GONE
-        volumeIndicator.visibility = View.GONE
-    }
-
-    private fun handleBrightnessGesture(dy: Float) {
-        val adjustment = PlayerLevelAdjustmentPolicy.verticalBrightness(
-            anchor = brightnessGestureAnchor,
-            dy = dy,
-            screenHeightPx = resources.displayMetrics.heightPixels
-        )
-        currentBrightness = adjustment.level
-        setWindowBrightness(currentBrightness)
-        brightnessProgress.progress = adjustment.progressPercent
-        brightnessIndicator.visibility = View.VISIBLE
-        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.BRIGHTNESS, currentBrightness), autoHide = false)
-    }
-
-    private fun handleBrightnessGestureHorizontal(dx: Float) {
-        val adjustment = PlayerLevelAdjustmentPolicy.horizontalBrightness(
-            anchor = brightnessGestureAnchor,
-            dx = dx,
-            screenWidthPx = resources.displayMetrics.widthPixels
-        )
-        currentBrightness = adjustment.level
-        setWindowBrightness(currentBrightness)
-        brightnessProgress.progress = adjustment.progressPercent
-        brightnessIndicator.visibility = View.VISIBLE
-        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.BRIGHTNESS, currentBrightness), autoHide = false)
-    }
+    private fun initGestures() = playerGestures.init()
 
     private fun applyScreenBrightness(adjustmentPercent: Int) {
         val brightness = PlayerDisplayAdjustment.screenBrightnessFor(adjustmentPercent)
@@ -2283,38 +1255,6 @@ class PlayerActivity : AppCompatActivity() {
         val layoutParams = window.attributes
         layoutParams.screenBrightness = brightness
         window.attributes = layoutParams
-    }
-
-    private fun handleVolumeGesture(dy: Float) {
-        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
-        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-        val adjustment = PlayerLevelAdjustmentPolicy.verticalVolume(
-            anchor = volumeGestureAnchor,
-            dy = dy,
-            screenHeightPx = resources.displayMetrics.heightPixels,
-            maxVolume = maxVolume
-        )
-        currentVolume = adjustment.level
-        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, adjustment.streamVolume ?: 0, 0)
-        volumeProgress.progress = adjustment.progressPercent
-        volumeIndicator.visibility = View.VISIBLE
-        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.VOLUME, currentVolume), autoHide = false)
-    }
-
-    private fun handleVolumeGestureHorizontal(dx: Float) {
-        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
-        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-        val adjustment = PlayerLevelAdjustmentPolicy.horizontalVolume(
-            anchor = volumeGestureAnchor,
-            dx = dx,
-            screenWidthPx = resources.displayMetrics.widthPixels,
-            maxVolume = maxVolume
-        )
-        currentVolume = adjustment.level
-        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, adjustment.streamVolume ?: 0, 0)
-        volumeProgress.progress = adjustment.progressPercent
-        volumeIndicator.visibility = View.VISIBLE
-        showGestureHud(PlayerGestureHudPolicy.level(PlayerGestureHudKind.VOLUME, currentVolume), autoHide = false)
     }
 
     private fun observeState() {
@@ -2672,7 +1612,7 @@ class PlayerActivity : AppCompatActivity() {
 
         playerView.player = viewModel.player
         firstFrameScrim.visibility =
-            if (PlayerFirstFrameScrimPolicy.scrimVisibleOnReattach(isAwaitingFirstFrame)) {
+            if (PlayerFirstFrameScrimPolicy.scrimVisibleOnReattach(firstFrames.isAwaitingFirstFrame)) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -2764,8 +1704,6 @@ class PlayerActivity : AppCompatActivity() {
      * 16:9 / 4:3 等需在 [AspectRatioFrameLayout] 上设置目标宽高比；仅 resizeMode 与 FIT 相同则不会生效。
      * 在 PlayerView 更新视频比例之后调用（本 Activity 的 [Player.Listener] 注册在其后）。
      */
-    @OptIn(UnstableApi::class)
-    @Suppress("DEPRECATION")
     private fun applyPlayerContentAspectRatio(
         width: Int? = null,
         height: Int? = null,
@@ -2773,25 +1711,14 @@ class PlayerActivity : AppCompatActivity() {
         unappliedRotationDegrees: Int? = null
     ) {
         if (!this::playerView.isInitialized) return
-        val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
-            ?: return
-        val vs = viewModel.player?.videoSize
-        val ratio = PlayerVideoLayoutPolicy.contentAspectRatio(
-            preferredAspectRatio = playerPrefs.aspectRatio,
-            width = width ?: vs?.width ?: 0,
-            height = height ?: vs?.height ?: 0,
-            pixelWidthHeightRatio = pixelWidthHeightRatio ?: vs?.pixelWidthHeightRatio ?: 1f,
-            unappliedRotationDegrees = unappliedRotationDegrees ?: vs?.unappliedRotationDegrees ?: 0
+        contentFrameTransforms.applyAspectRatio(
+            width = width,
+            height = height,
+            pixelWidthHeightRatio = pixelWidthHeightRatio,
+            unappliedRotationDegrees = unappliedRotationDegrees
         )
-        contentFrame.setAspectRatio(ratio)
     }
 
-    /**
-     * Zooms the active content band (P9-1b) on [exo_content_frame]. Only runs when FIT-style
-     * aspect ratio and a non-off [ContentFrameMode] are active; otherwise resets to identity.
-     */
-    @OptIn(UnstableApi::class)
-    @Suppress("DEPRECATION")
     private fun applyPlayerContentFrameTransform(
         width: Int? = null,
         height: Int? = null,
@@ -2799,120 +1726,11 @@ class PlayerActivity : AppCompatActivity() {
         unappliedRotationDegrees: Int? = null
     ) {
         if (!this::playerView.isInitialized) return
-        if (playerView.width <= 0 || playerView.height <= 0) {
-            playerView.post {
-                applyPlayerContentFrameTransform(
-                    width = width,
-                    height = height,
-                    pixelWidthHeightRatio = pixelWidthHeightRatio,
-                    unappliedRotationDegrees = unappliedRotationDegrees
-                )
-            }
-            return
-        }
-        val contentFrame = playerView.findViewById<AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)
-            ?: return
-        val frameSize = contentFrameSourceSize(
+        contentFrameTransforms.applyTransform(
             width = width,
             height = height,
             pixelWidthHeightRatio = pixelWidthHeightRatio,
             unappliedRotationDegrees = unappliedRotationDegrees
-        )
-        if (frameSize.width <= 0 || frameSize.height <= 0) {
-            resetContentFrameTransform(contentFrame)
-            scheduleContentFrameTransformRetry(
-                width = width,
-                height = height,
-                pixelWidthHeightRatio = pixelWidthHeightRatio,
-                unappliedRotationDegrees = unappliedRotationDegrees
-            )
-            return
-        }
-        contentFrameTransformRetryPosted = false
-        val landscapeViewport = playerView.width > playerView.height
-        val smartCropActive = (smartCropViewportScale != null || smartCropTransformOverride != null) && landscapeViewport
-        val activeSmartCropTransformOverride = smartCropTransformOverride.takeIf { smartCropActive }
-        val transformContentFrameMode = if (!landscapeViewport) {
-            ContentFrameMode.OFF
-        } else if (smartCropContentFrameMode == null && frameSize.width < frameSize.height) {
-            ContentFrameMode.OFF
-        } else {
-            smartCropContentFrameMode ?: playerPrefs.contentFrameMode
-        }
-        val restoredSmartCropDecision = if (!smartCropActive && landscapeViewport) {
-            PlayerSmartCropPolicy.restoredViewportDecision(
-                restoredMode = transformContentFrameMode,
-                sourceWidth = frameSize.width,
-                sourceHeight = frameSize.height,
-                viewportWidth = playerView.width,
-                viewportHeight = playerView.height
-            )
-        } else {
-            PlayerSmartCropDecision(contentFrameMode = null)
-        }
-        val transformViewportFillFraction = if (smartCropActive) {
-            smartCropViewportFillFraction ?: PlayerSmartCropPolicy.VIEWPORT_FILL_FRACTION
-        } else {
-            restoredSmartCropDecision.viewportFillFraction ?: 1f
-        }
-        val transformViewportScale = if (smartCropActive) {
-            smartCropViewportScale ?: PlayerContentFrameViewportScale.FILL
-        } else {
-            restoredSmartCropDecision.viewportScale ?: PlayerContentFrameViewportScale.FILL
-        }
-        val transformCropExpansionFraction = if (smartCropActive) {
-            smartCropCropExpansionFraction
-        } else {
-            restoredSmartCropDecision.cropExpansionFraction
-        }
-        cachedBaseContentFrameTransform = activeSmartCropTransformOverride
-            ?: PlayerContentFrameApplyPolicy.resolveTransform(
-                contentFrameMode = transformContentFrameMode,
-                aspectRatio = playerPrefs.aspectRatio,
-                sourceWidth = frameSize.width,
-                sourceHeight = frameSize.height,
-                viewportWidth = playerView.width,
-                viewportHeight = playerView.height,
-                viewportFillFraction = transformViewportFillFraction,
-                viewportScale = transformViewportScale,
-                cropExpansionFraction = transformCropExpansionFraction
-            )
-        if (PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) {
-            val (panX, panY) = PlayerVideoZoomPolicy.clampPanOffset(
-                panX = manualVideoZoom.panX,
-                panY = manualVideoZoom.panY,
-                baseScale = cachedBaseContentFrameTransform.scale,
-                manualScale = manualVideoZoom.scale,
-                frameWidth = contentFrame.width,
-                frameHeight = contentFrame.height,
-                viewportWidth = playerView.width,
-                viewportHeight = playerView.height
-            )
-            manualVideoZoom = manualVideoZoom.copy(panX = panX, panY = panY)
-        }
-        val transform = activeSmartCropTransformOverride
-            ?: PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom(
-                contentFrameMode = transformContentFrameMode,
-                aspectRatio = playerPrefs.aspectRatio,
-                sourceWidth = frameSize.width,
-                sourceHeight = frameSize.height,
-                viewportWidth = playerView.width,
-                viewportHeight = playerView.height,
-                manualZoom = manualVideoZoom,
-                frameWidth = contentFrame.width,
-                frameHeight = contentFrame.height,
-                viewportFillFraction = transformViewportFillFraction,
-                viewportScale = transformViewportScale,
-                cropExpansionFraction = transformCropExpansionFraction
-            )
-        applyContentFrameTransform(
-            contentFrame = contentFrame,
-            frameSize = frameSize,
-            transform = transform,
-            transformContentFrameMode = transformContentFrameMode,
-            transformViewportFillFraction = transformViewportFillFraction,
-            transformViewportScale = transformViewportScale,
-            transformCropExpansionFraction = transformCropExpansionFraction
         )
     }
 
@@ -2921,80 +1739,15 @@ class PlayerActivity : AppCompatActivity() {
         height: Int?,
         pixelWidthHeightRatio: Float?,
         unappliedRotationDegrees: Int?
-    ): DisplayFrameSize {
-        val vs = viewModel.player?.videoSize
-        val rawWidth = width?.takeIf { it > 0 }
-            ?: vs?.width?.takeIf { it > 0 }
-            ?: intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0)
-        val rawHeight = height?.takeIf { it > 0 }
-            ?: vs?.height?.takeIf { it > 0 }
-            ?: intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0)
-        return PlayerVideoLayoutPolicy.displayFrameSize(
-            width = rawWidth,
-            height = rawHeight,
-            pixelWidthHeightRatio = pixelWidthHeightRatio ?: vs?.pixelWidthHeightRatio ?: 1f,
-            unappliedRotationDegrees = unappliedRotationDegrees ?: vs?.unappliedRotationDegrees ?: 0
-        )
-    }
-
-    private fun scheduleContentFrameTransformRetry(
-        width: Int?,
-        height: Int?,
-        pixelWidthHeightRatio: Float?,
-        unappliedRotationDegrees: Int?
-    ) {
-        if (contentFrameTransformRetryPosted) return
-        contentFrameTransformRetryPosted = true
-        playerView.post {
-            contentFrameTransformRetryPosted = false
-            applyPlayerContentFrameTransform(
-                width = width,
-                height = height,
-                pixelWidthHeightRatio = pixelWidthHeightRatio,
-                unappliedRotationDegrees = unappliedRotationDegrees
-            )
-        }
-    }
-
-    private fun resetContentFrameTransform(contentFrame: AspectRatioFrameLayout) {
-        contentFrame.pivotX = PlayerContentFrameResetPolicy.PIVOT
-        contentFrame.pivotY = PlayerContentFrameResetPolicy.PIVOT
-        contentFrame.scaleX = PlayerContentFrameResetPolicy.SCALE
-        contentFrame.scaleY = PlayerContentFrameResetPolicy.SCALE
-        contentFrame.translationX = PlayerContentFrameResetPolicy.TRANSLATION
-        contentFrame.translationY = PlayerContentFrameResetPolicy.TRANSLATION
-    }
-
-    private fun applyContentFrameTransform(
-        contentFrame: AspectRatioFrameLayout,
-        frameSize: DisplayFrameSize,
-        transform: PlayerContentFrameTransform,
-        transformContentFrameMode: ContentFrameMode,
-        transformViewportFillFraction: Float,
-        transformViewportScale: PlayerContentFrameViewportScale,
-        transformCropExpansionFraction: Float
-    ) {
-        contentFrame.pivotX = PlayerContentFrameResetPolicy.PIVOT
-        contentFrame.pivotY = PlayerContentFrameResetPolicy.PIVOT
-        contentFrame.scaleX = transform.scale
-        contentFrame.scaleY = transform.scale
-        contentFrame.translationX = transform.translationX
-        contentFrame.translationY = transform.translationY
-        if (com.example.openvideo.BuildConfig.DEBUG) {
-            android.util.Log.d(
-                TAG_CONTENT_FRAME,
-                "mode=${transformContentFrameMode.key} prefMode=${playerPrefs.contentFrameMode.key} aspect=${playerPrefs.aspectRatio.key} " +
-                    "frame=${frameSize.width}x${frameSize.height} viewport=${playerView.width}x${playerView.height} " +
-                    "viewportFill=$transformViewportFillFraction viewportScale=$transformViewportScale cropExpand=$transformCropExpansionFraction " +
-                    "scale=${transform.scale} tx=${transform.translationX} ty=${transform.translationY}"
-            )
-        }
-    }
+    ): DisplayFrameSize = contentFrameTransforms.sourceSize(
+        width = width,
+        height = height,
+        pixelWidthHeightRatio = pixelWidthHeightRatio,
+        unappliedRotationDegrees = unappliedRotationDegrees
+    )
 
     @OptIn(UnstableApi::class)
-    private fun videoRenderView(): View? {
-        return playerView.videoSurfaceView
-    }
+    private fun videoRenderView(): View? = contentFrameTransforms.videoRenderView()
 
     @Suppress("DEPRECATION")
     private fun enterPipModeIfSupported() {
@@ -3085,9 +1838,7 @@ class PlayerActivity : AppCompatActivity() {
         )
 
     companion object {
-        private const val SUBTITLE_SETTINGS_SHEET_TAG = "player_subtitle_settings_sheet"
         private const val TAG_CONTENT_FRAME = "OVContentFrame"
-        private const val SMART_CROP_CAPTURE_DELAY_MS = 120L
         const val EXTRA_VIDEO_WIDTH = "video_width"
         const val EXTRA_VIDEO_HEIGHT = "video_height"
         const val EXTRA_START_POSITION_MS = "start_position_ms"

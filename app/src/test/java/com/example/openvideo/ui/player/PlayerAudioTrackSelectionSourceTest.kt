@@ -36,7 +36,7 @@ class PlayerAudioTrackSelectionSourceTest {
             .substringBefore("\n    private fun buildSubtitlePage()")
 
         assertTrue(audioPage.contains("viewModel.audioTracks()"))
-        assertTrue(audioPage.contains("audioTrackLabel("))
+        assertTrue(audioPage.contains("infoController.audioTrackLabel("))
         assertTrue(audioPage.contains("viewModel.selectAudioTrack("))
         assertTrue(audioPage.contains("viewModel.disableAudioTrack()"))
         assertFalse(audioPage.contains("player_sheet_audio_track_english"))
@@ -44,10 +44,10 @@ class PlayerAudioTrackSelectionSourceTest {
 
     @Test
     fun infoPageIncludesCurrentAudioTrackDiagnostics() {
-        val source = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsDialog.kt")))
+        val source = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsInfoController.kt")))
         val infoRows = source
-            .substringAfter("private fun videoInfoRows()")
-            .substringBefore("\n    @OptIn")
+            .substringAfter("fun videoInfoRows()")
+            .substringBefore("\n    fun audioTrackLabel(")
 
         assertTrue(infoRows.contains("viewModel.selectedAudioTrack()"))
         assertTrue(infoRows.contains("player_settings_info_current_audio_track"))
@@ -59,7 +59,7 @@ class PlayerAudioTrackSelectionSourceTest {
     fun phaseTwoRecordsRuntimeAudioDecoderDiagnostics() {
         val managerSource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
         val availabilitySource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerAudioExtensionAvailability.kt")))
-        val dialogSource = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsDialog.kt")))
+        val dialogSource = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsInfoController.kt")))
         val strings = String(Files.readAllBytes(resFile("values", "strings.xml")))
 
         assertTrue(managerSource.contains("addAnalyticsListener(audioDiagnosticsListener())"))

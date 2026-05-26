@@ -33,15 +33,16 @@ class PlayerContentFrameSourceTest {
 
     @Test
     fun playerActivityDelegatesContentFrameTransformToApplyPolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val displayBlock = source.substringAfter("private fun applyDisplaySettings() {")
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val controllerSource = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val displayBlock = activitySource.substringAfter("private fun applyDisplaySettings() {")
             .substringBefore("\n    private fun initBrightnessAndVolume()")
-        val transformBlock = source.substringAfter("private fun applyPlayerContentFrameTransform(")
-            .substringBefore("\n    @OptIn(UnstableApi::class)\n    private fun videoRenderView()")
+        val transformBlock = controllerSource.substringAfter("fun applyTransform(")
+            .substringBefore("\n    fun sourceSize(")
 
         assertTrue(displayBlock.contains("applyPlayerContentFrameTransform()"))
         assertTrue(transformBlock.contains("PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom"))
-        assertTrue(transformBlock.contains("PlayerVideoLayoutPolicy.displayFrameSize"))
+        assertTrue(controllerSource.contains("PlayerVideoLayoutPolicy.displayFrameSize"))
         assertFalse(
             "Transform math must stay in policy, not Activity.",
             transformBlock.contains("PlayerContentFramePolicy.fittedVideoRect(")
@@ -49,6 +50,14 @@ class PlayerContentFrameSourceTest {
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun contentFrameTransformControllerSource(): Path {
+        return kotlinSource("PlayerContentFrameTransformController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -58,7 +67,7 @@ class PlayerContentFrameSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

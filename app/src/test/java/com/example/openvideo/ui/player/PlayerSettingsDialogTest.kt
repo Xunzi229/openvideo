@@ -77,13 +77,13 @@ class PlayerSettingsDialogTest {
 
     @Test
     fun quickChoiceDialogsUseSharedGlassSheetHelper() {
-        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val quickDialogSource = String(Files.readAllBytes(sourceFile("PlayerQuickDialogController.kt")))
 
-        assertTrue(activitySource.contains("PlayerGlassSheetDialog.showSingleChoice"))
-        assertFalse(activitySource.contains("inflatePlayerGlassSheet("))
-        assertFalse(activitySource.contains("applyGlassSheetRowVisual("))
-        assertFalse(activitySource.contains("applyPlayerGlassSheetChrome("))
-        assertFalse(activitySource.contains("capPlayerGlassSheetScroll("))
+        assertTrue(quickDialogSource.contains("PlayerGlassSheetDialog.showSingleChoice"))
+        assertFalse(quickDialogSource.contains("inflatePlayerGlassSheet("))
+        assertFalse(quickDialogSource.contains("applyGlassSheetRowVisual("))
+        assertFalse(quickDialogSource.contains("applyPlayerGlassSheetChrome("))
+        assertFalse(quickDialogSource.contains("capPlayerGlassSheetScroll("))
     }
 
     @Test
@@ -99,14 +99,15 @@ class PlayerSettingsDialogTest {
     @Test
     fun subtitlePageUsesInlineColorSwatchesInsteadOfTextChoiceRow() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val rowBuilderSource = String(Files.readAllBytes(sourceFile("PlayerSettingsRowBuilder.kt")))
         val subtitlePage = dialogSource
             .substringAfter("private fun buildSubtitlePage()")
             .substringBefore("\n    private fun buildAspectPage()")
 
-        assertTrue(subtitlePage.contains("addSubtitleColorSwatchRow()"))
+        assertTrue(subtitlePage.contains("rows.addSubtitleColorSwatchRow()"))
         assertFalse(subtitlePage.contains("title = context.getString(R.string.settings_subtitle_color)"))
-        assertTrue(dialogSource.contains("private fun addSubtitleColorSwatchRow()"))
-        assertTrue(dialogSource.contains("PlayerSubtitleColorSwatchBinder.bindSwatches"))
+        assertTrue(rowBuilderSource.contains("fun addSubtitleColorSwatchRow()"))
+        assertTrue(rowBuilderSource.contains("PlayerSubtitleColorSwatchBinder.bindSwatches"))
     }
 
     @Test
@@ -193,14 +194,14 @@ class PlayerSettingsDialogTest {
 
     @Test
     fun playerSettingsGridUsesCompactSpacing() {
-        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val primaryGridSource = String(Files.readAllBytes(sourceFile("PlayerSettingsPrimaryGridBuilder.kt")))
         val layout = String(Files.readAllBytes(playerSettingsLayout()))
 
         assertTrue(layout.contains("android:paddingStart=\"12dp\""))
         assertTrue(layout.contains("android:paddingEnd=\"12dp\""))
-        assertTrue(dialogSource.contains("minimumHeight = dp(74)"))
-        assertTrue(dialogSource.contains("setPadding(1, 4, 1, 2)"))
-        assertTrue(dialogSource.contains("setMargins(dp(1), dp(2), dp(1), dp(2))"))
+        assertTrue(primaryGridSource.contains("minimumHeight = dp(74)"))
+        assertTrue(primaryGridSource.contains("setPadding(1, 4, 1, 2)"))
+        assertTrue(primaryGridSource.contains("setMargins(dp(1), dp(2), dp(1), dp(2))"))
     }
 
     @Test
@@ -227,14 +228,15 @@ class PlayerSettingsDialogTest {
             .substringBefore("title = context.getString(R.string.player_sheet_saturation)")
         val saturationBlock = dialogSource
             .substringAfter("title = context.getString(R.string.player_sheet_saturation)")
-            .substringBefore("addChoiceRow(\r\n            title = context.getString(R.string.settings_rotation)")
+            .substringBefore("rows.addChoiceRow(\r\n            title = context.getString(R.string.settings_rotation)")
 
         listOf(contrastBlock, saturationBlock).forEach { block ->
             assertTrue(block.contains("commitOnStop = true"))
             assertTrue(block.contains("applyVideoAdjustmentsFromPrefs()"))
         }
 
-        val seekRow = dialogSource
+        val rowBuilderSource = String(Files.readAllBytes(sourceFile("PlayerSettingsRowBuilder.kt")))
+        val seekRow = rowBuilderSource
             .substringAfter("private fun addSeekRow(")
             .substringBefore("\n    private fun addDivider(parent: LinearLayout)")
         assertTrue(seekRow.contains("commitOnStop: Boolean = false"))
@@ -246,16 +248,16 @@ class PlayerSettingsDialogTest {
 
     @Test
     fun playerSettingsRowsRefreshVisibleValuesImmediatelyAfterUserChanges() {
-        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
-        val choiceRow = dialogSource
+        val rowBuilderSource = String(Files.readAllBytes(sourceFile("PlayerSettingsRowBuilder.kt")))
+        val choiceRow = rowBuilderSource
             .substringAfter("private fun addChoiceRow(")
             .substringBefore("\n    private fun addSeekRow(")
-        val seekRow = dialogSource
+        val seekRow = rowBuilderSource
             .substringAfter("private fun addSeekRow(")
             .substringBefore("\n    private fun addDivider(parent: LinearLayout)")
 
         assertTrue(choiceRow.contains("onSelected(opt)"))
-        assertTrue(choiceRow.contains("rebuildCurrentDetail(prev.page, prev.title)"))
+        assertTrue(choiceRow.contains("onNestedChoiceSelected()"))
         assertTrue(seekRow.contains("valueView.text = label(next)"))
         assertTrue(seekRow.indexOf("valueView.text = label(next)") < seekRow.indexOf("if (!commitOnStop) onChanged(next)"))
     }
@@ -336,7 +338,7 @@ class PlayerSettingsDialogTest {
             .substringAfter("private fun buildMorePage()")
             .substringBefore("\n    private fun ")
 
-        assertTrue(moreBlock.contains("addActionRows(moreActionSpecs())"))
+        assertTrue(moreBlock.contains("rows.addActionRows(moreActionSpecs())"))
         assertTrue(
             "More page should keep skip intro/outro before speed, and keep-screen-on after speed.",
             moreBlock.indexOf("moreIntroSwitchSpecs()") in 0 until moreBlock.indexOf("addPlaybackSpeedSeekRow()") &&
@@ -345,8 +347,9 @@ class PlayerSettingsDialogTest {
         assertTrue(dialogSource.contains("playerPrefs.resetToDefaults()"))
         assertTrue(dialogSource.contains("onPlayerPrefsReset()"))
 
+        val quickDialogSource = String(Files.readAllBytes(sourceFile("PlayerQuickDialogController.kt")))
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
-        assertTrue(activitySource.contains("onPlayerPrefsReset = ::applyPlayerSettings"))
+        assertTrue(quickDialogSource.contains("onPlayerPrefsReset = onApplyPlayerSettings"))
         assertTrue(
             "applyPlayerSettings should sync aspect + decode from prefs (e.g. after reset).",
             activitySource.contains("viewModel.setAspectRatio(playerPrefs.aspectRatio)")
@@ -428,6 +431,10 @@ class PlayerSettingsDialogTest {
     }
 
     private fun playerSettingsDialogSource(): Path {
+        return sourceFile("PlayerSettingsDialog.kt")
+    }
+
+    private fun sourceFile(fileName: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -437,7 +444,7 @@ class PlayerSettingsDialogTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerSettingsDialog.kt"
+            fileName
         )
         return sequenceOf(
             relativePath,

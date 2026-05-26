@@ -11,24 +11,25 @@ class PlayerFirstFrameTimeoutSourceTest {
     @Test
     fun playerActivityRoutesPrepareReadyThroughStartupTraceConstant() {
         val source = playerActivitySource()
+        val controller = playerFirstFrameControllerSource()
         assertTrue(
             "STATE_READY branch must call onPrepareReady().",
-            source.contains("hideFirstFrameScrimForAudioOnly()") &&
-                source.contains("onPrepareReady()")
+            source.contains("firstFrames.hideForAudioOnly()") &&
+                source.contains("firstFrames.onPrepareReady()")
         )
         assertTrue(
             "onPrepareReady must record the PREPARE_READY constant once.",
-            source.contains("startupTrace.recordOnce(PlayerStartupTrace.Events.PREPARE_READY)")
+            controller.contains("startupTrace.recordOnce(PlayerStartupTrace.Events.PREPARE_READY)")
         )
         assertTrue(
             "onPrepareReady must schedule a first-frame timeout check.",
-            source.contains("scheduleFirstFrameTimeoutCheck()")
+            controller.contains("scheduleTimeoutCheck()")
         )
     }
 
     @Test
     fun playerActivityUsesTimeoutPolicyToDecideDelay() {
-        val source = playerActivitySource()
+        val source = playerFirstFrameControllerSource()
         assertTrue(
             "scheduleFirstFrameTimeoutCheck must delegate the delay decision to " +
                 "PlayerFirstFrameTimeoutPolicy.",
@@ -43,7 +44,7 @@ class PlayerFirstFrameTimeoutSourceTest {
 
     @Test
     fun firstFrameTimeoutRunnableEmitsDiagnosticOnceAndCancelsOnFirstFrame() {
-        val source = playerActivitySource()
+        val source = playerFirstFrameControllerSource()
         assertTrue(
             "Runnable must guard with already-rendered/already-timed-out flags.",
             source.contains("if (hasLoggedFirstFrame || hasLoggedFirstFrameTimeout) return@Runnable")
@@ -54,15 +55,23 @@ class PlayerFirstFrameTimeoutSourceTest {
         )
         assertTrue(
             "Runnable must write the diagnostic log named player_first_frame_timeout.",
-            source.contains("CrashLogger.logDiagnostic(this, \"player_first_frame_timeout\"")
+            source.contains("CrashLogger.logDiagnostic(activity, \"player_first_frame_timeout\"")
         )
         assertTrue(
             "onRenderedFirstFrame must cancel the pending timeout check.",
-            source.contains("cancelFirstFrameTimeoutCheck()")
+            source.contains("cancelTimeoutCheck()")
         )
     }
 
     private fun playerActivitySource(): String {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerFirstFrameControllerSource(): String {
+        return kotlinSource("PlayerFirstFrameController.kt")
+    }
+
+    private fun kotlinSource(name: String): String {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -72,7 +81,7 @@ class PlayerFirstFrameTimeoutSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         val path: Path = sequenceOf(
             relativePath,

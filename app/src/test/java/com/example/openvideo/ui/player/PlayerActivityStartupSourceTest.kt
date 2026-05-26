@@ -23,17 +23,17 @@ class PlayerActivityStartupSourceTest {
     @Test
     fun playerKeepsBlackScrimUntilFirstFrameWhenOpeningOrSwitchingVideo() {
         val source = String(Files.readAllBytes(playerActivitySource()))
+        val firstFrameController = String(Files.readAllBytes(playerFirstFrameControllerSource()))
 
         assertTrue(source.contains("private lateinit var firstFrameScrim: View"))
         assertTrue(source.contains("R.id.player_first_frame_scrim"))
         assertTrue(source.contains("private fun showFirstFrameScrim()"))
-        assertTrue(source.contains("private fun hideFirstFrameScrim()"))
-        assertTrue(source.contains("private fun applyFirstFrameDecision(decision: PlayerFirstFrameDecision)"))
-        assertTrue(source.contains("PlayerFirstFramePolicy.onShowForNewMedia()"))
-        assertTrue(source.contains("PlayerFirstFramePolicy.onRenderedFirstFrame("))
-        assertTrue(source.contains("PlayerFirstFramePolicy.onReady("))
+        assertTrue(firstFrameController.contains("private fun applyDecision(decision: PlayerFirstFrameDecision)"))
+        assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onShowForNewMedia()"))
+        assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onRenderedFirstFrame("))
+        assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onReady("))
         assertTrue(source.contains("override fun onRenderedFirstFrame()"))
-        assertTrue(source.contains("hideFirstFrameScrim()"))
+        assertTrue(source.contains("firstFrames.onRenderedFirstFrame()"))
         assertTrue(source.contains("showFirstFrameScrim()") && source.contains("viewModel.switchToVideo("))
 
         sequenceOf(playerLayoutSource("layout"), playerLayoutSource("layout-land")).forEach { layout ->
@@ -123,6 +123,14 @@ class PlayerActivityStartupSourceTest {
     }
 
     private fun playerNotificationControllerSource(): Path {
+        return kotlinSource("PlayerPlaybackNotificationController.kt")
+    }
+
+    private fun playerFirstFrameControllerSource(): Path {
+        return kotlinSource("PlayerFirstFrameController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -132,7 +140,7 @@ class PlayerActivityStartupSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerPlaybackNotificationController.kt"
+            name
         )
         return sequenceOf(
             relativePath,

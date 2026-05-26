@@ -10,11 +10,11 @@ class PlayerVideoZoomSourceTest {
 
     @Test
     fun playerActivityDelegatesManualZoomToPolicies() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val gestureBlock = source.substringAfter("private fun initGestures() {")
-            .substringBefore("\n    private fun resetManualVideoZoom(showHud")
-        val transformBlock = source.substringAfter("private fun applyPlayerContentFrameTransform(")
-            .substringBefore("\n    private fun contentFrameSourceSize(")
+        val gestureSource = String(Files.readAllBytes(playerGestureControllerSource()))
+        val controllerSource = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val gestureBlock = gestureSource
+        val transformBlock = controllerSource.substringAfter("fun applyTransform(")
+            .substringBefore("\n    fun sourceSize(")
 
         assertTrue(gestureBlock.contains("ScaleGestureDetector"))
         assertTrue(gestureBlock.contains("PlayerVideoZoomPolicy.applyScaleFactor"))
@@ -32,6 +32,12 @@ class PlayerVideoZoomSourceTest {
     }
 
     private fun playerActivitySource(): Path = kotlinSource("PlayerActivity.kt")
+
+    private fun playerGestureControllerSource(): Path =
+        kotlinSource("PlayerGestureController.kt")
+
+    private fun contentFrameTransformControllerSource(): Path =
+        kotlinSource("PlayerContentFrameTransformController.kt")
 
     private fun applyPolicySource(): Path = kotlinSource("PlayerContentFrameApplyPolicy.kt")
 

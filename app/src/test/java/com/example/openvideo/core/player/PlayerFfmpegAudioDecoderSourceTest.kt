@@ -63,7 +63,7 @@ class PlayerFfmpegAudioDecoderSourceTest {
 
     @Test
     fun audioDecoderLabelUsesSoftwareFallbackFlagForAllSpecialAudio() {
-        val dialogSource = String(
+        val infoSource = String(
             Files.readAllBytes(
                 rootFile(
                     "app",
@@ -75,11 +75,11 @@ class PlayerFfmpegAudioDecoderSourceTest {
                     "openvideo",
                     "ui",
                     "player",
-                    "PlayerSettingsDialog.kt"
+                    "PlayerSettingsInfoController.kt"
                 )
             )
         )
-        val decoderLabel = dialogSource
+        val decoderLabel = infoSource
             .substringAfter("private fun audioDecoderLabel(")
             .substringBefore("\n    private fun audioCodecLabel")
 

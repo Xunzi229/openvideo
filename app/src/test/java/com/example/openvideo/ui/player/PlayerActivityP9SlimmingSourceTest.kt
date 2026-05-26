@@ -117,7 +117,7 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun edgeSwipeBackUsesPolicy() {
-        val gestureBlock = playerActivitySource().substringAfter("private fun initGestures()")
+        val gestureBlock = playerGestureControllerSource().substringAfter("private fun attachTouchListener()")
             .substringBefore("\n    private fun releaseLongPressSpeed()")
         assertTrue(gestureBlock.contains("PlayerEdgeSwipeBackPolicy.shouldFinish("))
         assertFalse(gestureBlock.contains("if (dx > 100)"))
@@ -132,7 +132,7 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun gestureHudDisplayUsesPolicy() {
-        val source = playerActivitySource()
+        val source = playerGestureControllerSource()
         assertTrue(source.contains("PlayerGestureHudDisplayPolicy.indicatorText(hud)"))
         assertTrue(source.contains("PlayerGestureHudDisplayPolicy.AUTO_HIDE_DELAY_MS"))
         assertFalse(source.contains("handler.postDelayed(hideGestureHudRunnable, 800)"))
@@ -166,12 +166,13 @@ class PlayerActivityP9SlimmingSourceTest {
     @Test
     fun gestureAndChromeConstantsUsePolicies() {
         val source = playerActivitySource()
-        assertTrue(source.contains("PlayerGesturePolicy.verticalGestureAction("))
-        assertTrue(source.contains("PlayerDoubleTapSeekPolicy.intervalMs("))
+        val gestureController = playerGestureControllerSource()
+        assertTrue(gestureController.contains("PlayerGesturePolicy.verticalGestureAction("))
+        assertTrue(gestureController.contains("PlayerDoubleTapSeekPolicy.intervalMs("))
         assertTrue(source.contains("PlayerChromePolicy.CHROME_FADE_DURATION_MS"))
         assertTrue(source.contains("PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS"))
         assertFalse(source.contains("handler.postDelayed(this, 500)"))
-        assertFalse(source.contains("seekInterval * 1000L"))
+        assertFalse(gestureController.contains("seekInterval * 1000L"))
         assertFalse(source.contains(".setDuration(200)"))
     }
 
@@ -188,8 +189,8 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun firstFrameScrimUsesPresentationPolicy() {
-        val block = playerActivitySource().substringAfter("private fun applyFirstFrameDecision(")
-            .substringBefore("\n    private fun handlePlaybackEnded()")
+        val block = playerFirstFrameControllerSource().substringAfter("private fun applyDecision(")
+            .substringBefore("\n}")
         assertTrue(block.contains("PlayerFirstFrameScrimPolicy.presentation(decision)"))
         assertFalse(block.contains("firstFrameScrim.alpha = 1f"))
     }
@@ -250,11 +251,17 @@ class PlayerActivityP9SlimmingSourceTest {
         val glassSheet = playerGlassSheetDialogSource()
         val notificationController = playerNotificationControllerSource()
         val orientationController = playerVideoOrientationControllerSource()
+        val quickDialogController = playerQuickDialogControllerSource()
+        val contentFrameController = playerContentFrameTransformControllerSource()
+        val gestureController = playerGestureControllerSource()
         for (snippet in required) {
             val haystack = when {
                 snippet.startsWith("PlayerSettingsSheetChrome.") -> glassSheet
                 snippet.startsWith("PlayerNotification") -> notificationController
                 snippet.startsWith("PlayerVideoOrientation") -> orientationController
+                snippet.startsWith("PlayerGlassSheetDialog.") -> quickDialogController
+                snippet.startsWith("PlayerContentFrameResetPolicy.") -> contentFrameController
+                snippet.startsWith("PlayerGesture") -> gestureController
                 else -> source
             }
             assertTrue("Expected policy wiring `$snippet`.", haystack.contains(snippet))
@@ -370,6 +377,41 @@ class PlayerActivityP9SlimmingSourceTest {
             "ui",
             "player",
             "PlayerVideoOrientationController.kt"
+        )
+        val path: Path = sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+        return String(Files.readAllBytes(path))
+    }
+
+    private fun playerQuickDialogControllerSource(): String {
+        return kotlinSource("PlayerQuickDialogController.kt")
+    }
+
+    private fun playerContentFrameTransformControllerSource(): String {
+        return kotlinSource("PlayerContentFrameTransformController.kt")
+    }
+
+    private fun playerGestureControllerSource(): String {
+        return kotlinSource("PlayerGestureController.kt")
+    }
+
+    private fun playerFirstFrameControllerSource(): String {
+        return kotlinSource("PlayerFirstFrameController.kt")
+    }
+
+    private fun kotlinSource(name: String): String {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            name
         )
         val path: Path = sequenceOf(
             relativePath,

@@ -29,30 +29,30 @@ class PlayerSmartCropSourceTest {
 
     @Test
     fun smartCropHandlerUsesPolicyAndAppliesDisplaySettings() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun handleSmartCropQuickToggle() {")
-            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+        val source = String(Files.readAllBytes(playerSmartCropControllerSource()))
+        val block = source.substringAfter("fun handleQuickToggle() {")
+            .substringBefore("\n    private fun captureVisualBounds(")
 
         assertTrue(block.contains("PlayerSmartCropPolicy.quickToggleDecision("))
-        assertTrue(block.contains("smartCropContentFrameMode = decision.contentFrameMode"))
+        assertTrue(block.contains("contentFrameMode = decision.contentFrameMode"))
         assertTrue(block.contains("decision.aspectRatioOverride?.let"))
-        assertTrue(block.contains("applyDisplaySettings()"))
+        assertTrue(block.contains("onApplyDisplaySettings()"))
     }
 
     @Test
     fun smartCropHandlerDoesNotPersistContentFrameMode() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun handleSmartCropQuickToggle() {")
-            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+        val source = String(Files.readAllBytes(playerSmartCropControllerSource()))
+        val block = source.substringAfter("fun handleQuickToggle() {")
+            .substringBefore("\n    private fun captureVisualBounds(")
 
         assertTrue(!block.contains("playerPrefs.contentFrameMode = decision.contentFrameMode"))
     }
 
     @Test
     fun smartCropHandlerDoesNotTreatPersistedContentFrameModeAsActiveSmartCrop() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun handleSmartCropQuickToggle() {")
-            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+        val source = String(Files.readAllBytes(playerSmartCropControllerSource()))
+        val block = source.substringAfter("fun handleQuickToggle() {")
+            .substringBefore("\n    private fun captureVisualBounds(")
 
         assertTrue(block.contains("currentMode = activeSmartCropMode ?: ContentFrameMode.OFF"))
         assertTrue(!block.contains("currentMode = activeSmartCropMode ?: playerPrefs.contentFrameMode"))
@@ -60,22 +60,22 @@ class PlayerSmartCropSourceTest {
 
     @Test
     fun smartCropSamplesVideoRenderBeforeVisualFallback() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerSmartCropControllerSource()))
         val block = source.substringAfter("playerView.postDelayed({")
             .substringBefore("\n        }, SMART_CROP_CAPTURE_DELAY_MS)")
 
-        assertTrue(block.indexOf("captureSmartCropRenderBounds") >= 0)
-        assertTrue(block.indexOf("captureSmartCropVisualBounds") >= 0)
-        assertTrue(block.indexOf("captureSmartCropRenderBounds") < block.indexOf("captureSmartCropVisualBounds"))
+        assertTrue(block.indexOf("captureRenderBounds") >= 0)
+        assertTrue(block.indexOf("captureVisualBounds") >= 0)
+        assertTrue(block.indexOf("captureRenderBounds") < block.indexOf("captureVisualBounds"))
     }
 
     @Test
     fun smartCropCancelsPreviousToastBeforeCapturingFallbackScreenshots() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val handler = source.substringAfter("private fun handleSmartCropQuickToggle() {")
-            .substringBefore("\n    private fun hideControlsForSmartCropCapture()")
+        val source = String(Files.readAllBytes(playerSmartCropControllerSource()))
+        val handler = source.substringAfter("fun handleQuickToggle() {")
+            .substringBefore("\n    fun clearSession()")
         val cancelIndex = handler.indexOf("cancelSmartCropToast()")
-        val hideIndex = handler.indexOf("hideControlsForSmartCropCapture()")
+        val hideIndex = handler.indexOf("hideControlsForCapture()")
         val helper = source.substringAfter("private fun showSmartCropToast(messageRes: Int) {")
             .substringBefore("\n    private fun")
 
@@ -90,37 +90,41 @@ class PlayerSmartCropSourceTest {
 
     @Test
     fun restoredPortraitContentFrameModeIsSuppressedUnlessSmartCropSessionIsActive() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(contentFrameTransformControllerSource()))
         val block = source.substringAfter("val transformContentFrameMode = if (!landscapeViewport) {")
             .substringBefore("\n        val restoredSmartCropDecision")
 
-        assertTrue(block.contains("smartCropContentFrameMode == null && frameSize.width < frameSize.height"))
+        assertTrue(block.contains("smartCropState.contentFrameMode == null && frameSize.width < frameSize.height"))
         assertTrue(block.contains("ContentFrameMode.OFF"))
     }
 
     @Test
     fun smartCropTransformOverrideOnlyAppliesInLandscapeViewport() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun applyPlayerContentFrameTransform(")
-            .substringBefore("\n    private fun contentFrameSourceSize(")
+        val source = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val block = source.substringAfter("fun applyTransform(")
+            .substringBefore("\n    fun sourceSize(")
 
         assertTrue(block.contains("val smartCropActive ="))
         assertTrue(block.contains("&& landscapeViewport"))
-        assertTrue(block.contains("val activeSmartCropTransformOverride = smartCropTransformOverride.takeIf { smartCropActive }"))
-        assertTrue(block.contains("cachedBaseContentFrameTransform = activeSmartCropTransformOverride"))
+        assertTrue(block.contains("val activeSmartCropTransformOverride = smartCropState.transformOverride.takeIf { smartCropActive }"))
+        assertTrue(block.contains("baseTransform = activeSmartCropTransformOverride"))
         assertTrue(block.contains("val transform = activeSmartCropTransformOverride"))
-        assertTrue(!block.contains("cachedBaseContentFrameTransform = smartCropTransformOverride"))
-        assertTrue(!block.contains("val transform = smartCropTransformOverride"))
+        assertTrue(!block.contains("baseTransform = smartCropState.transformOverride"))
+        assertTrue(!block.contains("val transform = smartCropState.transformOverride"))
     }
 
     @Test
     fun aspectRatioSelectionClearsSmartCropSessionBeforeApplyingDisplaySettings() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun showAspectRatioQuickDialog() {")
-            .substringBefore("\n    private fun handleSmartCropQuickToggle()")
-        val clearIndex = block.indexOf("clearSmartCropSession()")
-        val applyIndex = block.indexOf("applyDisplaySettings()")
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val quickDialogs = String(Files.readAllBytes(playerQuickDialogControllerSource()))
+        val quickBlock = quickDialogs.substringAfter("fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    fun showSpeedPickerDialog()")
+        val helperBlock = activitySource.substringAfter("private fun applyAspectRatioDisplayChange() {")
+            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+        val clearIndex = helperBlock.indexOf("clearSmartCropSession()")
+        val applyIndex = helperBlock.indexOf("applyDisplaySettings()")
 
+        assertTrue(quickBlock.contains("onAspectRatioChanged()"))
         assertTrue(clearIndex >= 0)
         assertTrue(applyIndex >= 0)
         assertTrue(clearIndex < applyIndex)
@@ -129,14 +133,16 @@ class PlayerSmartCropSourceTest {
     @Test
     fun playerSettingsAspectRatioCallbackClearsSmartCropSessionBeforeApplyingDisplaySettings() {
         val source = String(Files.readAllBytes(playerActivitySource()))
-        val dialogBlock = source.substringAfter("private fun openPlayerSettingsDialog()")
-            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
+        val quickDialogs = String(Files.readAllBytes(playerQuickDialogControllerSource()))
+        val dialogBlock = quickDialogs.substringAfter("fun openPlayerSettingsDialog()")
+            .substringBefore("\n    fun showAspectRatioQuickDialog()")
         val helperBlock = source.substringAfter("private fun applyAspectRatioDisplayChange() {")
             .substringBefore("\n    private fun showAspectRatioQuickDialog()")
         val clearIndex = helperBlock.indexOf("clearSmartCropSession()")
         val applyIndex = helperBlock.indexOf("applyDisplaySettings()")
 
-        assertTrue(dialogBlock.contains("onAspectRatioChanged = ::applyAspectRatioDisplayChange"))
+        assertTrue(source.contains("onAspectRatioChanged = ::applyAspectRatioDisplayChange"))
+        assertTrue(dialogBlock.contains("onAspectRatioChanged = onAspectRatioChanged"))
         assertTrue(clearIndex >= 0)
         assertTrue(applyIndex >= 0)
         assertTrue(clearIndex < applyIndex)
@@ -158,6 +164,50 @@ class PlayerSmartCropSourceTest {
             "PlayerActivity.kt"
         )
         return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+
+    private fun playerQuickDialogControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerQuickDialogController.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerSmartCropControllerSource(): Path {
+        return kotlinSource("PlayerSmartCropController.kt")
+    }
+
+    private fun contentFrameTransformControllerSource(): Path {
+        return kotlinSource("PlayerContentFrameTransformController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            name
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
     }
 
     private fun resource(dir: String, file: String): Path {

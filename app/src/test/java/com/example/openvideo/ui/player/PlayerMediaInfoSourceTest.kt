@@ -11,11 +11,12 @@ class PlayerMediaInfoSourceTest {
     @Test
     fun infoPageIncludesContainerAndTrackDetails() {
         val dialogSource = String(Files.readAllBytes(sourceFile("PlayerSettingsDialog.kt")))
+        val infoSource = String(Files.readAllBytes(sourceFile("PlayerSettingsInfoController.kt")))
         val mediaInfoSource = String(Files.readAllBytes(sourceFile("PlayerMediaInfo.kt")))
 
-        assertTrue(dialogSource.contains("loadMediaInfoAsync()"))
-        assertTrue(dialogSource.contains("PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())"))
-        assertTrue(dialogSource.contains("mediaInfoRows("))
+        assertTrue(dialogSource.contains("infoController.loadMediaInfoAsync()"))
+        assertTrue(infoSource.contains("PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())"))
+        assertTrue(infoSource.contains("mediaInfoRows("))
         assertTrue(mediaInfoSource.contains("player_settings_info_audio_compatibility"))
 
         listOf(
@@ -47,11 +48,11 @@ class PlayerMediaInfoSourceTest {
 
     @Test
     fun infoPageFallsBackToTrackResolutionWhenPlayerVideoSizeIsNotReady() {
-        val dialogSource = String(Files.readAllBytes(sourceFile("PlayerSettingsDialog.kt")))
-        val infoRows = dialogSource
-            .substringAfter("private fun videoInfoRows()")
-            .substringBefore("\n    private fun audioDiagnosticRows")
-        val resolutionLabel = dialogSource
+        val infoSource = String(Files.readAllBytes(sourceFile("PlayerSettingsInfoController.kt")))
+        val infoRows = infoSource
+            .substringAfter("fun videoInfoRows()")
+            .substringBefore("\n    fun videoInfoRows()")
+        val resolutionLabel = infoSource
             .substringAfter("private fun videoResolutionLabel(")
             .substringBefore("\n    private fun copyVideoInfoToClipboard()")
 
@@ -65,13 +66,13 @@ class PlayerMediaInfoSourceTest {
 
     @Test
     fun infoPageLoadsHeavyMediaParsingOffMainThreadAndCachesResults() {
-        val dialogSource = String(Files.readAllBytes(sourceFile("PlayerSettingsDialog.kt")))
-        val loadBlock = dialogSource
-            .substringAfter("private fun loadMediaInfoAsync() {")
+        val infoSource = String(Files.readAllBytes(sourceFile("PlayerSettingsInfoController.kt")))
+        val loadBlock = infoSource
+            .substringAfter("fun loadMediaInfoAsync() {")
             .substringBefore("\n    private fun audioDiagnosticRows")
 
-        assertTrue(dialogSource.contains("private var cachedMediaInfo: PlayerMediaInfo? = null"))
-        assertTrue(dialogSource.contains("private var cachedMediaInfoSource: String? = null"))
+        assertTrue(infoSource.contains("private var cachedMediaInfo: PlayerMediaInfo? = null"))
+        assertTrue(infoSource.contains("private var cachedMediaInfoSource: String? = null"))
         assertTrue(loadBlock.contains("Dispatchers.IO"))
         assertTrue(loadBlock.contains("cachedMediaInfo = mediaInfo"))
         assertTrue(loadBlock.contains("cachedMediaInfoSource = source"))

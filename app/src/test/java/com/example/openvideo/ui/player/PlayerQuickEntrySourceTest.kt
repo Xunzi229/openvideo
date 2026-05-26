@@ -10,40 +10,25 @@ import java.nio.file.Paths
 class PlayerQuickEntrySourceTest {
 
     @Test
-    fun landscapeSubtitleButtonUsesDedicatedQuickDialog() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter(
-            "findViewById<View>(R.id.btn_land_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
-        ).substringBefore("\n        }\n\n        findViewById<View>(R.id.btn_land_pip_float)")
+    fun playerButtonsDelegateToQuickDialogControllerWrappers() {
+        val source = read(playerActivitySource())
 
-        assertTrue(block.contains("showSubtitleQuickDialog()"))
-        assertFalse(block.contains("pickSubtitleLauncher.launch"))
+        assertTrue(source.contains("private val quickDialogs by lazy"))
+        assertTrue(source.contains("private fun showAudioTrackQuickDialog() = quickDialogs.showAudioTrackQuickDialog()"))
+        assertTrue(source.contains("private fun showSubtitleQuickDialog() = quickDialogs.showSubtitleQuickDialog()"))
+        assertTrue(source.contains("private fun showSpeedPickerDialog() = quickDialogs.showSpeedPickerDialog()"))
+        assertTrue(source.contains("private fun showAspectRatioQuickDialog() = quickDialogs.showAspectRatioQuickDialog()"))
+        assertTrue(source.contains("private fun openPlayerSettingsDialog() = quickDialogs.openPlayerSettingsDialog()"))
+        assertTrue(source.contains("private fun showSessionVideoListPanel() = quickDialogs.showSessionVideoListPanel()"))
     }
 
     @Test
-    fun portraitQuickButtonsUseDedicatedAudioAndSubtitleDialogs() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val audioButtonBlock = source.substringAfter(
-            "findViewById<View>(R.id.portrait_btn_quality)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
-        ).substringBefore("\n        }\n\n        findViewById<View>(R.id.portrait_btn_episodes)")
-        val subtitleButtonBlock = source.substringAfter(
-            "findViewById<View>(R.id.portrait_btn_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
-        ).substringBefore("\n        }\n\n        btnScreenshot?.setPlayerClickListener")
-
-        assertTrue(audioButtonBlock.contains("showAudioTrackQuickDialog()"))
-        assertFalse(audioButtonBlock.contains("player_quality_local_single"))
-
-        assertTrue(subtitleButtonBlock.contains("showSubtitleQuickDialog()"))
-        assertFalse(subtitleButtonBlock.contains("pickSubtitleLauncher.launch"))
-    }
-
-    @Test
-    fun playerActivityDelegatesQuickEntryStateToPolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val audioDialogBlock = source.substringAfter("private fun showAudioTrackQuickDialog() {")
-            .substringBefore("\n    private fun showSubtitleQuickDialog()")
-        val subtitleDialogBlock = source.substringAfter("private fun showSubtitleQuickDialog() {")
-            .substringBefore("\n    private fun showQuickEntryDialog")
+    fun playerQuickDialogControllerDelegatesQuickEntryStateToPolicy() {
+        val source = read(playerQuickDialogControllerSource())
+        val audioDialogBlock = source.substringAfter("fun showAudioTrackQuickDialog() {")
+            .substringBefore("\n    fun showSubtitleQuickDialog()")
+        val subtitleDialogBlock = source.substringAfter("fun showSubtitleQuickDialog() {")
+            .substringBefore("\n    fun openSubtitleSettingsSheet()")
 
         assertTrue(audioDialogBlock.contains("PlayerQuickEntryPolicy.audioEntry("))
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryPolicy.subtitleEntry("))
@@ -54,25 +39,25 @@ class PlayerQuickEntrySourceTest {
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryAction.ResetSubtitleDelay"))
         assertTrue(subtitleDialogBlock.contains("playerPrefs.subtitleDelayMs += action.deltaMs"))
         assertTrue(subtitleDialogBlock.contains("playerPrefs.subtitleDelayMs = 0"))
-        assertTrue(subtitleDialogBlock.contains("applySubtitlePresentation()"))
+        assertTrue(subtitleDialogBlock.contains("onApplySubtitlePresentation()"))
         assertTrue(subtitleDialogBlock.contains("PlayerQuickEntryAction.OpenSubtitleSettings"))
         assertTrue(subtitleDialogBlock.contains("openSubtitleSettingsSheet()"))
-        assertFalse(subtitleDialogBlock.contains("OpenSubtitleSettings ->\n                    openPlayerSettingsDialog()"))
+        assertFalse(subtitleDialogBlock.contains("openPlayerSettingsDialog()"))
     }
 
     @Test
     fun quickDialogsUseSingleActiveDialogGate() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val sessionListBlock = source.substringAfter("private fun showSessionVideoListPanel()")
-            .substringBefore("\n    /** 与横屏齿轮按钮相同")
-        val settingsBlock = source.substringAfter("private fun openPlayerSettingsDialog()")
-            .substringBefore("\n    private fun showAspectRatioQuickDialog()")
-        val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
-            .substringBefore("\n    private fun showSpeedPickerDialog()")
-        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
-            .substringBefore("\n    /**\n     * 让快速选择型 AlertDialog")
+        val source = read(playerQuickDialogControllerSource())
+        val sessionListBlock = source.substringAfter("fun showSessionVideoListPanel()")
+            .substringBefore("\n    fun openPlayerSettingsDialog()")
+        val settingsBlock = source.substringAfter("fun openPlayerSettingsDialog()")
+            .substringBefore("\n    fun showAspectRatioQuickDialog()")
+        val aspectBlock = source.substringAfter("fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    fun showSpeedPickerDialog()")
+        val speedBlock = source.substringAfter("fun showSpeedPickerDialog()")
+            .substringBefore("\n    fun showAudioTrackQuickDialog()")
         val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
-            .substringBefore("\n    private fun setupControls()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog(")
 
         assertTrue(source.contains("private var activePlayerDialog: Dialog? = null"))
         assertTrue(source.contains("private fun showExclusivePlayerDialog("))
@@ -88,12 +73,12 @@ class PlayerQuickEntrySourceTest {
 
     @Test
     fun speedAudioAndSubtitleQuickDialogsUseResponsivePlayerChrome() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val glassSheet = String(Files.readAllBytes(playerGlassSheetDialogSource()))
-        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
-            .substringBefore("\n    private fun showExclusivePlayerDialog")
+        val source = read(playerQuickDialogControllerSource())
+        val glassSheet = read(playerGlassSheetDialogSource())
+        val speedBlock = source.substringAfter("fun showSpeedPickerDialog()")
+            .substringBefore("\n    fun showAudioTrackQuickDialog()")
         val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
-            .substringBefore("\n    private fun setupControls()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog(")
 
         assertTrue(source.contains("private fun quickChoiceChrome()"))
         assertTrue(source.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM"))
@@ -118,14 +103,14 @@ class PlayerQuickEntrySourceTest {
 
     @Test
     fun landscapeSubtitleAspectAndSpeedUseSettingsPanelChrome() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val glassSheet = String(Files.readAllBytes(playerGlassSheetDialogSource()))
-        val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
-            .substringBefore("\n    private fun handleSmartCropQuickToggle()")
-        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
-            .substringBefore("\n    private fun showExclusivePlayerDialog")
+        val source = read(playerQuickDialogControllerSource())
+        val glassSheet = read(playerGlassSheetDialogSource())
+        val aspectBlock = source.substringAfter("fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    fun showSpeedPickerDialog()")
+        val speedBlock = source.substringAfter("fun showSpeedPickerDialog()")
+            .substringBefore("\n    fun showAudioTrackQuickDialog()")
         val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
-            .substringBefore("\n    private fun setupControls()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog(")
 
         assertTrue(source.contains("private fun quickChoiceChrome()"))
         assertTrue(source.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
@@ -143,48 +128,39 @@ class PlayerQuickEntrySourceTest {
 
     @Test
     fun speedAudioAndSubtitleQuickDialogsHidePlayerControlsWhileOpen() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val speedBlock = source.substringAfter("private fun showSpeedPickerDialog()")
-            .substringBefore("\n    private fun showExclusivePlayerDialog")
+        val source = read(playerQuickDialogControllerSource())
+        val speedBlock = source.substringAfter("fun showSpeedPickerDialog()")
+            .substringBefore("\n    fun showAudioTrackQuickDialog()")
         val quickEntryBlock = source.substringAfter("private fun showQuickEntryDialog(")
-            .substringBefore("\n    private fun setupControls()")
+            .substringBefore("\n    private fun showExclusivePlayerDialog(")
 
-        assertTrue(speedBlock.indexOf("hideControls()") in 0 until speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
-        assertTrue(quickEntryBlock.indexOf("hideControls()") in 0 until quickEntryBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(speedBlock.indexOf("onHideControls()") in 0 until speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(quickEntryBlock.indexOf("onHideControls()") in 0 until quickEntryBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
     }
 
     @Test
     fun aspectQuickDialogUsesSettingsOptionsAndSelectionPolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val aspectBlock = source.substringAfter("private fun showAspectRatioQuickDialog()")
-            .substringBefore("\n    private fun showSpeedPickerDialog()")
+        val source = read(playerQuickDialogControllerSource())
+        val aspectBlock = source.substringAfter("fun showAspectRatioQuickDialog()")
+            .substringBefore("\n    fun showSpeedPickerDialog()")
 
         assertTrue(aspectBlock.contains("PlayerAspectRatioOptions.entries"))
         assertTrue(aspectBlock.contains("PlayerContentFrameSettingsPolicy.onAspectRatioSelected("))
         assertTrue(aspectBlock.contains("currentContentFrameMode = playerPrefs.contentFrameMode"))
         assertTrue(aspectBlock.contains("selection.contentFrameOverride?.let { playerPrefs.contentFrameMode = it }"))
+        assertTrue(aspectBlock.contains("onAspectRatioChanged()"))
         assertFalse(aspectBlock.contains("AspectRatio.FIT to R.string.player_sheet_fit_screen"))
     }
 
-    private fun playerActivitySource(): Path {
-        val relativePath = Paths.get(
-            "src",
-            "main",
-            "java",
-            "com",
-            "example",
-            "openvideo",
-            "ui",
-            "player",
-            "PlayerActivity.kt"
-        )
-        return sequenceOf(
-            relativePath,
-            Paths.get("app").resolve(relativePath)
-        ).first(Files::exists)
-    }
+    private fun read(path: Path): String = String(Files.readAllBytes(path))
 
-    private fun playerGlassSheetDialogSource(): Path {
+    private fun playerActivitySource(): Path = sourceFile("PlayerActivity.kt")
+
+    private fun playerQuickDialogControllerSource(): Path = sourceFile("PlayerQuickDialogController.kt")
+
+    private fun playerGlassSheetDialogSource(): Path = sourceFile("PlayerGlassSheetDialog.kt")
+
+    private fun sourceFile(fileName: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -194,7 +170,7 @@ class PlayerQuickEntrySourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerGlassSheetDialog.kt"
+            fileName
         )
         return sequenceOf(
             relativePath,

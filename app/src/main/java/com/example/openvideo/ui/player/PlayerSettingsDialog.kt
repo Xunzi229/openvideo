@@ -1,38 +1,23 @@
 package com.example.openvideo.ui.player
 
 import android.app.Dialog
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
-import android.text.TextUtils
 import android.view.KeyEvent
 import android.text.InputType
-import android.view.Gravity
 import android.view.View
 import android.view.Window
-import android.view.WindowManager
-import android.widget.CheckBox
-import android.widget.CompoundButton
 import android.widget.EditText
 import android.widget.GridLayout
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.OptIn
-import androidx.media3.common.util.UnstableApi
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
-import com.example.openvideo.core.player.PlayerAudioDiagnostics
-import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.AudioChannel
@@ -43,13 +28,10 @@ import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
-import com.google.android.material.switchmaterial.SwitchMaterial
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.ArrayDeque
 import java.util.Locale
 import kotlin.math.round
@@ -72,18 +54,18 @@ class PlayerSettingsDialog(
 
     private val primaryItems by lazy {
         listOf(
-            PrimaryItem(SettingsPage.AUDIO, R.string.player_sheet_audio_track, R.drawable.ic_audio_track),
-            PrimaryItem(SettingsPage.SUBTITLE, R.string.player_sheet_subtitles, R.drawable.ic_subtitles),
-            PrimaryItem(SettingsPage.ASPECT, R.string.player_sheet_aspect_ratio, R.drawable.ic_aspect_ratio),
-            PrimaryItem(SettingsPage.DISPLAY, R.string.player_sheet_display, R.drawable.ic_display_settings),
-            PrimaryItem(SettingsPage.PLAYLIST, R.string.player_sheet_playlist, R.drawable.ic_playlist),
-            PrimaryItem(SettingsPage.STREAM, R.string.player_sheet_stream, R.drawable.ic_stream),
-            PrimaryItem(SettingsPage.INFO, R.string.player_sheet_info, R.drawable.ic_info),
-            PrimaryItem(SettingsPage.SHARE, R.string.player_sheet_share, R.drawable.ic_share),
-            PrimaryItem(SettingsPage.CUT, R.string.player_sheet_cut, R.drawable.ic_cut),
-            PrimaryItem(SettingsPage.BOOKMARK, R.string.player_sheet_bookmark, R.drawable.ic_bookmark),
-            PrimaryItem(SettingsPage.TUTORIAL, R.string.player_sheet_tutorial, R.drawable.ic_tutorial),
-            PrimaryItem(SettingsPage.MORE, R.string.player_sheet_more, R.drawable.ic_more_vert)
+            PlayerSettingsPrimaryItem(SettingsPage.AUDIO, R.string.player_sheet_audio_track, R.drawable.ic_audio_track),
+            PlayerSettingsPrimaryItem(SettingsPage.SUBTITLE, R.string.player_sheet_subtitles, R.drawable.ic_subtitles),
+            PlayerSettingsPrimaryItem(SettingsPage.ASPECT, R.string.player_sheet_aspect_ratio, R.drawable.ic_aspect_ratio),
+            PlayerSettingsPrimaryItem(SettingsPage.DISPLAY, R.string.player_sheet_display, R.drawable.ic_display_settings),
+            PlayerSettingsPrimaryItem(SettingsPage.PLAYLIST, R.string.player_sheet_playlist, R.drawable.ic_playlist),
+            PlayerSettingsPrimaryItem(SettingsPage.STREAM, R.string.player_sheet_stream, R.drawable.ic_stream),
+            PlayerSettingsPrimaryItem(SettingsPage.INFO, R.string.player_sheet_info, R.drawable.ic_info),
+            PlayerSettingsPrimaryItem(SettingsPage.SHARE, R.string.player_sheet_share, R.drawable.ic_share),
+            PlayerSettingsPrimaryItem(SettingsPage.CUT, R.string.player_sheet_cut, R.drawable.ic_cut),
+            PlayerSettingsPrimaryItem(SettingsPage.BOOKMARK, R.string.player_sheet_bookmark, R.drawable.ic_bookmark),
+            PlayerSettingsPrimaryItem(SettingsPage.TUTORIAL, R.string.player_sheet_tutorial, R.drawable.ic_tutorial),
+            PlayerSettingsPrimaryItem(SettingsPage.MORE, R.string.player_sheet_more, R.drawable.ic_more_vert)
         )
     }
 
@@ -139,15 +121,48 @@ class PlayerSettingsDialog(
     private lateinit var subdetailContainer: LinearLayout
     private lateinit var settingsPanelRoot: View
     private val dialogScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-    private var cachedMediaInfo: PlayerMediaInfo? = null
-    private var cachedMediaInfoSource: String? = null
-    private var isMediaInfoLoading = false
 
     private data class DetailBackState(val page: SettingsPage, val title: String)
 
     /** Nested screens inside [settings_detail_page] (same pattern as tutorial double-tap). */
     private val detailBackStack = ArrayDeque<DetailBackState>()
     private var currentRootDetailPage: SettingsPage? = null
+    private val rows by lazy {
+        PlayerSettingsRowBuilder(
+            context = context,
+            playerPrefs = playerPrefs,
+            detailContainerProvider = { detailContainer },
+            openNestedDetailScreen = ::openNestedDetailScreen,
+            onNestedChoiceSelected = {
+                detailBackStack.lastOrNull()?.let { prev ->
+                    rebuildCurrentDetail(prev.page, prev.title)
+                }
+            }
+        )
+    }
+    private val infoController by lazy {
+        PlayerSettingsInfoController(
+            context = context,
+            playerManager = playerManager,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            scope = dialogScope,
+            isInfoPageVisible = {
+                currentRootDetailPage == SettingsPage.INFO &&
+                    ::detailPage.isInitialized &&
+                    detailPage.visibility == View.VISIBLE
+            },
+            onInfoChanged = {
+                rebuildCurrentDetail(SettingsPage.INFO, context.getString(R.string.player_sheet_info))
+            },
+            formatTime = ::formatTime,
+            playbackSpeedLabelFor = ::playbackSpeedLabelFor,
+            aspectLabel = ::aspectLabel
+        )
+    }
+    private val primaryGridBuilder by lazy {
+        PlayerSettingsPrimaryGridBuilder(context, ::handlePrimaryClick)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -219,66 +234,13 @@ class PlayerSettingsDialog(
     private fun setupPrimaryGrid() {
         grid.removeAllViews()
         primaryItems.forEach { item ->
-            grid.addView(createPrimaryItemView(item))
+            grid.addView(primaryGridBuilder.createPrimaryItemView(item))
         }
-    }
-
-    private fun createPrimaryItemView(item: PrimaryItem): View {
-        val cell = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            minimumHeight = dp(74)
-            isClickable = true
-            isFocusable = true
-            setPadding(1, 4, 1, 2)
-            layoutParams = GridLayout.LayoutParams().apply {
-                width = 0
-                height = GridLayout.LayoutParams.WRAP_CONTENT
-                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                setMargins(dp(1), dp(2), dp(1), dp(2))
-            }
-            setOnClickListener { handlePrimaryClick(item) }
-        }
-
-        val iconWrap = LinearLayout(context).apply {
-            gravity = Gravity.CENTER
-            background = context.getDrawable(
-                if (item.page == SettingsPage.AUDIO) {
-                    R.drawable.bg_player_settings_icon_selected
-                } else {
-                    R.drawable.bg_player_settings_icon
-                }
-            )
-            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
-        }
-        iconWrap.addView(ImageView(context).apply {
-            setImageResource(item.iconRes)
-            setColorFilter(context.getColor(if (item.page == SettingsPage.AUDIO) R.color.player_accent else android.R.color.white))
-            layoutParams = LinearLayout.LayoutParams(dp(24), dp(24))
-        })
-
-        cell.addView(iconWrap)
-        cell.addView(TextView(context).apply {
-            text = context.getString(item.titleRes)
-            gravity = Gravity.CENTER
-            setTextColor(context.getColor(if (item.page == SettingsPage.AUDIO) R.color.player_accent else android.R.color.white))
-            textSize = 12f
-            maxLines = 1
-            includeFontPadding = false
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(8)
-            }
-        })
-
-        return cell
     }
 
     private fun setupPrimarySwitches() {
         primarySwitches.removeAllViews()
-        addSwitchRows(primarySwitchSpecs(), primarySwitches)
+        rows.addSwitchRows(primarySwitchSpecs(), primarySwitches)
     }
 
     private fun primarySwitchSpecs(): List<PlayerSettingsSwitchSpec> = listOf(
@@ -309,9 +271,7 @@ class PlayerSettingsDialog(
     )
 
     /**
-     * 滑块存的是「不透明度」百分比：100%=完全不透明，0%=最透明。
-     * `alpha` 与不透明度一致，不与「透明度」反向。
-     */
+     * 婵犲﹥鍨靛锛勨偓娑欘焽濞堟垿寮伴妯峰亾鐏炶偐鐟濋梺顐㈢箲濡叉垶鎯旈敂琛″亾瀹ュ洦顏ラ柛鎺戞閻︻噣鏁?00%=閻庣懓鑻崣蹇旂▔瀹ュ鍋撹箛鏃€顫栭柨?%=闁哄牃鍋撻梺顐㈢箲濡叉垿濡?     * `alpha` 濞戞挸绨肩粭澶愭焻韫囨梹顫栭幖杈剧細缁旀挳鎳涙潏鍓х濞戞挸绉崇粭宀勫Υ瀹€鍕ㄥ亾韫囨梹顫栭幖杈捐礋閳ь剙绉村浠嬪触閹存瑢鍋?     */
 
     private fun applySettingsSheetOpacity() {
         if (!::settingsPanelRoot.isInitialized) return
@@ -324,7 +284,7 @@ class PlayerSettingsDialog(
         }
     }
 
-    private fun handlePrimaryClick(item: PrimaryItem) {
+    private fun handlePrimaryClick(item: PlayerSettingsPrimaryItem) {
         when (item.page) {
             SettingsPage.SHARE -> shareVideoTitle()
             else -> showDetailPage(item.page, context.getString(item.titleRes))
@@ -393,22 +353,22 @@ class PlayerSettingsDialog(
         val audioTitle = context.getString(R.string.player_sheet_audio_track)
         val audioTracks = viewModel.audioTracks()
         val selectedAudioTrack = viewModel.selectedAudioTrack()
-        addActionRow(
+        rows.addActionRow(
             title = audioTitle,
             value = if (playerPrefs.audioMuted) {
                 context.getString(R.string.player_sheet_disable)
             } else {
-                selectedAudioTrack?.let(::audioTrackLabel)
+                selectedAudioTrack?.let(infoController::audioTrackLabel)
                     ?: context.getString(R.string.settings_audio_track_auto)
             }
         ) {
             openNestedDetailScreen(audioTitle) {
                 if (audioTracks.isEmpty()) {
-                    addDisabledRow(context.getString(R.string.player_settings_audio_track_none))
+                    rows.addDisabledRow(context.getString(R.string.player_settings_audio_track_none))
                 }
                 audioTracks.forEach { track ->
-                    addRadioRow(
-                        title = audioTrackLabel(track),
+                    rows.addRadioRow(
+                        title = infoController.audioTrackLabel(track),
                         checked = !playerPrefs.audioMuted && track.selected,
                         enabled = track.supported
                     ) {
@@ -416,7 +376,7 @@ class PlayerSettingsDialog(
                         detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
                     }
                 }
-                addRadioRow(
+                rows.addRadioRow(
                     title = context.getString(R.string.player_sheet_disable),
                     checked = playerPrefs.audioMuted
                 ) {
@@ -425,14 +385,14 @@ class PlayerSettingsDialog(
                 }
             }
         }
-        addCheckboxRow(
+        rows.addCheckboxRow(
             title = context.getString(R.string.player_sheet_software_audio_decoder),
             checked = playerPrefs.softwareAudioDecoder
         ) { checked ->
             playerPrefs.softwareAudioDecoder = checked
             viewModel.setDecodeMode(if (checked) DecodeMode.SOFT else DecodeMode.HARD)
         }
-        addSwitchRow(
+        rows.addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.player_sheet_enable),
             checked = !playerPrefs.pauseOnExit
@@ -441,19 +401,19 @@ class PlayerSettingsDialog(
         }
         val stereoTitle = context.getString(R.string.player_sheet_stereo_mode)
         val syncTitle = context.getString(R.string.player_sheet_sync)
-        addActionRow(
+        rows.addActionRow(
             title = stereoTitle,
             value = if (playerPrefs.audioChannel == AudioChannel.STEREO) stereoTitle else syncTitle
         ) {
             openNestedDetailScreen(stereoTitle) {
-                addRadioRow(
+                rows.addRadioRow(
                     title = stereoTitle,
                     checked = playerPrefs.audioChannel == AudioChannel.STEREO
                 ) {
                     playerPrefs.audioChannel = AudioChannel.STEREO
                     detailBackStack.lastOrNull()?.let { rebuildCurrentDetail(it.page, it.title) }
                 }
-                addRadioRow(
+                rows.addRadioRow(
                     title = syncTitle,
                     checked = playerPrefs.audioDelay == 0
                 ) {
@@ -462,7 +422,7 @@ class PlayerSettingsDialog(
                 }
             }
         }
-        addCheckboxRow(
+        rows.addCheckboxRow(
             title = context.getString(R.string.player_sheet_av_sync),
             checked = playerPrefs.audioSyncEnabled
         ) { checked ->
@@ -471,18 +431,18 @@ class PlayerSettingsDialog(
     }
 
     private fun buildSubtitlePage() {
-        addSwitchRow(
+        rows.addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.player_sheet_subtitle_switch),
             checked = playerPrefs.subtitlesEnabled
         ) { checked ->
             playerPrefs.subtitlesEnabled = checked
         }
-        addActionRow(context.getString(R.string.player_sheet_select_subtitle_file)) {
+        rows.addActionRow(context.getString(R.string.player_sheet_select_subtitle_file)) {
             dismiss()
             onRequestPickSubtitle()
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_subtitle_delay),
             min = -5000,
             maxValue = 5000,
@@ -492,7 +452,7 @@ class PlayerSettingsDialog(
         ) { value ->
             playerPrefs.subtitleDelayMs = value
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.settings_subtitle_size),
             min = 12,
             maxValue = 36,
@@ -502,8 +462,8 @@ class PlayerSettingsDialog(
         ) { value ->
             playerPrefs.subtitleSize = value
         }
-        addSubtitleColorSwatchRow()
-        addChoiceRow(
+        rows.addSubtitleColorSwatchRow()
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_subtitle_bg),
             value = subtitleBgLabel(playerPrefs.subtitleBgStyle),
             options = subtitleBgOptions.map(::subtitleBgLabel)
@@ -512,7 +472,7 @@ class PlayerSettingsDialog(
                 playerPrefs.subtitleBgStyle = it
             }
         }
-        addChoiceRow(
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_subtitle_encoding),
             value = subtitleEncodingLabel(playerPrefs.subtitleEncoding),
             options = subtitleEncodingOptions.map(::subtitleEncodingLabel)
@@ -529,7 +489,7 @@ class PlayerSettingsDialog(
     }
 
     private fun buildDisplayPage() {
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_brightness),
             min = 0,
             maxValue = 100,
@@ -539,7 +499,7 @@ class PlayerSettingsDialog(
             playerPrefs.brightnessAdjustment = value
             onScreenBrightnessChanged(value)
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_contrast),
             min = -100,
             maxValue = 100,
@@ -550,7 +510,7 @@ class PlayerSettingsDialog(
             playerPrefs.contrastAdjustment = value
             applyVideoAdjustmentsFromPrefs()
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_saturation),
             min = -100,
             maxValue = 100,
@@ -561,7 +521,7 @@ class PlayerSettingsDialog(
             playerPrefs.saturationAdjustment = value
             applyVideoAdjustmentsFromPrefs()
         }
-        addChoiceRow(
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_rotation),
             value = rotationLabel(playerPrefs.rotation),
             options = rotationDegrees.map(::rotationLabel)
@@ -569,14 +529,14 @@ class PlayerSettingsDialog(
             playerPrefs.rotation = rotationDegrees.firstOrNull { rotationLabel(it) == selected }
                 ?: playerPrefs.rotation
         }
-        addSwitchRow(
+        rows.addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.settings_mirror),
             checked = playerPrefs.mirror
         ) { checked ->
             playerPrefs.mirror = checked
         }
-        addChoiceRow(
+        rows.addChoiceRow(
             title = context.getString(R.string.player_sheet_progress_style),
             value = progressStyleLabel(playerPrefs.progressStyle),
             options = listOf(
@@ -591,7 +551,7 @@ class PlayerSettingsDialog(
                 else -> "default"
             }
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_controls_opacity),
             min = 30,
             maxValue = 100,
@@ -601,7 +561,7 @@ class PlayerSettingsDialog(
         ) { value ->
             playerPrefs.controlsOpacity = value
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_settings_backdrop_dim),
             min = 0,
             maxValue = 100,
@@ -612,7 +572,7 @@ class PlayerSettingsDialog(
             playerPrefs.settingsSheetBackdropDimPercent = value
             applySheetWindowBackdrop()
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_settings_backdrop_blur),
             min = 0,
             maxValue = 64,
@@ -626,10 +586,10 @@ class PlayerSettingsDialog(
     }
 
     private fun buildPlaylistPage() {
-        addActionRow(context.getString(R.string.player_settings_add_current_to_playlist)) {
+        rows.addActionRow(context.getString(R.string.player_settings_add_current_to_playlist)) {
             viewModel.addCurrentVideoToDefaultPlaylist()
         }
-        addChoiceRow(
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_loop_mode),
             value = loopModeLabel(playerPrefs.loopMode),
             options = LoopMode.entries.map(::loopModeLabel)
@@ -638,14 +598,14 @@ class PlayerSettingsDialog(
             playerPrefs.loopMode = mode
             viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
         }
-        addSwitchRow(
+        rows.addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.settings_auto_play_next),
             checked = playerPrefs.autoPlayNext
         ) { checked ->
             playerPrefs.autoPlayNext = checked
         }
-        addChoiceRow(
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_playback_end_behavior),
             value = playbackEndBehaviorLabel(playerPrefs.playbackEndBehavior),
             options = PlayerPlaybackEndBehaviorUi.options().map(::playbackEndBehaviorLabel)
@@ -656,14 +616,14 @@ class PlayerSettingsDialog(
             playerPrefs.playbackEndBehavior = behavior
         }
         addPlaybackSpeedSeekRow()
-        addChoiceRow(
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_seek_interval),
             value = seekIntervalLabelFor(playerPrefs.seekInterval),
             options = seekIntervalChoices().map { context.getString(it.labelRes) }
         ) { selected ->
             setSeekIntervalFromChoiceLabel(selected)
         }
-        addSwitchRow(
+        rows.addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.settings_remember_progress),
             checked = playerPrefs.rememberProgress
@@ -690,18 +650,18 @@ class PlayerSettingsDialog(
                 topMargin = dp(4)
             }
         )
-        addDivider(detailContainer)
-        addAccentActionRow(detailContainer, context.getString(R.string.player_action_play)) {
+        rows.addDivider(detailContainer)
+        rows.addAccentActionRow(detailContainer, context.getString(R.string.player_action_play)) {
             val url = streamInput.text?.toString().orEmpty().trim()
             if (url.isNotBlank()) playStreamUrl(url)
         }
         if (playerPrefs.lastStreamUrl.isNotBlank()) {
-            addActionRow(context.getString(R.string.player_settings_play_last_stream)) {
+            rows.addActionRow(context.getString(R.string.player_settings_play_last_stream)) {
                 playStreamUrl(playerPrefs.lastStreamUrl)
             }
-            addInfoRow(context.getString(R.string.player_settings_last_stream_url), playerPrefs.lastStreamUrl)
+            rows.addInfoRow(context.getString(R.string.player_settings_last_stream_url), playerPrefs.lastStreamUrl)
         } else {
-            addInfoRow(
+            rows.addInfoRow(
                 context.getString(R.string.player_settings_last_stream_url),
                 context.getString(R.string.player_settings_value_none)
             )
@@ -709,201 +669,35 @@ class PlayerSettingsDialog(
     }
 
     private fun buildInfoPage() {
-        loadMediaInfoAsync()
-        videoInfoRows().forEach { (label, value) -> addInfoRow(label, value) }
-        addActionRow(context.getString(R.string.player_settings_info_copy)) {
-            copyVideoInfoToClipboard()
+        infoController.loadMediaInfoAsync()
+        infoController.videoInfoRows().forEach { (label, value) -> rows.addInfoRow(label, value) }
+        rows.addActionRow(context.getString(R.string.player_settings_info_copy)) {
+            infoController.copyVideoInfoToClipboard()
         }
-    }
-
-    private fun videoInfoRows(): List<Pair<String, String>> {
-        val state = viewModel.uiState.value
-        val mediaInfo = cachedMediaInfo
-        val rows = mutableListOf(
-            context.getString(R.string.player_settings_info_title) to
-                state.title.ifBlank { context.getString(R.string.app_name) },
-            context.getString(R.string.player_settings_info_position) to formatTime(playerManager.currentPosition),
-            context.getString(R.string.player_settings_info_resolution) to videoResolutionLabel(mediaInfo),
-            context.getString(R.string.player_settings_info_speed) to playbackSpeedLabelFor(state.speed),
-            context.getString(R.string.player_settings_info_aspect) to aspectLabel(playerPrefs.aspectRatio),
-            context.getString(R.string.player_settings_info_source) to
-                viewModel.currentVideoSource().ifBlank { context.getString(R.string.player_settings_value_none) }
-        )
-        mediaInfo
-            ?.mediaInfoRows(context, ::formatTime)
-            ?.let { rows += it }
-        if (mediaInfo == null && isMediaInfoLoading) {
-            rows += context.getString(R.string.player_settings_info_container) to
-                context.getString(R.string.player_settings_info_loading)
-        }
-        viewModel.selectedAudioTrack()?.let { track ->
-            rows += context.getString(R.string.player_settings_info_current_audio_track) to
-                PlayerAudioDiagnosticsPolicy.trackSummary(
-                    track = track,
-                    streamLabel = context.getString(R.string.player_settings_info_stream, track.groupIndex + 1),
-                    unsupportedLabel = context.getString(R.string.player_settings_audio_track_unsupported)
-                )
-            rows += context.getString(R.string.player_settings_info_audio_decoder) to audioDecoderLabel(track)
-        } ?: run {
-            rows += context.getString(R.string.player_settings_info_current_audio_track) to
-                context.getString(
-                    if (playerPrefs.audioMuted) R.string.player_sheet_disable
-                    else R.string.player_settings_audio_track_none
-                )
-        }
-        rows += audioDiagnosticRows(viewModel.audioDiagnostics())
-        if (rows.none { it.first == context.getString(R.string.player_settings_info_duration) }) {
-            rows += context.getString(R.string.player_settings_info_duration) to formatTime(playerManager.duration)
-        }
-        return rows
-    }
-
-    private fun loadMediaInfoAsync() {
-        val source = viewModel.currentVideoSource()
-        if (source.isBlank()) return
-        if (cachedMediaInfoSource == source && (cachedMediaInfo != null || isMediaInfoLoading)) return
-
-        isMediaInfoLoading = true
-        dialogScope.launch {
-            val mediaInfo = withContext(Dispatchers.IO) {
-                PlayerMediaInfoReader.read(context, viewModel.currentVideoSource())
-            }
-            cachedMediaInfo = mediaInfo
-            cachedMediaInfoSource = source
-            isMediaInfoLoading = false
-            if (currentRootDetailPage == SettingsPage.INFO &&
-                ::detailPage.isInitialized &&
-                detailPage.visibility == View.VISIBLE
-            ) {
-                rebuildCurrentDetail(SettingsPage.INFO, context.getString(R.string.player_sheet_info))
-            }
-        }
-    }
-
-    private fun audioDiagnosticRows(diagnostics: PlayerAudioDiagnostics): List<Pair<String, String>> {
-        val rows = mutableListOf<Pair<String, String>>()
-        rows += context.getString(R.string.player_settings_info_ffmpeg_extension) to context.getString(
-            if (diagnostics.ffmpegExtensionAvailable) {
-                R.string.player_settings_info_ffmpeg_available
-            } else {
-                R.string.player_settings_info_ffmpeg_unavailable
-            }
-        )
-        diagnostics.lastDecoderName?.takeIf { it.isNotBlank() }?.let { decoder ->
-            rows += context.getString(R.string.player_settings_info_audio_decoder) to decoder
-        }
-        PlayerAudioDiagnosticsPolicy.runtimeInputSummary(
-            diagnostics = diagnostics,
-            softwareFallbackLabel = context.getString(R.string.player_settings_info_audio_fallback_needed)
-        )?.let { label ->
-            rows += context.getString(R.string.player_settings_info_audio_input_format) to label
-        }
-        PlayerAudioDiagnosticsPolicy.compatibilityMessage(
-            diagnostics = diagnostics,
-            fallbackActiveLabel = context.getString(R.string.player_settings_info_audio_fallback_active),
-            fallbackNeededLabel = context.getString(R.string.player_settings_info_audio_fallback_needed)
-        )?.let { message ->
-            rows += context.getString(R.string.player_settings_info_audio_compatibility) to message
-        }
-        diagnostics.lastPlaybackError?.takeIf { it.isNotBlank() }?.let { error ->
-            rows += context.getString(R.string.player_settings_info_playback_error) to error
-        }
-        return rows
-    }
-
-    private fun audioTrackLabel(track: PlayerAudioTrackInfo): String {
-        return PlayerAudioDiagnosticsPolicy.trackSummary(
-            track = track,
-            streamLabel = context.getString(R.string.player_settings_info_stream, track.groupIndex + 1),
-            unsupportedLabel = context.getString(R.string.player_settings_audio_track_unsupported)
-        )
-        val parts = mutableListOf<String>()
-        parts += context.getString(R.string.player_settings_info_stream, track.groupIndex + 1)
-        parts += audioCodecLabel(track.mimeType)
-        track.language?.takeIf { it.isNotBlank() && it != "und" }?.let { parts += it }
-        if (track.channelCount > 0) parts += audioChannelLabel(track.channelCount)
-        if (track.sampleRate > 0) parts += "${track.sampleRate} Hz"
-        if (!track.supported) parts += context.getString(R.string.player_settings_audio_track_unsupported)
-        return parts.joinToString(" · ")
-    }
-
-    private fun audioDecoderLabel(track: PlayerAudioTrackInfo): String = when {
-        !track.supported -> context.getString(R.string.player_settings_audio_decoder_unsupported)
-        track.requiresSoftwareAudioFallback -> context.getString(R.string.player_settings_audio_decoder_ffmpeg)
-        else -> context.getString(R.string.player_settings_audio_decoder_system)
-    }
-
-    private fun audioCodecLabel(mimeType: String): String = when (mimeType.lowercase(Locale.US)) {
-        "audio/mp4a-latm" -> "AAC"
-        "audio/ac3" -> "AC-3"
-        "audio/eac3" -> "E-AC-3"
-        "audio/vnd.dts" -> "DTS/DCA"
-        "audio/vnd.dts.hd" -> "DTS-HD"
-        "audio/vnd.dts.uhd" -> "DTS-UHD"
-        "audio/x-dts" -> "DTS/DCA"
-        "audio/true-hd" -> "Dolby TrueHD"
-        "audio/mlp" -> "MLP"
-        else -> mimeType.ifBlank { context.getString(R.string.player_settings_info_type_audio) }
-    }
-
-    private fun audioChannelLabel(count: Int): String = when (count) {
-        1 -> "Mono"
-        2 -> "Stereo"
-        6 -> "5.1"
-        8 -> "7.1"
-        else -> "$count ch"
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun videoResolutionLabel(mediaInfo: PlayerMediaInfo?): String {
-        val vs = viewModel.player?.videoSize
-        if (vs != null) {
-            val h = vs.height
-            val w = vs.width
-            if (w > 0 && h > 0) {
-                val displayW = round(w * vs.pixelWidthHeightRatio.toDouble()).toInt().coerceAtLeast(1)
-                return "${displayW}x$h"
-            }
-        }
-        mediaInfo?.tracks
-            ?.firstOrNull { track ->
-                track.type == PlayerMediaTrack.Type.VIDEO &&
-                    track.width != null &&
-                    track.height != null
-            }
-            ?.let { track -> return "${track.width}x${track.height}" }
-        return context.getString(R.string.player_settings_value_none)
-    }
-
-    private fun copyVideoInfoToClipboard() {
-        val text = videoInfoRows().joinToString(separator = "\n") { "${it.first}: ${it.second}" }
-        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        cm.setPrimaryClip(ClipData.newPlainText("openvideo_video_info", text))
-        Toast.makeText(context, context.getString(R.string.player_settings_info_copied), Toast.LENGTH_SHORT).show()
     }
 
     private fun buildCutPage() {
-        addInfoRow(context.getString(R.string.player_settings_clip_start), formatSavedTime(playerPrefs.clipStartMs))
-        addInfoRow(context.getString(R.string.player_settings_clip_end), formatSavedTime(playerPrefs.clipEndMs))
-        addActionRow(context.getString(R.string.player_settings_clip_set_start)) {
+        rows.addInfoRow(context.getString(R.string.player_settings_clip_start), formatSavedTime(playerPrefs.clipStartMs))
+        rows.addInfoRow(context.getString(R.string.player_settings_clip_end), formatSavedTime(playerPrefs.clipEndMs))
+        rows.addActionRow(context.getString(R.string.player_settings_clip_set_start)) {
             playerPrefs.clipStartMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
         }
-        addActionRow(context.getString(R.string.player_settings_clip_set_end)) {
+        rows.addActionRow(context.getString(R.string.player_settings_clip_set_end)) {
             playerPrefs.clipEndMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
         }
-        addSwitchRow(
+        rows.addSwitchRow(
             parent = detailContainer,
             title = context.getString(R.string.player_settings_clip_loop_preview),
             checked = playerPrefs.clipLoopPreview
         ) { checked ->
             playerPrefs.clipLoopPreview = checked
         }
-        addActionRow(context.getString(R.string.player_settings_clip_export)) {
+        rows.addActionRow(context.getString(R.string.player_settings_clip_export)) {
             exportClip()
         }
-        addActionRow(context.getString(R.string.player_settings_clip_clear)) {
+        rows.addActionRow(context.getString(R.string.player_settings_clip_clear)) {
             playerPrefs.clipStartMs = -1L
             playerPrefs.clipEndMs = -1L
             playerPrefs.clipLoopPreview = false
@@ -913,29 +707,29 @@ class PlayerSettingsDialog(
 
     private fun buildBookmarkPage() {
         val bookmark = playerPrefs.bookmarkPositionMs
-        addInfoRow(context.getString(R.string.player_settings_bookmark_label), formatSavedTime(bookmark))
-        addActionRow(context.getString(R.string.player_settings_bookmark_save)) {
+        rows.addInfoRow(context.getString(R.string.player_settings_bookmark_label), formatSavedTime(bookmark))
+        rows.addActionRow(context.getString(R.string.player_settings_bookmark_save)) {
             playerPrefs.bookmarkPositionMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
         }
         if (bookmark >= 0L) {
-            addActionRow(context.getString(R.string.player_settings_bookmark_jump)) {
+            rows.addActionRow(context.getString(R.string.player_settings_bookmark_jump)) {
                 viewModel.seekTo(bookmark)
                 dismiss()
             }
-            addActionRow(context.getString(R.string.player_settings_bookmark_clear)) {
+            rows.addActionRow(context.getString(R.string.player_settings_bookmark_clear)) {
                 playerPrefs.bookmarkPositionMs = -1L
                 rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
             }
         } else {
-            addDisabledRow(context.getString(R.string.player_settings_bookmark_jump))
-            addDisabledRow(context.getString(R.string.player_settings_bookmark_clear))
+            rows.addDisabledRow(context.getString(R.string.player_settings_bookmark_jump))
+            rows.addDisabledRow(context.getString(R.string.player_settings_bookmark_clear))
         }
     }
 
     private fun buildTutorialPage() {
         /*
-        addActionRow(context.getString(R.string.player_sheet_tutorial_apply_mx)) {
+        rows.addActionRow(context.getString(R.string.player_sheet_tutorial_apply_mx)) {
             playerPrefs.leftVerticalGesture = GestureAction.BRIGHTNESS
             playerPrefs.rightVerticalGesture = GestureAction.VOLUME
             playerPrefs.horizontalSwipeAction = GestureAction.SEEK
@@ -943,15 +737,15 @@ class PlayerSettingsDialog(
             playerPrefs.longPressAction = LongPressAction.SPEED
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
-        addActionRow(context.getString(R.string.player_sheet_tutorial_apply_play_pause)) {
+        rows.addActionRow(context.getString(R.string.player_sheet_tutorial_apply_play_pause)) {
             playerPrefs.doubleTapAction = DoubleTapAction.PLAY_PAUSE
             playerPrefs.longPressAction = LongPressAction.SPEED
             rebuildCurrentDetail(SettingsPage.TUTORIAL, context.getString(R.string.player_sheet_tutorial))
         }
         */
-        addActionRows(gesturePresetActionSpecs())
-        addActionRows(tutorialActionSpecs())
-        addSwitchRows(tutorialSwitchSpecs(), detailContainer)
+        rows.addActionRows(gesturePresetActionSpecs())
+        rows.addActionRows(tutorialActionSpecs())
+        rows.addSwitchRows(tutorialSwitchSpecs(), detailContainer)
     }
 
     private fun gesturePresetActionSpecs(): List<PlayerSettingsActionSpec> =
@@ -979,7 +773,7 @@ class PlayerSettingsDialog(
     private fun showDoubleTapActionPage() {
         openNestedDetailScreen(context.getString(R.string.settings_double_tap_action)) {
             DoubleTapAction.entries.forEach { action ->
-                addRadioRow(
+                rows.addRadioRow(
                     title = doubleTapLabel(action),
                     checked = playerPrefs.doubleTapAction == action
                 ) {
@@ -993,7 +787,7 @@ class PlayerSettingsDialog(
     private fun showLongPressActionPage() {
         openNestedDetailScreen(context.getString(R.string.settings_long_press_action)) {
             LongPressAction.entries.forEach { action ->
-                addRadioRow(
+                rows.addRadioRow(
                     title = longPressLabel(action),
                     checked = playerPrefs.longPressAction == action
                 ) {
@@ -1005,10 +799,10 @@ class PlayerSettingsDialog(
     }
 
     private fun buildMorePage() {
-        addSwitchRows(moreIntroSwitchSpecs(), detailContainer)
+        rows.addSwitchRows(moreIntroSwitchSpecs(), detailContainer)
         addPlaybackSpeedSeekRow()
-        addSwitchRows(moreScreenSwitchSpecs(), detailContainer)
-        addChoiceRow(
+        rows.addSwitchRows(moreScreenSwitchSpecs(), detailContainer)
+        rows.addChoiceRow(
             title = context.getString(R.string.settings_controls_auto_hide),
             value = controlsAutoHideLabel(playerPrefs.controlsAutoHide),
             options = controlsAutoHideChoiceList().map { (_, res) -> context.getString(res) }
@@ -1016,7 +810,7 @@ class PlayerSettingsDialog(
             playerPrefs.controlsAutoHide = controlsAutoHideChoiceList()
                 .firstOrNull { context.getString(it.second) == selected }?.first ?: 0
         }
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.player_sheet_settings_panel_opacity),
             min = 0,
             maxValue = 100,
@@ -1027,7 +821,7 @@ class PlayerSettingsDialog(
             playerPrefs.settingsPanelOpacity = value
             applySettingsSheetOpacity()
         }
-        addActionRows(moreActionSpecs())
+        rows.addActionRows(moreActionSpecs())
     }
 
     private fun tutorialActionSpecs(): List<PlayerSettingsActionSpec> = listOf(
@@ -1083,29 +877,6 @@ class PlayerSettingsDialog(
         }
     )
 
-    private fun addInfoRow(title: String, value: String) {
-        detailContainer.addView(LinearLayout(context).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(52)
-            addView(TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            })
-            addView(TextView(context).apply {
-                text = value
-                setTextColor(Color.rgb(176, 176, 176))
-                textSize = 14f
-                gravity = Gravity.END
-                maxLines = 2
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            })
-        })
-        addDivider(detailContainer)
-    }
-
     private fun exportClip() {
         val startMs = playerPrefs.clipStartMs
         val endMs = playerPrefs.clipEndMs
@@ -1126,17 +897,6 @@ class PlayerSettingsDialog(
         }
     }
 
-    private fun addDisabledRow(title: String) {
-        detailContainer.addView(TextView(context).apply {
-            text = title
-            setTextColor(Color.rgb(85, 85, 85))
-            textSize = 15f
-            gravity = Gravity.CENTER_VERTICAL
-            minHeight = dp(52)
-        })
-        addDivider(detailContainer)
-    }
-
     private fun playStreamUrl(url: String) {
         playerPrefs.lastStreamUrl = url
         viewModel.playStream(url)
@@ -1144,7 +904,7 @@ class PlayerSettingsDialog(
     }
 
     private fun addPlaybackSpeedSeekRow() {
-        addSeekRow(
+        rows.addSeekRow(
             title = context.getString(R.string.settings_playback_speed),
             min = 0,
             maxValue = speedToProgress(SPEED_MAX),
@@ -1232,7 +992,7 @@ class PlayerSettingsDialog(
     }
 
     private fun addAspectRow(title: String, ratio: AspectRatio) {
-        addRadioRow(
+        rows.addRadioRow(
             title = title,
             checked = playerPrefs.aspectRatio == ratio
         ) {
@@ -1250,326 +1010,6 @@ class PlayerSettingsDialog(
 
     private fun rebuildCurrentDetail(page: SettingsPage, title: String) {
         showDetailPage(page, title)
-    }
-
-    private fun addSwitchRow(
-        parent: LinearLayout,
-        title: String,
-        checked: Boolean,
-        onChanged: (Boolean) -> Unit
-    ) {
-        parent.addView(LinearLayout(context).apply {
-            isBaselineAligned = false
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(52)
-            addView(TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                includeFontPadding = false
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginEnd = dp(8)
-                }
-            })
-            addView(SwitchMaterial(context).apply {
-                isChecked = checked
-                setOnCheckedChangeListener { _: CompoundButton, value: Boolean -> onChanged(value) }
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    marginStart = dp(8)
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-            })
-        })
-        addDivider(parent)
-    }
-
-    private fun addSwitchRows(
-        rows: List<PlayerSettingsSwitchSpec>,
-        parent: LinearLayout = detailContainer
-    ) {
-        rows.forEach { row ->
-            addSwitchRow(
-                parent = parent,
-                title = row.title,
-                checked = row.checked,
-                onChanged = row.onChanged
-            )
-        }
-    }
-
-    private fun addRadioRow(
-        title: String,
-        checked: Boolean,
-        enabled: Boolean = true,
-        onClick: () -> Unit
-    ) {
-        detailContainer.addView(RadioButton(context).apply {
-            text = title
-            isChecked = checked
-            isEnabled = enabled
-            buttonTintList = context.getColorStateList(R.color.player_accent)
-            setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
-            textSize = 15f
-            minHeight = dp(52)
-            setOnClickListener { if (enabled) onClick() }
-        })
-        addDivider(detailContainer)
-    }
-
-    private fun addCheckboxRow(
-        title: String,
-        checked: Boolean,
-        enabled: Boolean = true,
-        onChanged: (Boolean) -> Unit
-    ) {
-        detailContainer.addView(CheckBox(context).apply {
-            text = title
-            isChecked = checked
-            isEnabled = enabled
-            buttonTintList = context.getColorStateList(R.color.player_accent)
-            setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
-            textSize = 15f
-            minHeight = dp(52)
-            setOnCheckedChangeListener { _, value -> onChanged(value) }
-        })
-        addDivider(detailContainer)
-    }
-
-    private fun addActionRow(title: String, onClick: () -> Unit) {
-        detailContainer.addView(
-            TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                gravity = Gravity.CENTER_VERTICAL
-                minHeight = dp(52)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener { onClick() }
-            }
-        )
-        addDivider(detailContainer)
-    }
-
-    private fun addActionRows(rows: List<PlayerSettingsActionSpec>) {
-        rows.forEach { row ->
-            if (row.value == null) {
-                addActionRow(row.title, row.onClick)
-            } else {
-                addActionRow(row.title, row.value, row.onClick)
-            }
-        }
-    }
-
-    private fun addAccentActionRow(parent: LinearLayout, title: String, onClick: () -> Unit) {
-        parent.addView(
-            TextView(context).apply {
-                text = title
-                setTextColor(context.getColor(R.color.player_accent))
-                textSize = 15f
-                gravity = Gravity.CENTER_VERTICAL
-                minHeight = dp(52)
-                isClickable = true
-                isFocusable = true
-                setOnClickListener { onClick() }
-            }
-        )
-        addDivider(parent)
-    }
-
-    private fun addActionRow(title: String, value: String, onClick: () -> Unit) {
-        detailContainer.addView(LinearLayout(context).apply {
-            isBaselineAligned = false
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(54)
-            isClickable = true
-            isFocusable = true
-            setOnClickListener { onClick() }
-            addView(TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                includeFontPadding = false
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginEnd = dp(8)
-                }
-            })
-            addView(TextView(context).apply {
-                text = value
-                setTextColor(context.getColor(R.color.player_accent))
-                textSize = 14f
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(5), dp(12), dp(5))
-                background = context.getDrawable(R.drawable.bg_player_settings_value)
-                // Wrap pill to text; cap width so ellipsize works and the title keeps space.
-                maxWidth = (context.resources.displayMetrics.widthPixels * 0.5f).toInt()
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = Gravity.CENTER_VERTICAL
-                }
-            })
-        })
-        addDivider(detailContainer)
-    }
-
-    private fun addSubtitleColorSwatchRow() {
-        val density = context.resources.displayMetrics.density
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, dp(8))
-        }
-        row.addView(TextView(context).apply {
-            text = context.getString(R.string.settings_subtitle_color)
-            setTextColor(Color.WHITE)
-            textSize = 15f
-            maxLines = 2
-            ellipsize = TextUtils.TruncateAt.END
-            includeFontPadding = false
-        })
-        val swatchRow = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                topMargin = dp(8)
-            }
-        }
-        val swatches = PlayerSubtitleColorPolicy.options.mapIndexed { index, _ ->
-            PlayerSubtitleColorSwatchBinder.createSwatchView(context, dp(36)).also { swatch ->
-                val lp = swatch.layoutParams as LinearLayout.LayoutParams
-                if (index > 0) lp.marginStart = dp(16)
-                swatchRow.addView(swatch)
-            }
-        }
-        PlayerSubtitleColorSwatchBinder.bindSwatches(
-            swatches = swatches,
-            context = context,
-            playerPrefs = playerPrefs,
-            density = density,
-            onColorChanged = {}
-        )
-        row.addView(swatchRow)
-        detailContainer.addView(row)
-        addDivider(detailContainer)
-    }
-
-    private fun addChoiceRow(
-        title: String,
-        value: String,
-        options: List<String>,
-        onSelected: (String) -> Unit
-    ) {
-        addActionRow(title, value) {
-            openNestedDetailScreen(title) {
-                options.forEach { opt ->
-                    addRadioRow(
-                        title = opt,
-                        checked = opt == value
-                    ) {
-                        onSelected(opt)
-                        detailBackStack.lastOrNull()?.let { prev ->
-                            rebuildCurrentDetail(prev.page, prev.title)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private fun addSeekRow(
-        title: String,
-        min: Int,
-        maxValue: Int,
-        value: Int,
-        label: (Int) -> String,
-        commitOnStop: Boolean = false,
-        parent: LinearLayout = detailContainer,
-        onChanged: (Int) -> Unit
-    ) {
-        val row = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(8), 0, dp(8))
-        }
-        val valueView = TextView(context).apply {
-            text = label(value)
-            setTextColor(context.getColor(R.color.player_accent))
-            textSize = 14f
-        }
-        row.addView(LinearLayout(context).apply {
-            isBaselineAligned = false
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            addView(TextView(context).apply {
-                text = title
-                setTextColor(Color.WHITE)
-                textSize = 15f
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-                includeFontPadding = false
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginEnd = dp(8)
-                }
-            })
-            addView(valueView.apply {
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    gravity = Gravity.CENTER_VERTICAL
-                    marginStart = dp(8)
-                }
-            })
-        })
-        row.addView(SeekBar(context).apply {
-            max = maxValue - min
-            progress = (value - min).coerceIn(0, maxValue - min)
-            progressTintList = context.getColorStateList(R.color.player_accent)
-            thumbTintList = context.getColorStateList(R.color.player_accent)
-            var pendingValue = value.coerceIn(min, maxValue)
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-                    if (!fromUser) return
-                    val next = min + progress
-                    pendingValue = next
-                    valueView.text = label(next)
-                    if (!commitOnStop) onChanged(next)
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar) = Unit
-                override fun onStopTrackingTouch(seekBar: SeekBar) {
-                    if (commitOnStop) onChanged(pendingValue)
-                }
-            })
-        })
-        parent.addView(row)
-        addDivider(parent)
-    }
-
-    private fun addDivider(parent: LinearLayout) {
-        parent.addView(View(context).apply {
-            background = context.getDrawable(R.drawable.bg_player_settings_divider)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                1
-            )
-        })
     }
 
     private fun shareVideoTitle() {
@@ -1606,24 +1046,4 @@ class PlayerSettingsDialog(
     private fun dp(value: Int): Int =
         (value * context.resources.displayMetrics.density).toInt()
 
-    private data class PrimaryItem(
-        val page: SettingsPage,
-        val titleRes: Int,
-        val iconRes: Int
-    )
-
-    private enum class SettingsPage {
-        AUDIO,
-        SUBTITLE,
-        ASPECT,
-        DISPLAY,
-        PLAYLIST,
-        STREAM,
-        INFO,
-        SHARE,
-        CUT,
-        BOOKMARK,
-        TUTORIAL,
-        MORE
-    }
 }

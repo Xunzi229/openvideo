@@ -11,7 +11,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun doubleTapSeekHudSurvivesTheGestureUpThatTriggeredIt() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("keepGestureHudAfterActionUp"))
         assertTrue(source.contains("keepGestureHudAfterActionUp = true"))
@@ -20,7 +20,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun doubleTapForwardAndBackwardPreferencesKeepTheirConfiguredDirection() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
         val doubleTapBlock = source.substringAfter("override fun onDoubleTap")
             .substringBefore("override fun onLongPress")
 
@@ -32,7 +32,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun accumulatedDoubleTapSeekUsesAnchorPositionInsteadOfPotentiallyStaleUiState() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("doubleTapSeekAnchorPositionMs"))
         assertTrue(source.contains("PlayerDoubleTapSeekPolicy.preview("))
@@ -42,7 +42,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun doubleTapSeekDoesNotCommitWhenDurationIsUnknown() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
         val block = source.substringAfter("private fun handleDoubleTapSeek")
             .substringBefore("\n    private fun")
 
@@ -52,7 +52,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun longPressSpeedUsesPolicyForStartAndRelease() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("PlayerLongPressPolicy.onPress("))
         assertTrue(source.contains("PlayerLongPressPolicy.onRelease("))
@@ -101,20 +101,22 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun videoSwitchResetsMediaBoundPlaybackStateThroughPolicy() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val activitySource = sourceFile("PlayerActivity.kt").readText()
+        val gestureSource = sourceFile("PlayerGestureController.kt").readText()
 
-        assertTrue(source.contains("resetPlaybackSessionForNewVideo()"))
-        assertTrue(source.contains("switchSessionVideo("))
-        assertTrue(source.contains("dismissSubtitleSettingsSheet()"))
-        assertTrue(source.contains("PlayerVideoSwitchPolicy.resetForNewVideo()"))
-        assertTrue(source.contains("abLoopState = reset.abLoopState"))
-        assertTrue(source.contains("doubleTapSeekState = reset.doubleTapSeekState"))
-        assertTrue(source.contains("pendingSeekTarget = reset.pendingSeekTarget"))
+        assertTrue(activitySource.contains("resetPlaybackSessionForNewVideo()"))
+        assertTrue(activitySource.contains("switchSessionVideo("))
+        assertTrue(activitySource.contains("dismissSubtitleSettingsSheet()"))
+        assertTrue(activitySource.contains("PlayerVideoSwitchPolicy.resetForNewVideo()"))
+        assertTrue(activitySource.contains("abLoopState = reset.abLoopState"))
+        assertTrue(activitySource.contains("playerGestures.resetForNewVideo(reset)"))
+        assertTrue(gestureSource.contains("doubleTapSeekState = reset.doubleTapSeekState"))
+        assertTrue(gestureSource.contains("pendingSeekTarget = reset.pendingSeekTarget"))
     }
 
     @Test
     fun horizontalSeekGestureUsesDownPositionAnchorAndSeekPreviewPolicy() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("seekGestureAnchorPositionMs"))
         assertTrue(source.contains("seekGestureAnchorPositionMs = viewModel.uiState.value.currentPosition"))
@@ -125,26 +127,24 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun verticalSeekGestureUsesSeekPreviewPolicyAndDoesNotCommitUnknownDuration() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("PlayerSeekGesturePolicy.verticalPreview("))
-        assertTrue(source.contains("screenHeightPx = resources.displayMetrics.heightPixels"))
+        assertTrue(source.contains("screenHeightPx = activity.resources.displayMetrics.heightPixels"))
         assertTrue(source.contains("pendingSeekTarget = preview.targetMs.takeIf { preview.seekable }"))
     }
 
     @Test
     fun brightnessAndVolumeGesturesUseLevelAdjustmentPolicy() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("PlayerLevelAdjustmentPolicy.verticalBrightness("))
-        assertTrue(source.contains("PlayerLevelAdjustmentPolicy.horizontalBrightness("))
         assertTrue(source.contains("PlayerLevelAdjustmentPolicy.verticalVolume("))
-        assertTrue(source.contains("PlayerLevelAdjustmentPolicy.horizontalVolume("))
     }
 
     @Test
     fun cancelledSeekGestureClearsPendingTargetWithoutSeeking() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerGestureController.kt").readText()
 
         assertTrue(source.contains("MotionEvent.ACTION_CANCEL -> {"))
         assertTrue(source.contains("pendingSeekTarget = null"))

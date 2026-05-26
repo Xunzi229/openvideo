@@ -11,32 +11,33 @@ class PlayerSettingsActivityIntegrationTest {
 
     @Test
     fun subtitleSettingsSheetHidesControlsWhileOpenAndRestoresOnDismiss() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerQuickDialogControllerSource()))
         val openBlock = source
-            .substringAfter("private fun openSubtitleSettingsSheet()")
-            .substringBefore("\n    private fun onSubtitleSettingsSheetDismissed()")
+            .substringAfter("fun openSubtitleSettingsSheet()")
+            .substringBefore("\n    fun onSubtitleSettingsSheetDismissed()")
         val dismissBlock = source
-            .substringAfter("private fun onSubtitleSettingsSheetDismissed()")
-            .substringBefore("\n    private fun dismissSubtitleSettingsSheet()")
+            .substringAfter("fun onSubtitleSettingsSheetDismissed()")
+            .substringBefore("\n    fun dismissSubtitleSettingsSheet()")
 
-        assertTrue(openBlock.contains("hideChromeForSettingsOverlay()"))
-        assertTrue(openBlock.contains("isSettingsOverlayVisible = true"))
+        assertTrue(openBlock.contains("onHideChromeForSettingsOverlay()"))
+        assertTrue(openBlock.contains("onSettingsOverlayVisibleChanged(true)"))
         assertTrue(openBlock.contains("onDismissListener = ::onSubtitleSettingsSheetDismissed"))
-        assertTrue(dismissBlock.contains("restoreChromeAfterSettingsOverlay()"))
-        assertTrue(dismissBlock.contains("isSettingsOverlayVisible = false"))
-        assertTrue(dismissBlock.contains("applyPlayerSettings()"))
-        assertTrue(dismissBlock.contains("scheduleHideControls()"))
+        assertTrue(dismissBlock.contains("onRestoreChromeAfterSettingsOverlay()"))
+        assertTrue(dismissBlock.contains("onSettingsOverlayVisibleChanged(false)"))
+        assertTrue(dismissBlock.contains("onApplyPlayerSettings()"))
+        assertTrue(dismissBlock.contains("onScheduleHideControls()"))
     }
 
     @Test
     fun settingsSheetWeakensControlsAndImmediatePreferencesAffectPlaybackChrome() {
         val source = String(Files.readAllBytes(playerActivitySource()))
+        val quickDialogs = String(Files.readAllBytes(playerQuickDialogControllerSource()))
 
         assertTrue(source.contains("openPlayerSettingsDialog"))
-        assertTrue(source.contains("hideChromeForSettingsOverlay()"))
-        assertTrue(source.contains("restoreChromeAfterSettingsOverlay()"))
-        assertTrue(source.contains("isSettingsOverlayVisible = true"))
-        assertTrue(source.contains("isSettingsOverlayVisible = false"))
+        assertTrue(quickDialogs.contains("onHideChromeForSettingsOverlay()"))
+        assertTrue(quickDialogs.contains("onRestoreChromeAfterSettingsOverlay()"))
+        assertTrue(quickDialogs.contains("onSettingsOverlayVisibleChanged(true)"))
+        assertTrue(quickDialogs.contains("onSettingsOverlayVisibleChanged(false)"))
         assertTrue(source.contains("PlayerSubtitlePresentationPolicy.resolveSubtitleText("))
         assertTrue(source.contains("PlayerDisplayVisibilityPolicy.videoLayerAlpha(playerPrefs.videoDisplayEnabled)"))
         assertTrue(source.contains("controlsChromeMaxAlpha()"))
@@ -89,6 +90,24 @@ class PlayerSettingsActivityIntegrationTest {
             "ui",
             "player",
             "PlayerActivity.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerQuickDialogControllerSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerQuickDialogController.kt"
         )
         return sequenceOf(
             relativePath,

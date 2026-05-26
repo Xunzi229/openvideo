@@ -14,8 +14,9 @@ class PlayerVideoLayoutSourceTest {
         val listenerBlock = source.substringAfter("override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {")
             .substringBefore("\n            }")
         val orientationSource = String(Files.readAllBytes(playerVideoOrientationControllerSource()))
-        val aspectRatioBlock = source.substringAfter("private fun applyPlayerContentAspectRatio() {")
-            .substringBefore("\n    @OptIn(UnstableApi::class)\n    private fun videoRenderView()")
+        val transformSource = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val aspectRatioBlock = transformSource.substringAfter("fun applyAspectRatio(")
+            .substringBefore("\n    @OptIn(UnstableApi::class)")
 
         assertTrue(listenerBlock.contains("videoSize.unappliedRotationDegrees"))
         assertTrue(listenerBlock.contains("videoSize.pixelWidthHeightRatio"))
@@ -42,6 +43,14 @@ class PlayerVideoLayoutSourceTest {
     }
 
     private fun playerVideoOrientationControllerSource(): Path {
+        return kotlinSource("PlayerVideoOrientationController.kt")
+    }
+
+    private fun contentFrameTransformControllerSource(): Path {
+        return kotlinSource("PlayerContentFrameTransformController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -51,7 +60,7 @@ class PlayerVideoLayoutSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerVideoOrientationController.kt"
+            name
         )
         return sequenceOf(
             relativePath,
