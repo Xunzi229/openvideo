@@ -33,14 +33,14 @@ class PlayerContentFrameSourceTest {
 
     @Test
     fun playerActivityDelegatesContentFrameTransformToApplyPolicy() {
-        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val displaySource = String(Files.readAllBytes(playerDisplayControllerSource()))
         val controllerSource = String(Files.readAllBytes(contentFrameTransformControllerSource()))
-        val displayBlock = activitySource.substringAfter("private fun applyDisplaySettings() {")
-            .substringBefore("\n    private fun initBrightnessAndVolume()")
+        val displayBlock = displaySource.substringAfter("fun applyDisplaySettings() {")
+            .substringBefore("\n    fun initBrightnessAndVolume()")
         val transformBlock = controllerSource.substringAfter("fun applyTransform(")
             .substringBefore("\n    fun sourceSize(")
 
-        assertTrue(displayBlock.contains("applyPlayerContentFrameTransform()"))
+        assertTrue(displayBlock.contains("onApplyContentFrameTransform()"))
         assertTrue(transformBlock.contains("PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom"))
         assertTrue(controllerSource.contains("PlayerVideoLayoutPolicy.displayFrameSize"))
         assertFalse(
@@ -55,6 +55,10 @@ class PlayerContentFrameSourceTest {
 
     private fun contentFrameTransformControllerSource(): Path {
         return kotlinSource("PlayerContentFrameTransformController.kt")
+    }
+
+    private fun playerDisplayControllerSource(): Path {
+        return kotlinSource("PlayerDisplayController.kt")
     }
 
     private fun kotlinSource(name: String): Path {

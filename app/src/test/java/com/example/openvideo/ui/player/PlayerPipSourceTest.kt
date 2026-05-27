@@ -11,10 +11,12 @@ class PlayerPipSourceTest {
 
     @Test
     fun playerActivityDelegatesPipEntryDecisionToPolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val pipBlock = source.substringAfter("private fun enterPipModeIfSupported() {")
-            .substringBefore("\n    private fun startPlaybackServiceIfNeeded")
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerPipControllerSource()))
+        val pipBlock = source.substringAfter("fun enterIfSupported() {")
+            .substringBefore("\n    fun onPictureInPictureModeChanged")
 
+        assertTrue(activitySource.contains("private fun enterPipModeIfSupported() = playerPip.enterIfSupported()"))
         assertTrue(pipBlock.contains("PlayerPipPolicy.enterDecision("))
         assertTrue(pipBlock.contains("PictureInPictureParams.Builder()"))
         assertTrue(pipBlock.contains(".setAspectRatio("))
@@ -31,6 +33,14 @@ class PlayerPipSourceTest {
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerPipControllerSource(): Path {
+        return kotlinSource("PlayerPipController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -40,7 +50,7 @@ class PlayerPipSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

@@ -1,29 +1,19 @@
 package com.example.openvideo.ui.player
 
-import android.app.PictureInPictureParams
-import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
-import android.content.SharedPreferences
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.TypedValue
 import android.view.View
-import android.view.ViewGroup
-import android.view.WindowManager
 import android.widget.Button
 import android.widget.ImageButton
-import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -31,8 +21,6 @@ import androidx.activity.viewModels
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.view.updateLayoutParams
 import androidx.core.view.isVisible
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -44,9 +32,7 @@ import com.example.openvideo.R
 import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.core.player.PlaybackNotificationCoordinator
 import com.example.openvideo.core.player.PlayerManager
-import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.PlayerPrefs
-import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.data.model.VideoItem
 import dagger.hilt.android.AndroidEntryPoint
@@ -168,6 +154,18 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var pickSubtitleLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+    private val subtitles: PlayerSubtitleController by lazy {
+        PlayerSubtitleController(
+            activity = this,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            subtitleLoader = subtitleLoader,
+            startupTrace = startupTrace,
+            onApplyScreenBrightness = ::applyScreenBrightness,
+            onApplyPlayerSettings = ::applyPlayerSettings,
+            onScheduleHideControls = ::scheduleHideControls
+        )
+    }
     private val playerChrome: PlayerChromeController by lazy {
         PlayerChromeController(
             activity = this,
@@ -226,8 +224,7 @@ class PlayerActivity : AppCompatActivity() {
             onApplySubtitlePresentation = ::applySubtitlePresentation,
             onSessionVideoPicked = { item ->
                 switchSessionVideo(item) {
-                    currentVideoUriString = item.uri.toString()
-                    currentVideoPath = item.path
+                    subtitles.setCurrentVideo(item.uri.toString(), item.path)
                     tvTitle.text = item.title
                     loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { item.uri.toString() }, item.path)
                     applyPlayerSettings()
@@ -271,6 +268,32 @@ class PlayerActivity : AppCompatActivity() {
                     cropExpansionFraction = smartCrop.cropExpansionFraction
                 )
             }
+        )
+    }
+    private val playerDisplay: PlayerDisplayController by lazy {
+        PlayerDisplayController(
+            activity = this,
+            window = window,
+            playerManager = playerManager,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            playerViewProvider = { playerView },
+            bottomPanelProvider = { bottomPanel },
+            controlsContainerProvider = { controlsContainer },
+            subtitleProvider = { tvSubtitle },
+            brightnessProgressProvider = { brightnessProgress },
+            volumeProgressProvider = { volumeProgress },
+            topBarProvider = { topBar },
+            lockButtonProvider = { btnLock },
+            landRightFloatColumnProvider = { landRightFloatColumn },
+            controlsVisibleProvider = { controlsVisible },
+            onCurrentBrightnessChanged = { currentBrightness = it },
+            onCurrentVolumeChanged = { currentVolume = it },
+            onResetManualVideoZoom = { manualVideoZoom = PlayerVideoZoomState.IDENTITY },
+            controlsChromeMaxAlpha = ::controlsChromeMaxAlpha,
+            onApplyContentAspectRatio = ::applyPlayerContentAspectRatio,
+            onApplyContentFrameTransform = ::applyPlayerContentFrameTransform,
+            onSetWindowBrightness = ::setWindowBrightness
         )
     }
     private val playerGestures: PlayerGestureController by lazy {
@@ -345,8 +368,7 @@ class PlayerActivity : AppCompatActivity() {
             abLoopPointAProvider = { abLoop.pointA },
             onSwitchSessionVideo = ::switchSessionVideo,
             onCurrentVideoChanged = { item ->
-                currentVideoUriString = item.uri.toString()
-                currentVideoPath = item.path
+                subtitles.setCurrentVideo(item.uri.toString(), item.path)
                 tvTitle.text = item.title
             },
             onLoadSubtitles = ::loadSubtitlesAsync,
@@ -396,15 +418,15 @@ class PlayerActivity : AppCompatActivity() {
             controlsVisibleProvider = { controlsVisible },
             onTogglePlayPause = ::togglePlayPauseAndSyncIcon,
             onFinishPlayer = ::finishPlayer,
-            onShowSessionVideoListPanel = ::showSessionVideoListPanel,
-            onOpenPlayerSettingsDialog = ::openPlayerSettingsDialog,
-            onShowSpeedPickerDialog = ::showSpeedPickerDialog,
-            onHandleSmartCropQuickToggle = ::handleSmartCropQuickToggle,
-            onShowAspectRatioQuickDialog = ::showAspectRatioQuickDialog,
-            onShowSubtitleQuickDialog = ::showSubtitleQuickDialog,
+            onShowSessionVideoListPanel = { quickDialogs.showSessionVideoListPanel() },
+            onOpenPlayerSettingsDialog = { quickDialogs.openPlayerSettingsDialog() },
+            onShowSpeedPickerDialog = { quickDialogs.showSpeedPickerDialog() },
+            onHandleSmartCropQuickToggle = { smartCrop.handleQuickToggle() },
+            onShowAspectRatioQuickDialog = { quickDialogs.showAspectRatioQuickDialog() },
+            onShowSubtitleQuickDialog = { quickDialogs.showSubtitleQuickDialog() },
             onScheduleHideControls = ::scheduleHideControls,
             onEnterPipModeIfSupported = ::enterPipModeIfSupported,
-            onShowAudioTrackQuickDialog = ::showAudioTrackQuickDialog,
+            onShowAudioTrackQuickDialog = { quickDialogs.showAudioTrackQuickDialog() },
             onToggleAbLoop = { positionMs -> abLoop.toggle(positionMs) },
             onUserOverrodeOrientationChanged = { userOverrodeOrientation = it },
             onRequestedOrientationChanged = { requestedOrientation = it },
@@ -451,6 +473,16 @@ class PlayerActivity : AppCompatActivity() {
             onDismissPlaybackNotification = ::dismissPlaybackNotification
         )
     }
+    private val playerPip: PlayerPipController by lazy {
+        PlayerPipController(
+            activity = this,
+            viewModel = viewModel,
+            onApplyPipChrome = {
+                applyChromePresentation(PlayerChromeVisibilityPolicy.pictureInPicture())
+            },
+            onShowControls = ::showControls
+        )
+    }
     private val playbackNotifications by lazy {
         PlayerPlaybackNotificationController(
             activity = this,
@@ -461,8 +493,8 @@ class PlayerActivity : AppCompatActivity() {
             playerViewProvider = { if (this::playerView.isInitialized) playerView else null },
             firstFrameScrimProvider = { if (this::firstFrameScrim.isInitialized) firstFrameScrim else null },
             titleProvider = { if (this::tvTitle.isInitialized) tvTitle.text.toString() else null },
-            currentVideoUriStringProvider = { currentVideoUriString },
-            currentVideoPathProvider = { currentVideoPath },
+            currentVideoUriStringProvider = { subtitles.currentVideoUriString },
+            currentVideoPathProvider = { subtitles.currentVideoPath },
             intentProvider = { intent },
             isActivityForegroundProvider = { isActivityForeground },
             isAwaitingFirstFrameProvider = { firstFrames.isAwaitingFirstFrame },
@@ -471,8 +503,7 @@ class PlayerActivity : AppCompatActivity() {
             onSyncPlayPauseIcon = ::syncPlayPauseIcon,
             onSwitchSessionVideo = ::switchSessionVideo,
             onCurrentVideoChanged = { item ->
-                currentVideoUriString = item.uri.toString()
-                currentVideoPath = item.path
+                subtitles.setCurrentVideo(item.uri.toString(), item.path)
                 tvTitle.text = item.title
             },
             onLoadSubtitles = { uriString, videoPath ->
@@ -482,12 +513,6 @@ class PlayerActivity : AppCompatActivity() {
             onScheduleHideControls = ::scheduleHideControls
         )
     }
-
-    // SharedPreferences listener for external subtitle URI written by settings sheet
-    private lateinit var settingsPrefs: SharedPreferences
-    private lateinit var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener
-    private var currentVideoUriString: String = ""
-    private var currentVideoPath: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Do NOT call `delegate.localNightMode = MODE_NIGHT_YES` here:
@@ -503,16 +528,7 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         suppressNotificationOpenTransition(intent)
         applyInitialVideoOrientation()
-        pickSubtitleLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            if (uri == null) return@registerForActivityResult
-            val subtitles = subtitleLoader.loadFromUri(uri)
-            if (subtitles.isNotEmpty()) {
-                viewModel.setSubtitles(subtitles)
-                Toast.makeText(this, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
-            }
-        }
+        pickSubtitleLauncher = subtitles.registerPickSubtitleLauncher()
         notificationPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { /* 用户拒绝也无需处理：通知不显示，但播放仍可继续 */ }
@@ -569,8 +585,7 @@ class PlayerActivity : AppCompatActivity() {
         updateLandResolutionBadge()
 
         // remember current video info for external subtitle callback
-        currentVideoUriString = uriString
-        currentVideoPath = videoPath
+        subtitles.setCurrentVideo(uriString, videoPath)
         val explicitStartPositionMs = intent.getLongExtra(EXTRA_START_POSITION_MS, 0L)
         if (warmResume) {
             applyPlayerSettings()
@@ -583,25 +598,7 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
 
-        // register prefs listener to auto-load external subtitle when set by the settings sheet
-        settingsPrefs = getSharedPreferences("player_settings", Context.MODE_PRIVATE)
-        prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
-            if (key == PlayerPrefs.KEY_EXTERNAL_SUBTITLE) {
-                val uri = prefs.getString(key, "") ?: ""
-                if (uri.isNotBlank()) {
-                    loadSubtitlesAsync(uri, currentVideoPath, showToast = true)
-                }
-            }
-            if (key == PlayerPrefs.KEY_BRIGHTNESS_ADJUSTMENT) {
-                applyScreenBrightness(playerPrefs.brightnessAdjustment)
-                scheduleHideControls()
-            }
-            if (PlayerPrefs.requiresImmediatePlayerApply(key)) {
-                applyPlayerSettings()
-                scheduleHideControls()
-            }
-        }
-        settingsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
+        subtitles.registerPrefsListener()
 
         scheduleHideControls()
 
@@ -634,98 +631,18 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyPlayerSettings() {
-        viewModel.setAspectRatio(playerPrefs.aspectRatio)
-        viewModel.setDecodeMode(PlayerDecodeModePolicy.decodeMode(playerPrefs.softwareAudioDecoder))
-        viewModel.setSpeed(
-            playerPrefs.speed,
-            PlayerPlaybackSettings.pitchFor(playerPrefs.speed, playerPrefs.speedPreservePitch)
-        )
-        viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(playerPrefs.loopMode))
-        viewModel.setVolumeBoost(playerPrefs.volumeBoost)
-        playerManager.setMuted(playerPrefs.audioMuted)
-        val colorAdjustments = PlayerVideoColorAdjustmentPolicy.fromPercent(
-            contrastPercent = playerPrefs.contrastAdjustment,
-            saturationPercent = playerPrefs.saturationAdjustment
-        )
-        playerManager.applyVideoAdjustments(
-            0f,
-            colorAdjustments.contrast,
-            colorAdjustments.saturation
-        )
-        applyScreenBrightness(playerPrefs.brightnessAdjustment)
-        playerView.alpha = PlayerDisplayVisibilityPolicy.videoLayerAlpha(playerPrefs.videoDisplayEnabled)
-        bottomPanel.alpha = 1f
-        if (controlsVisible) {
-            controlsContainer.animate().cancel()
-            controlsContainer.alpha = controlsChromeMaxAlpha()
-        }
-
-        if (PlayerScreenOnPolicy.shouldKeepScreenOn(playerPrefs.keepScreenOn)) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        } else {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
-
-        applyDisplaySettings()
-
-        tvSubtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
-        tvSubtitle.setTextColor(playerPrefs.subtitleColor)
-        tvSubtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
-        tvSubtitle.post {
-            tvSubtitle.translationY = PlayerDisplayAdjustment.subtitleTranslationY(
-                playerViewHeightPx = playerView.height,
-                position = playerPrefs.subtitlePosition
-            )
-        }
-    }
+    private fun applyPlayerSettings() = playerDisplay.applyPlayerSettings()
 
     internal fun refreshPlayerDisplayFromSettings() {
         applyDisplaySettings()
     }
 
-    private fun applyDisplaySettings() {
-        if (!PlayerVideoZoomPolicy.allowsManualZoom(playerPrefs.aspectRatio)) {
-            manualVideoZoom = PlayerVideoZoomState.IDENTITY
-        }
-        setPlayerResizeMode()
-        applyPlayerContentAspectRatio()
-        applyPlayerContentFrameTransform()
-        playerView.rotation = playerPrefs.rotation.toFloat()
-        playerView.scaleX = PlayerDisplayAdjustment.mirrorScaleX(playerPrefs.mirror)
-    }
+    private fun applyDisplaySettings() = playerDisplay.applyDisplaySettings()
 
-    private fun initBrightnessAndVolume() {
-        val windowBrightness = window.attributes.screenBrightness
-        val systemBrightness = try {
-            android.provider.Settings.System.getInt(
-                contentResolver,
-                android.provider.Settings.System.SCREEN_BRIGHTNESS
-            ) / 255f
-        } catch (_: Exception) {
-            null
-        }
-        currentBrightness = PlayerWindowBrightnessPolicy.initialBrightness(
-            windowBrightness = windowBrightness,
-            systemBrightnessNormalized = systemBrightness
-        )
-
-        val audioManager = getSystemService(AUDIO_SERVICE) as android.media.AudioManager
-        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-        val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
-        currentVolume = PlayerWindowBrightnessPolicy.initialVolumeLevel(currentVol, maxVolume)
-
-        brightnessProgress.progress = PlayerWindowBrightnessPolicy.levelToProgressPercent(currentBrightness)
-        volumeProgress.progress = PlayerWindowBrightnessPolicy.levelToProgressPercent(currentVolume)
-    }
+    private fun initBrightnessAndVolume() = playerDisplay.initBrightnessAndVolume()
 
     private fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {
-        viewModel.loadSubtitles(uriString, videoPath, showToast) { decision ->
-            PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)?.let { messageRes ->
-                Toast.makeText(this, messageRes, Toast.LENGTH_SHORT).show()
-            }
-            startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
-        }
+        subtitles.loadSubtitlesAsync(uriString, videoPath, showToast)
     }
 
     private fun initViews() {
@@ -857,76 +774,13 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun initGestures() = playerGestures.init()
 
-    private fun applyScreenBrightness(adjustmentPercent: Int) {
-        val brightness = PlayerDisplayAdjustment.screenBrightnessFor(adjustmentPercent)
-        setWindowBrightness(brightness)
-        if (brightness >= 0f) {
-            currentBrightness = brightness
-            if (this::brightnessProgress.isInitialized) {
-                brightnessProgress.progress = PlayerWindowBrightnessPolicy.levelToProgressPercent(brightness)
-            }
-        }
-    }
+    private fun applyScreenBrightness(adjustmentPercent: Int) =
+        playerDisplay.applyScreenBrightness(adjustmentPercent)
 
     /**
      * 按屏宽/屏高比例微调横屏控件边距与运输区按钮尺寸（对齐 design/横屏播放界面 稿）。
      */
-    private fun applyLandscapePlayerGeometry() {
-        if (!PlayerConfigurationOrientationPolicy.isLandscape(resources.configuration.orientation)) return
-        val geometry = PlayerLandscapeGeometryPolicy.compute(
-            widthPx = controlsContainer.width,
-            heightPx = controlsContainer.height,
-            density = resources.displayMetrics.density
-        ) ?: return
-
-        topBar.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginStart = geometry.containerHorizontalMarginPx
-            marginEnd = geometry.containerHorizontalMarginPx
-            topMargin = geometry.topBarTopMarginPx
-        }
-        bottomPanel.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginStart = geometry.containerHorizontalMarginPx
-            marginEnd = geometry.containerHorizontalMarginPx
-            bottomMargin = geometry.bottomPanelBottomMarginPx
-        }
-        btnLock.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginStart = geometry.lockMarginStartPx
-            topMargin = 0
-            bottomMargin = 0
-            verticalBias = 0.5f
-        }
-        landRightFloatColumn?.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            marginEnd = geometry.containerHorizontalMarginPx
-        }
-
-        listOf(
-            R.id.btn_land_seek_back,
-            R.id.btn_prev,
-            R.id.btn_next,
-            R.id.btn_land_seek_forward
-        ).forEach { id ->
-            findViewById<View>(id)?.updateLayoutParams<LinearLayout.LayoutParams> {
-                width = geometry.iconSidePx
-                height = geometry.iconSidePx
-            }
-        }
-        findViewById<View>(R.id.btn_fullscreen)?.updateLayoutParams<ConstraintLayout.LayoutParams> {
-            width = geometry.iconSidePx
-            height = geometry.iconSidePx
-        }
-        findViewById<View>(R.id.btn_play)?.updateLayoutParams<LinearLayout.LayoutParams> {
-            width = geometry.playSidePx
-            height = geometry.playSidePx
-            marginStart = geometry.transportGapPx
-            marginEnd = geometry.transportGapPx
-        }
-        findViewById<View>(R.id.btn_prev)?.updateLayoutParams<LinearLayout.LayoutParams> {
-            marginStart = geometry.innerGapPx
-        }
-        findViewById<View>(R.id.btn_next)?.updateLayoutParams<LinearLayout.LayoutParams> {
-            marginEnd = geometry.innerGapPx
-        }
-    }
+    private fun applyLandscapePlayerGeometry() = playerDisplay.applyLandscapePlayerGeometry()
 
     private fun currentTrackGroupTypes(): List<Int> =
         viewModel.player?.currentTracks?.groups?.map { it.type } ?: emptyList()
@@ -1154,10 +1008,7 @@ class PlayerActivity : AppCompatActivity() {
     override fun onDestroy() {
         dismissPlaybackNotification()
         playbackCoordinator.clearHandlers()
-        // unregister prefs listener
-        if (this::settingsPrefs.isInitialized) {
-            try { settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener) } catch (_: Exception) {}
-        }
+        subtitles.unregisterPrefsListener()
         handler.removeCallbacksAndMessages(null)
         playerEvents.detach()
         preparePlayerExitFrame()
@@ -1170,16 +1021,7 @@ class PlayerActivity : AppCompatActivity() {
         newConfig: android.content.res.Configuration
     ) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        if (isInPictureInPictureMode) {
-            applyChromePresentation(PlayerChromeVisibilityPolicy.pictureInPicture())
-        } else {
-            showControls()
-        }
-    }
-
-    @OptIn(UnstableApi::class)
-    private fun setPlayerResizeMode() {
-        playerView.resizeMode = PlayerViewSettings.resizeModeFor(playerPrefs.aspectRatio)
+        playerPip.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
     }
 
     /**
@@ -1231,29 +1073,7 @@ class PlayerActivity : AppCompatActivity() {
     @OptIn(UnstableApi::class)
     private fun videoRenderView(): View? = contentFrameTransforms.videoRenderView()
 
-    @Suppress("DEPRECATION")
-    private fun enterPipModeIfSupported() {
-        val videoSize = viewModel.player?.videoSize
-        val decision = PlayerPipPolicy.enterDecision(
-            sdkInt = Build.VERSION.SDK_INT,
-            supportsPictureInPicture = packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE),
-            isAlreadyInPictureInPicture = isInPipModeCompat(),
-            videoWidth = videoSize?.width ?: 0,
-            videoHeight = videoSize?.height ?: 0,
-            pixelWidthHeightRatio = videoSize?.pixelWidthHeightRatio ?: 1f,
-            unappliedRotationDegrees = videoSize?.unappliedRotationDegrees ?: 0
-        )
-        if (!decision.shouldEnter) return
-        runCatching {
-            enterPictureInPictureMode(
-                PictureInPictureParams.Builder()
-                    .setAspectRatio(
-                        decision.aspectRatio?.toRational() ?: PlayerPipPolicy.fallbackRational()
-                    )
-                    .build()
-            )
-        }
-    }
+    private fun enterPipModeIfSupported() = playerPip.enterIfSupported()
 
     private fun ensureNotificationPermission() {
         playbackNotifications.ensurePermission()
@@ -1313,11 +1133,7 @@ class PlayerActivity : AppCompatActivity() {
         viewModel.seekTo(result.positionMs)
     }
 
-    private fun isInPipModeCompat(): Boolean =
-        PlayerPipCompatPolicy.isInPictureInPictureMode(
-            sdkInt = Build.VERSION.SDK_INT,
-            isInPictureInPictureMode = isInPictureInPictureMode
-        )
+    private fun isInPipModeCompat(): Boolean = playerPip.isInPipModeCompat()
 
     companion object {
         private const val TAG_CONTENT_FRAME = "OVContentFrame"

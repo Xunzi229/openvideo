@@ -349,11 +349,13 @@ class PlayerSettingsDialogTest {
 
         val quickDialogSource = String(Files.readAllBytes(sourceFile("PlayerQuickDialogController.kt")))
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val displayControllerSource = String(Files.readAllBytes(sourceFile("PlayerDisplayController.kt")))
         assertTrue(quickDialogSource.contains("onPlayerPrefsReset = onApplyPlayerSettings"))
         assertTrue(
             "applyPlayerSettings should sync aspect + decode from prefs (e.g. after reset).",
-            activitySource.contains("viewModel.setAspectRatio(playerPrefs.aspectRatio)")
-                && activitySource.contains("viewModel.setDecodeMode(")
+            activitySource.contains("private fun applyPlayerSettings() = playerDisplay.applyPlayerSettings()") &&
+                displayControllerSource.contains("viewModel.setAspectRatio(playerPrefs.aspectRatio)") &&
+                displayControllerSource.contains("viewModel.setDecodeMode(")
         )
     }
 

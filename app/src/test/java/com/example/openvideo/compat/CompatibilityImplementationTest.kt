@@ -11,15 +11,16 @@ class CompatibilityImplementationTest {
     @Test
     fun playerActivityGuardsPipApisAndChecksDeviceFeature() {
         val source = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerActivity.kt")))
+        val pipController = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerPipController.kt")))
 
-        assertTrue(source.contains("private fun isInPipModeCompat()"))
-        assertTrue(source.contains("PlayerPipCompatPolicy.isInPictureInPictureMode("))
+        assertTrue(source.contains("private fun isInPipModeCompat(): Boolean = playerPip.isInPipModeCompat()"))
+        assertTrue(pipController.contains("PlayerPipCompatPolicy.isInPictureInPictureMode("))
         val pipCompat = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerPipCompatPolicy.kt")))
         assertTrue(pipCompat.contains("sdkInt >= Build.VERSION_CODES.N"))
         val pipPolicy = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerPipPolicy.kt")))
         assertTrue(pipPolicy.contains("sdkInt < Build.VERSION_CODES.O"))
-        assertTrue(source.contains("PackageManager.FEATURE_PICTURE_IN_PICTURE"))
-        assertTrue(source.contains("runCatching"))
+        assertTrue(pipController.contains("PackageManager.FEATURE_PICTURE_IN_PICTURE"))
+        assertTrue(pipController.contains("runCatching"))
     }
 
     @Test
@@ -53,11 +54,12 @@ class CompatibilityImplementationTest {
     @Test
     fun playerSettingsChangesApplyImmediatelyFromSharedPrefsListener() {
         val activity = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerActivity.kt")))
+        val subtitleController = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSubtitleController.kt")))
         val prefs = String(Files.readAllBytes(sourceFile("core", "prefs", "PlayerPrefs.kt")))
 
         assertTrue(prefs.contains("fun requiresImmediatePlayerApply"))
-        assertTrue(activity.contains("PlayerPrefs.requiresImmediatePlayerApply(key)"))
-        assertTrue(activity.contains("applyPlayerSettings()"))
+        assertTrue(subtitleController.contains("PlayerPrefs.requiresImmediatePlayerApply(key)"))
+        assertTrue(activity.contains("onApplyPlayerSettings = ::applyPlayerSettings"))
     }
 
     @Test

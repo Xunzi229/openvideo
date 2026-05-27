@@ -31,6 +31,7 @@ class PlayerSettingsActivityIntegrationTest {
     @Test
     fun settingsSheetWeakensControlsAndImmediatePreferencesAffectPlaybackChrome() {
         val source = String(Files.readAllBytes(playerActivitySource()))
+        val displayController = String(Files.readAllBytes(playerDisplayControllerSource()))
         val quickDialogs = String(Files.readAllBytes(playerQuickDialogControllerSource()))
 
         assertTrue(source.contains("openPlayerSettingsDialog"))
@@ -39,24 +40,26 @@ class PlayerSettingsActivityIntegrationTest {
         assertTrue(quickDialogs.contains("onSettingsOverlayVisibleChanged(true)"))
         assertTrue(quickDialogs.contains("onSettingsOverlayVisibleChanged(false)"))
         assertTrue(source.contains("PlayerSubtitlePresentationPolicy.resolveSubtitleText("))
-        assertTrue(source.contains("PlayerDisplayVisibilityPolicy.videoLayerAlpha(playerPrefs.videoDisplayEnabled)"))
+        assertTrue(displayController.contains("PlayerDisplayVisibilityPolicy.videoLayerAlpha(playerPrefs.videoDisplayEnabled)"))
         assertTrue(source.contains("controlsChromeMaxAlpha()"))
-        assertTrue(source.contains("controlsContainer.alpha = controlsChromeMaxAlpha()"))
-        assertTrue(source.contains("playerManager.applyVideoAdjustments("))
+        assertTrue(displayController.contains("controlsContainer.alpha = controlsChromeMaxAlpha()"))
+        assertTrue(displayController.contains("playerManager.applyVideoAdjustments("))
     }
 
     @Test
     fun brightnessPreferenceAppliesOnlyScreenBrightnessWithoutRebuildingVideoEffects() {
         val source = String(Files.readAllBytes(playerActivitySource()))
-        val prefsListener = source
+        val displayController = String(Files.readAllBytes(playerDisplayControllerSource()))
+        val subtitleController = String(Files.readAllBytes(playerSubtitleControllerSource()))
+        val prefsListener = subtitleController
             .substringAfter("prefsListener = SharedPreferences.OnSharedPreferenceChangeListener")
             .substringBefore("settingsPrefs.registerOnSharedPreferenceChangeListener")
-        val applyPlayerSettings = source
-            .substringAfter("private fun applyPlayerSettings() {")
-            .substringBefore("\n    private fun initViews()")
+        val applyPlayerSettings = displayController
+            .substringAfter("fun applyPlayerSettings() {")
+            .substringBefore("\n    fun applyDisplaySettings()")
 
         assertTrue(prefsListener.contains("key == PlayerPrefs.KEY_BRIGHTNESS_ADJUSTMENT"))
-        assertTrue(prefsListener.contains("applyScreenBrightness(playerPrefs.brightnessAdjustment)"))
+        assertTrue(prefsListener.contains("onApplyScreenBrightness(playerPrefs.brightnessAdjustment)"))
         assertFalse(
             "Brightness changes should not run the full player setting apply path because it reconfigures Media3 video effects.",
             prefsListener.contains("PlayerPrefs.requiresImmediatePlayerApply(key)")
@@ -98,6 +101,18 @@ class PlayerSettingsActivityIntegrationTest {
     }
 
     private fun playerQuickDialogControllerSource(): Path {
+        return playerSource("PlayerQuickDialogController.kt")
+    }
+
+    private fun playerDisplayControllerSource(): Path {
+        return playerSource("PlayerDisplayController.kt")
+    }
+
+    private fun playerSubtitleControllerSource(): Path {
+        return playerSource("PlayerSubtitleController.kt")
+    }
+
+    private fun playerSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -107,7 +122,7 @@ class PlayerSettingsActivityIntegrationTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerQuickDialogController.kt"
+            name
         )
         return sequenceOf(
             relativePath,

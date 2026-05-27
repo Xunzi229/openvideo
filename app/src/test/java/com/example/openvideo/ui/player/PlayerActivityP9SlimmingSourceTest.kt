@@ -83,8 +83,10 @@ class PlayerActivityP9SlimmingSourceTest {
     @Test
     fun pipAspectRatioConversionLivesOnPolicyType() {
         val activitySource = playerActivitySource()
-        val pipBlock = activitySource.substringAfter("private fun enterPipModeIfSupported()")
-            .substringBefore("\n    private fun startPlaybackServiceIfNeeded")
+        val pipSource = playerPipControllerSource()
+        val pipBlock = pipSource.substringAfter("fun enterIfSupported()")
+            .substringBefore("\n    fun onPictureInPictureModeChanged")
+        assertTrue(activitySource.contains("private fun enterPipModeIfSupported() = playerPip.enterIfSupported()"))
         assertTrue(pipBlock.contains("decision.aspectRatio?.toRational()"))
         assertTrue(pipBlock.contains("PlayerPipPolicy.fallbackRational()"))
         assertFalse(pipBlock.contains("private fun PlayerPipAspectRatio.toRational()"))
@@ -92,7 +94,7 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun mirrorAndSubtitlePositionGoThroughDisplayAdjustment() {
-        val source = playerActivitySource()
+        val source = playerDisplayControllerSource()
         assertTrue(
             "applyDisplaySettings must use PlayerDisplayAdjustment.mirrorScaleX(...).",
             source.contains("PlayerDisplayAdjustment.mirrorScaleX(playerPrefs.mirror)")
@@ -140,7 +142,7 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun windowBrightnessInitUsesPolicy() {
-        val source = playerActivitySource()
+        val source = playerDisplayControllerSource()
         assertTrue(source.contains("PlayerWindowBrightnessPolicy.initialBrightness("))
         assertTrue(source.contains("PlayerWindowBrightnessPolicy.initialVolumeLevel("))
         assertFalse(source.contains("private fun quickAudioTrackLabel("))
@@ -179,8 +181,8 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun playerSettingsUseDisplayAndOrientationPolicies() {
-        val applySettings = playerActivitySource().substringAfter("private fun applyPlayerSettings()")
-            .substringBefore("\n    internal fun refreshPlayerDisplayFromSettings()")
+        val applySettings = playerDisplayControllerSource().substringAfter("fun applyPlayerSettings()")
+            .substringBefore("\n    fun applyDisplaySettings()")
         assertTrue(applySettings.contains("PlayerVideoColorAdjustmentPolicy.fromPercent("))
         assertTrue(applySettings.contains("PlayerDisplayVisibilityPolicy.videoLayerAlpha("))
         assertTrue(applySettings.contains("PlayerScreenOnPolicy.shouldKeepScreenOn("))
@@ -258,10 +260,13 @@ class PlayerActivityP9SlimmingSourceTest {
         val abLoopController = playerAbLoopControllerSource()
         val eventController = playerEventControllerSource()
         val chromeController = playerChromeControllerSource()
+        val displayController = playerDisplayControllerSource()
         for (snippet in required) {
             val haystack = when {
                 snippet.startsWith("PlayerSettingsSheetChrome.") -> glassSheet
+                snippet.startsWith("PlayerDecodeModePolicy.") -> displayController
                 snippet.startsWith("PlayerNotification") -> notificationController
+                snippet.startsWith("PlayerPipCompatPolicy.") -> playerPipControllerSource()
                 snippet.startsWith("PlayerChromeSettingsOverlayPolicy.") -> chromeController
                 snippet.startsWith("PlayerScreenLockChromePolicy.") -> chromeController
                 snippet.startsWith("PlayerLockButtonStylePolicy.") -> chromeController
@@ -280,7 +285,7 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun landscapeGeometryUsesPolicy() {
-        val source = playerActivitySource()
+        val source = playerDisplayControllerSource()
         assertTrue(
             "applyLandscapePlayerGeometry must delegate to PlayerLandscapeGeometryPolicy.compute(...).",
             source.contains("PlayerLandscapeGeometryPolicy.compute(")
@@ -425,6 +430,14 @@ class PlayerActivityP9SlimmingSourceTest {
 
     private fun playerControlsBinderSource(): String {
         return kotlinSource("PlayerControlsBinder.kt")
+    }
+
+    private fun playerDisplayControllerSource(): String {
+        return kotlinSource("PlayerDisplayController.kt")
+    }
+
+    private fun playerPipControllerSource(): String {
+        return kotlinSource("PlayerPipController.kt")
     }
 
     private fun kotlinSource(name: String): String {

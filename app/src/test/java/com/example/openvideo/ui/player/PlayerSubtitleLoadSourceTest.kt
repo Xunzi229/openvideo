@@ -11,10 +11,12 @@ class PlayerSubtitleLoadSourceTest {
 
     @Test
     fun playerActivityDelegatesSubtitleLoadToViewModelAndToastPolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("private fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {")
-            .substringBefore("\n    private fun initViews()")
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerSubtitleControllerSource()))
+        val block = source.substringAfter("fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {")
+            .substringBefore("\n    fun registerPrefsListener()")
 
+        assertTrue(activitySource.contains("subtitles.loadSubtitlesAsync(uriString, videoPath, showToast)"))
         assertTrue(block.contains("viewModel.loadSubtitles("))
         assertTrue(block.contains("PlayerSubtitleLoadToastPolicy.messageRes("))
         assertFalse(block.contains("PlayerSubtitleLoadCoordinator.load("))
@@ -51,6 +53,14 @@ class PlayerSubtitleLoadSourceTest {
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerSubtitleControllerSource(): Path {
+        return kotlinSource("PlayerSubtitleController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -60,7 +70,7 @@ class PlayerSubtitleLoadSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,
