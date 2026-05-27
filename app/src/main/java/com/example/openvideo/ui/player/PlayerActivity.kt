@@ -3,7 +3,6 @@ package com.example.openvideo.ui.player
 import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.Intent
-import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -33,19 +32,15 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.isVisible
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.C
-import androidx.media3.common.Player
-import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import com.example.openvideo.R
-import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.core.player.PlaybackNotificationCoordinator
 import com.example.openvideo.core.player.PlayerManager
@@ -96,7 +91,6 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var volumeIndicator: View
     private lateinit var volumeProgress: ProgressBar
 
-    private var seekThumbnailLoader: PlayerSeekThumbnailLoader? = null
     private lateinit var seekThumbnailContainer: FrameLayout
     private lateinit var seekThumbnailImage: ImageView
     private lateinit var seekThumbnailTime: TextView
@@ -158,15 +152,8 @@ class PlayerActivity : AppCompatActivity() {
     private var currentVolume = 0.5f
     private var isSeeking = false
 
-    // AB Loop state
-    private var abLoopState = PlayerAbLoopState.IDLE
-    private var abLoopPointA: Long = -1
-    private var abLoopPointB: Long = -1
-
     // Screen lock state
     private var isScreenLocked = false
-    private var playerListener: Player.Listener? = null
-    private var startupAnalyticsListener: androidx.media3.exoplayer.analytics.AnalyticsListener? = null
 
     // 一旦用户手动切过屏幕方向（点击全屏按钮等），本次视频会话内禁止自动方向覆盖，
     // 防止 onVideoSizeChanged 等回调把用户操作冲掉。切到下一首视频时复位。
@@ -181,6 +168,33 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var pickSubtitleLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var notificationPermissionLauncher: ActivityResultLauncher<String>
+    private val playerChrome: PlayerChromeController by lazy {
+        PlayerChromeController(
+            activity = this,
+            handler = handler,
+            hideControlsRunnable = hideControlsRunnable,
+            controlsContainerProvider = { controlsContainer },
+            topScrimProvider = { topScrim },
+            bottomScrimProvider = { bottomScrim },
+            topBarProvider = { topBar },
+            bottomPanelProvider = { bottomPanel },
+            toolRowProvider = { toolRow },
+            landRightFloatColumnProvider = { landRightFloatColumn },
+            lockButtonProvider = { btnLock },
+            fullscreenButtonProvider = { btnFullscreen },
+            isScreenLockedProvider = { isScreenLocked },
+            onScreenLockedChanged = { isScreenLocked = it },
+            controlsVisibleProvider = { controlsVisible },
+            onControlsVisibleChanged = { controlsVisible = it },
+            isSettingsOverlayVisibleProvider = { isSettingsOverlayVisible },
+            controlsVisibleBeforeSettingsOverlayProvider = { controlsVisibleBeforeSettingsOverlay },
+            onSetLockedGestureOverlay = ::setLockedGestureOverlay,
+            onInitGestures = ::initGestures,
+            controlsOpacityPercentProvider = { playerPrefs.controlsOpacity },
+            controlsAutoHideSecondsProvider = { playerPrefs.controlsAutoHide },
+            controlsChromeMaxAlpha = ::controlsChromeMaxAlpha
+        )
+    }
     private val videoOrientation by lazy {
         PlayerVideoOrientationController(
             activity = this,
@@ -316,6 +330,127 @@ class PlayerActivity : AppCompatActivity() {
             onFinishPlayer = ::finishPlayer
         )
     }
+    private val abLoop: PlayerAbLoopController by lazy {
+        PlayerAbLoopController(
+            activity = this,
+            buttonProvider = { btnAbLoop },
+            formatTime = ::formatTime
+        )
+    }
+    private val playbackEnd: PlayerPlaybackEndController by lazy {
+        PlayerPlaybackEndController(
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            abLoopStateProvider = { abLoop.state },
+            abLoopPointAProvider = { abLoop.pointA },
+            onSwitchSessionVideo = ::switchSessionVideo,
+            onCurrentVideoChanged = { item ->
+                currentVideoUriString = item.uri.toString()
+                currentVideoPath = item.path
+                tvTitle.text = item.title
+            },
+            onLoadSubtitles = ::loadSubtitlesAsync,
+            onApplyPlayerSettings = ::applyPlayerSettings,
+            onScheduleHideControls = ::scheduleHideControls,
+            onShowControls = ::showControls,
+            onFinishPlayer = ::finishPlayer
+        )
+    }
+    private val seekBars: PlayerSeekBarController by lazy {
+        PlayerSeekBarController(
+            activity = this,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            seekBarProvider = { seekBar },
+            currentTimeProvider = { tvCurrentTime },
+            thumbnailContainerProvider = { seekThumbnailContainer },
+            thumbnailImageProvider = { seekThumbnailImage },
+            thumbnailTimeProvider = { seekThumbnailTime },
+            bottomPanelProvider = { bottomPanel },
+            progressRowProvider = { progressRow },
+            controlsContainerProvider = { controlsContainer },
+            isScreenLockedProvider = { isScreenLocked },
+            onSeekingChanged = { isSeeking = it },
+            onRemoveHideControlsCallbacks = { handler.removeCallbacks(hideControlsRunnable) },
+            onScheduleHideControls = ::scheduleHideControls,
+            formatTime = ::formatTime
+        )
+    }
+    private val controlsBinder: PlayerControlsBinder by lazy {
+        PlayerControlsBinder(
+            activity = this,
+            viewModel = viewModel,
+            playerManager = playerManager,
+            playButtonProvider = { btnPlay },
+            backButtonProvider = { btnBack },
+            prevButtonProvider = { btnPrev },
+            nextButtonProvider = { btnNext },
+            videoListButtonProvider = { btnVideoList },
+            screenshotButtonProvider = { btnScreenshot },
+            abLoopButtonProvider = { btnAbLoop },
+            fullscreenButtonProvider = { btnFullscreen },
+            pipButtonProvider = { btnPip },
+            lockButtonProvider = { btnLock },
+            controlsContainerProvider = { controlsContainer },
+            isScreenLockedProvider = { isScreenLocked },
+            controlsVisibleProvider = { controlsVisible },
+            onTogglePlayPause = ::togglePlayPauseAndSyncIcon,
+            onFinishPlayer = ::finishPlayer,
+            onShowSessionVideoListPanel = ::showSessionVideoListPanel,
+            onOpenPlayerSettingsDialog = ::openPlayerSettingsDialog,
+            onShowSpeedPickerDialog = ::showSpeedPickerDialog,
+            onHandleSmartCropQuickToggle = ::handleSmartCropQuickToggle,
+            onShowAspectRatioQuickDialog = ::showAspectRatioQuickDialog,
+            onShowSubtitleQuickDialog = ::showSubtitleQuickDialog,
+            onScheduleHideControls = ::scheduleHideControls,
+            onEnterPipModeIfSupported = ::enterPipModeIfSupported,
+            onShowAudioTrackQuickDialog = ::showAudioTrackQuickDialog,
+            onToggleAbLoop = { positionMs -> abLoop.toggle(positionMs) },
+            onUserOverrodeOrientationChanged = { userOverrodeOrientation = it },
+            onRequestedOrientationChanged = { requestedOrientation = it },
+            currentOrientationProvider = { resources.configuration.orientation },
+            videoRenderViewProvider = { videoRenderView() },
+            onToggleScreenLock = ::toggleScreenLock,
+            onHideControls = ::hideControls,
+            onShowControls = ::showControls
+        )
+    }
+    private val playerEvents: PlayerEventController by lazy {
+        PlayerEventController(
+            activity = this,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            startupTrace = startupTrace,
+            playbackWasBufferingProvider = { playbackWasBuffering },
+            onPlaybackWasBufferingChanged = { playbackWasBuffering = it },
+            onUpdatePlayPauseIcon = ::updatePlayPauseIcon,
+            onStartPlaybackServiceIfNeeded = ::startPlaybackServiceIfNeeded,
+            onUnlockPlayerForPause = ::unlockPlayerForPause,
+            onApplyPlaybackTickSeek = ::applyPlaybackTickSeek,
+            onHideFirstFrameForAudioOnly = { firstFrames.hideForAudioOnly() },
+            onHideErrorHud = { errorHud.hide() },
+            onPrepareReady = { firstFrames.onPrepareReady() },
+            onPlaybackEnded = { playbackEnd.handleEnded() },
+            onSetVolumeBoost = { enabled -> viewModel.setVolumeBoost(enabled) },
+            onRenderedFirstFrame = { firstFrames.onRenderedFirstFrame() },
+            onShowPlayerError = { error -> errorHud.show(error) },
+            onApplyVideoOrientation = ::applyVideoOrientation,
+            onApplyContentAspectRatio = ::applyPlayerContentAspectRatio,
+            onApplyContentFrameTransform = ::applyPlayerContentFrameTransform
+        )
+    }
+    private val playerExit: PlayerExitController by lazy {
+        PlayerExitController(
+            activity = this,
+            handler = handler,
+            viewModel = viewModel,
+            playerViewProvider = { if (this::playerView.isInitialized) playerView else null },
+            playerRootProvider = { if (this::playerRoot.isInitialized) playerRoot else null },
+            firstFrameScrimProvider = { if (this::firstFrameScrim.isInitialized) firstFrameScrim else null },
+            controlsContainerProvider = { if (this::controlsContainer.isInitialized) controlsContainer else null },
+            onDismissPlaybackNotification = ::dismissPlaybackNotification
+        )
+    }
     private val playbackNotifications by lazy {
         PlayerPlaybackNotificationController(
             activity = this,
@@ -353,8 +488,6 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener
     private var currentVideoUriString: String = ""
     private var currentVideoPath: String = ""
-    private var exitState = PlayerExitState()
-    private var isSwitchingQueueAfterEnded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Do NOT call `delegate.localNightMode = MODE_NIGHT_YES` here:
@@ -694,7 +827,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {}) {
         dismissSubtitleSettingsSheet()
-        showFirstFrameScrim()
+        firstFrames.showForNewMedia()
         preApplyOrientationForItem(item)
         viewModel.switchToVideo(item) {
             resetPlaybackSessionForNewVideo()
@@ -703,472 +836,22 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun setupControls() {
-        btnPlay.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) { togglePlayPauseAndSyncIcon() }
-        btnBack.setPlayerClickListener(PlayerLockedInteraction.BACK) { finishPlayer() }
-
-        btnPrev.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) { viewModel.seekBackward() }
-        btnNext.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) { viewModel.seekForward() }
-
-        btnVideoList?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showSessionVideoListPanel()
-        }
-
-        findViewById<View>(R.id.btn_settings)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            openPlayerSettingsDialog()
-        }
-
-        findViewById<View>(R.id.portrait_btn_more)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            openPlayerSettingsDialog()
-        }
-
-        findViewById<View>(R.id.portrait_btn_speed)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showSpeedPickerDialog()
-        }
-
-        findViewById<View>(R.id.btn_land_seek_back)?.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) {
-            viewModel.seekBackward()
-        }
-
-        findViewById<View>(R.id.btn_land_seek_forward)?.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) {
-            viewModel.seekForward()
-        }
-
-        findViewById<TextView>(R.id.tv_land_speed)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showSpeedPickerDialog()
-        }
-
-        findViewById<View>(R.id.btn_land_smart_crop)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            handleSmartCropQuickToggle()
-        }
-
-        findViewById<View>(R.id.btn_land_aspect)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showAspectRatioQuickDialog()
-        }
-
-        findViewById<View>(R.id.btn_land_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showSubtitleQuickDialog()
-            scheduleHideControls()
-        }
-
-        findViewById<View>(R.id.btn_land_pip_float)?.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) {
-            enterPipModeIfSupported()
-        }
-
-        findViewById<View>(R.id.btn_land_cast)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            Toast.makeText(this, R.string.player_land_cast, Toast.LENGTH_SHORT).show()
-        }
-
-        findViewById<View>(R.id.portrait_btn_quality)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showAudioTrackQuickDialog()
-            scheduleHideControls()
-        }
-
-        findViewById<View>(R.id.portrait_btn_episodes)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showSessionVideoListPanel()
-        }
-
-        findViewById<View>(R.id.portrait_btn_subtitles)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            showSubtitleQuickDialog()
-            scheduleHideControls()
-        }
-
-        btnScreenshot?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            val videoView = videoRenderView()
-            if (videoView != null) {
-                playerManager.takeScreenshot(videoView) { success, path ->
-                    runOnUiThread {
-                        if (success) {
-                            android.widget.Toast.makeText(this, getString(R.string.player_screenshot_saved, path), android.widget.Toast.LENGTH_SHORT).show()
-                        } else {
-                            android.widget.Toast.makeText(this, getString(R.string.player_screenshot_failed), android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            }
-        }
-
-        btnAbLoop?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {
-            applyAbLoopResult(
-                PlayerAbLoopPolicy.onToggle(
-                    state = abLoopState,
-                    pointA = abLoopPointA,
-                    pointB = abLoopPointB,
-                    currentPositionMs = playerManager.currentPosition
-                )
-            )
-        }
-
-        btnFullscreen.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) {
-            userOverrodeOrientation = true
-            requestedOrientation = PlayerOrientationTogglePolicy.nextRequestedOrientation(
-                resources.configuration.orientation
-            )
-        }
-
-        btnPip?.setPlayerClickListener(PlayerLockedInteraction.TRANSPORT) { enterPipModeIfSupported() }
-
-        btnLock.setPlayerClickListener(PlayerLockedInteraction.LOCK_TOGGLE) {
-            toggleScreenLock()
-        }
-
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    tvCurrentTime.text = formatTime(progress.toLong())
-
-                    // Seek thumbnail integration
-                    val loader = seekThumbnailLoader
-                    if (loader != null) {
-                        val currentVideoUri = viewModel.currentVideoUri
-                        if (currentVideoUri != null) {
-                            val duration = viewModel.uiState.value.duration
-                            val positionMs = PlayerSeekThumbnailPolicy.thumbnailPositionMs(progress, sb.max, duration)
-
-                            // Update time text
-                            seekThumbnailTime.text = formatTime(positionMs)
-
-                            // Load thumbnail
-                            loader.loadThumbnail(currentVideoUri, positionMs) { bitmap ->
-                                if (bitmap != null) {
-                                    seekThumbnailImage.setImageBitmap(bitmap)
-                                }
-                            }
-
-                            // Dynamic translationX alignment above the seek thumb
-                            val usableWidth = sb.width - sb.paddingLeft - sb.paddingRight
-                            val pct = if (sb.max > 0) progress.toFloat() / sb.max else 0f
-                            val absoluteSeekBarLeft = bottomPanel.left + progressRow.left + sb.left
-                            val thumbXInParent = absoluteSeekBarLeft + sb.paddingLeft + (usableWidth * pct) - (seekThumbnailContainer.width / 2f)
-
-                            seekThumbnailContainer.translationX = thumbXInParent.coerceIn(
-                                0f,
-                                (controlsContainer.width - seekThumbnailContainer.width).toFloat()
-                            )
-                        }
-                    }
-                }
-            }
-
-            override fun onStartTrackingTouch(sb: SeekBar) {
-                if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SEEK_BAR, isScreenLocked)) return
-                isSeeking = true
-                handler.removeCallbacks(hideControlsRunnable)
-
-                // Seek thumbnail integration
-                if (playerPrefs.seekThumbnailEnabled) {
-                    val currentVideoUri = viewModel.currentVideoUri
-                    val scheme = currentVideoUri?.scheme
-                    if (currentVideoUri != null && !PlayerSeekThumbnailPolicy.shouldSkipThumbnail(scheme)) {
-                        seekThumbnailLoader = PlayerSeekThumbnailLoader(this@PlayerActivity)
-                        seekThumbnailContainer.visibility = View.VISIBLE
-                    }
-                }
-            }
-
-            override fun onStopTrackingTouch(sb: SeekBar) {
-                if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SEEK_BAR, isScreenLocked)) return
-                viewModel.seekTo(
-                    PlayerTimeline.positionFromSeekBar(
-                        progress = sb.progress,
-                        max = sb.max,
-                        durationMs = viewModel.uiState.value.duration
-                    )
-                )
-                isSeeking = false
-                scheduleHideControls()
-
-                // Seek thumbnail integration
-                seekThumbnailContainer.visibility = View.GONE
-                seekThumbnailLoader?.release()
-                seekThumbnailLoader = null
-            }
-        })
-
-        controlsContainer.setOnClickListener {
-            if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.CHROME_TOGGLE, isScreenLocked)) return@setOnClickListener
-            if (controlsVisible) hideControls() else showControls()
-        }
-
-        playerListener?.let { viewModel.player?.removeListener(it) }
-        playerListener = object : Player.Listener {
-            override fun onIsPlayingChanged(isPlaying: Boolean) {
-                updatePlayPauseIcon(
-                    isPlaying = isPlaying,
-                    playWhenReady = viewModel.player?.playWhenReady == true
-                )
-                startPlaybackServiceIfNeeded(isPlaying)
-            }
-
-            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                if (!playWhenReady) unlockPlayerForPause()
-                updatePlayPauseIcon(
-                    isPlaying = viewModel.player?.isPlaying == true,
-                    playWhenReady = playWhenReady
-                )
-                startPlaybackServiceIfNeeded(playWhenReady && viewModel.player?.isPlaying == true)
-            }
-
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                val readyTraceUpdate = PlayerPlaybackReadyTracePolicy.onPlaybackStateChanged(
-                    playbackState = playbackState,
-                    wasBuffering = playbackWasBuffering,
-                    hasRecordedPrepareReady = startupTrace.hasRecorded(PlayerStartupTrace.Events.PREPARE_READY)
-                )
-                playbackWasBuffering = readyTraceUpdate.nextWasBuffering
-                when (readyTraceUpdate.readyTraceEvent) {
-                    PlayerPlaybackReadyTracePolicy.ReadyTraceEvent.RECOVERED_AFTER_BUFFERING ->
-                        startupTrace.record(PlayerStartupTrace.Events.READY_AFTER_BUFFERING)
-                    PlayerPlaybackReadyTracePolicy.ReadyTraceEvent.FIRST_PREPARE_READY,
-                    null -> Unit
-                }
-
-                if (playbackState == Player.STATE_READY) {
-                    val state = viewModel.uiState.value
-                    applyPlaybackTickSeek(state.currentPosition, state.duration)
-                    firstFrames.hideForAudioOnly()
-                    errorHud.hide()
-                    firstFrames.onPrepareReady()
-                } else if (playbackState == Player.STATE_ENDED) {
-                    handlePlaybackEnded()
-                }
-            }
-
-            @OptIn(UnstableApi::class)
-            override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                if (PlayerVolumeBoostApplyPolicy.shouldReapplyOnAudioSessionChange(playerPrefs.volumeBoost)) {
-                    viewModel.setVolumeBoost(true)
-                }
-            }
-
-            override fun onRenderedFirstFrame() {
-                firstFrames.onRenderedFirstFrame()
-            }
-
-            override fun onPlayerError(error: PlaybackException) {
-                CrashLogger.logPlayerError(this@PlayerActivity, error)
-                errorHud.show(error)
-            }
-
-            @Suppress("DEPRECATION")
-            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
-                applyVideoOrientation(
-                    width = videoSize.width,
-                    height = videoSize.height,
-                    pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
-                    unappliedRotationDegrees = videoSize.unappliedRotationDegrees
-                )
-                applyPlayerContentAspectRatio(
-                    width = videoSize.width,
-                    height = videoSize.height,
-                    pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
-                    unappliedRotationDegrees = videoSize.unappliedRotationDegrees
-                )
-                applyPlayerContentFrameTransform(
-                    width = videoSize.width,
-                    height = videoSize.height,
-                    pixelWidthHeightRatio = videoSize.pixelWidthHeightRatio,
-                    unappliedRotationDegrees = videoSize.unappliedRotationDegrees
-                )
-            }
-        }
-        viewModel.player?.addListener(playerListener!!)
-        attachStartupAnalyticsListener()
+        controlsBinder.bind()
+        seekBars.attach()
+        playerEvents.attach()
         syncPlayPauseIcon()
         applyControlVisibility()
-    }
-
-    /**
-     * 把 ExoPlayer 的 decoder / codec-error 事件接入 [PlayerStartupTrace]，
-     * 通过 [PlayerDecoderEventPolicy] 决定每次回调要打哪几个事件名（同名事件靠
-     * `recordOnce` 去重）。
-     */
-    @OptIn(UnstableApi::class)
-    private fun attachStartupAnalyticsListener() {
-        if (startupAnalyticsListener != null) return
-        val listener = object : androidx.media3.exoplayer.analytics.AnalyticsListener {
-            override fun onVideoDecoderInitialized(
-                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
-                decoderName: String,
-                initializedTimestampMs: Long,
-                initializationDurationMs: Long
-            ) {
-                PlayerDecoderEventPolicy.videoDecoderEvents(decoderName)
-                    .forEach { startupTrace.recordOnce(it) }
-            }
-
-            override fun onAudioDecoderInitialized(
-                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
-                decoderName: String,
-                initializedTimestampMs: Long,
-                initializationDurationMs: Long
-            ) {
-                PlayerDecoderEventPolicy.audioDecoderEvents(decoderName)
-                    .forEach { startupTrace.recordOnce(it) }
-            }
-
-            override fun onVideoCodecError(
-                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
-                videoCodecError: Exception
-            ) {
-                PlayerDecoderEventPolicy.videoCodecErrorEvents(videoCodecError.javaClass.name)
-                    .forEach { startupTrace.recordOnce(it) }
-            }
-
-            override fun onAudioCodecError(
-                eventTime: androidx.media3.exoplayer.analytics.AnalyticsListener.EventTime,
-                audioCodecError: Exception
-            ) {
-                PlayerDecoderEventPolicy.audioCodecErrorEvents(audioCodecError.javaClass.name)
-                    .forEach { startupTrace.recordOnce(it) }
-            }
-        }
-        viewModel.player?.addAnalyticsListener(listener)
-        startupAnalyticsListener = listener
-    }
-
-    private fun applyAbLoopResult(result: PlayerAbLoopResult) {
-        abLoopState = result.state
-        abLoopPointA = result.pointA
-        abLoopPointB = result.pointB
-
-        when (result.event) {
-            PlayerAbLoopEvent.POINT_A_SET -> {
-                if (PlayerAbLoopButtonStylePolicy.shouldHighlight(result.event)) {
-                    btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
-                }
-                android.widget.Toast.makeText(
-                    this,
-                    getString(R.string.player_ab_point_a_set, formatTime(abLoopPointA)),
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
-            PlayerAbLoopEvent.LOOP_STARTED -> {
-                if (PlayerAbLoopButtonStylePolicy.shouldHighlight(result.event)) {
-                    btnAbLoop?.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
-                }
-                android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_started), android.widget.Toast.LENGTH_SHORT).show()
-            }
-            PlayerAbLoopEvent.INVALID_POINT_B -> {
-                if (PlayerAbLoopButtonStylePolicy.shouldClearHighlight(result.event)) {
-                    btnAbLoop?.clearColorFilter()
-                }
-                android.widget.Toast.makeText(this, getString(R.string.player_ab_point_b_error), android.widget.Toast.LENGTH_SHORT).show()
-            }
-            PlayerAbLoopEvent.CANCELLED -> {
-                if (PlayerAbLoopButtonStylePolicy.shouldClearHighlight(result.event)) {
-                    btnAbLoop?.clearColorFilter()
-                }
-                android.widget.Toast.makeText(this, getString(R.string.player_ab_loop_cancelled), android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun showFirstFrameScrim() {
-        firstFrames.showForNewMedia()
-    }
-
-    private fun hideFirstFrameScrim() {
-        firstFrames.hideOnRenderedFirstFrame()
-    }
-
-    /**
-     * 第一次 `STATE_READY` 到达后打 `prepare_ready` 埋点并排程「首帧迟滞」检查。
-     */
-    private fun onPrepareReady() {
-        firstFrames.onPrepareReady()
-    }
-
-    private fun scheduleFirstFrameTimeoutCheck() {
-        firstFrames.onPrepareReady()
-    }
-
-    private fun cancelFirstFrameTimeoutCheck() {
-        firstFrames.cancelTimeoutCheck()
-    }
-
-    private val firstFrameTimeoutRunnable = Runnable {
-        firstFrames.onPrepareReady()
-    }
-
-    private fun applyFirstFrameDecision(decision: PlayerFirstFrameDecision) {
-        if (decision.nextAwaitingFirstFrame) firstFrames.showForNewMedia() else firstFrames.hideOnRenderedFirstFrame()
-    }
-
-    /**
-     * 展示播放错误 HUD。隐藏控制层和 scrim，绑定 [PlayerErrorPresentationPolicy] 的展示模型。
-     */
-    private fun showPlayerErrorHud(error: PlaybackException) {
-        errorHud.show(error)
-    }
-
-    /** 播放恢复正常时隐藏错误 HUD，恢复控制层。 */
-    private fun hidePlayerErrorHud() {
-        errorHud.hide()
-    }
-
-    private fun handlePlaybackEnded() {
-
-        if (isSwitchingQueueAfterEnded) return
-        val queue = viewModel.sessionQueue.value
-        val currentIndex = queue.indexOfFirst { it.id == viewModel.playingVideoId }
-        val decision = PlayerPlaybackEndPolicy.decide(
-            currentIndex = currentIndex,
-            queueSize = queue.size,
-            autoPlayNext = playerPrefs.autoPlayNext,
-            loopMode = playerPrefs.loopMode,
-            abLoopState = abLoopState,
-            abLoopPointA = abLoopPointA,
-            endBehavior = playerPrefs.playbackEndBehavior
-        )
-
-        when (decision.action) {
-            PlayerPlaybackEndAction.PLAY_NEXT -> playNextQueueVideoAfterEnded(queue, decision.nextIndex)
-            PlayerPlaybackEndAction.REPLAY_CURRENT -> {
-                viewModel.seekTo(decision.seekPositionMs ?: 0L)
-                viewModel.player?.play()
-                scheduleHideControls()
-            }
-            PlayerPlaybackEndAction.STOP_AT_END -> {
-                viewModel.saveHistory()
-                showControls()
-            }
-            PlayerPlaybackEndAction.RETURN_TO_LIST -> {
-                viewModel.saveHistory()
-                finishPlayer()
-            }
-        }
-    }
-
-    private fun playNextQueueVideoAfterEnded(queue: List<VideoItem>, nextIndex: Int?) {
-        if (nextIndex == null) return
-
-        isSwitchingQueueAfterEnded = true
-        switchSessionVideo(queue[nextIndex]) {
-            isSwitchingQueueAfterEnded = false
-            currentVideoUriString = queue[nextIndex].uri.toString()
-            currentVideoPath = queue[nextIndex].path
-            tvTitle.text = queue[nextIndex].title
-            loadSubtitlesAsync(
-                playerPrefs.externalSubtitleUri.ifBlank { queue[nextIndex].uri.toString() },
-                queue[nextIndex].path
-            )
-            applyPlayerSettings()
-            scheduleHideControls()
-        }
     }
 
     private fun resetPlaybackSessionForNewVideo() {
         val reset = PlayerVideoSwitchPolicy.resetForNewVideo()
         hasSkippedIntro = reset.hasSkippedIntro
         hasSkippedOutro = reset.hasSkippedOutro
-        abLoopState = reset.abLoopState
-        abLoopPointA = reset.abLoopPointA
-        abLoopPointB = reset.abLoopPointB
+        abLoop.reset(reset)
         firstFrames.resetForNewVideo(reset.awaitFirstFrame)
         manualVideoZoom = reset.manualVideoZoom
         playbackWasBuffering = false
         lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()
-        btnAbLoop?.clearColorFilter()
         playerGestures.resetForNewVideo(reset)
     }
 
@@ -1316,125 +999,22 @@ class PlayerActivity : AppCompatActivity() {
     private fun controlsChromeMaxAlpha(): Float =
         PlayerChromePolicy.maxChromeAlpha(playerPrefs.controlsOpacity)
 
-    private fun showControls() {
-        applyChromePresentation(
-            PlayerChromeVisibilityPolicy.show(
-                controlsOpacityPercent = playerPrefs.controlsOpacity,
-                autoHideSeconds = playerPrefs.controlsAutoHide
-            )
-        )
-        applyControlVisibility()
-    }
+    private fun showControls() = playerChrome.showControls()
 
-    private fun hideControls() {
-        val presentation = PlayerChromeVisibilityPolicy.hide()
-        controlsVisible = presentation.controlsVisible
-        controlsContainer.animate().cancel()
-        controlsContainer.animate().alpha(presentation.alpha)
-            .setDuration(PlayerChromePolicy.CHROME_FADE_DURATION_MS).withEndAction {
-            if (!controlsVisible) {
-                controlsContainer.visibility = if (presentation.containerVisible) View.VISIBLE else View.GONE
-            }
-        }.start()
-    }
+    private fun hideControls() = playerChrome.hideControls()
 
-    private fun showLockedControls() {
-        applyChromePresentation(
-            PlayerChromeVisibilityPolicy.showLocked(
-                controlsOpacityPercent = playerPrefs.controlsOpacity
-            )
-        )
-        applyControlVisibility()
-    }
+    private fun showLockedControls() = playerChrome.showLockedControls()
 
-    private fun applyControlVisibility() {
-        if (PlayerChromeSettingsOverlayPolicy.hidesAllChromeRegions(isSettingsOverlayVisible)) {
-            topScrim.visibility = View.GONE
-            bottomScrim.visibility = View.GONE
-            topBar.visibility = View.GONE
-            bottomPanel.visibility = View.GONE
-            toolRow.visibility = View.GONE
-            landRightFloatColumn?.visibility = View.GONE
-            btnLock.visibility = View.GONE
-            btnFullscreen.visibility = View.GONE
-            return
-        }
-        val visibility = PlayerLockedControlsPolicy.visibility(isScreenLocked, controlsVisible)
-        fun regionVisibility(region: PlayerChromeRegion): Int =
-            if (PlayerLockedControlsPolicy.isChromeRegionVisible(region, isScreenLocked, controlsVisible)) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-        topScrim.visibility = regionVisibility(PlayerChromeRegion.TOP_SCRIM)
-        bottomScrim.visibility = regionVisibility(PlayerChromeRegion.BOTTOM_SCRIM)
-        topBar.visibility = regionVisibility(PlayerChromeRegion.TOP_BAR)
-        bottomPanel.visibility = regionVisibility(PlayerChromeRegion.BOTTOM_PANEL)
-        toolRow.visibility = regionVisibility(PlayerChromeRegion.TOOL_ROW)
-        landRightFloatColumn?.visibility = regionVisibility(PlayerChromeRegion.LAND_RIGHT_FLOAT_COLUMN)
-        btnLock.visibility = if (visibility.lockButtonVisible) View.VISIBLE else View.GONE
-        btnLock.isSelected = visibility.lockButtonSelected
-        if (PlayerLockButtonStylePolicy.shouldUseAccentTint(visibility.lockButtonSelected)) {
-            btnLock.setColorFilter(ContextCompat.getColor(this, R.color.player_accent))
-        } else {
-            btnLock.clearColorFilter()
-        }
-        btnFullscreen.visibility =
-            if (visibility.fullscreenButtonVisible) View.VISIBLE else View.GONE
-    }
+    private fun applyControlVisibility() = playerChrome.applyControlVisibility()
 
-    private fun View.setPlayerClickListener(interaction: PlayerLockedInteraction, onClick: () -> Unit) {
-        setOnClickListener {
-            if (!PlayerLockedControlsPolicy.allows(interaction, isScreenLocked)) return@setOnClickListener
-            onClick()
-        }
-    }
+    private fun hideChromeForSettingsOverlay() = playerChrome.hideChromeForSettingsOverlay()
 
-    private fun hideChromeForSettingsOverlay() {
-        controlsContainer.animate().cancel()
-        controlsContainer.alpha = 0f
-        controlsContainer.visibility = View.GONE
-        applyControlVisibility()
-    }
+    private fun restoreChromeAfterSettingsOverlay() = playerChrome.restoreChromeAfterSettingsOverlay()
 
-    private fun restoreChromeAfterSettingsOverlay() {
-        controlsVisible = controlsVisibleBeforeSettingsOverlay
-        controlsContainer.animate().cancel()
-        controlsContainer.alpha = PlayerChromeSettingsOverlayPolicy.restoreContainerAlpha(
-            controlsWereVisible = controlsVisibleBeforeSettingsOverlay,
-            maxAlpha = controlsChromeMaxAlpha()
-        )
-        controlsContainer.visibility =
-            if (PlayerChromeSettingsOverlayPolicy.restoreContainerVisible(controlsVisibleBeforeSettingsOverlay)) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-        applyControlVisibility()
-    }
+    private fun scheduleHideControls() = playerChrome.scheduleHideControls()
 
-    private fun scheduleHideControls() {
-        if (PlayerChromeSettingsOverlayPolicy.suppressesControlAutoHide(isSettingsOverlayVisible)) return
-        handler.removeCallbacks(hideControlsRunnable)
-        val presentation = PlayerChromeVisibilityPolicy.show(
-            controlsOpacityPercent = playerPrefs.controlsOpacity,
-            autoHideSeconds = playerPrefs.controlsAutoHide
-        )
-        presentation.hideDelayMs?.let { delay ->
-            handler.postDelayed(hideControlsRunnable, delay)
-        }
-    }
-
-    private fun applyChromePresentation(presentation: PlayerChromePresentation) {
-        controlsVisible = presentation.controlsVisible
-        controlsContainer.animate().cancel()
-        controlsContainer.alpha = presentation.alpha
-        controlsContainer.visibility = if (presentation.containerVisible) View.VISIBLE else View.GONE
-        handler.removeCallbacks(hideControlsRunnable)
-        presentation.hideDelayMs?.let { delay ->
-            handler.postDelayed(hideControlsRunnable, delay)
-        }
-    }
+    private fun applyChromePresentation(presentation: PlayerChromePresentation) =
+        playerChrome.applyChromePresentation(presentation)
 
     private fun applyVideoOrientation(
         width: Int,
@@ -1457,27 +1037,9 @@ class PlayerActivity : AppCompatActivity() {
      */
     private fun preApplyOrientationForItem(item: VideoItem) = videoOrientation.preApplyForItem(item)
 
-    private fun toggleScreenLock() {
-        isScreenLocked = !isScreenLocked
-        if (isScreenLocked) {
-            setLockedGestureOverlay()
-            applyScreenLockChromeReveal()
-            android.widget.Toast.makeText(this, getString(R.string.player_locked), android.widget.Toast.LENGTH_SHORT).show()
-        } else {
-            initGestures()
-            applyScreenLockChromeReveal()
-            scheduleHideControls()
-            android.widget.Toast.makeText(this, getString(R.string.player_unlocked), android.widget.Toast.LENGTH_SHORT).show()
-        }
-    }
+    private fun toggleScreenLock() = playerChrome.toggleScreenLock()
 
-    private fun applyScreenLockChromeReveal() {
-        val reveal = PlayerScreenLockChromePolicy.revealChrome(controlsChromeMaxAlpha())
-        controlsVisible = reveal.controlsVisible
-        controlsContainer.visibility = if (reveal.containerVisible) View.VISIBLE else View.GONE
-        controlsContainer.alpha = reveal.alpha
-        applyControlVisibility()
-    }
+    private fun applyScreenLockChromeReveal() = playerChrome.applyScreenLockChromeReveal()
 
     private fun setLockedGestureOverlay() {
         gestureOverlay.setOnTouchListener { _, event ->
@@ -1490,95 +1052,18 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    private fun unlockPlayerForPause() {
-        if (!isScreenLocked) return
-        isScreenLocked = false
-        initGestures()
-        controlsContainer.animate().cancel()
-        applyScreenLockChromeReveal()
-        scheduleHideControls()
-    }
+    private fun unlockPlayerForPause() = playerChrome.unlockPlayerForPause()
 
-    private fun finishPlayer() {
-        val decision = PlayerExitPolicy.requestFinish(exitState)
-        val presentation = PlayerExitPolicy.finishPresentation()
-        exitState = decision.nextState
-        if (!decision.shouldFinish) return
-        dismissPlaybackNotification()
-        preparePlayerExitFrame()
-        settleOrientationBeforeExit(presentation)
-        handler.postDelayed({
-            releasePlayerAfterExit()
-        }, presentation.releaseDelayMs)
-    }
-
-    private fun settleOrientationBeforeExit(presentation: PlayerExitPresentation) {
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        handler.postDelayed({
-            preparePlayerExitFrame()
-            finish()
-            suppressExitTransition()
-        }, presentation.finishDelayMs)
-    }
-
-    private fun suppressExitTransition() {
-        when {
-            PlayerExitPolicy.transitionStrategyFor(Build.VERSION.SDK_INT) ==
-                PlayerExitTransitionStrategy.OVERRIDE_ACTIVITY_TRANSITION &&
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-                overrideCloseTransitionCompat()
-            }
-            else -> {
-                @Suppress("DEPRECATION")
-                overridePendingTransition(0, 0)
-            }
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun overrideCloseTransitionCompat() {
-        overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
-    }
+    private fun finishPlayer() = playerExit.finishPlayer()
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private fun overrideOpenTransitionCompat() {
         overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
     }
 
-    private fun preparePlayerExitFrame() {
-        val frame = PlayerExitPolicy.exitFrameDecision(this::playerView.isInitialized)
-        if (!frame.shouldPrepare) return
-        // Do not detach PlayerView here: Media3 may block while detaching the video surface
-        // and throw ExoTimeoutException on some devices during Activity finish.
-        if (frame.cancelPlayerViewAnimation) playerView.animate().cancel()
-        if (frame.hidePlayerView) playerView.visibility = View.INVISIBLE
-        val backdropColorRes = when (frame.backdrop) {
-            PlayerExitBackdrop.APP_BASE -> R.color.ov_bg_base
-        }
-        if (this::playerRoot.isInitialized) {
-            playerRoot.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))
-        }
-        if (this::firstFrameScrim.isInitialized) {
-            firstFrameScrim.animate().cancel()
-            firstFrameScrim.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))
-            firstFrameScrim.alpha = 1f
-            firstFrameScrim.visibility = View.VISIBLE
-            firstFrameScrim.bringToFront()
-        }
-        if (this::controlsContainer.isInitialized) {
-            controlsContainer.animate().cancel()
-            controlsContainer.visibility = View.INVISIBLE
-        }
-        window.setBackgroundDrawableResource(backdropColorRes)
-    }
+    private fun preparePlayerExitFrame() = playerExit.preparePlayerExitFrame()
 
-    private fun releasePlayerAfterExit() {
-        val decision = PlayerExitPolicy.requestRelease(exitState)
-        exitState = decision.nextState
-        if (!decision.shouldRelease) return
-        dismissPlaybackNotification()
-        viewModel.release()
-    }
+    private fun releasePlayerAfterExit() = playerExit.releasePlayerAfterExit()
 
     private fun enterImmersiveMode() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -1627,7 +1112,7 @@ class PlayerActivity : AppCompatActivity() {
         controlsContainer.alpha = if (controlsVisible) controlsChromeMaxAlpha() else 0f
         controlsContainer.visibility = if (controlsVisible) View.VISIBLE else View.GONE
         applyControlVisibility()
-        if (exitState.isFinishing) {
+        if (playerExit.isFinishing) {
             preparePlayerExitFrame()
         }
         controlsContainer.post { applyLandscapePlayerGeometry() }
@@ -1674,10 +1159,7 @@ class PlayerActivity : AppCompatActivity() {
             try { settingsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener) } catch (_: Exception) {}
         }
         handler.removeCallbacksAndMessages(null)
-        playerListener?.let { viewModel.player?.removeListener(it) }
-        playerListener = null
-        startupAnalyticsListener?.let { viewModel.player?.removeAnalyticsListener(it) }
-        startupAnalyticsListener = null
+        playerEvents.detach()
         preparePlayerExitFrame()
         releasePlayerAfterExit()
         super.onDestroy()
@@ -1813,9 +1295,9 @@ class PlayerActivity : AppCompatActivity() {
         val result = PlayerPlaybackTickPolicy.seekTarget(
             currentPositionMs = currentPositionMs,
             durationMs = durationMs,
-            abLoopState = abLoopState,
-            abLoopPointA = abLoopPointA,
-            abLoopPointB = abLoopPointB,
+            abLoopState = abLoop.state,
+            abLoopPointA = abLoop.pointA,
+            abLoopPointB = abLoop.pointB,
             skipIntroOutro = playerPrefs.skipIntroOutro,
             introSeconds = playerPrefs.introSeconds,
             outroSeconds = playerPrefs.outroSeconds,

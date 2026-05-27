@@ -27,11 +27,12 @@ class PlayerLockPauseSourceTest {
 
     @Test
     fun playerPauseEventsClearPlayerLock() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerEventControllerSource()))
 
         assertTrue(
             "Player listener should clear lock when playback changes to a paused intent",
             source.contains("if (!playWhenReady) unlockPlayerForPause()")
+                || source.contains("if (!playWhenReady) onUnlockPlayerForPause()")
         )
     }
 
@@ -96,6 +97,14 @@ class PlayerLockPauseSourceTest {
     }
 
     private fun playerNotificationControllerSource(): Path {
+        return playerSource("PlayerPlaybackNotificationController.kt")
+    }
+
+    private fun playerEventControllerSource(): Path {
+        return playerSource("PlayerEventController.kt")
+    }
+
+    private fun playerSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -105,7 +114,7 @@ class PlayerLockPauseSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerPlaybackNotificationController.kt"
+            name
         )
         return sequenceOf(
             relativePath,

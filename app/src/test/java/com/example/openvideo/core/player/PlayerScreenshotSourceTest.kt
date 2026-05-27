@@ -13,6 +13,7 @@ class PlayerScreenshotSourceTest {
         val managerSource = String(Files.readAllBytes(playerManagerSource()))
         val mediaExportSource = String(Files.readAllBytes(playerMediaExportControllerSource()))
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val controlsBinderSource = String(Files.readAllBytes(playerControlsBinderSource()))
 
         assertTrue(
             "PlayerManager screenshot API should accept a View so both TextureView and SurfaceView renderers are supported",
@@ -29,8 +30,9 @@ class PlayerScreenshotSourceTest {
         )
         assertTrue(
             "PlayerActivity should pass the current video renderer view to screenshot capture",
-            activitySource.contains("val videoView = videoRenderView()")
-                && activitySource.contains("playerManager.takeScreenshot(videoView)")
+            activitySource.contains("videoRenderViewProvider = { videoRenderView() }")
+                && controlsBinderSource.contains("val videoView = videoRenderViewProvider() ?: return")
+                && controlsBinderSource.contains("playerManager.takeScreenshot(videoView)")
         )
     }
 
@@ -71,6 +73,14 @@ class PlayerScreenshotSourceTest {
     }
 
     private fun playerActivitySource(): Path {
+        return playerUiSource("PlayerActivity.kt")
+    }
+
+    private fun playerControlsBinderSource(): Path {
+        return playerUiSource("PlayerControlsBinder.kt")
+    }
+
+    private fun playerUiSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -80,7 +90,7 @@ class PlayerScreenshotSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

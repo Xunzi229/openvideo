@@ -11,15 +11,17 @@ class PlayerPlaylistLoopSourceTest {
     @Test
     fun playerActivityHandlesEndedStateWithSessionQueuePolicy() {
         val source = String(Files.readAllBytes(playerActivitySource()))
-        val listener = source
-            .substringAfter("playerListener = object : Player.Listener")
-            .substringBefore("viewModel.player?.addListener")
+        val listener = String(Files.readAllBytes(playerEventControllerSource()))
+            .substringAfter("override fun onPlaybackStateChanged(playbackState: Int)")
+            .substringBefore("\n            @OptIn(UnstableApi::class)")
 
         assertTrue(listener.contains("Player.STATE_ENDED"))
-        assertTrue(listener.contains("handlePlaybackEnded()"))
+        assertTrue(listener.contains("onPlaybackEnded()"))
+        assertTrue(source.contains("onPlaybackEnded = { playbackEnd.handleEnded() }"))
 
-        val endedHandler = source
-            .substringAfter("private fun handlePlaybackEnded()")
+        val controller = String(Files.readAllBytes(playerPlaybackEndControllerSource()))
+        val endedHandler = controller
+            .substringAfter("fun handleEnded()")
             .substringBefore("\n    private fun", missingDelimiterValue = "")
 
         assertTrue(endedHandler.contains("PlayerPlaybackEndPolicy.decide"))
@@ -32,12 +34,11 @@ class PlayerPlaylistLoopSourceTest {
         assertTrue(endedHandler.contains("PlayerPlaybackEndAction.RETURN_TO_LIST"))
         assertTrue(endedHandler.contains("playNextQueueVideoAfterEnded(queue, decision.nextIndex)"))
 
-        val nextHandler = source
+        val nextHandler = controller
             .substringAfter("private fun playNextQueueVideoAfterEnded(queue: List<VideoItem>, nextIndex: Int?)")
-            .substringBefore("\n    private fun", missingDelimiterValue = "")
 
-        assertTrue(nextHandler.contains("switchSessionVideo(queue[nextIndex])"))
-        assertTrue(nextHandler.contains("applyPlayerSettings()"))
+        assertTrue(nextHandler.contains("onSwitchSessionVideo(item)"))
+        assertTrue(nextHandler.contains("onApplyPlayerSettings()"))
 
         val switchHandler = source
             .substringAfter("private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {})")
@@ -48,6 +49,18 @@ class PlayerPlaylistLoopSourceTest {
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerPlaybackEndControllerSource(): Path {
+        return kotlinSource("PlayerPlaybackEndController.kt")
+    }
+
+    private fun playerEventControllerSource(): Path {
+        return kotlinSource("PlayerEventController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -57,7 +70,7 @@ class PlayerPlaylistLoopSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

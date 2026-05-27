@@ -38,7 +38,7 @@ class PlaybackServiceMediaSessionSourceTest {
 
     @Test
     fun playerActivitySnapshotIncludesLoopModeForSkipCapability() {
-        val source = playerActivitySource()
+        val source = playerPlaybackNotificationControllerSource()
         assertTrue(source.contains("loopMode = playerPrefs.loopMode"))
     }
 
@@ -46,8 +46,18 @@ class PlaybackServiceMediaSessionSourceTest {
         Paths.get("src", "main", "java", "com", "example", "openvideo", "core", "player", "PlaybackService.kt")
     )
 
-    private fun playerActivitySource(): String = loadSource(
-        Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "player", "PlayerActivity.kt")
+    private fun playerPlaybackNotificationControllerSource(): String = loadSource(
+        Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerPlaybackNotificationController.kt"
+        )
     )
 
     private fun loadSource(relativePath: Path): String {

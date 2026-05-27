@@ -62,19 +62,20 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun controlsChromeVisibilityUsesPresentationPolicy() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerChromeController.kt").readText()
+        val activitySource = sourceFile("PlayerActivity.kt").readText()
 
         assertTrue(source.contains("PlayerChromeVisibilityPolicy.show("))
         assertTrue(source.contains("PlayerChromeVisibilityPolicy.hide()"))
         assertTrue(source.contains("PlayerChromeVisibilityPolicy.showLocked("))
-        assertTrue(source.contains("PlayerChromeVisibilityPolicy.pictureInPicture()"))
+        assertTrue(activitySource.contains("PlayerChromeVisibilityPolicy.pictureInPicture()"))
         assertTrue(source.contains("applyChromePresentation("))
     }
 
     @Test
     fun endedQueueSwitchRespectsAutoPlayNextPreference() {
-        val source = sourceFile("PlayerActivity.kt").readText()
-        val block = source.substringAfter("private fun handlePlaybackEnded()")
+        val source = sourceFile("PlayerPlaybackEndController.kt").readText()
+        val block = source.substringAfter("fun handleEnded()")
             .substringBefore("\n    private fun")
 
         assertTrue(block.contains("PlayerPlaybackEndPolicy.decide("))
@@ -83,10 +84,11 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun abLoopUsesPurePolicyForToggleAndTickSeek() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val activitySource = sourceFile("PlayerActivity.kt").readText()
+        val abLoopSource = sourceFile("PlayerAbLoopController.kt").readText()
 
-        assertTrue(source.contains("PlayerAbLoopPolicy.onToggle("))
-        assertTrue(source.contains("applyAbLoopResult("))
+        assertTrue(abLoopSource.contains("PlayerAbLoopPolicy.onToggle("))
+        assertTrue(activitySource.contains("abLoop.toggle("))
     }
 
     @Test
@@ -108,7 +110,7 @@ class PlayerGestureHudSourceTest {
         assertTrue(activitySource.contains("switchSessionVideo("))
         assertTrue(activitySource.contains("dismissSubtitleSettingsSheet()"))
         assertTrue(activitySource.contains("PlayerVideoSwitchPolicy.resetForNewVideo()"))
-        assertTrue(activitySource.contains("abLoopState = reset.abLoopState"))
+        assertTrue(activitySource.contains("abLoop.reset(reset)"))
         assertTrue(activitySource.contains("playerGestures.resetForNewVideo(reset)"))
         assertTrue(gestureSource.contains("doubleTapSeekState = reset.doubleTapSeekState"))
         assertTrue(gestureSource.contains("pendingSeekTarget = reset.pendingSeekTarget"))
@@ -153,7 +155,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun lockedChromeVisibilityUsesLockedControlsPolicy() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerChromeController.kt").readText()
         assertTrue(source.contains("PlayerLockedControlsPolicy.visibility(isScreenLocked, controlsVisible)"))
         assertTrue(source.contains("PlayerLockedControlsPolicy.isChromeRegionVisible("))
     }

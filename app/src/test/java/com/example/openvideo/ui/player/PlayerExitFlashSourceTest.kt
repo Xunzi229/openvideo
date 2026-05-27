@@ -11,27 +11,30 @@ class PlayerExitFlashSourceTest {
 
     @Test
     fun playerExitHidesSurfaceWithoutSynchronouslyDetachingPlayerView() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerExitControllerSource()))
         val finishPlayer = source
-            .substringAfter("private fun finishPlayer() {")
+            .substringAfter("fun finishPlayer() {")
             .substringBefore("\n    private fun preparePlayerExitFrame()")
         val prepareExit = source
-            .substringAfter("private fun preparePlayerExitFrame() {")
+            .substringAfter("fun preparePlayerExitFrame() {")
             .substringBefore("\n    private fun")
 
+        val controlsBinder = String(Files.readAllBytes(playerControlsBinderSource()))
         assertTrue(
             "Player back button should go through the guarded finish path",
-            source.contains("btnBack.setPlayerClickListener(PlayerLockedInteraction.BACK) { finishPlayer() }")
+            activitySource.contains("onFinishPlayer = ::finishPlayer") &&
+                controlsBinder.contains("backButtonProvider().setGuardedClick(PlayerLockedInteraction.BACK) { onFinishPlayer() }")
         )
         assertTrue(
             "System back should use the same guarded finish path",
-            source.contains("onBackPressedDispatcher.addCallback")
-                && source.contains("override fun handleOnBackPressed() {")
-                && source.contains("finishPlayer()")
+            activitySource.contains("onBackPressedDispatcher.addCallback")
+                && activitySource.contains("override fun handleOnBackPressed() {")
+                && activitySource.contains("finishPlayer()")
         )
         assertTrue(
             "Exit should prepare a non-black frame before calling finish",
-            finishPlayer.indexOf("preparePlayerExitFrame()") in 0 until finishPlayer.indexOf("finish()")
+            finishPlayer.indexOf("preparePlayerExitFrame()") in 0 until source.indexOf("activity.finish()")
         )
         assertFalse(
             "Exit preparation should avoid PlayerView.setPlayer(null); Media3 can block detaching SurfaceView and throw ExoTimeoutException on some devices",
@@ -39,7 +42,7 @@ class PlayerExitFlashSourceTest {
         )
         assertTrue(
             "Exit preparation should hide PlayerView so the SurfaceView layer cannot flash black",
-            prepareExit.contains("playerView.visibility = View.INVISIBLE")
+            prepareExit.contains("playerView?.visibility = View.INVISIBLE")
         )
         assertTrue(
             "Exit preparation should delegate backdrop choice to PlayerExitPolicy",
@@ -51,7 +54,7 @@ class PlayerExitFlashSourceTest {
         )
         assertTrue(
             "Exit preparation should show an app-colored scrim above the video surface so long-video teardown cannot flash the player black background",
-            prepareExit.contains("firstFrameScrim.setBackgroundColor(ContextCompat.getColor(this, backdropColorRes))")
+            prepareExit.contains("firstFrameScrim.setBackgroundColor(ContextCompat.getColor(activity, backdropColorRes))")
                 && prepareExit.contains("firstFrameScrim.alpha = 1f")
                 && prepareExit.contains("firstFrameScrim.visibility = View.VISIBLE")
         )
@@ -82,17 +85,18 @@ class PlayerExitFlashSourceTest {
 
     @Test
     fun playerExitDisablesCloseAnimationAndReleasesAfterFinishStarts() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerExitControllerSource()))
         val finishPlayer = source
-            .substringAfter("private fun finishPlayer() {")
+            .substringAfter("fun finishPlayer() {")
             .substringBefore("\n    private fun preparePlayerExitFrame()")
-        val onDestroy = source
+        val onDestroy = activitySource
             .substringAfter("override fun onDestroy() {")
             .substringBefore("\n    override fun onPictureInPictureModeChanged")
 
         assertTrue(
             "Player exit should disable Activity close animation so a black SurfaceView frame is not animated over the video list",
-            finishPlayer.contains("overridePendingTransition(0, 0)")
+            source.contains("activity.overridePendingTransition(0, 0)")
         )
         assertTrue(
             "Player exit should schedule release after finish starts instead of releasing the large decoder before the previous screen is visible",
@@ -107,21 +111,22 @@ class PlayerExitFlashSourceTest {
 
     @Test
     fun playerExitSettlesPortraitOrientationBeforeFinishingToAvoidReturnBlackFlash() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerExitControllerSource()))
         val finishPlayer = source
-            .substringAfter("private fun finishPlayer() {")
+            .substringAfter("fun finishPlayer() {")
             .substringBefore("\n    private fun suppressExitTransition()")
         val settleExit = source
             .substringAfter("private fun settleOrientationBeforeExit(")
             .substringBefore("\n    private fun suppressExitTransition()")
-        val rebindControls = source
+        val rebindControls = activitySource
             .substringAfter("private fun rebindControlsForConfiguration() {")
             .substringBefore("\n    override fun onResume()")
 
         assertTrue(
             "Player exit should request portrait before finish so the landscape-to-portrait rotation happens behind the player exit scrim",
             finishPlayer.indexOf("preparePlayerExitFrame()") in 0 until finishPlayer.indexOf("settleOrientationBeforeExit(presentation)") &&
-                settleExit.contains("requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT")
+                settleExit.contains("activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT")
         )
         assertTrue(
             "Player exit should delay finish until the portrait orientation request has a chance to settle",
@@ -131,12 +136,24 @@ class PlayerExitFlashSourceTest {
         )
         assertTrue(
             "Orientation rebind during exit should restore the app-colored scrim on the freshly inflated player layout",
-            rebindControls.contains("if (exitState.isFinishing)") &&
+            rebindControls.contains("if (playerExit.isFinishing)") &&
                 rebindControls.contains("preparePlayerExitFrame()")
         )
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerExitControllerSource(): Path {
+        return kotlinSource("PlayerExitController.kt")
+    }
+
+    private fun playerControlsBinderSource(): Path {
+        return kotlinSource("PlayerControlsBinder.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -146,7 +163,7 @@ class PlayerExitFlashSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

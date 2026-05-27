@@ -11,16 +11,16 @@ class PlayerLockedControlsSourceTest {
 
     @Test
     fun applyControlVisibilityUsesLockedControlsPolicy() {
-        val source = playerActivitySource()
-        val block = source.substringAfter("private fun applyControlVisibility() {")
-            .substringBefore("\n    private fun View.setPlayerClickListener(")
+        val source = playerChromeControllerSource()
+        val block = source.substringAfter("fun applyControlVisibility() {")
+            .substringBefore("\n    fun hideChromeForSettingsOverlay()")
 
         assertTrue(block.contains("PlayerLockedControlsPolicy.visibility(isScreenLocked, controlsVisible)"))
         assertTrue(block.contains("PlayerLockedControlsPolicy.isChromeRegionVisible("))
         assertTrue(block.contains("PlayerChromeRegion.TOP_SCRIM"))
         assertTrue(block.contains("PlayerChromeRegion.LAND_RIGHT_FLOAT_COLUMN"))
         assertTrue(block.contains("visibility.fullscreenButtonVisible"))
-        assertTrue(block.contains("btnFullscreen.visibility"))
+        assertTrue(block.contains("fullscreenButtonProvider().visibility"))
         assertFalse(
             "Chrome visibility must not bypass PlayerLockedControlsPolicy.",
             block.contains("PlayerControlState.visibilityFor(isScreenLocked")
@@ -29,18 +29,35 @@ class PlayerLockedControlsSourceTest {
 
     @Test
     fun setupControlsGuardTransportAndSettingsWhileLocked() {
-        val source = playerActivitySource()
-        val block = source.substringAfter("private fun setupControls() {")
-            .substringBefore("\n        playerListener = object : Player.Listener {")
+        val source = playerControlsBinderSource()
+        val seekController = playerSeekBarControllerSource()
+        val block = source.substringAfter("fun bind() {")
+            .substringBefore("\n    private fun View.setGuardedClick")
 
-        assertTrue(block.contains("setPlayerClickListener(PlayerLockedInteraction.TRANSPORT)"))
-        assertTrue(block.contains("setPlayerClickListener(PlayerLockedInteraction.SETTINGS)"))
-        assertTrue(block.contains("setPlayerClickListener(PlayerLockedInteraction.LOCK_TOGGLE)"))
-        assertTrue(block.contains("PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SEEK_BAR"))
+        assertTrue(block.contains("setGuardedClick(PlayerLockedInteraction.TRANSPORT)"))
+        assertTrue(block.contains("setGuardedClick(PlayerLockedInteraction.SETTINGS)"))
+        assertTrue(block.contains("setGuardedClick(PlayerLockedInteraction.LOCK_TOGGLE)"))
+        assertTrue(seekController.contains("PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SEEK_BAR"))
         assertTrue(block.contains("PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.CHROME_TOGGLE"))
     }
 
     private fun playerActivitySource(): String {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerChromeControllerSource(): String {
+        return kotlinSource("PlayerChromeController.kt")
+    }
+
+    private fun playerSeekBarControllerSource(): String {
+        return kotlinSource("PlayerSeekBarController.kt")
+    }
+
+    private fun playerControlsBinderSource(): String {
+        return kotlinSource("PlayerControlsBinder.kt")
+    }
+
+    private fun kotlinSource(name: String): String {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -50,7 +67,7 @@ class PlayerLockedControlsSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         val path: Path = sequenceOf(
             relativePath,

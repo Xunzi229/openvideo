@@ -24,17 +24,18 @@ class PlayerActivityStartupSourceTest {
     fun playerKeepsBlackScrimUntilFirstFrameWhenOpeningOrSwitchingVideo() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val firstFrameController = String(Files.readAllBytes(playerFirstFrameControllerSource()))
+        val eventController = String(Files.readAllBytes(playerEventControllerSource()))
 
         assertTrue(source.contains("private lateinit var firstFrameScrim: View"))
         assertTrue(source.contains("R.id.player_first_frame_scrim"))
-        assertTrue(source.contains("private fun showFirstFrameScrim()"))
+        assertTrue(source.contains("firstFrames.showForNewMedia()"))
         assertTrue(firstFrameController.contains("private fun applyDecision(decision: PlayerFirstFrameDecision)"))
         assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onShowForNewMedia()"))
         assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onRenderedFirstFrame("))
         assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onReady("))
-        assertTrue(source.contains("override fun onRenderedFirstFrame()"))
-        assertTrue(source.contains("firstFrames.onRenderedFirstFrame()"))
-        assertTrue(source.contains("showFirstFrameScrim()") && source.contains("viewModel.switchToVideo("))
+        assertTrue(eventController.contains("override fun onRenderedFirstFrame()"))
+        assertTrue(source.contains("onRenderedFirstFrame = { firstFrames.onRenderedFirstFrame() }"))
+        assertTrue(source.contains("firstFrames.showForNewMedia()") && source.contains("viewModel.switchToVideo("))
 
         sequenceOf(playerLayoutSource("layout"), playerLayoutSource("layout-land")).forEach { layout ->
             val layoutSource = String(Files.readAllBytes(layout))
@@ -128,6 +129,10 @@ class PlayerActivityStartupSourceTest {
 
     private fun playerFirstFrameControllerSource(): Path {
         return kotlinSource("PlayerFirstFrameController.kt")
+    }
+
+    private fun playerEventControllerSource(): Path {
+        return kotlinSource("PlayerEventController.kt")
     }
 
     private fun kotlinSource(name: String): Path {

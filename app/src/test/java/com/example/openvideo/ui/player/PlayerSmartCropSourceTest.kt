@@ -19,12 +19,12 @@ class PlayerSmartCropSourceTest {
 
     @Test
     fun playerActivityRoutesSmartCropButtonToHandler() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerControlsBinderSource()))
         val block = source.substringAfter(
-            "findViewById<View>(R.id.btn_land_smart_crop)?.setPlayerClickListener(PlayerLockedInteraction.SETTINGS) {"
+            "activity.findViewById<View>(R.id.btn_land_smart_crop)?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {"
         ).substringBefore("\n        }\n\n        findViewById<View>(R.id.btn_land_aspect)")
 
-        assertTrue(block.contains("handleSmartCropQuickToggle()"))
+        assertTrue(block.contains("onHandleSmartCropQuickToggle()"))
     }
 
     @Test
@@ -186,6 +186,10 @@ class PlayerSmartCropSourceTest {
 
     private fun playerSmartCropControllerSource(): Path {
         return kotlinSource("PlayerSmartCropController.kt")
+    }
+
+    private fun playerControlsBinderSource(): Path {
+        return kotlinSource("PlayerControlsBinder.kt")
     }
 
     private fun contentFrameTransformControllerSource(): Path {

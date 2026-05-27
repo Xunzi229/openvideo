@@ -10,7 +10,7 @@ class PlayerPlaybackEndBehaviorSourceTest {
 
     @Test
     fun playerActivityUsesPlaybackEndBehaviorPreference() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerPlaybackEndControllerSource()))
 
         assertTrue(source.contains("endBehavior = playerPrefs.playbackEndBehavior"))
     }
@@ -30,6 +30,9 @@ class PlayerPlaybackEndBehaviorSourceTest {
     }
 
     private fun playerActivitySource(): Path = moduleSource("ui", "player", "PlayerActivity.kt")
+
+    private fun playerPlaybackEndControllerSource(): Path =
+        moduleSource("ui", "player", "PlayerPlaybackEndController.kt")
 
     private fun playbackSettingsActivitySource(): Path =
         moduleSource("ui", "player", "PlayerPlaybackSettingsActivity.kt")

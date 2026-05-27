@@ -10,10 +10,12 @@ class PlayerDecoderEventSourceTest {
 
     @Test
     fun playerActivityWiresDecoderInitializationThroughPolicy() {
-        val source = playerActivitySource()
+        val activitySource = playerActivitySource()
+        val source = playerEventControllerSource()
         assertTrue(
             "Activity must register a startup analytics listener after the player listener.",
-            source.contains("attachStartupAnalyticsListener()")
+            activitySource.contains("playerEvents.attach()") &&
+                source.contains("attachStartupAnalyticsListener()")
         )
         assertTrue(
             "onVideoDecoderInitialized must go through PlayerDecoderEventPolicy.",
@@ -31,7 +33,7 @@ class PlayerDecoderEventSourceTest {
 
     @Test
     fun playerActivityWiresCodecErrorsThroughPolicy() {
-        val source = playerActivitySource()
+        val source = playerEventControllerSource()
         assertTrue(
             "onVideoCodecError must go through PlayerDecoderEventPolicy.",
             source.contains("PlayerDecoderEventPolicy.videoCodecErrorEvents(videoCodecError.javaClass.name)")
@@ -44,15 +46,25 @@ class PlayerDecoderEventSourceTest {
 
     @Test
     fun playerActivityRemovesAnalyticsListenerOnDestroy() {
-        val source = playerActivitySource()
+        val activitySource = playerActivitySource()
+        val source = playerEventControllerSource()
         assertTrue(
             "onDestroy must remove the startup analytics listener.",
-            source.contains("startupAnalyticsListener?.let { viewModel.player?.removeAnalyticsListener(it) }")
+            activitySource.contains("playerEvents.detach()") &&
+                source.contains("startupAnalyticsListener?.let { viewModel.player?.removeAnalyticsListener(it) }")
         )
         assertTrue(source.contains("startupAnalyticsListener = null"))
     }
 
     private fun playerActivitySource(): String {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerEventControllerSource(): String {
+        return kotlinSource("PlayerEventController.kt")
+    }
+
+    private fun kotlinSource(name: String): String {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -62,7 +74,7 @@ class PlayerDecoderEventSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         val path: Path = sequenceOf(
             relativePath,

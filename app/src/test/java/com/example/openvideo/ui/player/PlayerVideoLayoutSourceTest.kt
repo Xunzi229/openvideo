@@ -10,7 +10,7 @@ class PlayerVideoLayoutSourceTest {
 
     @Test
     fun playerActivityDelegatesRuntimeOrientationAndContentRatioToVideoLayoutPolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerEventControllerSource()))
         val listenerBlock = source.substringAfter("override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {")
             .substringBefore("\n            }")
         val orientationSource = String(Files.readAllBytes(playerVideoOrientationControllerSource()))
@@ -25,21 +25,11 @@ class PlayerVideoLayoutSourceTest {
     }
 
     private fun playerActivitySource(): Path {
-        val relativePath = Paths.get(
-            "src",
-            "main",
-            "java",
-            "com",
-            "example",
-            "openvideo",
-            "ui",
-            "player",
-            "PlayerActivity.kt"
-        )
-        return sequenceOf(
-            relativePath,
-            Paths.get("app").resolve(relativePath)
-        ).first(Files::exists)
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerEventControllerSource(): Path {
+        return kotlinSource("PlayerEventController.kt")
     }
 
     private fun playerVideoOrientationControllerSource(): Path {

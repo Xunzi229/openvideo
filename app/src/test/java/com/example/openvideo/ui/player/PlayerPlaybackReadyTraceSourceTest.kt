@@ -11,7 +11,7 @@ class PlayerPlaybackReadyTraceSourceTest {
 
     @Test
     fun playbackStateChangedUsesReadyTracePolicy() {
-        val source = playerActivitySource()
+        val source = playerEventControllerSource()
         val block = source.substringAfter("override fun onPlaybackStateChanged(playbackState: Int) {")
             .substringBefore("\n            @OptIn(UnstableApi::class)")
 
@@ -28,6 +28,14 @@ class PlayerPlaybackReadyTraceSourceTest {
     }
 
     private fun playerActivitySource(): String {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerEventControllerSource(): String {
+        return kotlinSource("PlayerEventController.kt")
+    }
+
+    private fun kotlinSource(name: String): String {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -37,7 +45,7 @@ class PlayerPlaybackReadyTraceSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         val path: Path = sequenceOf(
             relativePath,

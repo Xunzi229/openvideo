@@ -10,13 +10,13 @@ class PlayerExitTransitionSourceTest {
 
     @Test
     fun playerExitUsesPolicyForTransitionStrategyAndReleaseDelay() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerExitControllerSource()))
         val finishPlayer = source
-            .substringAfter("private fun finishPlayer() {")
+            .substringAfter("fun finishPlayer() {")
             .substringBefore("\n    private fun suppressExitTransition()")
         val suppressExit = source
             .substringAfter("private fun suppressExitTransition() {")
-            .substringBefore("\n    private fun preparePlayerExitFrame()")
+            .substringBefore("\n    @RequiresApi")
 
         assertTrue(finishPlayer.contains("PlayerExitPolicy.finishPresentation("))
         assertTrue(finishPlayer.contains("presentation.releaseDelayMs"))
@@ -24,6 +24,14 @@ class PlayerExitTransitionSourceTest {
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerExitControllerSource(): Path {
+        return kotlinSource("PlayerExitController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -33,7 +41,7 @@ class PlayerExitTransitionSourceTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

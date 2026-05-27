@@ -16,7 +16,7 @@ class PlayerActivityP9SlimmingSourceTest {
 
     @Test
     fun fullscreenButtonUsesOrientationTogglePolicy() {
-        val source = playerActivitySource()
+        val source = playerControlsBinderSource()
         assertTrue(
             "btnFullscreen click must delegate to PlayerOrientationTogglePolicy.",
             source.contains("PlayerOrientationTogglePolicy.nextRequestedOrientation(")
@@ -167,9 +167,10 @@ class PlayerActivityP9SlimmingSourceTest {
     fun gestureAndChromeConstantsUsePolicies() {
         val source = playerActivitySource()
         val gestureController = playerGestureControllerSource()
+        val chromeController = playerChromeControllerSource()
         assertTrue(gestureController.contains("PlayerGesturePolicy.verticalGestureAction("))
         assertTrue(gestureController.contains("PlayerDoubleTapSeekPolicy.intervalMs("))
-        assertTrue(source.contains("PlayerChromePolicy.CHROME_FADE_DURATION_MS"))
+        assertTrue(chromeController.contains("PlayerChromePolicy.CHROME_FADE_DURATION_MS"))
         assertTrue(source.contains("PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS"))
         assertFalse(source.contains("handler.postDelayed(this, 500)"))
         assertFalse(gestureController.contains("seekInterval * 1000L"))
@@ -254,14 +255,23 @@ class PlayerActivityP9SlimmingSourceTest {
         val quickDialogController = playerQuickDialogControllerSource()
         val contentFrameController = playerContentFrameTransformControllerSource()
         val gestureController = playerGestureControllerSource()
+        val abLoopController = playerAbLoopControllerSource()
+        val eventController = playerEventControllerSource()
+        val chromeController = playerChromeControllerSource()
         for (snippet in required) {
             val haystack = when {
                 snippet.startsWith("PlayerSettingsSheetChrome.") -> glassSheet
                 snippet.startsWith("PlayerNotification") -> notificationController
+                snippet.startsWith("PlayerChromeSettingsOverlayPolicy.") -> chromeController
+                snippet.startsWith("PlayerScreenLockChromePolicy.") -> chromeController
+                snippet.startsWith("PlayerLockButtonStylePolicy.") -> chromeController
+                snippet.startsWith("PlayerVolumeBoostApplyPolicy.") -> eventController
+                snippet.startsWith("PlayerPlaybackReadyTracePolicy.") -> eventController
                 snippet.startsWith("PlayerVideoOrientation") -> orientationController
                 snippet.startsWith("PlayerGlassSheetDialog.") -> quickDialogController
                 snippet.startsWith("PlayerContentFrameResetPolicy.") -> contentFrameController
                 snippet.startsWith("PlayerGesture") -> gestureController
+                snippet.startsWith("PlayerAbLoopButtonStylePolicy.") -> abLoopController
                 else -> source
             }
             assertTrue("Expected policy wiring `$snippet`.", haystack.contains(snippet))
@@ -399,6 +409,22 @@ class PlayerActivityP9SlimmingSourceTest {
 
     private fun playerFirstFrameControllerSource(): String {
         return kotlinSource("PlayerFirstFrameController.kt")
+    }
+
+    private fun playerAbLoopControllerSource(): String {
+        return kotlinSource("PlayerAbLoopController.kt")
+    }
+
+    private fun playerEventControllerSource(): String {
+        return kotlinSource("PlayerEventController.kt")
+    }
+
+    private fun playerChromeControllerSource(): String {
+        return kotlinSource("PlayerChromeController.kt")
+    }
+
+    private fun playerControlsBinderSource(): String {
+        return kotlinSource("PlayerControlsBinder.kt")
     }
 
     private fun kotlinSource(name: String): String {

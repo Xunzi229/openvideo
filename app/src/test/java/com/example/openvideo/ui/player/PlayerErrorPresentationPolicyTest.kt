@@ -176,8 +176,8 @@ class PlayerErrorPresentationPolicyTest {
 
     @Test
     fun softwareDecodeRetryDoesNotPersistGlobalDecodePreference() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val block = source.substringAfter("btnErrorSoftDecode?.setOnClickListener {")
+        val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
+        val block = source.substringAfter("softDecodeButtonProvider()?.setOnClickListener {")
             .substringBefore("\n        }")
 
         assertTrue(block.contains("viewModel.setDecodeMode(DecodeMode.SOFT)"))
@@ -189,6 +189,14 @@ class PlayerErrorPresentationPolicyTest {
         String(Files.readAllBytes(resource(dir, file)))
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerErrorHudControllerSource(): Path {
+        return kotlinSource("PlayerErrorHudController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -198,7 +206,7 @@ class PlayerErrorPresentationPolicyTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
     }
