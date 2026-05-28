@@ -25,7 +25,7 @@ class PlayerEventController(
     private val onPrepareReady: () -> Unit,
     private val onPlaybackEnded: () -> Unit,
     private val onSetVolumeBoost: (Boolean) -> Unit,
-    private val onRenderedFirstFrame: () -> Unit,
+    private val onFirstFrameRendered: () -> Unit,
     private val onShowPlayerError: (PlaybackException) -> Unit,
     private val onApplyVideoOrientation: (width: Int, height: Int, pixelWidthHeightRatio: Float, unappliedRotationDegrees: Int) -> Unit,
     private val onApplyContentAspectRatio: (width: Int, height: Int, pixelWidthHeightRatio: Float, unappliedRotationDegrees: Int) -> Unit,
@@ -99,7 +99,7 @@ class PlayerEventController(
             }
 
             override fun onRenderedFirstFrame() {
-                onRenderedFirstFrame()
+                onFirstFrameRendered()
             }
 
             override fun onPlayerError(error: PlaybackException) {

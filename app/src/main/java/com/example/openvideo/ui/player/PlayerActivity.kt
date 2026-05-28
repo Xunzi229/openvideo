@@ -450,7 +450,7 @@ class PlayerActivity : AppCompatActivity() {
             onPrepareReady = { firstFrames.onPrepareReady() },
             onPlaybackEnded = { playbackEnd.handleEnded() },
             onSetVolumeBoost = { enabled -> viewModel.setVolumeBoost(enabled) },
-            onRenderedFirstFrame = { firstFrames.onRenderedFirstFrame() },
+            onFirstFrameRendered = { firstFrames.onRenderedFirstFrame() },
             onShowPlayerError = { error -> errorHud.show(error) },
             onApplyVideoOrientation = ::applyVideoOrientation,
             onApplyContentAspectRatio = ::applyPlayerContentAspectRatio,

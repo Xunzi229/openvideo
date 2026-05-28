@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.nio.file.Files
 import java.nio.file.Path
@@ -33,8 +34,20 @@ class PlayerActivityStartupSourceTest {
         assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onShowForNewMedia()"))
         assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onRenderedFirstFrame("))
         assertTrue(firstFrameController.contains("PlayerFirstFramePolicy.onReady("))
+        assertTrue(eventController.contains("private val onFirstFrameRendered: () -> Unit"))
         assertTrue(eventController.contains("override fun onRenderedFirstFrame()"))
-        assertTrue(source.contains("onRenderedFirstFrame = { firstFrames.onRenderedFirstFrame() }"))
+        assertTrue(eventController.contains("onFirstFrameRendered()"))
+        assertFalse(
+            "Listener callback must not call itself recursively",
+            eventController.contains(
+                """
+            override fun onRenderedFirstFrame() {
+                onRenderedFirstFrame()
+            }
+                """.trimIndent()
+            )
+        )
+        assertTrue(source.contains("onFirstFrameRendered = { firstFrames.onRenderedFirstFrame() }"))
         assertTrue(source.contains("firstFrames.showForNewMedia()") && source.contains("viewModel.switchToVideo("))
 
         sequenceOf(playerLayoutSource("layout"), playerLayoutSource("layout-land")).forEach { layout ->
