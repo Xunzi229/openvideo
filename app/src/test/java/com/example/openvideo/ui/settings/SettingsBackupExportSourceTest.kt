@@ -9,7 +9,7 @@ import java.nio.file.Paths
 class SettingsBackupExportSourceTest {
 
     @Test
-    fun settingsFragmentUsesCreateDocumentExportFlow() {
+    fun settingsFragmentKeepsBackupInfrastructureBehindHiddenUiSwitch() {
         val fragment = settingsFragmentSource()
         val viewModel = settingsViewModelSource()
         val policy = settingsBackupUiPolicySource()
@@ -24,12 +24,12 @@ class SettingsBackupExportSourceTest {
 
         assertTrue(fragment.contains("bindBackupSection(view)"))
         assertTrue(fragment.contains("SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE"))
-        assertTrue(policy.contains("SETTINGS_EXPORT_ENTRY_VISIBLE = true"))
-        assertTrue(policy.contains("SETTINGS_IMPORT_ENTRY_VISIBLE = true"))
-        assertTrue(deferredRule.contains("SETTINGS_EXPORT_ENTRY_VISIBLE = true"))
-        assertTrue(deferredRule.contains("SETTINGS_IMPORT_ENTRY_VISIBLE = true"))
+        assertTrue(policy.contains("SETTINGS_EXPORT_ENTRY_VISIBLE = false"))
+        assertTrue(policy.contains("SETTINGS_IMPORT_ENTRY_VISIBLE = false"))
+        assertTrue(deferredRule.contains("SETTINGS_EXPORT_ENTRY_VISIBLE = false"))
+        assertTrue(deferredRule.contains("SETTINGS_IMPORT_ENTRY_VISIBLE = false"))
         assertTrue(phasePlan.contains("Sprint 0.3 / 0.3.3 导出/导入实现"))
-        assertTrue(phasePlan.contains("设置页入口已开放"))
+        assertTrue(phasePlan.contains("设置页入口暂时关闭"))
         assertTrue(fragment.contains("ActivityResultContracts.CreateDocument(SettingsBackupSchema.MIME_TYPE)"))
         assertTrue(fragment.contains("exportSettingsLauncher.launch(SettingsBackupSchema.SUGGESTED_FILENAME)"))
         assertTrue(fragment.contains("ActivityResultContracts.OpenDocument()"))
