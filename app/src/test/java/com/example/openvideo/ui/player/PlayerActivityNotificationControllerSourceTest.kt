@@ -19,7 +19,7 @@ class PlayerActivityNotificationControllerSourceTest {
         assertTrue(activity.contains("playbackNotifications.registerHandlers()"))
         assertTrue(activity.contains("playbackNotifications.syncSnapshot("))
         assertTrue(activity.contains("playbackNotifications.startIfNeeded("))
-        assertTrue(activity.contains("playbackNotifications.skipQueueVideo("))
+        assertTrue(controller.contains("fun skipQueueVideo("))
 
         assertTrue(controller.contains("class PlayerPlaybackNotificationController"))
         assertTrue(controller.contains("PlayerNotificationPermissionPolicy.shouldRequestPermission("))

@@ -374,7 +374,9 @@ class PlayerSettingsDialogTest {
         assertTrue(aspectRowBlock.contains("onAspectRatioChanged()"))
 
         val activitySource = String(Files.readAllBytes(playerActivitySource()))
-        assertTrue(activitySource.contains("onAspectRatioChanged = ::applyAspectRatioDisplayChange"))
+        assertTrue(activitySource.contains("onAspectRatioChanged = {"))
+        assertTrue(activitySource.contains("smartCrop.clearSession()"))
+        assertTrue(activitySource.contains("applyDisplaySettings()"))
     }
 
     @Test
@@ -399,16 +401,17 @@ class PlayerSettingsDialogTest {
     @Test
     fun playbackSpeedUsesSeekBarRangeInsteadOfChoiceList() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val formatterSource = String(Files.readAllBytes(sourceFile("PlayerSettingsFormatter.kt")))
         val speedRow = dialogSource
             .substringAfter("private fun addPlaybackSpeedSeekRow()")
-            .substringBefore("\n    private fun speedToProgress")
+            .substringBefore("\n    private fun setSeekIntervalFromChoiceLabel")
 
         assertTrue(dialogSource.contains("private fun addPlaybackSpeedSeekRow("))
-        assertTrue(dialogSource.contains("SPEED_MIN = 0.5f"))
-        assertTrue(dialogSource.contains("SPEED_MAX = 5.0f"))
-        assertTrue(dialogSource.contains("SPEED_STEP = 0.25f"))
-        assertTrue(speedRow.contains("speedToProgress(playerPrefs.speed)"))
-        assertTrue(speedRow.contains("progressToSpeed(progress)"))
+        assertTrue(formatterSource.contains("SPEED_MIN = 0.5f"))
+        assertTrue(formatterSource.contains("SPEED_MAX = 5.0f"))
+        assertTrue(formatterSource.contains("SPEED_STEP = 0.25f"))
+        assertTrue(speedRow.contains("formatter.speedToProgress(playerPrefs.speed)"))
+        assertTrue(speedRow.contains("formatter.progressToSpeed(progress)"))
         assertTrue(
             "Speed changes should only apply when dragging stops to avoid rapid ExoPlayer reconfiguration.",
             speedRow.contains("commitOnStop = true")

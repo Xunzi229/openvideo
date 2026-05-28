@@ -32,6 +32,7 @@ class PlayerSettingsActivityIntegrationTest {
     fun settingsSheetWeakensControlsAndImmediatePreferencesAffectPlaybackChrome() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val displayController = String(Files.readAllBytes(playerDisplayControllerSource()))
+        val tickController = String(Files.readAllBytes(playerPlaybackTickControllerSource()))
         val quickDialogs = String(Files.readAllBytes(playerQuickDialogControllerSource()))
 
         assertTrue(source.contains("openPlayerSettingsDialog"))
@@ -39,7 +40,7 @@ class PlayerSettingsActivityIntegrationTest {
         assertTrue(quickDialogs.contains("onRestoreChromeAfterSettingsOverlay()"))
         assertTrue(quickDialogs.contains("onSettingsOverlayVisibleChanged(true)"))
         assertTrue(quickDialogs.contains("onSettingsOverlayVisibleChanged(false)"))
-        assertTrue(source.contains("PlayerSubtitlePresentationPolicy.resolveSubtitleText("))
+        assertTrue(tickController.contains("PlayerSubtitlePresentationPolicy.resolveSubtitleText("))
         assertTrue(displayController.contains("PlayerDisplayVisibilityPolicy.videoLayerAlpha(playerPrefs.videoDisplayEnabled)"))
         assertTrue(source.contains("controlsChromeMaxAlpha()"))
         assertTrue(displayController.contains("controlsContainer.alpha = controlsChromeMaxAlpha()"))
@@ -110,6 +111,10 @@ class PlayerSettingsActivityIntegrationTest {
 
     private fun playerSubtitleControllerSource(): Path {
         return playerSource("PlayerSubtitleController.kt")
+    }
+
+    private fun playerPlaybackTickControllerSource(): Path {
+        return playerSource("PlayerPlaybackTickController.kt")
     }
 
     private fun playerSource(name: String): Path {

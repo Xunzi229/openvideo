@@ -10,7 +10,7 @@ class IntroOutroSkipIntegrationTest {
 
     @Test
     fun playerActivityChecksIntroOutroSkipFromPositionUpdateLoop() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerPlaybackTickControllerSource()))
 
         assertTrue(source.contains("applyPlaybackTickSeek(state.currentPosition, state.duration)"))
         assertTrue(source.contains("PlayerPlaybackTickPolicy.seekTarget"))
@@ -19,6 +19,14 @@ class IntroOutroSkipIntegrationTest {
     }
 
     private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerPlaybackTickControllerSource(): Path {
+        return kotlinSource("PlayerPlaybackTickController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
         val relativePath = Paths.get(
             "src",
             "main",
@@ -28,7 +36,7 @@ class IntroOutroSkipIntegrationTest {
             "openvideo",
             "ui",
             "player",
-            "PlayerActivity.kt"
+            name
         )
         return sequenceOf(
             relativePath,

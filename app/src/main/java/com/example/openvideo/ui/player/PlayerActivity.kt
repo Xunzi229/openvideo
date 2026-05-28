@@ -2,7 +2,6 @@ package com.example.openvideo.ui.player
 
 import android.content.Intent
 import android.content.res.Configuration
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,12 +18,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.OptIn
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
@@ -112,27 +107,6 @@ class PlayerActivity : AppCompatActivity() {
     private var isSettingsOverlayVisible = false
     private var controlsVisibleBeforeSettingsOverlay = true
     private val hideControlsRunnable = Runnable { hideControls() }
-    private val updateRunnable = object : Runnable {
-        override fun run() {
-            if (!isSeeking) {
-                viewModel.updatePosition()
-                val state = viewModel.uiState.value
-                val seekBarState = PlayerTimeline.seekBarState(state.currentPosition, state.duration)
-                seekBar.isEnabled = seekBarState.enabled
-                seekBar.max = seekBarState.max
-                seekBar.progress = seekBarState.progress
-                tvCurrentTime.text = formatTime(state.currentPosition)
-                tvTotalTime.text = formatTime(state.duration)
-                findViewById<TextView>(R.id.tv_land_speed)?.text =
-                    landSpeedLabel(playerPrefs.speed)
-                saveProgressPeriodically(state.currentPosition)
-
-                applyPlaybackTickSeek(state.currentPosition, state.duration)
-                applySubtitlePresentation()
-            }
-            handler.postDelayed(this, PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS)
-        }
-    }
 
     private var currentBrightness = 0.5f
     private var currentVolume = 0.5f
@@ -145,10 +119,7 @@ class PlayerActivity : AppCompatActivity() {
     // 防止 onVideoSizeChanged 等回调把用户操作冲掉。切到下一首视频时复位。
     private var userOverrodeOrientation = false
     private var playbackWasBuffering = false
-    private var hasSkippedIntro = false
-    private var hasSkippedOutro = false
     private val startupTrace = PlayerStartupTrace()
-    private var lastHistorySavedPositionMs = 0L
 
     /** 单次手势起始亮度/音量（0–1），避免 MOVE 期间重复累加误差 */
 
@@ -219,9 +190,12 @@ class PlayerActivity : AppCompatActivity() {
             onRestoreChromeAfterSettingsOverlay = ::restoreChromeAfterSettingsOverlay,
             onScheduleHideControls = ::scheduleHideControls,
             onApplyScreenBrightness = ::applyScreenBrightness,
-            onAspectRatioChanged = ::applyAspectRatioDisplayChange,
+            onAspectRatioChanged = {
+                smartCrop.clearSession()
+                applyDisplaySettings()
+            },
             onApplyPlayerSettings = ::applyPlayerSettings,
-            onApplySubtitlePresentation = ::applySubtitlePresentation,
+            onApplySubtitlePresentation = { playbackTicks.applySubtitlePresentation() },
             onSessionVideoPicked = { item ->
                 switchSessionVideo(item) {
                     subtitles.setCurrentVideo(item.uri.toString(), item.path)
@@ -360,6 +334,24 @@ class PlayerActivity : AppCompatActivity() {
             formatTime = ::formatTime
         )
     }
+    private val playbackTicks: PlayerPlaybackTickController by lazy {
+        PlayerPlaybackTickController(
+            activity = this,
+            handler = handler,
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            seekBarProvider = { seekBar },
+            currentTimeProvider = { tvCurrentTime },
+            totalTimeProvider = { tvTotalTime },
+            subtitleProvider = { tvSubtitle },
+            isSeekingProvider = { isSeeking },
+            abLoopStateProvider = { abLoop.state },
+            abLoopPointAProvider = { abLoop.pointA },
+            abLoopPointBProvider = { abLoop.pointB },
+            formatTime = ::formatTime,
+            landSpeedLabel = ::landSpeedLabel
+        )
+    }
     private val playbackEnd: PlayerPlaybackEndController by lazy {
         PlayerPlaybackEndController(
             viewModel = viewModel,
@@ -446,9 +438,13 @@ class PlayerActivity : AppCompatActivity() {
             playbackWasBufferingProvider = { playbackWasBuffering },
             onPlaybackWasBufferingChanged = { playbackWasBuffering = it },
             onUpdatePlayPauseIcon = ::updatePlayPauseIcon,
-            onStartPlaybackServiceIfNeeded = ::startPlaybackServiceIfNeeded,
+            onStartPlaybackServiceIfNeeded = { isPlaying ->
+                playbackNotifications.startIfNeeded(isPlaying)
+            },
             onUnlockPlayerForPause = ::unlockPlayerForPause,
-            onApplyPlaybackTickSeek = ::applyPlaybackTickSeek,
+            onApplyPlaybackTickSeek = { positionMs, durationMs ->
+                playbackTicks.applyPlaybackTickSeek(positionMs, durationMs)
+            },
             onHideFirstFrameForAudioOnly = { firstFrames.hideForAudioOnly() },
             onHideErrorHud = { errorHud.hide() },
             onPrepareReady = { firstFrames.onPrepareReady() },
@@ -470,7 +466,7 @@ class PlayerActivity : AppCompatActivity() {
             playerRootProvider = { if (this::playerRoot.isInitialized) playerRoot else null },
             firstFrameScrimProvider = { if (this::firstFrameScrim.isInitialized) firstFrameScrim else null },
             controlsContainerProvider = { if (this::controlsContainer.isInitialized) controlsContainer else null },
-            onDismissPlaybackNotification = ::dismissPlaybackNotification
+            onDismissPlaybackNotification = { playbackNotifications.dismiss() }
         )
     }
     private val playerPip: PlayerPipController by lazy {
@@ -481,6 +477,25 @@ class PlayerActivity : AppCompatActivity() {
                 applyChromePresentation(PlayerChromeVisibilityPolicy.pictureInPicture())
             },
             onShowControls = ::showControls
+        )
+    }
+    private val playerLifecycle: PlayerLifecycleController by lazy {
+        PlayerLifecycleController(
+            viewModel = viewModel,
+            playerPrefs = playerPrefs,
+            isInPictureInPictureProvider = ::isInPipModeCompat,
+            isFinishingProvider = { isFinishing },
+            onStopPlaybackService = { playbackNotifications.stop() },
+            onReattachPlayerSurface = { playbackNotifications.reattachPlayerSurfaceFromBackground() },
+            onApplyDisplaySettings = ::applyDisplaySettings,
+            onObserveState = ::observeState,
+            onStopObservingState = ::stopObservingState,
+            onUnlockPlayerForPause = ::unlockPlayerForPause,
+            onDismissPlaybackNotification = { playbackNotifications.dismiss() },
+            onStartPlaybackServiceIfNeeded = { isPlaying ->
+                playbackNotifications.startIfNeeded(isPlaying)
+            },
+            onActivityForegroundChanged = { isActivityForeground = it }
         )
     }
     private val playbackNotifications by lazy {
@@ -526,14 +541,14 @@ class PlayerActivity : AppCompatActivity() {
         // (player_bg / player_panel_bg / player_title_primary ...) to dark, so it stays
         // dark without forcing the night mode flag globally.
         super.onCreate(savedInstanceState)
-        suppressNotificationOpenTransition(intent)
+        PlayerSystemUiController.suppressNotificationOpenTransition(this, intent, EXTRA_FROM_PLAYBACK_NOTIFICATION)
         applyInitialVideoOrientation()
         pickSubtitleLauncher = subtitles.registerPickSubtitleLauncher()
         notificationPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { /* 用户拒绝也无需处理：通知不显示，但播放仍可继续 */ }
-        ensureNotificationPermission()
-        enterImmersiveMode()
+        playbackNotifications.ensurePermission()
+        PlayerSystemUiController.enterImmersiveMode(this)
         setContentView(R.layout.activity_player)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -590,7 +605,7 @@ class PlayerActivity : AppCompatActivity() {
         if (warmResume) {
             applyPlayerSettings()
             syncPlayPauseIcon()
-            syncPlaybackNotificationSnapshot()
+            playbackNotifications.syncSnapshot()
         } else {
             viewModel.restorePlaybackPreferences(id) {
                 applyPlayerSettings()
@@ -608,27 +623,14 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         controlsContainer.post { applyLandscapePlayerGeometry() }
-        registerPlaybackNotificationHandlers()
+        playbackNotifications.registerHandlers()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        suppressNotificationOpenTransition(intent)
-        reattachPlayerSurfaceFromBackground()
-    }
-
-    private fun suppressNotificationOpenTransition(intent: Intent) {
-        if (!intent.getBooleanExtra(EXTRA_FROM_PLAYBACK_NOTIFICATION, false)) return
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-                overrideOpenTransitionCompat()
-            }
-            else -> {
-                @Suppress("DEPRECATION")
-                overridePendingTransition(0, 0)
-            }
-        }
+        PlayerSystemUiController.suppressNotificationOpenTransition(this, intent, EXTRA_FROM_PLAYBACK_NOTIFICATION)
+        playbackNotifications.reattachPlayerSurfaceFromBackground()
     }
 
     private fun applyPlayerSettings() = playerDisplay.applyPlayerSettings()
@@ -714,36 +716,9 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<View>(R.id.portrait_btn_episodes)?.isVisible = show
     }
 
-    private fun showSessionVideoListPanel() = quickDialogs.showSessionVideoListPanel()
-
     /** 与横屏齿轮按钮相同：弹出播放器设置。竖屏底栏「更多」亦指向此处。 */
-    private fun openPlayerSettingsDialog() = quickDialogs.openPlayerSettingsDialog()
-
-    private fun applyAspectRatioDisplayChange() {
-        clearSmartCropSession()
-        applyDisplaySettings()
-    }
-
-    private fun showAspectRatioQuickDialog() = quickDialogs.showAspectRatioQuickDialog()
-
-    private fun handleSmartCropQuickToggle() = smartCrop.handleQuickToggle()
-
-    private fun clearSmartCropSession() = smartCrop.clearSession()
-
-    private fun showSpeedPickerDialog() = quickDialogs.showSpeedPickerDialog()
-
-    private fun showAudioTrackQuickDialog() = quickDialogs.showAudioTrackQuickDialog()
-
-    private fun showSubtitleQuickDialog() = quickDialogs.showSubtitleQuickDialog()
-
-    private fun openSubtitleSettingsSheet() = quickDialogs.openSubtitleSettingsSheet()
-
-    private fun onSubtitleSettingsSheetDismissed() = quickDialogs.onSubtitleSettingsSheetDismissed()
-
-    private fun dismissSubtitleSettingsSheet() = quickDialogs.dismissSubtitleSettingsSheet()
-
     private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {}) {
-        dismissSubtitleSettingsSheet()
+        quickDialogs.dismissSubtitleSettingsSheet()
         firstFrames.showForNewMedia()
         preApplyOrientationForItem(item)
         viewModel.switchToVideo(item) {
@@ -762,13 +737,11 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun resetPlaybackSessionForNewVideo() {
         val reset = PlayerVideoSwitchPolicy.resetForNewVideo()
-        hasSkippedIntro = reset.hasSkippedIntro
-        hasSkippedOutro = reset.hasSkippedOutro
         abLoop.reset(reset)
         firstFrames.resetForNewVideo(reset.awaitFirstFrame)
         manualVideoZoom = reset.manualVideoZoom
         playbackWasBuffering = false
-        lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()
+        playbackTicks.resetForNewVideo(reset)
         playerGestures.resetForNewVideo(reset)
     }
 
@@ -795,12 +768,11 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun observeState() {
-        handler.removeCallbacks(updateRunnable)
-        handler.post(updateRunnable)
+        playbackTicks.observe()
     }
 
     private fun stopObservingState() {
-        handler.removeCallbacks(updateRunnable)
+        playbackTicks.stopObserving()
     }
 
     private fun updatePlayPauseIcon(isPlaying: Boolean, playWhenReady: Boolean) {
@@ -826,28 +798,6 @@ class PlayerActivity : AppCompatActivity() {
             playWhenReady = viewModel.player?.playWhenReady == true
         )
         btnPlay.setImageResource(icon)
-    }
-
-    private fun saveProgressPeriodically(positionMs: Long) {
-        val decision = PlaybackProgressPolicy.onPositionTick(
-            positionMs = positionMs,
-            lastSavedPositionMs = lastHistorySavedPositionMs
-        )
-        lastHistorySavedPositionMs = decision.nextLastSavedPositionMs
-        if (decision.shouldSaveHistory) viewModel.saveHistory()
-    }
-
-    private fun applySubtitlePresentation() {
-        val subtitleText = PlayerSubtitlePresentationPolicy.resolveSubtitleText(
-            subtitlesEnabled = playerPrefs.subtitlesEnabled,
-            currentSubtitle = viewModel.getCurrentSubtitle()
-        )
-        val presentation = PlayerSubtitlePresentationPolicy.present(
-            subtitlesEnabled = playerPrefs.subtitlesEnabled,
-            subtitleText = subtitleText
-        )
-        tvSubtitle.text = presentation.text
-        tvSubtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE
     }
 
     private fun controlsChromeMaxAlpha(): Float =
@@ -910,22 +860,9 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun finishPlayer() = playerExit.finishPlayer()
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
-    private fun overrideOpenTransitionCompat() {
-        overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0)
-    }
-
     private fun preparePlayerExitFrame() = playerExit.preparePlayerExitFrame()
 
     private fun releasePlayerAfterExit() = playerExit.releasePlayerAfterExit()
-
-    private fun enterImmersiveMode() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-    }
 
     private fun formatTime(ms: Long): String = PlayerTimeFormatter.format(ms)
 
@@ -943,7 +880,7 @@ class PlayerActivity : AppCompatActivity() {
             controlsContainer.removeOnLayoutChangeListener(landscapeGeometryListener)
         }
 
-        enterImmersiveMode()
+        PlayerSystemUiController.enterImmersiveMode(this)
         setContentView(R.layout.activity_player)
         initViews()
         initGestures()
@@ -974,39 +911,16 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        isActivityForeground = true
-        val decision = PlayerLifecyclePolicy.onResume()
-        if (decision.stopPlaybackService) stopPlaybackService()
-        reattachPlayerSurfaceFromBackground()
-        applyDisplaySettings()
-        if (decision.observeState) observeState()
+        playerLifecycle.onResume()
     }
 
     override fun onPause() {
         super.onPause()
-        isActivityForeground = false
-        stopObservingState()
-        val decision = PlayerLifecyclePolicy.onPause(
-            isInPictureInPicture = isInPipModeCompat(),
-            pauseOnExit = playerPrefs.pauseOnExit,
-            backgroundAudio = playerPrefs.bgAudio,
-            isPlaying = viewModel.player?.isPlaying == true
-        )
-        if (decision.saveHistory) viewModel.saveHistory()
-        if (decision.pausePlayer) {
-            if (decision.unlockBeforePause) unlockPlayerForPause()
-            viewModel.player?.pause()
-        }
-        if (isFinishing) {
-            dismissPlaybackNotification()
-        } else {
-            if (decision.stopPlaybackService) stopPlaybackService()
-            if (decision.startPlaybackService) startPlaybackServiceIfNeeded(true)
-        }
+        playerLifecycle.onPause()
     }
 
     override fun onDestroy() {
-        dismissPlaybackNotification()
+        playbackNotifications.dismiss()
         playbackCoordinator.clearHandlers()
         subtitles.unregisterPrefsListener()
         handler.removeCallbacksAndMessages(null)
@@ -1074,64 +988,6 @@ class PlayerActivity : AppCompatActivity() {
     private fun videoRenderView(): View? = contentFrameTransforms.videoRenderView()
 
     private fun enterPipModeIfSupported() = playerPip.enterIfSupported()
-
-    private fun ensureNotificationPermission() {
-        playbackNotifications.ensurePermission()
-    }
-
-    private fun registerPlaybackNotificationHandlers() {
-        playbackNotifications.registerHandlers()
-    }
-
-    private fun reattachPlayerSurfaceFromBackground() {
-        playbackNotifications.reattachPlayerSurfaceFromBackground()
-    }
-
-    private fun syncPlaybackNotificationSnapshot() {
-        playbackNotifications.syncSnapshot()
-    }
-
-    private fun refreshPlaybackNotificationIfRunning() {
-        playbackNotifications.refreshIfRunning()
-    }
-
-    private fun dismissPlaybackNotification() {
-        playbackNotifications.dismiss()
-    }
-
-    private fun skipQueueVideoFromNotification(forward: Boolean) {
-        playbackNotifications.skipQueueVideo(forward)
-    }
-
-    private fun startPlaybackServiceIfNeeded(isPlaying: Boolean) {
-        playbackNotifications.startIfNeeded(isPlaying)
-    }
-
-    private fun stopPlaybackService() {
-        playbackNotifications.stop()
-    }
-
-    private fun applyPlaybackTickSeek(currentPositionMs: Long, durationMs: Long) {
-        val result = PlayerPlaybackTickPolicy.seekTarget(
-            currentPositionMs = currentPositionMs,
-            durationMs = durationMs,
-            abLoopState = abLoop.state,
-            abLoopPointA = abLoop.pointA,
-            abLoopPointB = abLoop.pointB,
-            skipIntroOutro = playerPrefs.skipIntroOutro,
-            introSeconds = playerPrefs.introSeconds,
-            outroSeconds = playerPrefs.outroSeconds,
-            hasSkippedIntro = hasSkippedIntro,
-            hasSkippedOutro = hasSkippedOutro,
-            clipLoopPreview = playerPrefs.clipLoopPreview,
-            clipStartMs = playerPrefs.clipStartMs,
-            clipEndMs = playerPrefs.clipEndMs
-        ) ?: return
-
-        hasSkippedIntro = result.hasSkippedIntro
-        hasSkippedOutro = result.hasSkippedOutro
-        viewModel.seekTo(result.positionMs)
-    }
 
     private fun isInPipModeCompat(): Boolean = playerPip.isInPipModeCompat()
 

@@ -94,13 +94,11 @@ class PlaybackServiceIntentsSourceTest {
         )
         assertTrue(
             "Activity must register notification control handlers.",
-            activitySource.contains("registerPlaybackNotificationHandlers()") &&
-                activitySource.contains("playbackNotifications.registerHandlers()")
+            activitySource.contains("playbackNotifications.registerHandlers()")
         )
         assertTrue(
             "Activity must dismiss playback notification when exiting.",
-            activitySource.contains("dismissPlaybackNotification()") &&
-                activitySource.contains("playbackNotifications.dismiss()")
+            activitySource.contains("playbackNotifications.dismiss()")
         )
     }
 

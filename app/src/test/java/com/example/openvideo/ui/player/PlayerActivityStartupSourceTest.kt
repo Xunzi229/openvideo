@@ -51,38 +51,36 @@ class PlayerActivityStartupSourceTest {
 
     @Test
     fun playerResetsProgressSaveCursorWhenSwitchingVideo() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerPlaybackTickControllerSource()))
+        val activitySource = String(Files.readAllBytes(playerActivitySource()))
 
         assertTrue(source.contains("PlaybackProgressPolicy.onPositionTick("))
         assertTrue(source.contains("lastHistorySavedPositionMs = decision.nextLastSavedPositionMs"))
         assertTrue(source.contains("lastHistorySavedPositionMs = PlaybackProgressPolicy.onNewMedia()"))
+        assertTrue(activitySource.contains("playbackTicks.resetForNewVideo(reset)"))
     }
 
     @Test
     fun playerUsesSubtitlePresentationPolicyDuringPositionTicks() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
+        val source = String(Files.readAllBytes(playerPlaybackTickControllerSource()))
 
-        assertTrue(source.contains("private fun applySubtitlePresentation()"))
+        assertTrue(source.contains("fun applySubtitlePresentation()"))
         assertTrue(source.contains("PlayerSubtitlePresentationPolicy.present("))
-        assertTrue(source.contains("tvSubtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE"))
+        assertTrue(source.contains("subtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE"))
     }
 
     @Test
     fun notificationPermissionRequestIsRememberedAndDoesNotGatePlayback() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val controller = String(Files.readAllBytes(playerNotificationControllerSource()))
-        val permissionBlock = source.substringAfter("private fun ensureNotificationPermission()")
-            .substringBefore("\n    private fun registerPlaybackNotificationHandlers()")
-        val startServiceBlock = source.substringAfter("private fun startPlaybackServiceIfNeeded")
-            .substringBefore("\n    private fun stopPlaybackService")
 
-        assertTrue(permissionBlock.contains("playbackNotifications.ensurePermission()"))
+        assertTrue(source.contains("playbackNotifications.ensurePermission()"))
         assertTrue(controller.contains("KEY_NOTIFICATION_PERMISSION_REQUESTED"))
         assertTrue(controller.contains("requestedBefore ="))
         assertTrue(controller.contains("notificationEnabled = playerPrefs.bgPlaybackNotificationEnabled"))
         assertTrue(controller.contains(".edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()"))
         assertTrue(controller.contains("notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)"))
-        assertTrue(startServiceBlock.contains("playbackNotifications.startIfNeeded(isPlaying)"))
+        assertTrue(source.contains("playbackNotifications.startIfNeeded(isPlaying)"))
         assertTrue(controller.contains("PlayerBackgroundServicePolicy.startDecision("))
         assertTrue(controller.contains("runCatching { ContextCompat.startForegroundService(activity, intent) }"))
     }
@@ -90,19 +88,20 @@ class PlayerActivityStartupSourceTest {
     @Test
     fun notificationResumeSuppressesOpenTransitionAndOnlyReattachesPlayer() {
         val source = String(Files.readAllBytes(playerActivitySource()))
+        val systemUiSource = String(Files.readAllBytes(playerSystemUiControllerSource()))
         val onCreate = source.substringAfter("override fun onCreate(savedInstanceState: Bundle?) {")
             .substringBefore("\n    private fun applyPlayerSettings()")
         val onNewIntent = source.substringAfter("override fun onNewIntent(intent: Intent) {")
             .substringBefore("\n    private fun applyPlayerSettings()")
 
         assertTrue(source.contains("const val EXTRA_FROM_PLAYBACK_NOTIFICATION"))
-        assertTrue(source.contains("private fun suppressNotificationOpenTransition("))
-        assertTrue(onCreate.contains("suppressNotificationOpenTransition(intent)"))
-        assertTrue(onNewIntent.contains("suppressNotificationOpenTransition(intent)"))
-        assertTrue(onNewIntent.contains("reattachPlayerSurfaceFromBackground()"))
-        assertTrue(onNewIntent.indexOf("suppressNotificationOpenTransition(intent)") < onNewIntent.indexOf("reattachPlayerSurfaceFromBackground()"))
+        assertTrue(systemUiSource.contains("fun suppressNotificationOpenTransition("))
+        assertTrue(onCreate.contains("PlayerSystemUiController.suppressNotificationOpenTransition(this, intent, EXTRA_FROM_PLAYBACK_NOTIFICATION)"))
+        assertTrue(onNewIntent.contains("PlayerSystemUiController.suppressNotificationOpenTransition(this, intent, EXTRA_FROM_PLAYBACK_NOTIFICATION)"))
+        assertTrue(onNewIntent.contains("playbackNotifications.reattachPlayerSurfaceFromBackground()"))
+        assertTrue(onNewIntent.indexOf("PlayerSystemUiController.suppressNotificationOpenTransition") < onNewIntent.indexOf("playbackNotifications.reattachPlayerSurfaceFromBackground()"))
         assertTrue(onNewIntent.contains("setIntent(intent)"))
-        assertTrue(onNewIntent.indexOf("setIntent(intent)") < onNewIntent.indexOf("reattachPlayerSurfaceFromBackground()"))
+        assertTrue(onNewIntent.indexOf("setIntent(intent)") < onNewIntent.indexOf("playbackNotifications.reattachPlayerSurfaceFromBackground()"))
     }
 
     private fun playerActivitySource(): Path {
@@ -133,6 +132,14 @@ class PlayerActivityStartupSourceTest {
 
     private fun playerEventControllerSource(): Path {
         return kotlinSource("PlayerEventController.kt")
+    }
+
+    private fun playerPlaybackTickControllerSource(): Path {
+        return kotlinSource("PlayerPlaybackTickController.kt")
+    }
+
+    private fun playerSystemUiControllerSource(): Path {
+        return kotlinSource("PlayerSystemUiController.kt")
     }
 
     private fun kotlinSource(name: String): Path {

@@ -93,7 +93,7 @@ class PlayerGestureHudSourceTest {
 
     @Test
     fun playbackTickUsesSingleSeekDecisionPolicy() {
-        val source = sourceFile("PlayerActivity.kt").readText()
+        val source = sourceFile("PlayerPlaybackTickController.kt").readText()
 
         assertTrue(source.contains("applyPlaybackTickSeek("))
         assertTrue(source.contains("PlayerPlaybackTickPolicy.seekTarget("))

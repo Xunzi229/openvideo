@@ -71,7 +71,7 @@ class CompatibilityImplementationTest {
 
         assertTrue(service.contains("ACTION_START"))
         assertTrue(service.contains("startForeground"))
-        assertTrue(activity.contains("startPlaybackServiceIfNeeded"))
+        assertTrue(activity.contains("playbackNotifications.startIfNeeded"))
         // ACTION_START routing is now centralized in PlaybackServiceIntents; the Activity goes
         // through the notification controller/helper instead of referencing the action string directly.
         assertTrue(notificationController.contains("PlaybackServiceIntents.start("))

@@ -170,10 +170,11 @@ class PlayerActivityP9SlimmingSourceTest {
         val source = playerActivitySource()
         val gestureController = playerGestureControllerSource()
         val chromeController = playerChromeControllerSource()
+        val tickController = playerPlaybackTickControllerSource()
         assertTrue(gestureController.contains("PlayerGesturePolicy.verticalGestureAction("))
         assertTrue(gestureController.contains("PlayerDoubleTapSeekPolicy.intervalMs("))
         assertTrue(chromeController.contains("PlayerChromePolicy.CHROME_FADE_DURATION_MS"))
-        assertTrue(source.contains("PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS"))
+        assertTrue(tickController.contains("PlayerPlaybackTickPolicy.UI_TICK_INTERVAL_MS"))
         assertFalse(source.contains("handler.postDelayed(this, 500)"))
         assertFalse(gestureController.contains("seekInterval * 1000L"))
         assertFalse(source.contains(".setDuration(200)"))
@@ -265,6 +266,7 @@ class PlayerActivityP9SlimmingSourceTest {
             val haystack = when {
                 snippet.startsWith("PlayerSettingsSheetChrome.") -> glassSheet
                 snippet.startsWith("PlayerDecodeModePolicy.") -> displayController
+                snippet.startsWith("PlayerSubtitlePresentationPolicy.") -> playerPlaybackTickControllerSource()
                 snippet.startsWith("PlayerNotification") -> notificationController
                 snippet.startsWith("PlayerPipCompatPolicy.") -> playerPipControllerSource()
                 snippet.startsWith("PlayerChromeSettingsOverlayPolicy.") -> chromeController
@@ -438,6 +440,10 @@ class PlayerActivityP9SlimmingSourceTest {
 
     private fun playerPipControllerSource(): String {
         return kotlinSource("PlayerPipController.kt")
+    }
+
+    private fun playerPlaybackTickControllerSource(): String {
+        return kotlinSource("PlayerPlaybackTickController.kt")
     }
 
     private fun kotlinSource(name: String): String {

@@ -12,14 +12,15 @@ class PlayerQuickEntrySourceTest {
     @Test
     fun playerButtonsDelegateToQuickDialogControllerWrappers() {
         val source = read(playerActivitySource())
+        val controls = read(playerControlsBinderSource())
 
         assertTrue(source.contains("private val quickDialogs by lazy"))
-        assertTrue(source.contains("private fun showAudioTrackQuickDialog() = quickDialogs.showAudioTrackQuickDialog()"))
-        assertTrue(source.contains("private fun showSubtitleQuickDialog() = quickDialogs.showSubtitleQuickDialog()"))
-        assertTrue(source.contains("private fun showSpeedPickerDialog() = quickDialogs.showSpeedPickerDialog()"))
-        assertTrue(source.contains("private fun showAspectRatioQuickDialog() = quickDialogs.showAspectRatioQuickDialog()"))
-        assertTrue(source.contains("private fun openPlayerSettingsDialog() = quickDialogs.openPlayerSettingsDialog()"))
-        assertTrue(source.contains("private fun showSessionVideoListPanel() = quickDialogs.showSessionVideoListPanel()"))
+        assertTrue(source.contains("onShowAudioTrackQuickDialog = { quickDialogs.showAudioTrackQuickDialog() }"))
+        assertTrue(source.contains("onShowSubtitleQuickDialog = { quickDialogs.showSubtitleQuickDialog() }"))
+        assertTrue(source.contains("onShowSpeedPickerDialog = { quickDialogs.showSpeedPickerDialog() }"))
+        assertTrue(source.contains("onShowAspectRatioQuickDialog = { quickDialogs.showAspectRatioQuickDialog() }"))
+        assertTrue(source.contains("onOpenPlayerSettingsDialog = { quickDialogs.openPlayerSettingsDialog() }"))
+        assertTrue(controls.contains("onShowSessionVideoListPanel()"))
     }
 
     @Test
@@ -159,6 +160,8 @@ class PlayerQuickEntrySourceTest {
     private fun playerQuickDialogControllerSource(): Path = sourceFile("PlayerQuickDialogController.kt")
 
     private fun playerGlassSheetDialogSource(): Path = sourceFile("PlayerGlassSheetDialog.kt")
+
+    private fun playerControlsBinderSource(): Path = sourceFile("PlayerControlsBinder.kt")
 
     private fun sourceFile(fileName: String): Path {
         val relativePath = Paths.get(

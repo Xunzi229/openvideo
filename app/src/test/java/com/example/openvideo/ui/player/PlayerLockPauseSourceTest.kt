@@ -10,12 +10,12 @@ class PlayerLockPauseSourceTest {
 
     @Test
     fun pausingOnExitClearsPlayerLockBeforePausing() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val onPause = source.substringAfter("override fun onPause() {")
-            .substringBefore("\n    override fun onDestroy()")
+        val source = String(Files.readAllBytes(playerLifecycleControllerSource()))
+        val onPause = source.substringAfter("fun onPause() {")
+            .substringBefore("\n    fun", missingDelimiterValue = source.substringAfter("fun onPause() {"))
 
         assertTrue(onPause.contains("PlayerLifecyclePolicy.onPause("))
-        val unlockIndex = onPause.indexOf("unlockPlayerForPause()")
+        val unlockIndex = onPause.indexOf("onUnlockPlayerForPause()")
         val pauseIndex = onPause.indexOf("pause()")
 
         assertTrue("onPause should unlock the player when it is about to pause playback", unlockIndex >= 0)
@@ -49,16 +49,16 @@ class PlayerLockPauseSourceTest {
 
     @Test
     fun resumeAndPauseLifecycleUsePurePolicy() {
-        val source = String(Files.readAllBytes(playerActivitySource()))
-        val onResume = source.substringAfter("override fun onResume() {")
-            .substringBefore("\n    override fun onPause()")
-        val onPause = source.substringAfter("override fun onPause() {")
-            .substringBefore("\n    override fun onDestroy()")
+        val source = String(Files.readAllBytes(playerLifecycleControllerSource()))
+        val onResume = source.substringAfter("fun onResume() {")
+            .substringBefore("\n    fun onPause()")
+        val onPause = source.substringAfter("fun onPause() {")
+            .substringBefore("\n    fun", missingDelimiterValue = source.substringAfter("fun onPause() {"))
 
         assertTrue(onResume.contains("PlayerLifecyclePolicy.onResume()"))
-        assertTrue(onResume.contains("if (decision.stopPlaybackService) stopPlaybackService()"))
-        assertTrue(onResume.contains("if (decision.observeState) observeState()"))
-        assertTrue(onResume.contains("applyDisplaySettings()"))
+        assertTrue(onResume.contains("if (decision.stopPlaybackService) onStopPlaybackService()"))
+        assertTrue(onResume.contains("if (decision.observeState) onObserveState()"))
+        assertTrue(onResume.contains("onApplyDisplaySettings()"))
 
         assertTrue(onPause.contains("PlayerLifecyclePolicy.onPause("))
         assertTrue(onPause.contains("if (decision.saveHistory) viewModel.saveHistory()"))
@@ -70,10 +70,8 @@ class PlayerLockPauseSourceTest {
     fun backgroundPlaybackServiceStartUsesPurePolicy() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val controller = String(Files.readAllBytes(playerNotificationControllerSource()))
-        val serviceStart = source.substringAfter("private fun startPlaybackServiceIfNeeded")
-            .substringBefore("\n    private fun stopPlaybackService")
 
-        assertTrue(serviceStart.contains("playbackNotifications.startIfNeeded(isPlaying)"))
+        assertTrue(source.contains("playbackNotifications.startIfNeeded(isPlaying)"))
         assertTrue(controller.contains("PlayerBackgroundServicePolicy.startDecision("))
         assertTrue(controller.contains("if (!decision.shouldStart) return"))
     }
@@ -102,6 +100,10 @@ class PlayerLockPauseSourceTest {
 
     private fun playerEventControllerSource(): Path {
         return playerSource("PlayerEventController.kt")
+    }
+
+    private fun playerLifecycleControllerSource(): Path {
+        return playerSource("PlayerLifecycleController.kt")
     }
 
     private fun playerSource(name: String): Path {

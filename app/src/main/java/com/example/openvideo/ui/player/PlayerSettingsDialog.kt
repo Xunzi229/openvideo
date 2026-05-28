@@ -33,13 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import java.util.ArrayDeque
-import java.util.Locale
-import kotlin.math.round
-
-private const val SPEED_MIN = 0.5f
-private const val SPEED_MAX = 5.0f
-private const val SPEED_STEP = 0.25f
-
 class PlayerSettingsDialog(
     context: Context,
     private val playerManager: PlayerManager,
@@ -71,44 +64,7 @@ class PlayerSettingsDialog(
 
     private val subtitleBgOptions = SubtitleBgStyle.entries.toTypedArray()
     private val subtitleEncodingOptions = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
-
-    private fun playbackSpeedLabelFor(speed: Float): String =
-        "${String.format(Locale.US, "%.2f", speed).trimEnd('0').trimEnd('.')}x"
-
-    private data class SeekIntervalChoice(val seconds: Int, val labelRes: Int)
-
-    private fun seekIntervalChoices(): List<SeekIntervalChoice> = listOf(
-        SeekIntervalChoice(5, R.string.settings_seek_5s),
-        SeekIntervalChoice(10, R.string.settings_seek_10s),
-        SeekIntervalChoice(15, R.string.settings_seek_15s),
-        SeekIntervalChoice(30, R.string.settings_seek_30s)
-    )
-
-    private fun seekIntervalLabelFor(seconds: Int): String =
-        seekIntervalChoices().firstOrNull { it.seconds == seconds }?.let { context.getString(it.labelRes) }
-            ?: context.getString(R.string.player_settings_seek_interval_seconds, seconds)
-
-    private val rotationDegrees = listOf(0, 90, 180, 270)
-
-    private fun rotationLabel(deg: Int): String = when (deg) {
-        0 -> context.getString(R.string.settings_rotation_0)
-        90 -> context.getString(R.string.settings_rotation_90)
-        180 -> context.getString(R.string.settings_rotation_180)
-        270 -> context.getString(R.string.settings_rotation_270)
-        else -> context.getString(R.string.settings_rotation_0)
-    }
-
-    private fun controlsAutoHideChoiceList(): List<Pair<Int, Int>> = listOf(
-        0 to R.string.settings_hide_never,
-        3 to R.string.settings_hide_3s,
-        5 to R.string.settings_hide_5s,
-        8 to R.string.settings_hide_8s
-    )
-
-    private fun controlsAutoHideLabel(seconds: Int): String =
-        controlsAutoHideChoiceList().firstOrNull { it.first == seconds }?.let { (_, res) ->
-            context.getString(res)
-        } ?: context.getString(R.string.player_settings_seek_interval_seconds, seconds)
+    private val formatter by lazy { PlayerSettingsFormatter(context) }
 
     private lateinit var primaryPage: View
     private lateinit var detailPage: View
@@ -155,9 +111,9 @@ class PlayerSettingsDialog(
             onInfoChanged = {
                 rebuildCurrentDetail(SettingsPage.INFO, context.getString(R.string.player_sheet_info))
             },
-            formatTime = ::formatTime,
-            playbackSpeedLabelFor = ::playbackSpeedLabelFor,
-            aspectLabel = ::aspectLabel
+            formatTime = formatter::formatTime,
+            playbackSpeedLabelFor = formatter::playbackSpeedLabelFor,
+            aspectLabel = formatter::aspectLabel
         )
     }
     private val primaryGridBuilder by lazy {
@@ -465,19 +421,19 @@ class PlayerSettingsDialog(
         rows.addSubtitleColorSwatchRow()
         rows.addChoiceRow(
             title = context.getString(R.string.settings_subtitle_bg),
-            value = subtitleBgLabel(playerPrefs.subtitleBgStyle),
-            options = subtitleBgOptions.map(::subtitleBgLabel)
+            value = formatter.subtitleBgLabel(playerPrefs.subtitleBgStyle),
+            options = subtitleBgOptions.map(formatter::subtitleBgLabel)
         ) { selected ->
-            subtitleBgOptions.firstOrNull { subtitleBgLabel(it) == selected }?.let {
+            subtitleBgOptions.firstOrNull { formatter.subtitleBgLabel(it) == selected }?.let {
                 playerPrefs.subtitleBgStyle = it
             }
         }
         rows.addChoiceRow(
             title = context.getString(R.string.settings_subtitle_encoding),
-            value = subtitleEncodingLabel(playerPrefs.subtitleEncoding),
-            options = subtitleEncodingOptions.map(::subtitleEncodingLabel)
+            value = formatter.subtitleEncodingLabel(playerPrefs.subtitleEncoding),
+            options = subtitleEncodingOptions.map(formatter::subtitleEncodingLabel)
         ) { selected ->
-            val index = subtitleEncodingOptions.map(::subtitleEncodingLabel).indexOf(selected)
+            val index = subtitleEncodingOptions.map(formatter::subtitleEncodingLabel).indexOf(selected)
             if (index >= 0) playerPrefs.subtitleEncoding = subtitleEncodingOptions[index]
         }
     }
@@ -523,10 +479,10 @@ class PlayerSettingsDialog(
         }
         rows.addChoiceRow(
             title = context.getString(R.string.settings_rotation),
-            value = rotationLabel(playerPrefs.rotation),
-            options = rotationDegrees.map(::rotationLabel)
+            value = formatter.rotationLabel(playerPrefs.rotation),
+            options = formatter.rotationDegrees.map(formatter::rotationLabel)
         ) { selected ->
-            playerPrefs.rotation = rotationDegrees.firstOrNull { rotationLabel(it) == selected }
+            playerPrefs.rotation = formatter.rotationDegrees.firstOrNull { formatter.rotationLabel(it) == selected }
                 ?: playerPrefs.rotation
         }
         rows.addSwitchRow(
@@ -538,7 +494,7 @@ class PlayerSettingsDialog(
         }
         rows.addChoiceRow(
             title = context.getString(R.string.player_sheet_progress_style),
-            value = progressStyleLabel(playerPrefs.progressStyle),
+            value = formatter.progressStyleLabel(playerPrefs.progressStyle),
             options = listOf(
                 context.getString(R.string.player_sheet_default),
                 context.getString(R.string.player_sheet_modern),
@@ -591,10 +547,10 @@ class PlayerSettingsDialog(
         }
         rows.addChoiceRow(
             title = context.getString(R.string.settings_loop_mode),
-            value = loopModeLabel(playerPrefs.loopMode),
-            options = LoopMode.entries.map(::loopModeLabel)
+            value = formatter.loopModeLabel(playerPrefs.loopMode),
+            options = LoopMode.entries.map(formatter::loopModeLabel)
         ) { selected ->
-            val mode = LoopMode.entries.firstOrNull { loopModeLabel(it) == selected } ?: LoopMode.LIST
+            val mode = LoopMode.entries.firstOrNull { formatter.loopModeLabel(it) == selected } ?: LoopMode.LIST
             playerPrefs.loopMode = mode
             viewModel.setRepeatMode(PlayerPlaybackSettings.repeatModeFor(mode))
         }
@@ -607,19 +563,19 @@ class PlayerSettingsDialog(
         }
         rows.addChoiceRow(
             title = context.getString(R.string.settings_playback_end_behavior),
-            value = playbackEndBehaviorLabel(playerPrefs.playbackEndBehavior),
-            options = PlayerPlaybackEndBehaviorUi.options().map(::playbackEndBehaviorLabel)
+            value = formatter.playbackEndBehaviorLabel(playerPrefs.playbackEndBehavior),
+            options = PlayerPlaybackEndBehaviorUi.options().map(formatter::playbackEndBehaviorLabel)
         ) { selected ->
             val behavior = PlayerPlaybackEndBehaviorUi.options()
-                .firstOrNull { playbackEndBehaviorLabel(it) == selected }
+                .firstOrNull { formatter.playbackEndBehaviorLabel(it) == selected }
                 ?: PlaybackEndBehavior.FOLLOW_SETTINGS
             playerPrefs.playbackEndBehavior = behavior
         }
         addPlaybackSpeedSeekRow()
         rows.addChoiceRow(
             title = context.getString(R.string.settings_seek_interval),
-            value = seekIntervalLabelFor(playerPrefs.seekInterval),
-            options = seekIntervalChoices().map { context.getString(it.labelRes) }
+            value = formatter.seekIntervalLabelFor(playerPrefs.seekInterval),
+            options = formatter.seekIntervalChoices().map { context.getString(it.labelRes) }
         ) { selected ->
             setSeekIntervalFromChoiceLabel(selected)
         }
@@ -677,8 +633,8 @@ class PlayerSettingsDialog(
     }
 
     private fun buildCutPage() {
-        rows.addInfoRow(context.getString(R.string.player_settings_clip_start), formatSavedTime(playerPrefs.clipStartMs))
-        rows.addInfoRow(context.getString(R.string.player_settings_clip_end), formatSavedTime(playerPrefs.clipEndMs))
+        rows.addInfoRow(context.getString(R.string.player_settings_clip_start), formatter.formatSavedTime(playerPrefs.clipStartMs))
+        rows.addInfoRow(context.getString(R.string.player_settings_clip_end), formatter.formatSavedTime(playerPrefs.clipEndMs))
         rows.addActionRow(context.getString(R.string.player_settings_clip_set_start)) {
             playerPrefs.clipStartMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.CUT, context.getString(R.string.player_sheet_cut))
@@ -707,7 +663,7 @@ class PlayerSettingsDialog(
 
     private fun buildBookmarkPage() {
         val bookmark = playerPrefs.bookmarkPositionMs
-        rows.addInfoRow(context.getString(R.string.player_settings_bookmark_label), formatSavedTime(bookmark))
+        rows.addInfoRow(context.getString(R.string.player_settings_bookmark_label), formatter.formatSavedTime(bookmark))
         rows.addActionRow(context.getString(R.string.player_settings_bookmark_save)) {
             playerPrefs.bookmarkPositionMs = playerManager.currentPosition
             rebuildCurrentDetail(SettingsPage.BOOKMARK, context.getString(R.string.player_sheet_bookmark))
@@ -751,7 +707,7 @@ class PlayerSettingsDialog(
     private fun gesturePresetActionSpecs(): List<PlayerSettingsActionSpec> =
         PlayerGesturePreset.entries.map { preset ->
             PlayerSettingsActionSpec(
-                title = gesturePresetLabel(preset),
+                title = formatter.gesturePresetLabel(preset),
                 value = null
             ) {
                 applyGesturePreset(preset)
@@ -774,7 +730,7 @@ class PlayerSettingsDialog(
         openNestedDetailScreen(context.getString(R.string.settings_double_tap_action)) {
             DoubleTapAction.entries.forEach { action ->
                 rows.addRadioRow(
-                    title = doubleTapLabel(action),
+                    title = formatter.doubleTapLabel(action),
                     checked = playerPrefs.doubleTapAction == action
                 ) {
                     playerPrefs.doubleTapAction = action
@@ -788,7 +744,7 @@ class PlayerSettingsDialog(
         openNestedDetailScreen(context.getString(R.string.settings_long_press_action)) {
             LongPressAction.entries.forEach { action ->
                 rows.addRadioRow(
-                    title = longPressLabel(action),
+                    title = formatter.longPressLabel(action),
                     checked = playerPrefs.longPressAction == action
                 ) {
                     playerPrefs.longPressAction = action
@@ -804,10 +760,10 @@ class PlayerSettingsDialog(
         rows.addSwitchRows(moreScreenSwitchSpecs(), detailContainer)
         rows.addChoiceRow(
             title = context.getString(R.string.settings_controls_auto_hide),
-            value = controlsAutoHideLabel(playerPrefs.controlsAutoHide),
-            options = controlsAutoHideChoiceList().map { (_, res) -> context.getString(res) }
+            value = formatter.controlsAutoHideLabel(playerPrefs.controlsAutoHide),
+            options = formatter.controlsAutoHideChoiceList().map { (_, res) -> context.getString(res) }
         ) { selected ->
-            playerPrefs.controlsAutoHide = controlsAutoHideChoiceList()
+            playerPrefs.controlsAutoHide = formatter.controlsAutoHideChoiceList()
                 .firstOrNull { context.getString(it.second) == selected }?.first ?: 0
         }
         rows.addSeekRow(
@@ -827,12 +783,12 @@ class PlayerSettingsDialog(
     private fun tutorialActionSpecs(): List<PlayerSettingsActionSpec> = listOf(
         PlayerSettingsActionSpec(
             title = context.getString(R.string.settings_double_tap_action),
-            value = doubleTapLabel(playerPrefs.doubleTapAction),
+            value = formatter.doubleTapLabel(playerPrefs.doubleTapAction),
             onClick = ::showDoubleTapActionPage
         ),
         PlayerSettingsActionSpec(
             title = context.getString(R.string.settings_long_press_action),
-            value = longPressLabel(playerPrefs.longPressAction),
+            value = formatter.longPressLabel(playerPrefs.longPressAction),
             onClick = ::showLongPressActionPage
         )
     )
@@ -907,12 +863,12 @@ class PlayerSettingsDialog(
         rows.addSeekRow(
             title = context.getString(R.string.settings_playback_speed),
             min = 0,
-            maxValue = speedToProgress(SPEED_MAX),
-            value = speedToProgress(playerPrefs.speed),
-            label = { progress -> playbackSpeedLabelFor(progressToSpeed(progress)) },
+            maxValue = formatter.speedToProgress(PlayerSettingsFormatter.SPEED_MAX),
+            value = formatter.speedToProgress(playerPrefs.speed),
+            label = { progress -> formatter.playbackSpeedLabelFor(formatter.progressToSpeed(progress)) },
             commitOnStop = true
         ) { progress ->
-            val speed = progressToSpeed(progress)
+            val speed = formatter.progressToSpeed(progress)
             playerPrefs.speed = speed
             viewModel.setSpeed(
                 speed,
@@ -921,15 +877,8 @@ class PlayerSettingsDialog(
         }
     }
 
-    private fun speedToProgress(speed: Float): Int =
-        round(((speed.coerceIn(SPEED_MIN, SPEED_MAX) - SPEED_MIN) / SPEED_STEP).toDouble()).toInt()
-
-    private fun progressToSpeed(progress: Int): Float =
-        (SPEED_MIN + progress.coerceIn(0, speedToProgress(SPEED_MAX)) * SPEED_STEP)
-            .coerceIn(SPEED_MIN, SPEED_MAX)
-
     private fun setSeekIntervalFromChoiceLabel(selected: String) {
-        val choice = seekIntervalChoices().firstOrNull { context.getString(it.labelRes) == selected } ?: return
+        val choice = formatter.seekIntervalChoices().firstOrNull { context.getString(it.labelRes) == selected } ?: return
         playerPrefs.seekInterval = choice.seconds
     }
 
@@ -939,56 +888,6 @@ class PlayerSettingsDialog(
             playerPrefs.contrastAdjustment / 100f,
             playerPrefs.saturationAdjustment / 100f
         )
-    }
-
-    private fun loopModeLabel(value: LoopMode): String = when (value) {
-        LoopMode.OFF -> context.getString(R.string.settings_loop_off)
-        LoopMode.SINGLE -> context.getString(R.string.settings_loop_single)
-        LoopMode.LIST -> context.getString(R.string.settings_loop_list)
-    }
-
-    private fun playbackEndBehaviorLabel(value: PlaybackEndBehavior): String =
-        PlayerPlaybackEndBehaviorUi.label(context, value)
-
-    private fun aspectLabel(value: AspectRatio): String = when (value) {
-        AspectRatio.FIT -> context.getString(R.string.player_sheet_original_ratio)
-        AspectRatio.FILL -> context.getString(R.string.player_sheet_fill_screen)
-        AspectRatio.CROP -> context.getString(R.string.settings_ratio_crop)
-        AspectRatio.STRETCH -> context.getString(R.string.settings_ratio_stretch)
-        AspectRatio.RATIO_4_3 -> context.getString(R.string.settings_ratio_4_3)
-        AspectRatio.RATIO_16_9 -> context.getString(R.string.settings_ratio_16_9)
-    }
-
-    private fun doubleTapLabel(value: DoubleTapAction): String = when (value) {
-        DoubleTapAction.PLAY_PAUSE -> context.getString(R.string.settings_double_tap_pause)
-        DoubleTapAction.FORWARD -> context.getString(R.string.settings_double_tap_forward)
-        DoubleTapAction.BACKWARD -> context.getString(R.string.settings_double_tap_backward)
-        DoubleTapAction.NONE -> context.getString(R.string.settings_double_tap_none)
-    }
-
-    private fun longPressLabel(value: LongPressAction): String = when (value) {
-        LongPressAction.SPEED -> context.getString(R.string.settings_double_tap_playback)
-        LongPressAction.NONE -> context.getString(R.string.settings_double_tap_none)
-    }
-
-    private fun gesturePresetLabel(value: PlayerGesturePreset): String = when (value) {
-        PlayerGesturePreset.CLASSIC -> context.getString(R.string.settings_gesture_preset_classic)
-        PlayerGesturePreset.MINIMAL -> context.getString(R.string.settings_gesture_preset_minimal)
-        PlayerGesturePreset.BINGE -> context.getString(R.string.settings_gesture_preset_binge)
-        PlayerGesturePreset.POWER_USER -> context.getString(R.string.settings_gesture_preset_power_user)
-    }
-
-    private fun formatSavedTime(ms: Long): String =
-        if (ms >= 0L) formatTime(ms) else context.getString(R.string.player_settings_value_none)
-
-    private fun formatTime(ms: Long): String {
-        val safeMs = ms.coerceAtLeast(0L)
-        val totalSec = safeMs / 1000
-        val h = totalSec / 3600
-        val m = (totalSec % 3600) / 60
-        val s = totalSec % 60
-        return if (h > 0) String.format("%d:%02d:%02d", h, m, s)
-        else String.format("%02d:%02d", m, s)
     }
 
     private fun addAspectRow(title: String, ratio: AspectRatio) {
@@ -1024,21 +923,6 @@ class PlayerSettingsDialog(
             )
         )
     }
-
-    private fun progressStyleLabel(value: String): String = when (value) {
-        "modern" -> context.getString(R.string.player_sheet_modern)
-        "thin" -> context.getString(R.string.player_sheet_thin)
-        else -> context.getString(R.string.player_sheet_default)
-    }
-
-    private fun subtitleBgLabel(value: SubtitleBgStyle): String = when (value) {
-        SubtitleBgStyle.NONE -> context.getString(R.string.settings_subtitle_bg_none)
-        SubtitleBgStyle.SEMI_TRANSPARENT -> context.getString(R.string.settings_subtitle_bg_semi)
-        SubtitleBgStyle.OPAQUE -> context.getString(R.string.settings_subtitle_bg_opaque)
-    }
-
-    private fun subtitleEncodingLabel(value: String): String =
-        if (value == "auto") context.getString(R.string.settings_encoding_auto) else value
 
     private fun <T : View> requireView(id: Int): T =
         findViewById<T>(id) ?: error("Missing player settings view: $id")
