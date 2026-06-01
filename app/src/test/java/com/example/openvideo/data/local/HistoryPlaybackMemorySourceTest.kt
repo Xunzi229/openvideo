@@ -30,7 +30,7 @@ class HistoryPlaybackMemorySourceTest {
         assertTrue(migrationSource.contains("ALTER TABLE play_history ADD COLUMN audioTrackGroupIndex INTEGER NOT NULL DEFAULT -1"))
         assertTrue(migrationSource.contains("ALTER TABLE play_history ADD COLUMN audioTrackIndex INTEGER NOT NULL DEFAULT -1"))
         assertTrue(migrationSource.contains("ALTER TABLE play_history ADD COLUMN audioMuted INTEGER NOT NULL DEFAULT 0"))
-        assertTrue(dbSource.contains("version = 5"))
+        assertTrue(dbSource.contains("version = 6"))
     }
 
     private fun sourceFile(name: String): Path {

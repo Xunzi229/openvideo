@@ -7,6 +7,7 @@ import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.data.local.DatabaseMigrations
 import com.example.openvideo.data.local.FavoriteDao
 import com.example.openvideo.data.local.HistoryDao
+import com.example.openvideo.data.local.MediaIdentityDao
 import com.example.openvideo.data.local.PlaylistDao
 import com.example.openvideo.data.local.VideoDatabase
 import dagger.Module
@@ -38,6 +39,9 @@ object AppModule {
 
     @Provides
     fun providePlaylistDao(db: VideoDatabase): PlaylistDao = db.playlistDao()
+
+    @Provides
+    fun provideMediaIdentityDao(db: VideoDatabase): MediaIdentityDao = db.mediaIdentityDao()
 
     @Provides
     @Singleton
