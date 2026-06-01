@@ -69,6 +69,24 @@ class SettingsLanguageRowSourceTest {
     }
 
     @Test
+    fun defaultRatioAndSpeedDialogsUseSameCenterAnimationChrome() {
+        val source = settingsFragmentSource()
+        val glassDialogSource = playerGlassSheetDialogSource()
+        val themeSource = rootFile("app", "src", "main", "res", "values", "themes.xml").readText()
+        val ratioBlock = source.substringAfter("private fun showDefaultRatioDialog(tvRatio: TextView)")
+            .substringBefore("\n    private fun showDefaultSpeedDialog")
+        val speedBlock = source.substringAfter("private fun showDefaultSpeedDialog(tvSpeed: TextView)")
+            .substringBefore("\n    private fun bindBackupSection")
+
+        assertFalse("Default ratio dialog should use the shared CENTER chrome.", ratioBlock.contains("chrome ="))
+        assertFalse("Default speed dialog should use the shared CENTER chrome.", speedBlock.contains("chrome ="))
+        assertTrue(glassDialogSource.contains("windowAnimations = R.style.Animation_OpenVideo_CenterDialog"))
+        assertTrue(themeSource.contains("<style name=\"Animation.OpenVideo.CenterDialog\""))
+        assertTrue(themeSource.contains("@anim/dialog_center_in"))
+        assertTrue(themeSource.contains("@anim/dialog_center_out"))
+    }
+
+    @Test
     fun languageRowRefreshesVisibleLabelImmediatelyAfterSavingPreference() {
         val source = settingsFragmentSource()
 

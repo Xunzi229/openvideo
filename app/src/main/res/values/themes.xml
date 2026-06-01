@@ -45,6 +45,11 @@
         <item name="android:windowExitAnimation">@anim/dialog_slide_out_bottom</item>
     </style>
 
+    <style name="Animation.OpenVideo.CenterDialog" parent="">
+        <item name="android:windowEnterAnimation">@anim/dialog_center_in</item>
+        <item name="android:windowExitAnimation">@anim/dialog_center_out</item>
+    </style>
+
     <style name="Widget.OpenVideo.PlayerSettings.NavItem">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">42dp</item>

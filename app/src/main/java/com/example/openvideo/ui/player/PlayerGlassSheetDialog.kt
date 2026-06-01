@@ -78,6 +78,10 @@ object PlayerGlassSheetDialog {
             list.addView(row)
         }
 
+        if (chrome == PlayerGlassSheetChrome.CENTER) {
+            capScroll(scroll, centerDialogContentWidthPx(context), 0)
+        }
+
         dialog = when (chrome) {
             PlayerGlassSheetChrome.CENTER -> MaterialAlertDialogBuilder(context)
                 .setView(content)
@@ -91,10 +95,21 @@ object PlayerGlassSheetDialog {
                 setOnDismissListener { onDismiss?.invoke() }
             }
         }
+        dialog.prepareCenterAnimation(chrome)
         dialog.show()
         dialog.applyChrome(chrome, playerPrefs, content)
-        scroll.post { capScroll(scroll, 0) }
+        if (chrome != PlayerGlassSheetChrome.CENTER) {
+            scroll.post { capScroll(scroll, null, 0) }
+        }
         return dialog
+    }
+
+    private fun Dialog.prepareCenterAnimation(chrome: PlayerGlassSheetChrome) {
+        if (chrome != PlayerGlassSheetChrome.CENTER) return
+        val window = window ?: return
+        window.attributes = window.attributes.apply {
+            windowAnimations = R.style.Animation_OpenVideo_CenterDialog
+        }
     }
 
     fun Dialog.applyChrome(
@@ -119,21 +134,32 @@ object PlayerGlassSheetDialog {
         window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window.decorView.alpha = 1f
         val dm = context.resources.displayMetrics
-        val maxWidth = context.resources.getDimensionPixelSize(R.dimen.player_aspect_dialog_max_width)
-        val gutter = PlayerQuickEntryDialogPolicy.sheetPaddingPx(dm.density)
-        val dialogWidth = min(
-            maxWidth,
-            max(0, (dm.widthPixels * 0.9f).toInt() - 2 * gutter)
-        )
-        window.setLayout(dialogWidth, LinearLayout.LayoutParams.WRAP_CONTENT)
+        window.setLayout(centerDialogWidthPx(context), LinearLayout.LayoutParams.WRAP_CONTENT)
         window.setGravity(Gravity.CENTER)
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         window.attributes = window.attributes.apply {
             dimAmount = 0.48f
+            windowAnimations = R.style.Animation_OpenVideo_CenterDialog
         }
         if (PlayerSettingsSheetStylePolicy.supportsBackdropBlur(Build.VERSION.SDK_INT)) {
             window.setBackgroundBlurRadius(max(1, (18f * dm.density).toInt()))
         }
+    }
+
+    private fun centerDialogWidthPx(context: Context): Int {
+        val dm = context.resources.displayMetrics
+        val maxWidth = context.resources.getDimensionPixelSize(R.dimen.player_aspect_dialog_max_width)
+        val gutter = PlayerQuickEntryDialogPolicy.sheetPaddingPx(dm.density)
+        return min(
+            maxWidth,
+            max(0, (dm.widthPixels * 0.9f).toInt() - 2 * gutter)
+        )
+    }
+
+    private fun centerDialogContentWidthPx(context: Context): Int {
+        val density = context.resources.displayMetrics.density
+        val horizontalInset = context.resources.getDimensionPixelSize(R.dimen.player_aspect_dialog_horizontal_inset)
+        return (centerDialogWidthPx(context) - 2 * horizontalInset - (48f * density).toInt()).coerceAtLeast(1)
     }
 
     private fun android.view.Window.applyBottomChrome(context: Context) {
@@ -229,12 +255,14 @@ object PlayerGlassSheetDialog {
         return Triple(content, list, scroll)
     }
 
-    private fun capScroll(scrollView: NestedScrollView, attempt: Int) {
+    private fun capScroll(scrollView: NestedScrollView, widthPxOverride: Int?, attempt: Int) {
         val inner = scrollView.getChildAt(0) ?: return
-        val widthPx = scrollView.width.takeIf { it > 0 } ?: scrollView.measuredWidth.takeIf { it > 0 }
+        val widthPx = widthPxOverride
+            ?: scrollView.width.takeIf { it > 0 }
+            ?: scrollView.measuredWidth.takeIf { it > 0 }
         if (widthPx == null || widthPx <= 0) {
             if (attempt < 6) {
-                scrollView.post { capScroll(scrollView, attempt + 1) }
+                scrollView.post { capScroll(scrollView, null, attempt + 1) }
             }
             return
         }
