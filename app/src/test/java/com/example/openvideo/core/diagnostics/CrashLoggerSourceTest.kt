@@ -65,6 +65,48 @@ class CrashLoggerSourceTest {
     }
 
     @Test
+    fun crashAndDiagnosticLogsIncludeAppVersion() {
+        val source = String(Files.readAllBytes(crashLoggerSource()))
+        val diagnosticBuilder = source.substringAfter("private fun buildDiagnosticLog(")
+            .substringBefore("\n    private fun buildLog")
+        val buildLog = source.substringAfter("private fun buildLog(")
+            .substringBefore("\n    private fun reportRemotely")
+
+        assertTrue("Crash logs must include the app version name.", buildLog.contains("BuildConfig.VERSION_NAME"))
+        assertTrue("Crash logs must include the app version code.", buildLog.contains("BuildConfig.VERSION_CODE"))
+        assertTrue(
+            "Diagnostic logs must include the app version name.",
+            diagnosticBuilder.contains("BuildConfig.VERSION_NAME")
+        )
+        assertTrue(
+            "Diagnostic logs must include the app version code.",
+            diagnosticBuilder.contains("BuildConfig.VERSION_CODE")
+        )
+    }
+
+    @Test
+    fun playerErrorLogsCanIncludeRedactedDiagnostics() {
+        val source = String(Files.readAllBytes(crashLoggerSource()))
+        val logPlayerError = source.substringAfter("fun logPlayerError(")
+            .substringBefore("\n    /**")
+        val buildLog = source.substringAfter("private fun buildLog(")
+            .substringBefore("\n    private fun reportRemotely")
+
+        assertTrue(
+            "Player errors should accept optional diagnostic context.",
+            logPlayerError.contains("diagnostics: String? = null")
+        )
+        assertTrue(
+            "Player error diagnostics must be passed into the crash writer.",
+            logPlayerError.contains("diagnostics = diagnostics")
+        )
+        assertTrue(
+            "Crash log diagnostics must be redacted before being written.",
+            buildLog.contains("CrashRedactionPolicy.redact(diagnostics)")
+        )
+    }
+
+    @Test
     fun remoteReportRunsOffMainThreadAndCannotCrashTheApp() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val reportMethod = source.substringAfter("private fun reportRemotely(")

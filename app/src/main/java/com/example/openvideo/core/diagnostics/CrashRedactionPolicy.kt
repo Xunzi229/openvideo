@@ -17,6 +17,9 @@ object CrashRedactionPolicy {
         """content://media/(?:internal|external(?:_primary)?)/[A-Za-z]+/(\d+)"""
     )
     private val genericContentUriRegex = Regex("""content://[A-Za-z0-9.\-_/]+[^\s)>\]"']*""")
+    private val sensitiveMediaNameLineRegex = Regex(
+        """(?m)^(source_media\.title|content_resolver\.display_name)=([^\r\n]*)"""
+    )
 
     fun redact(text: String): String {
         if (text.isEmpty()) return text
@@ -30,6 +33,11 @@ object CrashRedactionPolicy {
         result = storagePathRegex.replace(result) { match -> redactedPath(match.value) }
         result = sdcardPathRegex.replace(result) { match -> redactedPath(match.value) }
         result = genericContentUriRegex.replace(result) { _ -> "<content_uri>" }
+        result = sensitiveMediaNameLineRegex.replace(result) { match ->
+            val key = match.groupValues[1]
+            val value = match.groupValues[2]
+            if (value.isBlank()) "$key=" else "$key=${redactedPath(value)}"
+        }
         return result
     }
 

@@ -33,12 +33,13 @@ object CrashLogger {
         }
     }
 
-    fun logPlayerError(context: Context, throwable: Throwable) {
+    fun logPlayerError(context: Context, throwable: Throwable, diagnostics: String? = null) {
         write(
             context = context.applicationContext,
             source = CrashCategoryPolicy.SOURCE_PLAYER,
             threadName = Thread.currentThread().name,
-            throwable = throwable
+            throwable = throwable,
+            diagnostics = diagnostics
         )
     }
 
@@ -63,12 +64,18 @@ object CrashLogger {
         }
     }
 
-    private fun write(context: Context, source: String, threadName: String, throwable: Throwable) {
+    private fun write(
+        context: Context,
+        source: String,
+        threadName: String,
+        throwable: Throwable,
+        diagnostics: String? = null
+    ) {
         runCatching {
             val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
             val category = CrashCategoryPolicy.categorize(throwable, source)
             val fileName = "${source}_${category.token}_${timestampFormat.format(Date())}.txt"
-            val log = buildLog(threadName, throwable, category, source)
+            val log = buildLog(threadName, throwable, category, source, diagnostics)
             File(dir, fileName).writeText(log)
             if (BuildConfig.REMOTE_CRASH_REPORTING_ENABLED && BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()) {
                 reportRemotely(BuildConfig.FEISHU_WEBHOOK_URL, fileName, log)
@@ -81,6 +88,7 @@ object CrashLogger {
             appendLine("type=diagnostic")
             appendLine("name=$name")
             appendLine("time=${Date()}")
+            appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             appendLine("thread=${Thread.currentThread().name}")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("sdk=${Build.VERSION.SDK_INT}")
@@ -93,16 +101,22 @@ object CrashLogger {
         threadName: String,
         throwable: Throwable,
         category: CrashCategory,
-        source: String
+        source: String,
+        diagnostics: String? = null
     ): String {
         val stack = StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }.toString()
         return buildString {
             appendLine("time=${Date()}")
+            appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             appendLine("source=$source")
             appendLine("category=${category.token}")
             appendLine("thread=$threadName")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("sdk=${Build.VERSION.SDK_INT}")
+            if (!diagnostics.isNullOrBlank()) {
+                append(CrashRedactionPolicy.redact(diagnostics).trimEnd())
+                appendLine()
+            }
             appendLine()
             append(CrashRedactionPolicy.redact(stack))
         }

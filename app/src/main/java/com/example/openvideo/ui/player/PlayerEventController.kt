@@ -103,7 +103,12 @@ class PlayerEventController(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                CrashLogger.logPlayerError(activity, error)
+                val diagnostics = PlayerErrorDiagnostics.build(
+                    context = activity,
+                    video = viewModel.currentVideoItemForDiagnostics(),
+                    player = viewModel.player
+                )
+                CrashLogger.logPlayerError(activity, error, diagnostics)
                 onShowPlayerError(error)
             }
 

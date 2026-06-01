@@ -278,6 +278,24 @@ class PlayerViewModel @Inject constructor(
     fun currentVideoSource(): String =
         videoPath.ifBlank { videoUri?.toString().orEmpty() }
 
+    fun currentVideoItemForDiagnostics(): VideoItem? {
+        val uri = videoUri ?: return null
+        return _sessionQueue.value.firstOrNull { item ->
+            item.id == videoId || item.uri == uri
+        } ?: VideoItem(
+            id = videoId,
+            title = _uiState.value.title.ifBlank { uri.lastPathSegment.orEmpty() },
+            path = videoPath.ifBlank { uri.toString() },
+            uri = uri,
+            duration = playerManager.duration,
+            size = 0,
+            width = 0,
+            height = 0,
+            dateAdded = 0,
+            thumbnailUri = null
+        )
+    }
+
     fun currentVideoShareText(): String {
         val source = currentVideoSource()
         val title = _uiState.value.title.ifBlank { source }

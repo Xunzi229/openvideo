@@ -55,4 +55,18 @@ class CrashRedactionPolicyTest {
         assertTrue(redacted.contains("<file>"))
         assertFalse(redacted.contains("somefolder"))
     }
+
+    @Test
+    fun mediaTitleAndDisplayNameFieldsAreRedactedKeepingExtension() {
+        val redacted = CrashRedactionPolicy.redact(
+            """
+            source_media.title=private birthday.mp4
+            content_resolver.display_name=private birthday.mp4
+            """.trimIndent()
+        )
+
+        assertTrue(redacted.contains("source_media.title=<file>.mp4"))
+        assertTrue(redacted.contains("content_resolver.display_name=<file>.mp4"))
+        assertFalse(redacted.contains("private birthday"))
+    }
 }
