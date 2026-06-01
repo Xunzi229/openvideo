@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">OpenVideo</string>
+    <string name="app_name">清影</string>
 
     <!-- Bottom Navigation -->
     <string name="nav_home">本地</string>
@@ -412,7 +412,7 @@
     <string name="settings_notification_bg_playback_summary">应用在后台继续播放音频时，在下拉通知栏显示媒体控件与进度</string>
     <string name="settings_section_system_notifications">系统通知</string>
     <string name="settings_notification_allow_system_title">允许系统通知</string>
-    <string name="settings_notification_allow_system_on">已为 OpenVideo 开启系统通知</string>
+    <string name="settings_notification_allow_system_on">已为清影开启系统通知</string>
     <string name="settings_notification_allow_system_off">未开启 — 点此前往系统设置开启</string>
     <string name="settings_section_about">关于</string>
     <string name="settings_version">版本号</string>
