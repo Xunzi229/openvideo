@@ -116,6 +116,9 @@ dependencies {
 
     // Media3 (ExoPlayer)
     implementation(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.hls)
+    implementation(libs.media3.exoplayer.dash)
+    implementation(libs.media3.exoplayer.rtsp)
     implementation(libs.media3.ui)
     implementation(libs.media3.session)
     implementation(libs.media3.effect)
@@ -140,9 +143,11 @@ dependencies {
     // Window (WindowSizeClass)
     implementation(libs.androidx.window)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.okhttp)
 
     // Open-source license viewer. License resources are packaged from src/main/res/raw.
     implementation(libs.play.services.oss.licenses)
 
     testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
 }

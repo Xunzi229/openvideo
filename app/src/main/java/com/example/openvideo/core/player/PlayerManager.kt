@@ -9,12 +9,16 @@ import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
+import com.example.openvideo.core.network.NetworkPlaybackHeaderPolicy
 import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -41,6 +45,7 @@ class PlayerManager @Inject constructor(
         onMuteChanged = ::setMuted
     )
     private val mediaExport = PlayerMediaExportController(context)
+    private var httpDataSourceFactory: DefaultHttpDataSource.Factory? = null
 
     var decodeMode = DecodeMode.HARD
     var renderMode = RenderMode.SURFACE
@@ -65,11 +70,18 @@ class PlayerManager @Inject constructor(
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableDecoderFallback(true)
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+            .setUserAgent(NetworkPlaybackHeaderPolicy.userAgent(context))
+            .setDefaultRequestProperties(NetworkPlaybackHeaderPolicy.defaultRequestProperties())
+        this.httpDataSourceFactory = httpDataSourceFactory
+        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
         val player = ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
             .setTrackSelector(trackSelector!!)
             .setLoadControl(loadControl)
+            .setMediaSourceFactory(mediaSourceFactory)
             .build()
             .also { it.addAnalyticsListener(audioDiagnosticsListener()) }
 
@@ -83,9 +95,13 @@ class PlayerManager @Inject constructor(
         player?.release()
         player = null
         trackSelector = null
+        httpDataSourceFactory = null
     }
 
-    fun setMediaUri(uri: Uri) {
+    fun setMediaUri(uri: Uri, requestHeaders: Map<String, String> = emptyMap()) {
+        httpDataSourceFactory?.setDefaultRequestProperties(
+            NetworkPlaybackHeaderPolicy.defaultRequestProperties() + requestHeaders
+        )
         val mediaItem = MediaItem.fromUri(uri)
         player?.let {
             it.setMediaItem(mediaItem)
@@ -102,13 +118,23 @@ class PlayerManager @Inject constructor(
 
     fun seekForward(ms: Long = 10_000) {
         player?.let {
-            it.seekTo((it.currentPosition + ms).coerceAtMost(it.duration))
+            val target = PlaybackTimelinePolicy.relativeSeekTarget(
+                currentPositionMs = it.currentPosition,
+                durationMs = it.duration,
+                deltaMs = ms.coerceAtLeast(0L)
+            ) ?: return@let
+            it.seekTo(target)
         }
     }
 
     fun seekBackward(ms: Long = 10_000) {
         player?.let {
-            it.seekTo((it.currentPosition - ms).coerceAtLeast(0))
+            val target = PlaybackTimelinePolicy.relativeSeekTarget(
+                currentPositionMs = it.currentPosition,
+                durationMs = it.duration,
+                deltaMs = -ms.coerceAtLeast(0L)
+            ) ?: return@let
+            it.seekTo(target)
         }
     }
 

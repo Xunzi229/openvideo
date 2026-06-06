@@ -97,6 +97,18 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun playbackPageExposesSeekThumbnailPreviewToggle() {
+        val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
+        val playbackPage = dialogSource
+            .substringAfter("private fun buildPlaylistPage()")
+            .substringBefore("\n    private fun buildStreamPage()")
+
+        assertTrue(playbackPage.contains("title = context.getString(R.string.settings_seek_thumbnail_preview)"))
+        assertTrue(playbackPage.contains("checked = playerPrefs.seekThumbnailEnabled"))
+        assertTrue(playbackPage.contains("playerPrefs.seekThumbnailEnabled = checked"))
+    }
+
+    @Test
     fun subtitlePageUsesInlineColorSwatchesInsteadOfTextChoiceRow() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val rowBuilderSource = String(Files.readAllBytes(sourceFile("PlayerSettingsRowBuilder.kt")))

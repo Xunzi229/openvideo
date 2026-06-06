@@ -45,4 +45,19 @@ class PlayerTimelineTest {
 
         assertEquals(Int.MAX_VALUE.toLong(), position)
     }
+
+    @Test
+    fun usesUnknownLabelForUnseekableTotalDuration() {
+        assertEquals("--:--", PlayerTimeline.durationText(0, PlayerTimeFormatter::format))
+        assertEquals("--:--", PlayerTimeline.durationText(Long.MAX_VALUE, PlayerTimeFormatter::format))
+        assertEquals(
+            "--:--",
+            PlayerTimeline.durationText(-9_223_372_036_854_775_807L, PlayerTimeFormatter::format)
+        )
+    }
+
+    @Test
+    fun formatsSeekableTotalDuration() {
+        assertEquals("01:05", PlayerTimeline.durationText(65_000, PlayerTimeFormatter::format))
+    }
 }

@@ -25,5 +25,5 @@ data class MediaPathHistoryEntity(
     val path: String,
     val normalizedPathKey: String,
     val seenAt: Long,
-    val exists: Boolean
+    val fileExists: Boolean
 )

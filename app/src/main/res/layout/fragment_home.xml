@@ -21,12 +21,46 @@
         android:layout_marginTop="8dp"
         android:scrollbars="none"
         android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/category_scroll"
+        app:layout_constraintTop_toBottomOf="@id/smart_filter_scroll"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/folder_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            app:singleSelection="true" />
+    </HorizontalScrollView>
+
+    <TextView
+        android:id="@+id/folder_pin_hint"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="16dp"
+        android:text="@string/home_folder_pin_hint"
+        android:textColor="@color/ov_text_tertiary"
+        android:textSize="12sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/filter_scroll" />
+
+    <HorizontalScrollView
+        android:id="@+id/smart_filter_scroll"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:scrollbars="none"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/category_scroll"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/smart_filter_group"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingHorizontal="16dp"
@@ -54,6 +88,17 @@
             android:textColor="@color/ov_text_primary"
             android:textSize="28sp"
             android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/btn_open_url"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/home_open_url"
+            android:padding="7dp"
+            android:src="@drawable/ic_stream"
+            app:tint="@color/ov_text_secondary" />
 
         <ImageButton
             android:id="@+id/btn_refresh"
@@ -155,7 +200,7 @@
         android:layout_marginEnd="16dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        app:layout_constraintTop_toBottomOf="@id/filter_scroll"
+        app:layout_constraintTop_toBottomOf="@id/folder_pin_hint"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 

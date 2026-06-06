@@ -8,6 +8,7 @@ object HistoryCleanupPolicy {
         history: List<HistoryEntity>,
         scannedVideoIds: Set<Long>,
         scannedPaths: Set<String>,
+        activeMediaIdentityIds: Set<Long> = emptySet(),
         localFileExists: (String) -> Boolean
     ): List<Long> {
         return history.mapNotNull { entity ->
@@ -15,7 +16,8 @@ object HistoryCleanupPolicy {
             val fileExists = candidatePath.isNotBlank() && localFileExists(candidatePath)
             val inScanById = entity.videoId in scannedVideoIds
             val inScanByPath = normalizePath(entity.path) in scannedPaths
-            if (!fileExists && !inScanById && !inScanByPath) entity.videoId else null
+            val inScanByIdentity = entity.mediaIdentityId in activeMediaIdentityIds
+            if (!fileExists && !inScanById && !inScanByPath && !inScanByIdentity) entity.videoId else null
         }
     }
 

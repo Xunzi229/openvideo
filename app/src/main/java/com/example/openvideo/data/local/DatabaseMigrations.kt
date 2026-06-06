@@ -105,7 +105,7 @@ object DatabaseMigrations {
                     path TEXT NOT NULL,
                     normalizedPathKey TEXT NOT NULL,
                     seenAt INTEGER NOT NULL,
-                    exists INTEGER NOT NULL,
+                    fileExists INTEGER NOT NULL,
                     PRIMARY KEY(identityId, normalizedPathKey),
                     FOREIGN KEY(identityId) REFERENCES media_identity(identityId) ON UPDATE NO ACTION ON DELETE CASCADE
                 )
@@ -126,5 +126,168 @@ object DatabaseMigrations {
         }
     }
 
-    val ALL = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE play_history ADD COLUMN mediaIdentityId INTEGER DEFAULT NULL")
+            db.execSQL("ALTER TABLE favorites ADD COLUMN mediaIdentityId INTEGER DEFAULT NULL")
+            db.execSQL("ALTER TABLE playlist_videos ADD COLUMN mediaIdentityId INTEGER DEFAULT NULL")
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_play_history_mediaIdentityId
+                ON play_history(mediaIdentityId)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_favorites_mediaIdentityId
+                ON favorites(mediaIdentityId)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_playlist_videos_mediaIdentityId
+                ON playlist_videos(mediaIdentityId)
+                """.trimIndent()
+            )
+        }
+    }
+
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS series (
+                    seriesId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    title TEXT NOT NULL,
+                    normalizedTitleKey TEXT NOT NULL,
+                    folderPath TEXT NOT NULL,
+                    posterPath TEXT DEFAULT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS index_series_normalizedTitleKey_folderPath
+                ON series(normalizedTitleKey, folderPath)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS episodes (
+                    episodeId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    seriesId INTEGER NOT NULL,
+                    identityId INTEGER NOT NULL,
+                    season INTEGER DEFAULT NULL,
+                    episodeStart INTEGER NOT NULL,
+                    episodeEnd INTEGER DEFAULT NULL,
+                    episodeTitle TEXT NOT NULL,
+                    confidence TEXT NOT NULL,
+                    rule TEXT NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    FOREIGN KEY(seriesId) REFERENCES series(seriesId) ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(identityId) REFERENCES media_identity(identityId) ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_episodes_seriesId
+                ON episodes(seriesId)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS index_episodes_identityId
+                ON episodes(identityId)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_episodes_series_order
+                ON episodes(seriesId, season, episodeStart)
+                """.trimIndent()
+            )
+        }
+    }
+
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS media_sources (
+                    sourceId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    type TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    url TEXT NOT NULL,
+                    normalizedUrl TEXT NOT NULL,
+                    displayUrl TEXT NOT NULL,
+                    lastUsedAt INTEGER NOT NULL DEFAULT 0,
+                    isEnabled INTEGER NOT NULL DEFAULT 1,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_media_sources_type
+                ON media_sources(type)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS index_media_sources_type_normalizedUrl
+                ON media_sources(type, normalizedUrl)
+                """.trimIndent()
+            )
+        }
+    }
+
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                """
+                CREATE TABLE IF NOT EXISTS network_recent_items (
+                    recentId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    sourceId INTEGER DEFAULT NULL,
+                    uri TEXT NOT NULL,
+                    normalizedUrl TEXT NOT NULL,
+                    displayUrl TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    durationMs INTEGER NOT NULL DEFAULT 0,
+                    lastPlayedAt INTEGER NOT NULL,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS index_network_recent_items_normalizedUrl
+                ON network_recent_items(normalizedUrl)
+                """.trimIndent()
+            )
+            db.execSQL(
+                """
+                CREATE INDEX IF NOT EXISTS index_network_recent_items_lastPlayedAt
+                ON network_recent_items(lastPlayedAt)
+                """.trimIndent()
+            )
+        }
+    }
+
+    val ALL = arrayOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+        MIGRATION_5_6,
+        MIGRATION_6_7,
+        MIGRATION_7_8,
+        MIGRATION_8_9,
+        MIGRATION_9_10
+    )
 }

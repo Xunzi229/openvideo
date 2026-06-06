@@ -1,10 +1,13 @@
 package com.example.openvideo.ui.player
 
 import androidx.media3.common.PlaybackException
+import com.example.openvideo.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -112,6 +115,32 @@ class PlayerErrorPresentationPolicyTest {
     }
 
     @Test
+    fun networkErrorsUseNetworkTitleAndSpecificDescriptions() {
+        val connection = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+        )
+        val dns = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+            UnknownHostException("example.test")
+        )
+        val timeout = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+            SocketTimeoutException("timeout")
+        )
+        val badHttp = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS)
+        val cleartext = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED)
+
+        assertEquals(R.string.player_error_title_network, connection.titleRes)
+        assertEquals(R.string.player_error_desc_network_connection, connection.descRes)
+        assertEquals(R.string.player_error_desc_network_dns, dns.descRes)
+        assertEquals(R.string.player_error_desc_network_timeout, timeout.descRes)
+        assertEquals(R.string.player_error_desc_network_http, badHttp.descRes)
+        assertEquals(R.string.player_error_desc_network_cleartext, cleartext.descRes)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.RETRY in connection.actions)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in connection.actions)
+    }
+
+    @Test
     fun generalErrorActionsDoNotIncludeSoftDecode() {
         // ERROR_CODE_UNSPECIFIED is a generic non-decoder, non-IO error
         val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_UNSPECIFIED)
@@ -183,6 +212,13 @@ class PlayerErrorPresentationPolicyTest {
         assertTrue(block.contains("viewModel.setDecodeMode(DecodeMode.SOFT)"))
         assertFalse(block.contains("playerPrefs.hwAcceleration"))
         assertFalse(block.contains("playerPrefs.softwareAudioDecoder"))
+    }
+
+    @Test
+    fun errorHudPassesExceptionCauseToPresentationPolicyForNetworkClassification() {
+        val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
+
+        assertTrue(source.contains("PlayerErrorPresentationPolicy.present(error.errorCode, error.cause)"))
     }
 
     private fun readResource(dir: String, file: String): String =

@@ -3,7 +3,9 @@ package com.example.openvideo.ui.player
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import com.example.openvideo.core.network.NetworkPlaybackRetryPolicy
 import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.player.PlayerAudioDiagnostics
 import com.example.openvideo.core.player.PlayerAudioTrackInfo
@@ -11,12 +13,17 @@ import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.player.RenderMode
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.ContentFrameMode
+import com.example.openvideo.core.subtitle.DualSubtitleText
+import com.example.openvideo.core.subtitle.DualSubtitleState
+import com.example.openvideo.core.subtitle.PrimarySubtitle
 import com.example.openvideo.core.subtitle.SubtitleItem
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -35,7 +42,8 @@ data class PlayerUiState(
     val speed: Float = 1.0f,
     val isFavorite: Boolean = false,
     val currentSubtitle: String = "",
-    val subtitles: List<SubtitleItem> = emptyList()
+    val subtitles: List<SubtitleItem> = emptyList(),
+    val dualSubtitles: DualSubtitleState = DualSubtitleState()
 )
 
 @HiltViewModel
@@ -53,9 +61,12 @@ class PlayerViewModel @Inject constructor(
     private var videoUri: Uri? = null
     val currentVideoUri: Uri? get() = videoUri
     private var videoPath: String = ""
+    private var requestHeaders: Map<String, String> = emptyMap()
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
     private var pendingAudioSelection: PendingAudioSelection? = null
+    private var networkAutoRetryAttempts = 0
+    private var networkAutoRetryJob: Job? = null
     private val defaultPlaybackMemory = DefaultPlaybackMemory(
         speed = playerPrefs.speed,
         aspectRatio = playerPrefs.aspectRatio,
@@ -77,13 +88,15 @@ class PlayerViewModel @Inject constructor(
         _sessionQueue.value = videos
     }
 
-    fun initialize(uri: Uri, title: String, id: Long, path: String = "") {
+    fun initialize(uri: Uri, title: String, id: Long, path: String = "", requestHeaders: Map<String, String> = emptyMap()) {
+        resetNetworkAutoRetry()
         playerListener?.let { playerManager.removeListener(it) }
         playerListener = null
 
         videoId = id
         videoUri = uri
         videoPath = path
+        this.requestHeaders = requestHeaders
         _uiState.value = _uiState.value.copy(title = title)
 
         playerManager.initialize(uri)
@@ -97,6 +110,7 @@ class PlayerViewModel @Inject constructor(
                     duration = playerManager.duration
                 )
                 if (playbackState == androidx.media3.common.Player.STATE_READY) {
+                    resetNetworkAutoRetry()
                     applyPendingAudioSelection()
                     markPlaybackStarted()
                     applyPendingRestore()
@@ -104,7 +118,7 @@ class PlayerViewModel @Inject constructor(
             }
         }
         playerManager.addListener(playerListener!!)
-        playerManager.setMediaUri(uri)
+        playerManager.setMediaUri(uri, requestHeaders)
 
         viewModelScope.launch {
             val isFav = repository.isFavorite(id)
@@ -178,9 +192,34 @@ class PlayerViewModel @Inject constructor(
      * 播放出错后重新 prepare 当前媒体。
      * 会重置 ExoPlayer 的 media item 并从当前记录的 videoUri 重新加载。
      */
-    fun retryPlayback() {
+    fun retryPlayback(resetAutoRetry: Boolean = true) {
+        if (resetAutoRetry) {
+            resetNetworkAutoRetry()
+        }
         val uri = videoUri ?: return
-        playerManager.setMediaUri(uri)
+        playerManager.setMediaUri(uri, requestHeaders)
+    }
+
+    fun handleNetworkAutoRetry(error: PlaybackException): Boolean {
+        val decision = NetworkPlaybackRetryPolicy.nextDecision(
+            errorCode = error.errorCode,
+            cause = error.cause,
+            completedAttempts = networkAutoRetryAttempts
+        )
+        if (decision !is NetworkPlaybackRetryPolicy.Decision.Retry) return false
+        networkAutoRetryAttempts = decision.nextAttempt
+        networkAutoRetryJob?.cancel()
+        networkAutoRetryJob = viewModelScope.launch {
+            delay(decision.delayMs)
+            retryPlayback(resetAutoRetry = false)
+        }
+        return true
+    }
+
+    private fun resetNetworkAutoRetry() {
+        networkAutoRetryAttempts = 0
+        networkAutoRetryJob?.cancel()
+        networkAutoRetryJob = null
     }
 
     fun seekForward(ms: Long = playerPrefs.seekInterval * 1000L) {
@@ -232,7 +271,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun setSubtitles(subtitles: List<SubtitleItem>) {
-        _uiState.value = _uiState.value.copy(subtitles = subtitles)
+        _uiState.value = _uiState.value.copy(
+            subtitles = subtitles,
+            dualSubtitles = DualSubtitleState(primary = PrimarySubtitle(items = subtitles))
+        )
     }
 
     fun loadSubtitles(
@@ -243,7 +285,14 @@ class PlayerViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val subtitles = withContext(Dispatchers.IO) {
-                PlayerSubtitleLoadCoordinator.load(uriString, videoPath, subtitleLoader)
+                PlayerSubtitleLoadCoordinator.load(
+                    uriString,
+                    videoPath,
+                    subtitleLoader,
+                    requestHeaders = requestHeaders,
+                    rememberedSubtitlePath = playerPrefs.externalSubtitleUri,
+                    languagePreference = playerPrefs.subtitleLanguagePreference()
+                )
             }
             val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, showToast)
             if (decision.shouldApplyToPlayer) {
@@ -254,10 +303,15 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun getCurrentSubtitle(): String {
+        return getCurrentDualSubtitle()
+            ?.primary
+            .orEmpty()
+    }
+
+    fun getCurrentDualSubtitle(): DualSubtitleText? {
         val state = _uiState.value
-        if (state.subtitles.isEmpty()) return ""
-        val pos = state.currentPosition + playerPrefs.subtitleDelayMs
-        return state.subtitles.find { pos in it.startTimeMs..it.endTimeMs }?.text ?: ""
+        val positionMs = state.currentPosition + playerPrefs.subtitleDelayMs
+        return state.dualSubtitles.textAt(positionMs = positionMs)
     }
 
     fun playStream(streamUrl: String) {
@@ -265,6 +319,7 @@ class PlayerViewModel @Inject constructor(
         videoId = streamUrl.hashCode().toLong()
         videoUri = uri
         videoPath = streamUrl
+        requestHeaders = emptyMap()
         pendingRestorePosition = null
         _uiState.value = _uiState.value.copy(
             title = uri.lastPathSegment?.takeIf { it.isNotBlank() } ?: streamUrl,
@@ -272,7 +327,7 @@ class PlayerViewModel @Inject constructor(
             duration = 0,
             subtitles = emptyList()
         )
-        playerManager.setMediaUri(uri)
+        playerManager.setMediaUri(uri, emptyMap())
     }
 
     fun currentVideoSource(): String =
@@ -393,6 +448,7 @@ class PlayerViewModel @Inject constructor(
                 videoId = item.id
                 videoUri = item.uri
                 videoPath = item.path
+                requestHeaders = emptyMap()
                 pendingRestorePosition = null
                 _uiState.value = _uiState.value.copy(
                     title = item.title,
@@ -400,7 +456,7 @@ class PlayerViewModel @Inject constructor(
                     currentPosition = 0,
                     duration = 0
                 )
-                playerManager.setMediaUri(item.uri)
+                playerManager.setMediaUri(item.uri, emptyMap())
             }
             val isFav = repository.isFavorite(item.id)
             _uiState.value = _uiState.value.copy(isFavorite = isFav)

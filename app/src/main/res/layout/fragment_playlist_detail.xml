@@ -37,6 +37,33 @@
             android:textStyle="bold" />
 
         <ImageButton
+            android:id="@+id/btn_import_playlist"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/playlist_import"
+            android:src="@drawable/ic_file_upload"
+            app:tint="@color/ov_text_secondary" />
+
+        <ImageButton
+            android:id="@+id/btn_export_playlist"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/playlist_export"
+            android:src="@drawable/ic_file_download"
+            app:tint="@color/ov_text_secondary" />
+
+        <ImageButton
+            android:id="@+id/btn_cleanup_playlist"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/playlist_cleanup"
+            android:src="@drawable/ic_filter_tune"
+            app:tint="@color/ov_text_secondary" />
+
+        <ImageButton
             android:id="@+id/btn_clear"
             android:layout_width="40dp"
             android:layout_height="40dp"

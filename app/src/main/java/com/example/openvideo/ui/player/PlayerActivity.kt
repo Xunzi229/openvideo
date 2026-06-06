@@ -64,9 +64,11 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var tvCurrentTime: TextView
     private lateinit var tvTotalTime: TextView
     private lateinit var tvTitle: TextView
+    private lateinit var tvNetworkStatus: TextView
     private lateinit var gestureOverlay: View
     private lateinit var seekIndicator: TextView
     private lateinit var tvSubtitle: TextView
+    private lateinit var tvSubtitleSecondary: TextView
     private lateinit var brightnessIndicator: View
     private lateinit var brightnessProgress: ProgressBar
     private lateinit var volumeIndicator: View
@@ -255,6 +257,7 @@ class PlayerActivity : AppCompatActivity() {
             bottomPanelProvider = { bottomPanel },
             controlsContainerProvider = { controlsContainer },
             subtitleProvider = { tvSubtitle },
+            secondarySubtitleProvider = { tvSubtitleSecondary },
             brightnessProgressProvider = { brightnessProgress },
             volumeProgressProvider = { volumeProgress },
             topBarProvider = { topBar },
@@ -344,6 +347,7 @@ class PlayerActivity : AppCompatActivity() {
             currentTimeProvider = { tvCurrentTime },
             totalTimeProvider = { tvTotalTime },
             subtitleProvider = { tvSubtitle },
+            secondarySubtitleProvider = { tvSubtitleSecondary },
             isSeekingProvider = { isSeeking },
             abLoopStateProvider = { abLoop.state },
             abLoopPointAProvider = { abLoop.pointA },
@@ -452,6 +456,11 @@ class PlayerActivity : AppCompatActivity() {
             onSetVolumeBoost = { enabled -> viewModel.setVolumeBoost(enabled) },
             onFirstFrameRendered = { firstFrames.onRenderedFirstFrame() },
             onShowPlayerError = { error -> errorHud.show(error) },
+            onShowNetworkStatus = { labelRes ->
+                tvNetworkStatus.setText(labelRes)
+                tvNetworkStatus.visibility = View.VISIBLE
+            },
+            onHideNetworkStatus = { tvNetworkStatus.visibility = View.GONE },
             onApplyVideoOrientation = ::applyVideoOrientation,
             onApplyContentAspectRatio = ::applyPlayerContentAspectRatio,
             onApplyContentFrameTransform = ::applyPlayerContentFrameTransform
@@ -572,6 +581,8 @@ class PlayerActivity : AppCompatActivity() {
         val videoPath = intent.getStringExtra("video_path")
             ?: playbackCoordinator.snapshot?.videoPath
             ?: ""
+        val requestHeaders = PlayerActivityIntents.requestHeaders(intent)
+        val externalSubtitleUri = PlayerActivityIntents.externalSubtitleUri(intent)
 
         startupTrace.record(PlayerStartupTrace.Events.ACTIVITY_CREATED)
         val sessionQueue = intent.sessionVideoQueue().ifEmpty {
@@ -581,7 +592,13 @@ class PlayerActivity : AppCompatActivity() {
 
         val warmResume = viewModel.isActiveSessionFor(id)
         if (!warmResume) {
-            viewModel.initialize(LocalMediaUriPolicy.playbackUri(uriString), title, id, videoPath)
+            viewModel.initialize(
+                LocalMediaUriPolicy.playbackUri(uriString),
+                title,
+                id,
+                videoPath,
+                requestHeaders = requestHeaders
+            )
             startupTrace.record(PlayerStartupTrace.Events.PLAYER_INITIALIZED)
         }
 
@@ -609,7 +626,10 @@ class PlayerActivity : AppCompatActivity() {
         } else {
             viewModel.restorePlaybackPreferences(id) {
                 applyPlayerSettings()
-                loadSubtitlesAsync(playerPrefs.externalSubtitleUri.ifBlank { uriString }, videoPath)
+                loadSubtitlesAsync(
+                    playerPrefs.externalSubtitleUri.ifBlank { externalSubtitleUri.ifBlank { uriString } },
+                    videoPath
+                )
             }
         }
 
@@ -675,9 +695,11 @@ class PlayerActivity : AppCompatActivity() {
         tvCurrentTime = findViewById(R.id.tv_current_time)
         tvTotalTime = findViewById(R.id.tv_total_time)
         tvTitle = findViewById(R.id.tv_title)
+        tvNetworkStatus = findViewById(R.id.tv_network_status)
         gestureOverlay = findViewById(R.id.gesture_overlay)
         seekIndicator = findViewById(R.id.seek_indicator)
         tvSubtitle = findViewById(R.id.tv_subtitle)
+        tvSubtitleSecondary = findViewById(R.id.tv_subtitle_secondary)
         brightnessIndicator = findViewById(R.id.brightness_indicator)
         brightnessProgress = findViewById(R.id.brightness_progress)
         volumeIndicator = findViewById(R.id.volume_indicator)

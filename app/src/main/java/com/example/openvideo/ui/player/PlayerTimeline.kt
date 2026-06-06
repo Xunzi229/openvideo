@@ -1,8 +1,9 @@
 package com.example.openvideo.ui.player
 
+import com.example.openvideo.core.player.PlaybackTimelinePolicy
+
 object PlayerTimeline {
     const val SCALED_SEEK_BAR_MAX = 10_000
-    private const val TIME_UNSET = -9_223_372_036_854_775_807L
 
     data class SeekBarState(
         val enabled: Boolean,
@@ -47,7 +48,11 @@ object PlayerTimeline {
         return if (hasSeekableDuration(durationMs)) raw.coerceIn(0, durationMs) else raw.coerceAtLeast(0)
     }
 
+    fun durationText(durationMs: Long, formatter: (Long) -> String): String {
+        return if (hasSeekableDuration(durationMs)) formatter(durationMs) else "--:--"
+    }
+
     fun hasSeekableDuration(durationMs: Long): Boolean {
-        return durationMs > 0 && durationMs != Long.MAX_VALUE && durationMs != TIME_UNSET
+        return PlaybackTimelinePolicy.hasSeekableDuration(durationMs)
     }
 }

@@ -26,6 +26,9 @@ class HomeHistoryCleanupSourceTest {
     fun repositoryDelegatesStaleHistoryRemovalToCleanupPolicy() {
         val source = String(Files.readAllBytes(repositorySource()))
 
+        assertTrue(source.contains("activeHistoryIdentityIds("))
+        assertTrue(source.contains("mediaIdentityDao.getByIdentityIds"))
+        assertTrue(source.contains("activeMediaIdentityIds = activeMediaIdentityIds"))
         assertTrue(source.contains("HistoryCleanupPolicy.videoIdsToRemove"))
         assertTrue(source.contains("historyDao.delete(it)"))
     }

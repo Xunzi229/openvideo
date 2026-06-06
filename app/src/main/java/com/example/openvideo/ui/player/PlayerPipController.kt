@@ -4,6 +4,7 @@ import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
 import android.os.Build
 import android.content.res.Configuration
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 
 class PlayerPipController(
@@ -27,6 +28,13 @@ class PlayerPipController(
             unappliedRotationDegrees = videoSize?.unappliedRotationDegrees ?: 0
         )
         if (!decision.shouldEnter) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            enterPictureInPicture(decision)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun enterPictureInPicture(decision: PlayerPipDecision) {
         runCatching {
             activity.enterPictureInPictureMode(
                 PictureInPictureParams.Builder()
@@ -46,9 +54,15 @@ class PlayerPipController(
         }
     }
 
-    fun isInPipModeCompat(): Boolean =
-        PlayerPipCompatPolicy.isInPictureInPictureMode(
+    fun isInPipModeCompat(): Boolean {
+        val isInPictureInPictureMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            activity.isInPictureInPictureMode
+        } else {
+            false
+        }
+        return PlayerPipCompatPolicy.isInPictureInPictureMode(
             sdkInt = Build.VERSION.SDK_INT,
-            isInPictureInPictureMode = activity.isInPictureInPictureMode
+            isInPictureInPictureMode = isInPictureInPictureMode
         )
+    }
 }

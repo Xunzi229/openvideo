@@ -28,6 +28,7 @@ import com.example.openvideo.ui.home.MediaLibraryScanProgress
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
+import com.example.openvideo.ui.series.SeriesListFragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
@@ -84,6 +85,9 @@ class LocalFolderFragment : Fragment() {
 
         view.findViewById<View>(R.id.btn_refresh).setOnClickListener {
             checkPermissionAndLoad()
+        }
+        view.findViewById<View>(R.id.btn_series).setOnClickListener {
+            openSeriesList()
         }
 
         observeFolders()
@@ -199,6 +203,13 @@ class LocalFolderFragment : Fragment() {
                 FolderVideosFragment.newInstance(folder.key, folder.name)
             )
             .addToBackStack("folder:${folder.key}")
+            .commit()
+    }
+
+    private fun openSeriesList() {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, SeriesListFragment())
+            .addToBackStack("series:list")
             .commit()
     }
 

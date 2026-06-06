@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import com.example.openvideo.R
+import com.example.openvideo.core.network.NetworkErrorClassifier
 
 /**
  * 纯函数策略：将 [PlaybackException] 映射为用户可读的错误展示模型。
@@ -34,7 +35,8 @@ object PlayerErrorPresentationPolicy {
         GO_BACK
     }
 
-    fun present(errorCode: Int): Presentation {
+    fun present(errorCode: Int, cause: Throwable? = null): Presentation {
+        networkPresentation(errorCode, cause)?.let { return it }
         return when {
             isDecoderError(errorCode) -> Presentation(
                 titleRes = R.string.player_error_title_decode,
@@ -65,6 +67,30 @@ object PlayerErrorPresentationPolicy {
                 )
             )
         }
+    }
+
+    private fun networkPresentation(errorCode: Int, cause: Throwable?): Presentation? {
+        val classification = NetworkErrorClassifier.classifyPlaybackError(errorCode, cause)
+        if (classification.type == NetworkErrorClassifier.Type.NON_NETWORK) return null
+        val descRes = when (classification.type) {
+            NetworkErrorClassifier.Type.CONNECTION_FAILED -> R.string.player_error_desc_network_connection
+            NetworkErrorClassifier.Type.DNS_FAILED -> R.string.player_error_desc_network_dns
+            NetworkErrorClassifier.Type.TIMEOUT -> R.string.player_error_desc_network_timeout
+            NetworkErrorClassifier.Type.BAD_HTTP_STATUS -> R.string.player_error_desc_network_http
+            NetworkErrorClassifier.Type.CLEARTEXT_NOT_PERMITTED -> R.string.player_error_desc_network_cleartext
+            NetworkErrorClassifier.Type.UNKNOWN_NETWORK -> R.string.player_error_desc_network_unknown
+            NetworkErrorClassifier.Type.NON_NETWORK -> return null
+        }
+        val actions = buildList {
+            if (classification.isRetryable) add(ErrorAction.RETRY)
+            add(ErrorAction.COPY_DIAGNOSTICS)
+            add(ErrorAction.GO_BACK)
+        }
+        return Presentation(
+            titleRes = R.string.player_error_title_network,
+            descRes = descRes,
+            actions = actions
+        )
     }
 
     /** 解码 / Codec 相关错误码。 */

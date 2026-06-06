@@ -28,6 +28,16 @@
             android:textStyle="bold" />
 
         <ImageButton
+            android:id="@+id/btn_series"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/series_list_title"
+            android:src="@drawable/ic_list"
+            app:tint="@color/ov_text_secondary" />
+
+        <ImageButton
             android:id="@+id/btn_refresh"
             android:layout_width="36dp"
             android:layout_height="36dp"

@@ -29,6 +29,7 @@ class PlayerDisplayController(
     private val bottomPanelProvider: () -> View,
     private val controlsContainerProvider: () -> View,
     private val subtitleProvider: () -> TextView,
+    private val secondarySubtitleProvider: () -> TextView,
     private val brightnessProgressProvider: () -> ProgressBar,
     private val volumeProgressProvider: () -> ProgressBar,
     private val topBarProvider: () -> View,
@@ -80,15 +81,16 @@ class PlayerDisplayController(
 
         applyDisplaySettings()
 
-        val subtitle = subtitleProvider()
-        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
-        subtitle.setTextColor(playerPrefs.subtitleColor)
-        subtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
-        subtitle.post {
-            subtitle.translationY = PlayerDisplayAdjustment.subtitleTranslationY(
-                playerViewHeightPx = playerView.height,
-                position = playerPrefs.subtitlePosition
-            )
+        listOf(subtitleProvider(), secondarySubtitleProvider()).forEach { subtitle ->
+            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
+            subtitle.setTextColor(playerPrefs.subtitleColor)
+            subtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
+            subtitle.post {
+                subtitle.translationY = PlayerDisplayAdjustment.subtitleTranslationY(
+                    playerViewHeightPx = playerView.height,
+                    position = playerPrefs.subtitlePosition
+                )
+            }
         }
     }
 

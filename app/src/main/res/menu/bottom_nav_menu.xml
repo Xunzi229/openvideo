@@ -9,6 +9,10 @@
         android:icon="@drawable/ic_movie"
         android:title="@string/nav_video" />
     <item
+        android:id="@+id/nav_sources"
+        android:icon="@drawable/ic_stream"
+        android:title="@string/nav_sources" />
+    <item
         android:id="@+id/nav_playlist"
         android:icon="@drawable/ic_playlist"
         android:title="@string/nav_playlist" />

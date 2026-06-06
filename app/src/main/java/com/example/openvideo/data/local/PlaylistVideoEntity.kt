@@ -2,6 +2,7 @@ package com.example.openvideo.data.local
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
+import androidx.room.Index
 
 @Entity(
     tableName = "playlist_videos",
@@ -13,11 +14,13 @@ import androidx.room.ForeignKey
             childColumns = ["playlistId"],
             onDelete = ForeignKey.CASCADE
         )
-    ]
+    ],
+    indices = [Index(value = ["mediaIdentityId"])]
 )
 data class PlaylistVideoEntity(
     val playlistId: Long,
     val videoId: Long,
+    val mediaIdentityId: Long? = null,
     val videoTitle: String,
     val videoPath: String,
     val videoDuration: Long,

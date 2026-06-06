@@ -20,7 +20,9 @@ class PlayerHistorySourceTest {
         )
         assertTrue(
             "PlayerActivity should still pass video_path into PlayerViewModel so local playback history keeps a playable local path",
-            onCreate.contains("viewModel.initialize(LocalMediaUriPolicy.playbackUri(uriString), title, id, videoPath)")
+            onCreate.contains("viewModel.initialize(") &&
+                onCreate.contains("LocalMediaUriPolicy.playbackUri(uriString)") &&
+                onCreate.contains("videoPath,")
         )
     }
 
@@ -53,12 +55,12 @@ class PlayerHistorySourceTest {
     @Test
     fun viewModelRegistersPlayerListenerBeforePreparingMedia() {
         val source = String(Files.readAllBytes(sourceFile("PlayerViewModel.kt")))
-        val initialize = source.substringAfter("fun initialize(uri: Uri, title: String, id: Long, path: String = \"\") {")
+        val initialize = source.substringAfter("fun initialize(uri: Uri, title: String, id: Long, path: String = \"\", requestHeaders: Map<String, String> = emptyMap()) {")
             .substringBefore("\n    fun restorePosition")
 
         assertTrue(
             "PlayerViewModel should add its listener before setMediaUri so fast local files cannot miss STATE_READY history saving",
-            initialize.indexOf("playerManager.addListener(playerListener!!)") < initialize.indexOf("playerManager.setMediaUri(uri)")
+            initialize.indexOf("playerManager.addListener(playerListener!!)") < initialize.indexOf("playerManager.setMediaUri(uri")
         )
     }
 
@@ -142,7 +144,7 @@ class PlayerHistorySourceTest {
         assertTrue(onCreate.contains("viewModel.restorePlaybackPreferences(id) {"))
         assertTrue(onCreate.contains("applyPlayerSettings()"))
         assertTrue(onCreate.contains("loadSubtitlesAsync("))
-        assertTrue(onCreate.contains("playerPrefs.externalSubtitleUri.ifBlank { uriString }"))
+        assertTrue(onCreate.contains("playerPrefs.externalSubtitleUri.ifBlank { externalSubtitleUri.ifBlank { uriString } }"))
     }
 
     @Test

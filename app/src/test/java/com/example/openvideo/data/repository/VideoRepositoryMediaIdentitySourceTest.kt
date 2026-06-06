@@ -41,6 +41,50 @@ class VideoRepositoryMediaIdentitySourceTest {
         assertTrue(!syncBlock.contains("playlistDao.insertVideo"))
     }
 
+    @Test
+    fun repositoryWritesMediaIdentityIdWhenPersistingHistoryFavoriteAndPlaylistRows() {
+        val source = repositorySource()
+
+        assertTrue(source.contains("private suspend fun resolveMediaIdentityId(video: VideoItem): Long?"))
+        assertTrue(source.contains("mediaIdentityId = resolveMediaIdentityId(video)"))
+        assertTrue(source.contains("HistoryEntity("))
+        assertTrue(source.contains("FavoriteEntity("))
+        assertTrue(source.contains("PlaylistVideoEntity("))
+    }
+
+    @Test
+    fun repositoryFallsBackToMediaIdentityWhenLoadingHistoryByVideoId() {
+        val source = repositorySource()
+
+        assertTrue(source.contains("historyDao.getByVideoId(videoId) ?:"))
+        assertTrue(source.contains("mediaIdentityDao.getByCurrentVideoId(videoId)"))
+        assertTrue(source.contains("historyDao.getByMediaIdentityId(identity.identityId)"))
+    }
+
+    @Test
+    fun repositoryUsesIdentityAwareFavoriteListAndFavoriteChecks() {
+        val source = repositorySource()
+
+        assertTrue(source.contains("fun getFavorites(): Flow<List<FavoriteEntity>> = favoriteDao.getAllWithIdentityFallback()"))
+        assertTrue(source.contains("suspend fun isFavorite(videoId: Long): Boolean ="))
+        assertTrue(source.contains("favoriteDao.isFavorite(videoId)"))
+        assertTrue(source.contains("mediaIdentityDao.getByCurrentVideoId(videoId)"))
+        assertTrue(source.contains("favoriteDao.isFavoriteByMediaIdentityId(identity.identityId)"))
+    }
+
+    @Test
+    fun repositoryTogglesExistingIdentityFavoriteInsteadOfDuplicatingIt() {
+        val source = repositorySource()
+        val toggleBlock = source
+            .substringAfter("suspend fun toggleFavorite(video: VideoItem)")
+            .substringBefore("suspend fun isFavorite(videoId: Long)")
+
+        assertTrue(toggleBlock.contains("val identityId = resolveMediaIdentityId(video)"))
+        assertTrue(toggleBlock.contains("favoriteDao.isFavoriteByMediaIdentityId(identityId)"))
+        assertTrue(toggleBlock.contains("favoriteDao.deleteByMediaIdentityId(identityId)"))
+        assertTrue(toggleBlock.contains("mediaIdentityId = identityId"))
+    }
+
     private fun repositorySource(): String =
         String(Files.readAllBytes(sourceFile()))
 

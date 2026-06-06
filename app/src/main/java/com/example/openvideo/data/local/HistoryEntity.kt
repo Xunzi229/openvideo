@@ -1,11 +1,16 @@
 package com.example.openvideo.data.local
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "play_history")
+@Entity(
+    tableName = "play_history",
+    indices = [Index(value = ["mediaIdentityId"])]
+)
 data class HistoryEntity(
     @PrimaryKey val videoId: Long,
+    val mediaIdentityId: Long? = null,
     val title: String,
     val path: String,
     val duration: Long,

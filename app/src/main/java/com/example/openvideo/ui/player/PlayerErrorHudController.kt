@@ -29,7 +29,7 @@ class PlayerErrorHudController(
     private val onFinishPlayer: () -> Unit
 ) {
     fun show(error: PlaybackException) {
-        val presentation = PlayerErrorPresentationPolicy.present(error.errorCode)
+        val presentation = PlayerErrorPresentationPolicy.present(error.errorCode, error.cause)
 
         titleProvider().text = activity.getString(presentation.titleRes)
         descProvider().text = activity.getString(presentation.descRes)

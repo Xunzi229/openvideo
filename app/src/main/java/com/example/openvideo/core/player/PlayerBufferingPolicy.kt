@@ -10,7 +10,8 @@ data class BufferingProfile(
     enum class Name {
         LOCAL_FILE,
         NETWORK_PROGRESSIVE,
-        ADAPTIVE_STREAM
+        ADAPTIVE_STREAM,
+        RTSP_STREAM
     }
 
 }
@@ -18,14 +19,23 @@ data class BufferingProfile(
 object PlayerBufferingPolicy {
     fun profileFor(uriString: String): BufferingProfile {
         val normalized = uriString.lowercase()
+        val normalizedPath = normalized.substringBefore('?').substringBefore('#')
         return when {
-            normalized.endsWith(".m3u8") || normalized.endsWith(".mpd") ->
+            normalizedPath.endsWith(".m3u8") || normalizedPath.endsWith(".mpd") ->
                 BufferingProfile(
                     name = BufferingProfile.Name.ADAPTIVE_STREAM,
                     minBufferMs = 20_000,
                     maxBufferMs = 60_000,
                     bufferForPlaybackMs = 2_000,
                     bufferForPlaybackAfterRebufferMs = 4_000
+                )
+            normalized.startsWith("rtsp://") ->
+                BufferingProfile(
+                    name = BufferingProfile.Name.RTSP_STREAM,
+                    minBufferMs = 5_000,
+                    maxBufferMs = 30_000,
+                    bufferForPlaybackMs = 1_000,
+                    bufferForPlaybackAfterRebufferMs = 2_000
                 )
             normalized.startsWith("http://") || normalized.startsWith("https://") ->
                 BufferingProfile(

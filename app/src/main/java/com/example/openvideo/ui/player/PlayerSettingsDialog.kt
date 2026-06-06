@@ -581,6 +581,13 @@ class PlayerSettingsDialog(
         }
         rows.addSwitchRow(
             parent = detailContainer,
+            title = context.getString(R.string.settings_seek_thumbnail_preview),
+            checked = playerPrefs.seekThumbnailEnabled
+        ) { checked ->
+            playerPrefs.seekThumbnailEnabled = checked
+        }
+        rows.addSwitchRow(
+            parent = detailContainer,
             title = context.getString(R.string.settings_remember_progress),
             checked = playerPrefs.rememberProgress
         ) { checked ->

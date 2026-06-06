@@ -31,6 +31,9 @@ interface MediaIdentityDao {
     @Query("SELECT * FROM media_identity WHERE identityId = :identityId LIMIT 1")
     suspend fun getByIdentityId(identityId: Long): MediaIdentityEntity?
 
+    @Query("SELECT * FROM media_identity WHERE identityId IN (:identityIds)")
+    suspend fun getByIdentityIds(identityIds: List<Long>): List<MediaIdentityEntity>
+
     @Query("SELECT * FROM media_identity WHERE currentVideoId = :videoId LIMIT 1")
     suspend fun getByCurrentVideoId(videoId: Long): MediaIdentityEntity?
 

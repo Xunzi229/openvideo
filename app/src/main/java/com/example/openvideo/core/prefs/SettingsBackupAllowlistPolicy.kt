@@ -87,6 +87,9 @@ object SettingsBackupAllowlistPolicy {
         add("pinnedFolderKeys")
         add("token")
         add("password")
+        add("cookie")
+        add("authorization")
+        add("header")
         add("/storage/emulated/")
         add("content://")
     }

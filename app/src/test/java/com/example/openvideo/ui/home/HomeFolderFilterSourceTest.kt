@@ -37,6 +37,18 @@ class HomeFolderFilterSourceTest {
         assertTrue(source.contains("folderChipLabel"))
     }
 
+    @Test
+    fun homeFragmentShowsFolderPinHintWhenFoldersExist() {
+        val source = String(Files.readAllBytes(homeFragmentSource()))
+        val layout = String(Files.readAllBytes(homeLayoutSource()))
+
+        assertTrue(layout.contains("@+id/folder_pin_hint"))
+        assertTrue(layout.contains("@string/home_folder_pin_hint"))
+        assertTrue(source.contains("private lateinit var folderPinHint: TextView"))
+        assertTrue(source.contains("folderPinHint = view.findViewById(R.id.folder_pin_hint)"))
+        assertTrue(source.contains("folderPinHint.visibility = if (currentFolders.size > 1) View.VISIBLE else View.GONE"))
+    }
+
     private fun homeViewModelSource(): Path = sourcePath(
         "main",
         "java",

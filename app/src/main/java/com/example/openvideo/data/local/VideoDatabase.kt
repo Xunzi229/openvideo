@@ -10,9 +10,13 @@ import androidx.room.RoomDatabase
         PlaylistEntity::class,
         PlaylistVideoEntity::class,
         MediaIdentityEntity::class,
-        MediaPathHistoryEntity::class
+        MediaPathHistoryEntity::class,
+        SeriesEntity::class,
+        EpisodeEntity::class,
+        MediaSourceEntity::class,
+        NetworkRecentItemEntity::class
     ],
-    version = 6,
+    version = 10,
     exportSchema = false
 )
 abstract class VideoDatabase : RoomDatabase() {
@@ -20,4 +24,7 @@ abstract class VideoDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun playlistDao(): PlaylistDao
     abstract fun mediaIdentityDao(): MediaIdentityDao
+    abstract fun seriesEpisodeDao(): SeriesEpisodeDao
+    abstract fun mediaSourceDao(): MediaSourceDao
+    abstract fun networkRecentItemDao(): NetworkRecentItemDao
 }

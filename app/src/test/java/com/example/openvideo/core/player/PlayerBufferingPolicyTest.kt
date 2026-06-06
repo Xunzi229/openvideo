@@ -39,4 +39,24 @@ class PlayerBufferingPolicyTest {
         assertEquals(2_000, hlsProfile.bufferForPlaybackMs)
         assertEquals(4_000, hlsProfile.bufferForPlaybackAfterRebufferMs)
     }
+
+    @Test
+    fun adaptiveStreamDetectionIgnoresQueryStrings() {
+        val hlsProfile = PlayerBufferingPolicy.profileFor("https://cdn.example.com/live/master.m3u8?token=abc")
+        val dashProfile = PlayerBufferingPolicy.profileFor("https://cdn.example.com/movie/manifest.mpd?expires=1")
+
+        assertEquals(BufferingProfile.Name.ADAPTIVE_STREAM, hlsProfile.name)
+        assertEquals(BufferingProfile.Name.ADAPTIVE_STREAM, dashProfile.name)
+    }
+
+    @Test
+    fun rtspStreamsUseDedicatedLowStartupProfile() {
+        val profile = PlayerBufferingPolicy.profileFor("rtsp://camera.local/live")
+
+        assertEquals(BufferingProfile.Name.RTSP_STREAM, profile.name)
+        assertEquals(5_000, profile.minBufferMs)
+        assertEquals(30_000, profile.maxBufferMs)
+        assertEquals(1_000, profile.bufferForPlaybackMs)
+        assertEquals(2_000, profile.bufferForPlaybackAfterRebufferMs)
+    }
 }

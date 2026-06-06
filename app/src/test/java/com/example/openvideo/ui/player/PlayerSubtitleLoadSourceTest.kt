@@ -32,6 +32,20 @@ class PlayerSubtitleLoadSourceTest {
         assertTrue(block.contains("PlayerSubtitleLoadCoordinator.load("))
         assertTrue(block.contains("PlayerSubtitleLoadApplyPolicy.afterLoad("))
         assertTrue(block.contains("setSubtitles(subtitles)"))
+        assertTrue(block.contains("rememberedSubtitlePath = playerPrefs.externalSubtitleUri"))
+        assertTrue(block.contains("languagePreference = playerPrefs.subtitleLanguagePreference()"))
+    }
+
+    @Test
+    fun sidecarLoadUsesCandidateSelectionPolicyBeforeLoadingFile() {
+        val source = String(Files.readAllBytes(kotlinSource("PlayerSubtitleLoadCoordinator.kt")))
+        val block = source.substringAfter("is PlayerSubtitleLoadRequest.SidecarFile -> {")
+            .substringBefore("\n            is PlayerSubtitleLoadRequest.SubtitleUri")
+
+        assertTrue(block.contains("loader.findSubtitleCandidates(request.videoPath)"))
+        assertTrue(block.contains("SubtitleCandidateSelectionPolicy.select("))
+        assertTrue(block.contains("is SubtitleCandidateSelection.AutoApply"))
+        assertFalse(block.contains("subtitleFiles[0]"))
     }
 
     private fun playerViewModelSource(): Path {

@@ -21,6 +21,9 @@ interface HistoryDao {
     @Query("SELECT * FROM play_history WHERE videoId = :videoId LIMIT 1")
     suspend fun getByVideoId(videoId: Long): HistoryEntity?
 
+    @Query("SELECT * FROM play_history WHERE mediaIdentityId = :mediaIdentityId ORDER BY timestamp DESC LIMIT 1")
+    suspend fun getByMediaIdentityId(mediaIdentityId: Long): HistoryEntity?
+
     @Query("DELETE FROM play_history")
     suspend fun deleteAll()
 }

@@ -42,6 +42,7 @@ class LocalMediaUriPolicySourceTest {
         assertTrue(src.contains("Uri.fromFile(File(t))"))
         assertTrue(src.contains("startsWith(\"content://\")"))
         assertTrue(src.contains("startsWith(\"http://\")"))
+        assertTrue(src.contains("startsWith(\"rtsp://\")"))
     }
 
     private fun loadSource(fileName: String): String {

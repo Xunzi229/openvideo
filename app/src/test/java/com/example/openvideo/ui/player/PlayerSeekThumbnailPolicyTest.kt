@@ -26,6 +26,29 @@ class PlayerSeekThumbnailPolicyTest {
     }
 
     @Test
+    fun cacheKeyBucketsNearbyPositionsForSameVideo() {
+        assertEquals(1_000L, PlayerSeekThumbnailPolicy.cacheBucketMs())
+        assertEquals(
+            PlayerSeekThumbnailPolicy.thumbnailCacheKey("file:///movie.mp4", 1_100L),
+            PlayerSeekThumbnailPolicy.thumbnailCacheKey("file:///movie.mp4", 1_900L)
+        )
+        assertFalse(
+            PlayerSeekThumbnailPolicy.thumbnailCacheKey("file:///movie.mp4", 1_100L) ==
+            PlayerSeekThumbnailPolicy.thumbnailCacheKey("file:///other.mp4", 1_100L)
+        )
+    }
+
+    @Test
+    fun thumbnailTargetSizePreservesAspectRatioWithinPreviewBounds() {
+        assertEquals(240, PlayerSeekThumbnailPolicy.maxPreviewWidthPx())
+        assertEquals(135, PlayerSeekThumbnailPolicy.maxPreviewHeightPx())
+        assertEquals(240 to 135, PlayerSeekThumbnailPolicy.scaledThumbnailSize(3840, 2160))
+        assertEquals(76 to 135, PlayerSeekThumbnailPolicy.scaledThumbnailSize(1080, 1920))
+        assertEquals(120 to 80, PlayerSeekThumbnailPolicy.scaledThumbnailSize(120, 80))
+        assertEquals(null, PlayerSeekThumbnailPolicy.scaledThumbnailSize(0, 80))
+    }
+
+    @Test
     fun shouldSkipThumbnailForVariousSchemes() {
         // file scheme should not skip
         assertFalse(PlayerSeekThumbnailPolicy.shouldSkipThumbnail("file"))

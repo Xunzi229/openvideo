@@ -33,7 +33,7 @@ class MediaIdentityDatabaseSourceTest {
         assertTrue(pathHistorySource.contains("""tableName = "media_path_history""""))
         assertTrue(pathHistorySource.contains("""primaryKeys = ["identityId", "normalizedPathKey"]"""))
         assertTrue(pathHistorySource.contains("val seenAt: Long"))
-        assertTrue(pathHistorySource.contains("val exists: Boolean"))
+        assertTrue(pathHistorySource.contains("val fileExists: Boolean"))
 
         assertTrue(daoSource.contains("interface MediaIdentityDao"))
         assertTrue(daoSource.contains("suspend fun upsertIdentity"))
@@ -52,7 +52,7 @@ class MediaIdentityDatabaseSourceTest {
 
         assertTrue(databaseSource.contains("MediaIdentityEntity::class"))
         assertTrue(databaseSource.contains("MediaPathHistoryEntity::class"))
-        assertTrue(databaseSource.contains("version = 6"))
+        assertTrue(databaseSource.contains("version = 10"))
         assertTrue(databaseSource.contains("abstract fun mediaIdentityDao(): MediaIdentityDao"))
     }
 
@@ -69,6 +69,8 @@ class MediaIdentityDatabaseSourceTest {
         assertTrue(migrationSource.contains("CREATE UNIQUE INDEX IF NOT EXISTS index_media_identity_normalizedPathKey"))
         assertTrue(migrationSource.contains("CREATE INDEX IF NOT EXISTS index_media_identity_fingerprint"))
         assertTrue(migrationSource.contains("CREATE TABLE IF NOT EXISTS media_path_history"))
+        assertTrue(migrationSource.contains("fileExists INTEGER NOT NULL"))
+        assertFalse(migrationSource.contains("exists INTEGER NOT NULL"))
         assertTrue(migrationSource.contains("PRIMARY KEY(identityId, normalizedPathKey)"))
         assertTrue(migrationSource.contains("FOREIGN KEY(identityId) REFERENCES media_identity(identityId)"))
         assertTrue(migrationSource.contains("MIGRATION_5_6"))

@@ -29,11 +29,14 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.metadata.MediaSmartListType
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
 import com.example.openvideo.ui.local.VideoFolderSummary
 import com.example.openvideo.ui.player.PlayerActivity
+import com.example.openvideo.ui.player.PlayerActivityIntents
+import com.example.openvideo.ui.player.NetworkOpenUrlDialog
 import com.example.openvideo.ui.player.putSessionQueue
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -63,8 +66,11 @@ class HomeFragment : Fragment() {
     private lateinit var chipAll: Chip
     private lateinit var chipRecent: Chip
     private lateinit var chipFavorite: Chip
+    private lateinit var smartFilterScroll: View
+    private lateinit var smartFilterGroup: ChipGroup
     private lateinit var filterScroll: View
     private lateinit var folderGroup: ChipGroup
+    private lateinit var folderPinHint: TextView
     private var actionMode: ActionMode? = null
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
     private var pendingJumpToTopCategory: HomeCategory? = null
@@ -72,6 +78,8 @@ class HomeFragment : Fragment() {
     private var latestScanProgress: MediaLibraryScanProgress? = null
     private var activeCategory = HomeCategory.ALL
     private val categoryLists = mutableMapOf<HomeCategory, List<VideoItem>>()
+    private var currentSmartListSections: List<HomeSmartListSection> = emptyList()
+    private var currentSelectedSmartListType: MediaSmartListType? = null
     private var currentFolders: List<VideoFolderSummary> = emptyList()
     private var currentSelectedFolderKey: String? = null
     private var filterPopover: VideoLibraryFilterPopover? = null
@@ -128,8 +136,11 @@ class HomeFragment : Fragment() {
         chipAll = view.findViewById(R.id.chip_all)
         chipRecent = view.findViewById(R.id.chip_recent)
         chipFavorite = view.findViewById(R.id.chip_favorite)
+        smartFilterScroll = view.findViewById(R.id.smart_filter_scroll)
+        smartFilterGroup = view.findViewById(R.id.smart_filter_group)
         filterScroll = view.findViewById(R.id.filter_scroll)
         folderGroup = view.findViewById(R.id.folder_group)
+        folderPinHint = view.findViewById(R.id.folder_pin_hint)
         chipAll.setOnClickListener { switchCategory(HomeCategory.ALL) }
         chipRecent.setOnClickListener { switchCategory(HomeCategory.RECENT) }
         chipFavorite.setOnClickListener { switchCategory(HomeCategory.FAVORITES) }
@@ -141,6 +152,9 @@ class HomeFragment : Fragment() {
 
         view.findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {
             checkPermissionAndLoad()
+        }
+        view.findViewById<ImageButton>(R.id.btn_open_url).setOnClickListener {
+            showOpenUrlDialog()
         }
 
         searchView.addTextChangedListener(object : TextWatcher {
@@ -197,6 +211,18 @@ class HomeFragment : Fragment() {
                     }
                 }
                 launch {
+                    viewModel.smartLists.collect { sections ->
+                        currentSmartListSections = sections
+                        bindSmartListChips()
+                    }
+                }
+                launch {
+                    viewModel.selectedSmartListType.collect { type ->
+                        currentSelectedSmartListType = type
+                        bindSmartListChips()
+                    }
+                }
+                launch {
                     viewModel.sortField.collect { field ->
                         sortLabel.text = getString(field.labelRes)
                     }
@@ -219,6 +245,7 @@ class HomeFragment : Fragment() {
                         updateSortControlsVisibility(category)
                         updateViewModeButtons(viewModel.categoryViewModes.value[category] ?: ViewMode.LIST)
                         showCategoryPage(category)
+                        bindSmartListChips()
                         updateActiveEmptyState()
                     }
                 }
@@ -267,6 +294,12 @@ class HomeFragment : Fragment() {
             viewModel.loadVideos()
         } else {
             permissionLauncher.launch(videoReadPermissions())
+        }
+    }
+
+    private fun showOpenUrlDialog() {
+        NetworkOpenUrlDialog.show(requireContext()) { normalizedUrl, title ->
+            viewModel.recordNetworkRecentUrl(normalizedUrl, title)
         }
     }
 
@@ -533,6 +566,7 @@ class HomeFragment : Fragment() {
 
     private fun bindFolderChips() {
         filterScroll.visibility = if (currentFolders.size > 1) View.VISIBLE else View.GONE
+        folderPinHint.visibility = if (currentFolders.size > 1) View.VISIBLE else View.GONE
         folderGroup.removeAllViews()
         folderGroup.addView(createFolderChip(
             text = getString(R.string.home_filter_all_folders),
@@ -545,6 +579,30 @@ class HomeFragment : Fragment() {
                 checked = currentSelectedFolderKey == folder.key,
                 onClick = { viewModel.setFolderFilter(folder.key) },
                 onLongClick = { viewModel.togglePinnedFolder(folder.key) }
+            ))
+        }
+    }
+
+    private fun bindSmartListChips() {
+        val shouldShow = activeCategory == HomeCategory.ALL && currentSmartListSections.isNotEmpty()
+        smartFilterScroll.visibility = if (shouldShow) View.VISIBLE else View.GONE
+        smartFilterGroup.removeAllViews()
+        if (!shouldShow) return
+
+        smartFilterGroup.addView(createSmartListChip(
+            text = getString(R.string.home_smart_all),
+            checked = currentSelectedSmartListType == null,
+            onClick = { viewModel.setSmartListFilter(null) }
+        ))
+        currentSmartListSections.forEach { section ->
+            smartFilterGroup.addView(createSmartListChip(
+                text = getString(
+                    R.string.home_smart_count,
+                    getString(HomeSmartListLabels.labelRes(section.type)),
+                    section.videos.size
+                ),
+                checked = currentSelectedSmartListType == section.type,
+                onClick = { viewModel.setSmartListFilter(section.type) }
             ))
         }
     }
@@ -602,6 +660,16 @@ class HomeFragment : Fragment() {
             bindFolderChipStyle(this, checked)
         }
     }
+
+    private fun createSmartListChip(
+        text: String,
+        checked: Boolean,
+        onClick: () -> Unit
+    ): Chip = createFolderChip(
+        text = text,
+        checked = checked,
+        onClick = onClick
+    )
 
     private fun bindFolderChipStyle(chip: Chip, selected: Boolean) {
         val background = ContextCompat.getColor(

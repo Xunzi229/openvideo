@@ -11,6 +11,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.example.openvideo.R
+import com.example.openvideo.core.network.WebDavMemoryCache
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.PlayerPrefs
@@ -35,7 +36,8 @@ class SettingsViewModel @Inject constructor(
     application: Application,
     private val appPrefs: AppPrefs,
     private val playerPrefs: PlayerPrefs,
-    private val repository: VideoRepository
+    private val repository: VideoRepository,
+    private val webDavMemoryCache: WebDavMemoryCache
 ) : AndroidViewModel(application) {
 
     val themeMode: ThemeMode get() = appPrefs.themeMode
@@ -192,6 +194,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             val ctx = getApplication<Application>()
             ctx.cacheDir?.deleteRecursively()
+            webDavMemoryCache.clear()
             withContext(Dispatchers.Main) {
                 Glide.get(ctx).clearMemory()
             }

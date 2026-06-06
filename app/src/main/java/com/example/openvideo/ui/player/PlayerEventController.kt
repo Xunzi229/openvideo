@@ -27,6 +27,8 @@ class PlayerEventController(
     private val onSetVolumeBoost: (Boolean) -> Unit,
     private val onFirstFrameRendered: () -> Unit,
     private val onShowPlayerError: (PlaybackException) -> Unit,
+    private val onShowNetworkStatus: (Int) -> Unit,
+    private val onHideNetworkStatus: () -> Unit,
     private val onApplyVideoOrientation: (width: Int, height: Int, pixelWidthHeightRatio: Float, unappliedRotationDegrees: Int) -> Unit,
     private val onApplyContentAspectRatio: (width: Int, height: Int, pixelWidthHeightRatio: Float, unappliedRotationDegrees: Int) -> Unit,
     private val onApplyContentFrameTransform: (width: Int, height: Int, pixelWidthHeightRatio: Float, unappliedRotationDegrees: Int) -> Unit
@@ -89,6 +91,7 @@ class PlayerEventController(
                 } else if (playbackState == Player.STATE_ENDED) {
                     onPlaybackEnded()
                 }
+                applyNetworkStatus(playbackState)
             }
 
             @OptIn(UnstableApi::class)
@@ -109,7 +112,12 @@ class PlayerEventController(
                     player = viewModel.player
                 )
                 CrashLogger.logPlayerError(activity, error, diagnostics)
-                onShowPlayerError(error)
+                val autoRetryScheduled = viewModel.handleNetworkAutoRetry(error)
+                if (!autoRetryScheduled) {
+                    onShowPlayerError(error)
+                } else {
+                    applyNetworkStatus(Player.STATE_IDLE, autoRetryPending = true)
+                }
             }
 
             @Suppress("DEPRECATION")
@@ -134,6 +142,21 @@ class PlayerEventController(
                 )
             }
         }
+
+    private fun applyNetworkStatus(playbackState: Int, autoRetryPending: Boolean = false) {
+        val presentation = PlayerNetworkStatusPolicy.present(
+            playbackState = playbackState,
+            isNetworkUri = viewModel.currentVideoUri?.scheme in setOf("http", "https", "rtsp"),
+            isLive = viewModel.player?.isCurrentMediaItemLive == true,
+            durationMs = viewModel.player?.duration ?: 0L,
+            autoRetryPending = autoRetryPending
+        )
+        if (presentation.visible) {
+            onShowNetworkStatus(presentation.labelRes)
+        } else {
+            onHideNetworkStatus()
+        }
+    }
 
     @OptIn(UnstableApi::class)
     private fun attachStartupAnalyticsListener() {

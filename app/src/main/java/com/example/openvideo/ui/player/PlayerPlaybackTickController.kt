@@ -17,6 +17,7 @@ class PlayerPlaybackTickController(
     private val currentTimeProvider: () -> TextView,
     private val totalTimeProvider: () -> TextView,
     private val subtitleProvider: () -> TextView,
+    private val secondarySubtitleProvider: () -> TextView,
     private val isSeekingProvider: () -> Boolean,
     private val abLoopStateProvider: () -> PlayerAbLoopState,
     private val abLoopPointAProvider: () -> Long,
@@ -39,7 +40,7 @@ class PlayerPlaybackTickController(
                 seekBar.max = seekBarState.max
                 seekBar.progress = seekBarState.progress
                 currentTimeProvider().text = formatTime(state.currentPosition)
-                totalTimeProvider().text = formatTime(state.duration)
+                totalTimeProvider().text = PlayerTimeline.durationText(state.duration, formatTime)
                 activity.findViewById<TextView>(R.id.tv_land_speed)?.text =
                     landSpeedLabel(playerPrefs.speed)
                 saveProgressPeriodically(state.currentPosition)
@@ -76,9 +77,10 @@ class PlayerPlaybackTickController(
     }
 
     fun applySubtitlePresentation() {
+        val dualSubtitleText = viewModel.getCurrentDualSubtitle()
         val subtitleText = PlayerSubtitlePresentationPolicy.resolveSubtitleText(
             subtitlesEnabled = playerPrefs.subtitlesEnabled,
-            currentSubtitle = viewModel.getCurrentSubtitle()
+            currentSubtitle = dualSubtitleText?.primary.orEmpty()
         )
         val presentation = PlayerSubtitlePresentationPolicy.present(
             subtitlesEnabled = playerPrefs.subtitlesEnabled,
@@ -87,6 +89,24 @@ class PlayerPlaybackTickController(
         val subtitle = subtitleProvider()
         subtitle.text = presentation.text
         subtitle.visibility = if (presentation.visible) View.VISIBLE else View.GONE
+        PlayerSubtitleCueStylePolicy.apply(
+            textView = subtitle,
+            style = dualSubtitleText?.primaryStyle,
+            playerPrefs = playerPrefs
+        )
+
+        val secondaryPresentation = PlayerSubtitlePresentationPolicy.present(
+            subtitlesEnabled = playerPrefs.subtitlesEnabled,
+            subtitleText = dualSubtitleText?.secondary.orEmpty()
+        )
+        val secondarySubtitle = secondarySubtitleProvider()
+        secondarySubtitle.text = secondaryPresentation.text
+        secondarySubtitle.visibility = if (secondaryPresentation.visible) View.VISIBLE else View.GONE
+        PlayerSubtitleCueStylePolicy.apply(
+            textView = secondarySubtitle,
+            style = dualSubtitleText?.secondaryStyle,
+            playerPrefs = playerPrefs
+        )
     }
 
     fun applyPlaybackTickSeek(currentPositionMs: Long, durationMs: Long) {

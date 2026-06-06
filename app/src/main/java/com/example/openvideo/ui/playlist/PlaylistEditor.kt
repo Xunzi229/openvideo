@@ -2,16 +2,19 @@ package com.example.openvideo.ui.playlist
 
 import com.example.openvideo.data.local.PlaylistDao
 import com.example.openvideo.data.local.PlaylistEntity
+import com.example.openvideo.data.local.MediaIdentityDao
 import com.example.openvideo.data.model.VideoItem
 import javax.inject.Inject
 
 class PlaylistEditor @Inject constructor(
-    private val playlistDao: PlaylistDao
+    private val playlistDao: PlaylistDao,
+    private val mediaIdentityDao: MediaIdentityDao
 ) {
 
     suspend fun addToPlaylist(playlistId: Long, video: VideoItem): Boolean {
         val existing = playlistDao.getVideosOnce(playlistId)
-        val entry = PlaylistInsertion.createEntry(playlistId, existing, video) ?: return false
+        val mediaIdentityId = mediaIdentityDao.getByCurrentVideoId(video.id)?.identityId
+        val entry = PlaylistInsertion.createEntry(playlistId, existing, video, mediaIdentityId) ?: return false
 
         playlistDao.insertVideo(entry)
         touchPlaylist(playlistId)

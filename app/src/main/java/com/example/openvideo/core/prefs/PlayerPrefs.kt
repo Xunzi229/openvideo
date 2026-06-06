@@ -1,6 +1,7 @@
 package com.example.openvideo.core.prefs
 
 import android.content.Context
+import com.example.openvideo.core.subtitle.SubtitleLanguagePreference
 
 class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
 
@@ -203,6 +204,25 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getInt(KEY_SUBTITLE_DELAY_MS, 0)
         set(value) = putInt(KEY_SUBTITLE_DELAY_MS, value)
 
+    var subtitlePrimaryLanguage: String
+        get() = getString(KEY_SUBTITLE_PRIMARY_LANGUAGE, "unknown")
+        set(value) = putString(KEY_SUBTITLE_PRIMARY_LANGUAGE, value)
+
+    var subtitleSecondaryLanguage: String
+        get() = getString(KEY_SUBTITLE_SECONDARY_LANGUAGE, "unknown")
+        set(value) = putString(KEY_SUBTITLE_SECONDARY_LANGUAGE, value)
+
+    var subtitlePreferBilingual: Boolean
+        get() = getBoolean(KEY_SUBTITLE_PREFER_BILINGUAL, false)
+        set(value) = putBoolean(KEY_SUBTITLE_PREFER_BILINGUAL, value)
+
+    fun subtitleLanguagePreference(): SubtitleLanguagePreference =
+        SubtitleLanguagePreference.fromKeys(
+            primary = subtitlePrimaryLanguage,
+            secondary = subtitleSecondaryLanguage,
+            preferBilingual = subtitlePreferBilingual
+        )
+
     // 外挂字幕 URI（由设置覆盖层写入，播放器可读取并加载）
     var externalSubtitleUri: String
         get() = getString(KEY_EXTERNAL_SUBTITLE, "")
@@ -347,6 +367,9 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SUBTITLE_BG = "subtitle_bg"
         private const val KEY_SUBTITLE_ENCODING = "subtitle_encoding"
         private const val KEY_SUBTITLE_DELAY_MS = "subtitle_delay_ms"
+        private const val KEY_SUBTITLE_PRIMARY_LANGUAGE = "subtitle_primary_language"
+        private const val KEY_SUBTITLE_SECONDARY_LANGUAGE = "subtitle_secondary_language"
+        private const val KEY_SUBTITLE_PREFER_BILINGUAL = "subtitle_prefer_bilingual"
         // Exposed constant for external subtitle URI so other components can reference it
         const val KEY_EXTERNAL_SUBTITLE = "external_subtitle_uri"
         private const val KEY_SUBTITLE_POSITION = "subtitle_position"

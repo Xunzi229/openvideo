@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.app.PendingIntent
 import com.example.openvideo.R
+import com.example.openvideo.core.metadata.MediaSmartListType
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.data.local.FavoriteEntity
 import com.example.openvideo.data.local.HistoryEntity
@@ -75,6 +76,7 @@ class HomeViewModel @Inject constructor(
     private val _categoryViewModes = MutableStateFlow(loadCategoryViewModes())
     private val _category = MutableStateFlow(HomeCategory.ALL)
     private val _selectedFolderKey = MutableStateFlow<String?>(null)
+    private val _selectedSmartListType = MutableStateFlow<MediaSmartListType?>(null)
     private val _pinnedFolderKeys = MutableStateFlow(appPrefs.pinnedFolderKeys)
 
     val sortField: StateFlow<SortField> = _sortField
@@ -85,6 +87,7 @@ class HomeViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ViewMode.LIST)
     val category: StateFlow<HomeCategory> = _category
     val selectedFolderKey: StateFlow<String?> = _selectedFolderKey
+    val selectedSmartListType: StateFlow<MediaSmartListType?> = _selectedSmartListType
     val playlists: Flow<List<PlaylistEntity>> = playlistDao.getAll()
 
     private val allCategoryVideos: Flow<List<VideoItem>> = combine(
@@ -112,11 +115,33 @@ class HomeViewModel @Inject constructor(
         videosFromFavorites(scanned, favorites, hiddenFolders, permissionDenied)
     }
 
-    val allVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(allCategoryVideos)
+    val smartLists: StateFlow<List<HomeSmartListSection>> = combine(
+        _videos,
+        repository.getHistory()
+    ) { videos, history ->
+        HomeSmartListBuilder.build(
+            videos = videos,
+            history = history
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val smartFilteredAllCategoryVideos: Flow<List<VideoItem>> = combine(
+        allCategoryVideos,
+        smartLists,
+        selectedSmartListType
+    ) { all, smartSections, selectedType ->
+        if (selectedType == null) {
+            all
+        } else {
+            smartSections.firstOrNull { section -> section.type == selectedType }?.videos ?: all
+        }
+    }
+
+    val allVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(smartFilteredAllCategoryVideos)
     val recentVideos: StateFlow<List<VideoItem>> = filteredRecentVideos(recentCategoryVideos)
     val favoriteVideos: StateFlow<List<VideoItem>> = filteredSortedVideos(favoriteCategoryVideos)
 
-    private val allVideosForFolderChips = filteredSortedVideosWithoutFolder(allCategoryVideos)
+    private val allVideosForFolderChips = filteredSortedVideosWithoutFolder(smartFilteredAllCategoryVideos)
     private val recentVideosForFolderChips = filteredRecentVideosWithoutFolder(recentCategoryVideos)
     private val favoriteVideosForFolderChips = filteredSortedVideosWithoutFolder(favoriteCategoryVideos)
 
@@ -276,14 +301,18 @@ class HomeViewModel @Inject constructor(
         _scanError,
         _category,
         _selectedFolderKey,
+        _selectedSmartListType,
         _searchQuery,
         _advancedFilters
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         val visibleVideos = values[2] as List<VideoItem>
+        val category = values[6] as HomeCategory
         val selectedFolderKey = values[7] as String?
-        val query = values[8] as String
-        val filters = values[9] as MediaLibraryAdvancedFilters
+        val selectedSmartListType = values[8] as MediaSmartListType?
+        val query = values[9] as String
+        val filters = values[10] as MediaLibraryAdvancedFilters
+        val smartListIsActive = category == HomeCategory.ALL && selectedSmartListType != null
         MediaLibraryPolicy.emptyState(
             isLoading = values[0] as Boolean,
             scannedCount = values[1] as Int,
@@ -291,8 +320,9 @@ class HomeViewModel @Inject constructor(
             hiddenFilteredCount = values[3] as Int,
             permissionDenied = values[4] as Boolean,
             scanError = values[5] as Boolean,
-            category = values[6] as HomeCategory,
-            hasActiveUserFilter = selectedFolderKey != null || query.isNotBlank() || filters.isActive()
+            category = category,
+            hasActiveUserFilter = selectedFolderKey != null || smartListIsActive ||
+                query.isNotBlank() || filters.isActive()
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), MediaLibraryEmptyState.LOADING)
 
@@ -332,10 +362,26 @@ class HomeViewModel @Inject constructor(
 
     fun setCategory(category: HomeCategory) {
         _category.value = category
+        if (category != HomeCategory.ALL) {
+            _selectedSmartListType.value = null
+        }
     }
 
     fun setFolderFilter(folderKey: String?) {
         _selectedFolderKey.value = folderKey
+    }
+
+    fun setSmartListFilter(type: MediaSmartListType?) {
+        _selectedSmartListType.value = type
+        _selectedFolderKey.value = null
+    }
+
+    fun recordNetworkRecentUrl(normalizedUrl: String, title: String) {
+        viewModelScope.launch { repository.recordNetworkRecentUrl(normalizedUrl, title) }
+    }
+
+    fun clearNetworkRecentUrls() {
+        viewModelScope.launch { repository.clearNetworkRecentUrls() }
     }
 
     fun togglePinnedFolder(folderKey: String) {

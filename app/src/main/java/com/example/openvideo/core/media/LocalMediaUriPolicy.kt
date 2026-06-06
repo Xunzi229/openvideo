@@ -15,7 +15,7 @@ object LocalMediaUriPolicy {
         val l = t.lowercase()
         return when {
             l.startsWith("content://") -> true
-            l.startsWith("http://") || l.startsWith("https://") -> true
+            l.startsWith("http://") || l.startsWith("https://") || l.startsWith("rtsp://") -> true
             l.startsWith("file://") -> {
                 val path = runCatching { Uri.parse(t).path }.getOrNull() ?: return false
                 File(path).isFile
@@ -37,7 +37,7 @@ object LocalMediaUriPolicy {
                 val path = Uri.parse(t).path
                 if (!path.isNullOrEmpty()) Uri.fromFile(File(path)) else Uri.parse(t)
             }
-            l.startsWith("http://") || l.startsWith("https://") -> Uri.parse(t)
+            l.startsWith("http://") || l.startsWith("https://") || l.startsWith("rtsp://") -> Uri.parse(t)
             else -> Uri.fromFile(File(t))
         }
     }

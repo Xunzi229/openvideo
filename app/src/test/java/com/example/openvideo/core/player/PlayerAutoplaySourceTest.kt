@@ -11,7 +11,7 @@ class PlayerAutoplaySourceTest {
     @Test
     fun settingMediaUriRequestsAutoplayBeforePrepare() {
         val source = String(Files.readAllBytes(playerManagerSource()))
-        val method = source.substringAfter("fun setMediaUri(uri: Uri) {")
+        val method = source.substringAfter("fun setMediaUri(uri: Uri, requestHeaders: Map<String, String> = emptyMap()) {")
             .substringBefore("\n    }")
 
         val autoplayIndex = method.indexOf("playWhenReady = true")

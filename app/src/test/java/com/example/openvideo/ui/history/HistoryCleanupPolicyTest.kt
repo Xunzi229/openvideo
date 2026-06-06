@@ -56,8 +56,26 @@ class HistoryCleanupPolicyTest {
         assertTrue(ids.isEmpty())
     }
 
-    private fun history(videoId: Long, path: String) = HistoryEntity(
+    @Test
+    fun keepsHistoryWhenMediaIdentityStillAppearsInLatestScan() {
+        val ids = HistoryCleanupPolicy.videoIdsToRemove(
+            history = listOf(history(videoId = 5L, mediaIdentityId = 90L, path = "/old/episode.mp4")),
+            scannedVideoIds = setOf(50L),
+            scannedPaths = setOf("/new/episode.mp4"),
+            activeMediaIdentityIds = setOf(90L),
+            localFileExists = { false }
+        )
+
+        assertTrue(ids.isEmpty())
+    }
+
+    private fun history(
+        videoId: Long,
+        path: String,
+        mediaIdentityId: Long? = null
+    ) = HistoryEntity(
         videoId = videoId,
+        mediaIdentityId = mediaIdentityId,
         title = "Video",
         path = path,
         duration = 100_000,
