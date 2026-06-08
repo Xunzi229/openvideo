@@ -16,6 +16,7 @@ import com.example.openvideo.core.prefs.AspectRatio
 @AndroidEntryPoint
 class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
     override val layoutResId: Int = R.layout.activity_player_display_settings
+    override fun settingsSheetDefaultFocusId(): Int = R.id.tv_aspect_value
 
     @Inject lateinit var playerPrefs: PlayerPrefs
 

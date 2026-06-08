@@ -196,6 +196,38 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getFloat(KEY_SUBTITLE_POSITION, 1.0f)
         set(value) = putFloat(KEY_SUBTITLE_POSITION, value)
 
+    var secondarySubtitleSize: Int
+        get() = if (prefs.contains(KEY_SECONDARY_SUBTITLE_SIZE)) {
+            getInt(KEY_SECONDARY_SUBTITLE_SIZE, subtitleSize)
+        } else {
+            subtitleSize
+        }
+        set(value) = putInt(KEY_SECONDARY_SUBTITLE_SIZE, value)
+
+    var secondarySubtitleColor: Int
+        get() = if (prefs.contains(KEY_SECONDARY_SUBTITLE_COLOR)) {
+            getInt(KEY_SECONDARY_SUBTITLE_COLOR, subtitleColor)
+        } else {
+            subtitleColor
+        }
+        set(value) = putInt(KEY_SECONDARY_SUBTITLE_COLOR, value)
+
+    var secondarySubtitleBgStyle: SubtitleBgStyle
+        get() = if (prefs.contains(KEY_SECONDARY_SUBTITLE_BG)) {
+            SubtitleBgStyle.fromKey(getString(KEY_SECONDARY_SUBTITLE_BG, subtitleBgStyle.key))
+        } else {
+            subtitleBgStyle
+        }
+        set(value) = putString(KEY_SECONDARY_SUBTITLE_BG, value.key)
+
+    var secondarySubtitlePosition: Float
+        get() = if (prefs.contains(KEY_SECONDARY_SUBTITLE_POSITION)) {
+            getFloat(KEY_SECONDARY_SUBTITLE_POSITION, subtitlePosition)
+        } else {
+            subtitlePosition
+        }
+        set(value) = putFloat(KEY_SECONDARY_SUBTITLE_POSITION, value)
+
     var subtitleEncoding: String
         get() = getString(KEY_SUBTITLE_ENCODING, "auto")
         set(value) = putString(KEY_SUBTITLE_ENCODING, value)
@@ -367,6 +399,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SUBTITLE_BG = "subtitle_bg"
         private const val KEY_SUBTITLE_ENCODING = "subtitle_encoding"
         private const val KEY_SUBTITLE_DELAY_MS = "subtitle_delay_ms"
+        private const val KEY_SECONDARY_SUBTITLE_SIZE = "secondary_subtitle_size"
+        private const val KEY_SECONDARY_SUBTITLE_COLOR = "secondary_subtitle_color"
+        private const val KEY_SECONDARY_SUBTITLE_BG = "secondary_subtitle_bg"
+        private const val KEY_SECONDARY_SUBTITLE_POSITION = "secondary_subtitle_position"
         private const val KEY_SUBTITLE_PRIMARY_LANGUAGE = "subtitle_primary_language"
         private const val KEY_SUBTITLE_SECONDARY_LANGUAGE = "subtitle_secondary_language"
         private const val KEY_SUBTITLE_PREFER_BILINGUAL = "subtitle_prefer_bilingual"
@@ -419,6 +455,10 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
                 KEY_SUBTITLE_BG,
                 KEY_SUBTITLE_DELAY_MS,
                 KEY_SUBTITLE_POSITION,
+                KEY_SECONDARY_SUBTITLE_SIZE,
+                KEY_SECONDARY_SUBTITLE_COLOR,
+                KEY_SECONDARY_SUBTITLE_BG,
+                KEY_SECONDARY_SUBTITLE_POSITION,
                 KEY_CONTROLS_AUTO_HIDE
             )
         }

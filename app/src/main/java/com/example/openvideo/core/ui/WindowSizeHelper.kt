@@ -9,10 +9,13 @@ object WindowSizeHelper {
         val metrics = WindowMetricsCalculator.getOrCreate()
             .computeCurrentWindowMetrics(activity)
         val widthDp = metrics.bounds.width() / activity.resources.displayMetrics.density
-        return when {
+        return fromWidthDp(widthDp)
+    }
+
+    fun fromWidthDp(widthDp: Float): ScreenBreakpoint =
+        when {
             widthDp >= 840f -> ScreenBreakpoint.EXPANDED
             widthDp >= 600f -> ScreenBreakpoint.MEDIUM
             else -> ScreenBreakpoint.COMPACT
         }
-    }
 }

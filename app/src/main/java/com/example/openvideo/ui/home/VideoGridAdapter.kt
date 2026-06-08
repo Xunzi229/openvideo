@@ -24,7 +24,8 @@ class VideoGridAdapter(
     private val onClick: (VideoItem) -> Unit,
     private val onMoreOptions: ((VideoItem, View) -> Unit)? = null,
     private val onSelectionChanged: ((List<VideoItem>) -> Unit)? = null,
-    private val onLongClick: ((VideoItem) -> Unit)? = null
+    private val onLongClick: ((VideoItem) -> Unit)? = null,
+    private val onFocusChanged: (VideoItem) -> Unit = {}
 ) : ListAdapter<VideoItem, VideoGridAdapter.ViewHolder>(DIFF) {
 
     var viewMode: ViewMode = ViewMode.LIST
@@ -103,6 +104,10 @@ class VideoGridAdapter(
                 if (pos != RecyclerView.NO_POSITION) {
                     toggleSelection(getItem(pos))
                 }
+            }
+            view.setOnFocusChangeListener { _, hasFocus ->
+                val pos = bindingAdapterPosition
+                if (hasFocus && pos != RecyclerView.NO_POSITION) onFocusChanged(getItem(pos))
             }
         }
     }

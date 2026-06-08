@@ -14,6 +14,7 @@ import com.example.openvideo.core.prefs.PlayerPrefs
 @AndroidEntryPoint
 class PlayerGestureSettingsSheet : BaseSettingsSheet() {
     override val layoutResId: Int = R.layout.activity_player_gesture_settings
+    override fun settingsSheetDefaultFocusId(): Int = R.id.tv_left_action
 
     @Inject lateinit var playerPrefs: PlayerPrefs
 

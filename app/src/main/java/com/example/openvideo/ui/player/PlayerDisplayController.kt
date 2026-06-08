@@ -18,6 +18,7 @@ import androidx.media3.ui.PlayerView
 import com.example.openvideo.R
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.prefs.SubtitleBgStyle
 
 class PlayerDisplayController(
     private val activity: AppCompatActivity,
@@ -81,17 +82,22 @@ class PlayerDisplayController(
 
         applyDisplaySettings()
 
-        listOf(subtitleProvider(), secondarySubtitleProvider()).forEach { subtitle ->
-            subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, playerPrefs.subtitleSize.toFloat())
-            subtitle.setTextColor(playerPrefs.subtitleColor)
-            subtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(playerPrefs.subtitleBgStyle))
-            subtitle.post {
-                subtitle.translationY = PlayerDisplayAdjustment.subtitleTranslationY(
-                    playerViewHeightPx = playerView.height,
-                    position = playerPrefs.subtitlePosition
-                )
-            }
-        }
+        applySubtitleBaseStyle(
+            subtitle = subtitleProvider(),
+            playerView = playerView,
+            sizeSp = playerPrefs.subtitleSize,
+            textColor = playerPrefs.subtitleColor,
+            bgStyle = playerPrefs.subtitleBgStyle,
+            position = playerPrefs.subtitlePosition
+        )
+        applySubtitleBaseStyle(
+            subtitle = secondarySubtitleProvider(),
+            playerView = playerView,
+            sizeSp = playerPrefs.secondarySubtitleSize,
+            textColor = playerPrefs.secondarySubtitleColor,
+            bgStyle = playerPrefs.secondarySubtitleBgStyle,
+            position = playerPrefs.secondarySubtitlePosition
+        )
     }
 
     fun applyDisplaySettings() {
@@ -196,6 +202,25 @@ class PlayerDisplayController(
         }
         activity.findViewById<View>(R.id.btn_next)?.updateLayoutParams<LinearLayout.LayoutParams> {
             marginEnd = geometry.innerGapPx
+        }
+    }
+
+    private fun applySubtitleBaseStyle(
+        subtitle: TextView,
+        playerView: PlayerView,
+        sizeSp: Int,
+        textColor: Int,
+        bgStyle: SubtitleBgStyle,
+        position: Float
+    ) {
+        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, sizeSp.toFloat())
+        subtitle.setTextColor(textColor)
+        subtitle.setBackgroundColor(PlayerSubtitleStylePolicy.backgroundColor(bgStyle))
+        subtitle.post {
+            subtitle.translationY = PlayerDisplayAdjustment.subtitleTranslationY(
+                playerViewHeightPx = playerView.height,
+                position = position
+            )
         }
     }
 

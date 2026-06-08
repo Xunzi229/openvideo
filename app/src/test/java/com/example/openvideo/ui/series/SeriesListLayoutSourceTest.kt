@@ -18,6 +18,7 @@ class SeriesListLayoutSourceTest {
         assertTrue(layout.contains("@+id/tv_empty"))
         assertTrue(layout.contains("@string/series_list_empty"))
         assertTrue(layout.contains("@drawable/bg_app_root"))
+        assertTrue(layout.contains("""android:foreground="@drawable/bg_focusable_card""""))
     }
 
     @Test

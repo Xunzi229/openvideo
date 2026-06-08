@@ -29,6 +29,17 @@ class HomeCategoryViewModeUiSourceTest {
         assertTrue(source.contains("updateViewModeButtons(viewModel.categoryViewModes.value[category] ?: ViewMode.LIST)"))
     }
 
+    @Test
+    fun homeFragmentUsesScreenBreakpointForGridSpanCount() {
+        val source = String(Files.readAllBytes(sourceFile()))
+
+        assertTrue(source.contains("import com.example.openvideo.ui.MainActivity"))
+        assertTrue(source.contains("HomeAdaptiveLayoutPolicy.spanCount("))
+        assertTrue(source.contains("breakpoint = currentBreakpoint()"))
+        assertTrue(source.contains("private fun currentBreakpoint()"))
+        assertTrue(source.contains("(activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT"))
+    }
+
     private fun sourceFile(): Path {
         val relativePath = Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "home", "HomeFragment.kt")
         return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)

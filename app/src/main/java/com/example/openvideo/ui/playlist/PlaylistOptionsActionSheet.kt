@@ -28,6 +28,7 @@ class PlaylistOptionsActionSheet private constructor(
 
     private var closing = false
     private var content: View? = null
+    private var defaultFocusView: View? = null
     private val colors: SheetColors get() = SheetColors.from(context)
 
     override fun onStart() {
@@ -37,6 +38,7 @@ class PlaylistOptionsActionSheet private constructor(
         setContentView(content)
         configureWindow()
         enter(content)
+        requestDefaultFocus()
     }
 
     override fun dismiss() {
@@ -98,13 +100,15 @@ class PlaylistOptionsActionSheet private constructor(
             background = roundedBackground(c)
             clipToOutline = true
         }
-        cancelCard.addView(actionRow(
+        val cancelAction = actionRow(
             text = context.getString(R.string.action_cancel),
             color = c.cancel,
             bold = true
         ) {
             dismissWithAnimation { super.dismiss() }
-        })
+        }
+        defaultFocusView = cancelAction
+        cancelCard.addView(cancelAction)
 
         root.addView(actionCard)
         root.addView(cancelCard, LinearLayout.LayoutParams(
@@ -161,6 +165,12 @@ class PlaylistOptionsActionSheet private constructor(
         content.alpha = 0f
         content.translationY = dp(18).toFloat()
         content.animate().alpha(1f).translationY(0f).setDuration(220L).start()
+    }
+
+    private fun requestDefaultFocus() {
+        defaultFocusView?.post {
+            defaultFocusView?.requestFocus()
+        }
     }
 
     private fun dismissWithAnimation(onComplete: () -> Unit) {

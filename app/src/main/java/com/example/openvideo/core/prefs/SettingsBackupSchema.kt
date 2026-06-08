@@ -88,6 +88,10 @@ object SettingsBackupSchema {
         val subtitleColor: Int? = null,
         val subtitleBgStyle: String? = null,
         val subtitlePosition: Float? = null,
+        val secondarySubtitleSize: Int? = null,
+        val secondarySubtitleColor: Int? = null,
+        val secondarySubtitleBgStyle: String? = null,
+        val secondarySubtitlePosition: Float? = null,
         val subtitleEncoding: String? = null,
         val subtitleDelayMs: Int? = null,
         val subtitlesEnabled: Boolean? = null,
@@ -232,6 +236,10 @@ object SettingsBackupSchema {
             putInt("subtitleColor", section.subtitleColor)
             putString("subtitleBgStyle", section.subtitleBgStyle)
             putFloat("subtitlePosition", section.subtitlePosition)
+            putInt("secondarySubtitleSize", section.secondarySubtitleSize)
+            putInt("secondarySubtitleColor", section.secondarySubtitleColor)
+            putString("secondarySubtitleBgStyle", section.secondarySubtitleBgStyle)
+            putFloat("secondarySubtitlePosition", section.secondarySubtitlePosition)
             putString("subtitleEncoding", section.subtitleEncoding)
             putInt("subtitleDelayMs", section.subtitleDelayMs)
             putBoolean("subtitlesEnabled", section.subtitlesEnabled)
@@ -305,6 +313,10 @@ object SettingsBackupSchema {
             subtitleColor = SettingsBackupJson.intOrNull(json, "subtitleColor"),
             subtitleBgStyle = SettingsBackupJson.stringOrNull(json, "subtitleBgStyle"),
             subtitlePosition = SettingsBackupJson.floatOrNull(json, "subtitlePosition"),
+            secondarySubtitleSize = SettingsBackupJson.intOrNull(json, "secondarySubtitleSize"),
+            secondarySubtitleColor = SettingsBackupJson.intOrNull(json, "secondarySubtitleColor"),
+            secondarySubtitleBgStyle = SettingsBackupJson.stringOrNull(json, "secondarySubtitleBgStyle"),
+            secondarySubtitlePosition = SettingsBackupJson.floatOrNull(json, "secondarySubtitlePosition"),
             subtitleEncoding = SettingsBackupJson.stringOrNull(json, "subtitleEncoding"),
             subtitleDelayMs = SettingsBackupJson.intOrNull(json, "subtitleDelayMs"),
             subtitlesEnabled = SettingsBackupJson.booleanOrNull(json, "subtitlesEnabled"),

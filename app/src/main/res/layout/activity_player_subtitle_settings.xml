@@ -32,6 +32,113 @@
                 android:layout_height="wrap_content"
                 android:text="加载外挂字幕" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_load_secondary_subtitle"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/player_settings_load_secondary_subtitle" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_online_subtitle_search"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/player_settings_online_subtitle_search" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_export_subtitle_utf8"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/player_settings_subtitle_export_utf8" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_export_subtitle_delay_corrected"
+                style="?attr/materialButtonOutlinedStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/player_settings_subtitle_export_delay_corrected" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_subtitle_info_title"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <TextView
+                android:id="@+id/tv_subtitle_info_summary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:padding="10dp"
+                android:text="@string/player_settings_subtitle_info_empty"
+                android:background="?attr/selectableItemBackground" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_subtitle_language_title"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
+                android:text="@string/player_settings_subtitle_primary_language" />
+
+            <TextView
+                android:id="@+id/tv_subtitle_primary_language_value"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp"
+                android:text="@string/player_settings_subtitle_language_any" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="6dp"
+                android:text="@string/player_settings_subtitle_secondary_language" />
+
+            <TextView
+                android:id="@+id/tv_subtitle_secondary_language_value"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp"
+                android:text="@string/player_settings_subtitle_language_any" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_subtitle_prefer_bilingual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/player_settings_subtitle_prefer_bilingual" />
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_secondary_subtitle_enabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/player_settings_secondary_subtitle_enabled" />
+
             <View
                 android:layout_width="match_parent"
                 android:layout_height="16dp" />
@@ -218,6 +325,148 @@
 
             <SeekBar
                 android:id="@+id/sb_subtitle_position"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100"
+                android:progress="100" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_secondary_subtitle_style"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <TextView
+                android:id="@+id/tv_secondary_subtitle_preview"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:minHeight="56dp"
+                android:padding="12dp"
+                android:text="@string/player_settings_secondary_subtitle_preview_sample" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_secondary_subtitle_size"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <SeekBar
+                    android:id="@+id/sb_secondary_subtitle_size"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:max="20"
+                    android:progress="2" />
+
+                <TextView
+                    android:id="@+id/tv_secondary_subtitle_size_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="8dp"
+                    android:text="18sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_secondary_subtitle_color"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <LinearLayout
+                android:id="@+id/secondary_subtitle_color_swatch_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/swatch_secondary_subtitle_color_0"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:clickable="true"
+                    android:contentDescription="@string/player_settings_subtitle_color_white"
+                    android:focusable="true" />
+
+                <View
+                    android:id="@+id/swatch_secondary_subtitle_color_1"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="16dp"
+                    android:clickable="true"
+                    android:contentDescription="@string/player_settings_subtitle_color_yellow"
+                    android:focusable="true" />
+
+                <View
+                    android:id="@+id/swatch_secondary_subtitle_color_2"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="16dp"
+                    android:clickable="true"
+                    android:contentDescription="@string/player_settings_subtitle_color_green"
+                    android:focusable="true" />
+
+                <View
+                    android:id="@+id/swatch_secondary_subtitle_color_3"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="16dp"
+                    android:clickable="true"
+                    android:contentDescription="@string/player_settings_subtitle_color_blue"
+                    android:focusable="true" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_secondary_subtitle_bg"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <TextView
+                android:id="@+id/tv_secondary_subtitle_bg_value"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp"
+                android:text="@string/settings_subtitle_bg_semi" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="@string/player_settings_secondary_subtitle_position"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <SeekBar
+                android:id="@+id/sb_secondary_subtitle_position"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:max="100"

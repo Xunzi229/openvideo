@@ -27,6 +27,9 @@ object NetworkOpenUrlDialog {
             .setPositiveButton(R.string.action_open, null)
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        input.post {
+            input.requestFocus()
+        }
 
         dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             when (val result = NetworkUrlPolicy.validatePlaybackUrl(input.text.toString())) {

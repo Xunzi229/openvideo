@@ -38,12 +38,14 @@ object PlayerSubtitleCueStylePolicy {
     fun apply(
         textView: TextView,
         style: SubtitleCueStyle?,
-        playerPrefs: PlayerPrefs
+        playerPrefs: PlayerPrefs,
+        defaultTextSizeSp: Int = playerPrefs.subtitleSize,
+        defaultTextColor: Int = playerPrefs.subtitleColor
     ) {
         val presentation = resolve(
             style = style,
-            defaultTextSizeSp = playerPrefs.subtitleSize,
-            defaultTextColor = playerPrefs.subtitleColor
+            defaultTextSizeSp = defaultTextSizeSp,
+            defaultTextColor = defaultTextColor
         )
         textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, presentation.textSizeSp)
         textView.setTextColor(presentation.textColor)

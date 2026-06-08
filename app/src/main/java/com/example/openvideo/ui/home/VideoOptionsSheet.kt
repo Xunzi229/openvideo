@@ -23,9 +23,13 @@ class VideoOptionsSheet(
         val view = LayoutInflater.from(context).inflate(R.layout.sheet_video_options, null)
         setContentView(view)
 
-        view.findViewById<TextView>(R.id.option_play).setOnClickListener {
+        val playOption = view.findViewById<TextView>(R.id.option_play)
+        playOption.setOnClickListener {
             dismiss()
             onPlay()
+        }
+        playOption.post {
+            playOption.requestFocus()
         }
 
         val favoriteOption = view.findViewById<TextView>(R.id.option_favorite)
@@ -78,10 +82,14 @@ class VideoOptionsSheet(
             val sizeMB = video.size / (1024.0 * 1024.0)
             appendLine("${context.getString(R.string.detail_size)}: %.1f MB".format(sizeMB))
         }
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
             .setTitle(R.string.video_details_title)
             .setMessage(details)
             .setPositiveButton(R.string.action_ok, null)
             .show()
+        val okButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+        okButton.post {
+            okButton.requestFocus()
+        }
     }
 }

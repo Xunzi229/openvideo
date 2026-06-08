@@ -19,6 +19,8 @@ abstract class BaseSettingsSheet : DialogFragment() {
 
     protected open fun settingsSheetPlayerPrefs(): PlayerPrefs? = null
 
+    protected open fun settingsSheetDefaultFocusId(): Int? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NO_FRAME, 0)
@@ -36,9 +38,20 @@ abstract class BaseSettingsSheet : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        val prefs = settingsSheetPlayerPrefs() ?: return
-        val panelRootId = settingsSheetPanelRootId()
-        val panelRoot = panelRootId?.let { id -> view?.findViewById<View>(id) }
-        dialog?.let { PlayerSettingsSheetChrome.applyDialogChrome(it, prefs, panelRoot) }
+        val prefs = settingsSheetPlayerPrefs()
+        if (prefs != null) {
+            val panelRootId = settingsSheetPanelRootId()
+            val panelRoot = panelRootId?.let { id -> view?.findViewById<View>(id) }
+            dialog?.let { PlayerSettingsSheetChrome.applyDialogChrome(it, prefs, panelRoot) }
+        }
+        requestSettingsSheetDefaultFocus()
+    }
+
+    private fun requestSettingsSheetDefaultFocus() {
+        val focusViewId = settingsSheetDefaultFocusId() ?: return
+        val defaultFocusView = view?.findViewById<View>(focusViewId) ?: return
+        defaultFocusView.post {
+            defaultFocusView.requestFocus()
+        }
     }
 }

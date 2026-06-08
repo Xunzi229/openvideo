@@ -17,6 +17,14 @@ import com.example.openvideo.core.prefs.PlayerPrefs
 @AndroidEntryPoint
 class PlayerPlaybackSettingsSheet : BaseSettingsSheet() {
     override val layoutResId: Int = R.layout.activity_player_playback_settings
+    override fun settingsSheetDefaultFocusId(): Int = when (playerPrefs.speed) {
+        0.5f -> R.id.rb_speed_0_5
+        0.75f -> R.id.rb_speed_0_75
+        1.25f -> R.id.rb_speed_1_25
+        1.5f -> R.id.rb_speed_1_5
+        2.0f -> R.id.rb_speed_2_0
+        else -> R.id.rb_speed_1_0
+    }
 
     @Inject lateinit var playerPrefs: PlayerPrefs
 
@@ -77,13 +85,16 @@ class PlayerPlaybackSettingsSheet : BaseSettingsSheet() {
         updatePlaybackEndText()
         tvPlaybackEnd.setOnClickListener {
             val options = PlayerPlaybackEndBehaviorUi.options()
-            AlertDialog.Builder(requireContext())
+            val dialog = AlertDialog.Builder(requireContext())
                 .setTitle(R.string.settings_playback_end_behavior)
                 .setItems(options.map { PlayerPlaybackEndBehaviorUi.label(requireContext(), it) }.toTypedArray()) { _, which ->
                     playerPrefs.playbackEndBehavior = options[which]
                     updatePlaybackEndText()
                 }
                 .show()
+            dialog.listView?.post {
+                dialog.listView?.requestFocus()
+            }
         }
     }
 }

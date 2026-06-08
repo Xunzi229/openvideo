@@ -92,7 +92,9 @@ class PlayerPlaybackTickController(
         PlayerSubtitleCueStylePolicy.apply(
             textView = subtitle,
             style = dualSubtitleText?.primaryStyle,
-            playerPrefs = playerPrefs
+            playerPrefs = playerPrefs,
+            defaultTextSizeSp = playerPrefs.subtitleSize,
+            defaultTextColor = playerPrefs.subtitleColor
         )
 
         val secondaryPresentation = PlayerSubtitlePresentationPolicy.present(
@@ -105,7 +107,9 @@ class PlayerPlaybackTickController(
         PlayerSubtitleCueStylePolicy.apply(
             textView = secondarySubtitle,
             style = dualSubtitleText?.secondaryStyle,
-            playerPrefs = playerPrefs
+            playerPrefs = playerPrefs,
+            defaultTextSizeSp = playerPrefs.secondarySubtitleSize,
+            defaultTextColor = playerPrefs.secondarySubtitleColor
         )
     }
 

@@ -16,6 +16,13 @@ object PlayerSubtitleColorSwatchBinder {
         R.id.swatch_subtitle_color_3
     )
 
+    private val secondarySwatchViewIds = intArrayOf(
+        R.id.swatch_secondary_subtitle_color_0,
+        R.id.swatch_secondary_subtitle_color_1,
+        R.id.swatch_secondary_subtitle_color_2,
+        R.id.swatch_secondary_subtitle_color_3
+    )
+
     fun createSwatchView(context: Context, sizePx: Int): View =
         View(context).apply {
             layoutParams = LinearLayout.LayoutParams(sizePx, sizePx)
@@ -38,6 +45,22 @@ object PlayerSubtitleColorSwatchBinder {
         )
     }
 
+    fun bindSecondary(
+        root: View,
+        playerPrefs: PlayerPrefs,
+        density: Float,
+        onColorChanged: () -> Unit
+    ) {
+        bindColorSwatches(
+            swatches = secondarySwatchViewIds.map { root.findViewById(it) },
+            context = root.context,
+            density = density,
+            selectedColor = { playerPrefs.secondarySubtitleColor },
+            onColorSelected = { color -> playerPrefs.secondarySubtitleColor = color },
+            onColorChanged = onColorChanged
+        )
+    }
+
     fun bindSwatches(
         swatches: List<View>,
         context: Context,
@@ -45,12 +68,30 @@ object PlayerSubtitleColorSwatchBinder {
         density: Float,
         onColorChanged: () -> Unit
     ) {
+        bindColorSwatches(
+            swatches = swatches,
+            context = context,
+            density = density,
+            selectedColor = { playerPrefs.subtitleColor },
+            onColorSelected = { color -> playerPrefs.subtitleColor = color },
+            onColorChanged = onColorChanged
+        )
+    }
+
+    private fun bindColorSwatches(
+        swatches: List<View>,
+        context: Context,
+        density: Float,
+        selectedColor: () -> Int,
+        onColorSelected: (Int) -> Unit,
+        onColorChanged: () -> Unit
+    ) {
         fun renderSelection() {
-            val selectedColor = playerPrefs.subtitleColor
+            val currentColor = selectedColor()
             PlayerSubtitleColorPolicy.options.forEachIndexed { index, option ->
                 swatches[index].background = swatchDrawable(
                     color = option.color,
-                    selected = option.color == selectedColor,
+                    selected = option.color == currentColor,
                     density = density
                 )
             }
@@ -59,7 +100,7 @@ object PlayerSubtitleColorSwatchBinder {
             val swatch = swatches[index]
             swatch.contentDescription = context.getString(option.labelRes)
             swatch.setOnClickListener {
-                playerPrefs.subtitleColor = option.color
+                onColorSelected(option.color)
                 renderSelection()
                 onColorChanged()
             }

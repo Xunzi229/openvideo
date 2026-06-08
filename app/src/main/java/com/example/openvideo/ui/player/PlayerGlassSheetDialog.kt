@@ -52,6 +52,8 @@ object PlayerGlassSheetDialog {
         val (content, list, scroll) = inflate(context, layoutInflater, titleRes, chrome)
         val spacingPx = context.resources.getDimensionPixelSize(R.dimen.player_aspect_option_spacing)
         var dialog: Dialog? = null
+        var selectedFocusRow: View? = null
+        var firstEnabledRow: View? = null
 
         choices.forEachIndexed { index, choice ->
             val row = layoutInflater.inflate(rowLayout(chrome), list, false)
@@ -75,6 +77,8 @@ object PlayerGlassSheetDialog {
                 dialog?.dismiss()
                 onSelected(choice.value)
             }
+            if (choice.enabled && firstEnabledRow == null) firstEnabledRow = row
+            if (choice.selected && choice.enabled) selectedFocusRow = row
             list.addView(row)
         }
 
@@ -98,10 +102,19 @@ object PlayerGlassSheetDialog {
         dialog.prepareCenterAnimation(chrome)
         dialog.show()
         dialog.applyChrome(chrome, playerPrefs, content)
+        requestDefaultFocus(selectedFocusRow ?: firstEnabledRow, scroll)
         if (chrome != PlayerGlassSheetChrome.CENTER) {
             scroll.post { capScroll(scroll, null, 0) }
         }
         return dialog
+    }
+
+    private fun requestDefaultFocus(row: View?, scroll: NestedScrollView) {
+        row ?: return
+        row.post {
+            row.requestFocus()
+            scroll.smoothScrollTo(0, row.top)
+        }
     }
 
     private fun Dialog.prepareCenterAnimation(chrome: PlayerGlassSheetChrome) {

@@ -47,6 +47,14 @@ class WebDavSourceSelectionSourceTest {
         assertTrue(strings.contains("webdav_test_success"))
     }
 
+    @Test
+    fun webDavSourceDialogRequestsNameInputDefaultFocusForRemoteUse() {
+        val source = sourceText("WebDavSourceDialog.kt")
+
+        assertTrue(source.contains("nameInput.post"))
+        assertTrue(source.contains("nameInput.requestFocus()"))
+    }
+
     private fun sourceText(name: String): String =
         rootText("app", "src", "main", "java", "com", "example", "openvideo", "ui", "sources", name)
 

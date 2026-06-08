@@ -49,6 +49,9 @@ object WebDavSourceDialog {
             .setPositiveButton(R.string.webdav_action_test_save, null)
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        nameInput.post {
+            nameInput.requestFocus()
+        }
 
         dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val baseValidation = WebDavConnectionPolicy.validateBaseUrl(baseUrlInput.text.toString())

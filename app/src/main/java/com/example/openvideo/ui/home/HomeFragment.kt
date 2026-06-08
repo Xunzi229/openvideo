@@ -30,9 +30,11 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 import com.example.openvideo.core.metadata.MediaSmartListType
+import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
+import com.example.openvideo.ui.MainActivity
 import com.example.openvideo.ui.local.VideoFolderSummary
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerActivityIntents
@@ -78,6 +80,8 @@ class HomeFragment : Fragment() {
     private var latestScanProgress: MediaLibraryScanProgress? = null
     private var activeCategory = HomeCategory.ALL
     private val categoryLists = mutableMapOf<HomeCategory, List<VideoItem>>()
+    private val lastFocusedHomeVideoIds = mutableMapOf<HomeCategory, Long>()
+    private val pendingHomeVideoFocusRestoreIds = mutableMapOf<HomeCategory, Long>()
     private var currentSmartListSections: List<HomeSmartListSection> = emptyList()
     private var currentSelectedSmartListType: MediaSmartListType? = null
     private var currentFolders: List<VideoFolderSummary> = emptyList()
@@ -144,6 +148,7 @@ class HomeFragment : Fragment() {
         chipAll.setOnClickListener { switchCategory(HomeCategory.ALL) }
         chipRecent.setOnClickListener { switchCategory(HomeCategory.RECENT) }
         chipFavorite.setOnClickListener { switchCategory(HomeCategory.FAVORITES) }
+        configureHomeFocusOrder(view)
 
         initCategoryList(HomeCategory.ALL, view.findViewById(R.id.recycler_all_videos))
         initCategoryList(HomeCategory.RECENT, view.findViewById(R.id.recycler_recent_videos))
@@ -178,7 +183,8 @@ class HomeFragment : Fragment() {
                     actionMode?.title = getString(R.string.multi_select_count, selected.size)
                 }
             },
-            onLongClick = { video -> startMultiSelectMode(category) }
+            onLongClick = { video -> startMultiSelectMode(category) },
+            onFocusChanged = { video -> lastFocusedHomeVideoIds[category] = video.id }
         )
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
@@ -338,15 +344,89 @@ class HomeFragment : Fragment() {
         categoryLists[category] = list
         adapters.getValue(category).submitList(list) {
             jumpVideoListToTopIfNeeded(category)
+            restoreHomeVideoFocusIfNeeded(category, list)
         }
         updateCategoryChips(activeCategory)
         if (category == activeCategory) updateActiveEmptyState()
+    }
+
+    private fun restoreHomeVideoFocusIfNeeded(category: HomeCategory, list: List<VideoItem>) {
+        val videoId = pendingHomeVideoFocusRestoreIds[category] ?: return
+        val position = list.indexOfFirst { it.id == videoId }
+        if (position == -1) return
+        pendingHomeVideoFocusRestoreIds.remove(category)
+        val recyclerView = recyclerViews[category] ?: return
+        recyclerView.post {
+            recyclerView.scrollToPosition(position)
+            recyclerView.post {
+                recyclerView.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
+            }
+        }
     }
 
     private fun showCategoryPage(category: HomeCategory) {
         recyclerViews.forEach { (pageCategory, recyclerView) ->
             recyclerView.visibility = if (pageCategory == category) View.VISIBLE else View.GONE
         }
+        refreshHomeContentFocusOrder(category)
+    }
+
+    private fun configureHomeFocusOrder(view: View) {
+        view.findViewById<View>(R.id.btn_open_url).nextFocusRightId = R.id.btn_refresh
+        view.findViewById<View>(R.id.btn_open_url).nextFocusDownId = R.id.search_view
+        view.findViewById<View>(R.id.btn_refresh).nextFocusLeftId = R.id.btn_open_url
+        view.findViewById<View>(R.id.btn_refresh).nextFocusDownId = R.id.search_view
+
+        searchView.nextFocusUpId = R.id.btn_open_url
+        searchView.nextFocusDownId = R.id.chip_all
+
+        chipAll.nextFocusUpId = R.id.search_view
+        chipAll.nextFocusRightId = R.id.chip_recent
+        chipAll.nextFocusDownId = R.id.tv_sort_label
+        chipRecent.nextFocusUpId = R.id.search_view
+        chipRecent.nextFocusLeftId = R.id.chip_all
+        chipRecent.nextFocusRightId = R.id.chip_favorite
+        chipRecent.nextFocusDownId = R.id.tv_sort_label
+        chipFavorite.nextFocusUpId = R.id.search_view
+        chipFavorite.nextFocusLeftId = R.id.chip_recent
+        chipFavorite.nextFocusDownId = R.id.btn_library_filter
+
+        sortLabel.isClickable = true
+        sortLabel.isFocusable = true
+        sortLabel.nextFocusUpId = R.id.chip_all
+        btnSortOrder.nextFocusUpId = R.id.chip_all
+        btnSortOrder.nextFocusLeftId = R.id.tv_sort_label
+        btnSortOrder.nextFocusRightId = R.id.btn_library_filter
+        btnLibraryFilter.nextFocusUpId = R.id.chip_favorite
+        btnLibraryFilter.nextFocusLeftId = R.id.btn_sort_order
+        btnLibraryFilter.nextFocusRightId = R.id.btn_list_view
+        btnList.nextFocusUpId = R.id.chip_favorite
+        btnList.nextFocusLeftId = R.id.btn_library_filter
+        btnList.nextFocusRightId = R.id.btn_grid_view
+        btnGrid.nextFocusUpId = R.id.chip_favorite
+        btnGrid.nextFocusLeftId = R.id.btn_list_view
+        emptyView.isFocusable = true
+        emptyView.nextFocusUpId = R.id.btn_refresh
+    }
+
+    private fun refreshHomeContentFocusOrder(category: HomeCategory = activeCategory) {
+        val recyclerId = activeRecyclerViewId(category)
+        val contentFocusTargetId = if (categoryLists[category].orEmpty().isEmpty()) R.id.btn_refresh else recyclerId
+        listOf(sortLabel, btnSortOrder, btnLibraryFilter, btnList, btnGrid).forEach { control ->
+            control.nextFocusDownId = contentFocusTargetId
+        }
+        recyclerViews.values.forEach { recyclerView ->
+            recyclerView.isFocusable = true
+            recyclerView.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
+            recyclerView.nextFocusUpId = R.id.btn_list_view
+        }
+        refreshDynamicFilterChipFocusOrder()
+    }
+
+    private fun activeRecyclerViewId(category: HomeCategory): Int = when (category) {
+        HomeCategory.ALL -> R.id.recycler_all_videos
+        HomeCategory.RECENT -> R.id.recycler_recent_videos
+        HomeCategory.FAVORITES -> R.id.recycler_favorite_videos
     }
 
     private fun updateSortControlsVisibility(category: HomeCategory) {
@@ -365,7 +445,10 @@ class HomeFragment : Fragment() {
     private fun applyViewMode(category: HomeCategory, mode: ViewMode) {
         adapters[category]?.viewMode = mode
         val recyclerView = recyclerViews[category] ?: return
-        val spanCount = if (mode == ViewMode.GRID) 2 else 1
+        val spanCount = HomeAdaptiveLayoutPolicy.spanCount(
+            viewMode = mode,
+            breakpoint = currentBreakpoint()
+        )
         val layoutManager = recyclerView.layoutManager
         if (layoutManager is GridLayoutManager) {
             layoutManager.spanCount = spanCount
@@ -374,9 +457,13 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun currentBreakpoint(): ScreenBreakpoint =
+        (activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT
+
     private fun updateActiveEmptyState() {
         val list = categoryLists[activeCategory].orEmpty()
         val isEmpty = list.isEmpty()
+        refreshHomeContentFocusOrder(activeCategory)
         activeRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
         if (!isEmpty) {
             scanLoadingContainer.visibility = View.GONE
@@ -419,6 +506,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun openPlayer(video: VideoItem) {
+        val category = activeCategory
+        lastFocusedHomeVideoIds[category] = video.id
+        lastFocusedHomeVideoIds[category]?.let { pendingHomeVideoFocusRestoreIds[category] = it }
         val queue = categoryLists[activeCategory].orEmpty().ifEmpty { listOf(video) }
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
             putSessionQueue(queue)
@@ -472,7 +562,7 @@ class HomeFragment : Fragment() {
         val names = playlists.map { it.name }
             .plus(getString(R.string.playlist_create_and_add))
             .toTypedArray()
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.playlist_add_to_title)
             .setItems(names) { _, which ->
                 if (which == playlists.size) {
@@ -482,6 +572,9 @@ class HomeFragment : Fragment() {
                 }
             }
             .show()
+        dialog.listView?.post {
+            dialog.listView?.requestFocus()
+        }
     }
 
     private fun showCreatePlaylistForVideoDialog(video: VideoItem) {
@@ -499,6 +592,9 @@ class HomeFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        input.post {
+            input.requestFocus()
+        }
     }
 
     private fun updateViewModeButtons(mode: ViewMode) {
@@ -581,13 +677,17 @@ class HomeFragment : Fragment() {
                 onLongClick = { viewModel.togglePinnedFolder(folder.key) }
             ))
         }
+        refreshDynamicFilterChipFocusOrder()
     }
 
     private fun bindSmartListChips() {
         val shouldShow = activeCategory == HomeCategory.ALL && currentSmartListSections.isNotEmpty()
         smartFilterScroll.visibility = if (shouldShow) View.VISIBLE else View.GONE
         smartFilterGroup.removeAllViews()
-        if (!shouldShow) return
+        if (!shouldShow) {
+            refreshDynamicFilterChipFocusOrder()
+            return
+        }
 
         smartFilterGroup.addView(createSmartListChip(
             text = getString(R.string.home_smart_all),
@@ -604,6 +704,49 @@ class HomeFragment : Fragment() {
                 checked = currentSelectedSmartListType == section.type,
                 onClick = { viewModel.setSmartListFilter(section.type) }
             ))
+        }
+        refreshDynamicFilterChipFocusOrder()
+    }
+
+    private fun refreshDynamicFilterChipFocusOrder() {
+        val smartChips = dynamicChipChildren(smartFilterGroup)
+        val folderChips = dynamicChipChildren(folderGroup)
+        val smartVisible = smartFilterScroll.visibility == View.VISIBLE && smartChips.isNotEmpty()
+        val folderVisible = filterScroll.visibility == View.VISIBLE && folderChips.isNotEmpty()
+        val firstDynamicChipId = when {
+            smartVisible -> smartChips.first().id
+            folderVisible -> folderChips.first().id
+            else -> R.id.tv_sort_label
+        }
+
+        chipAll.nextFocusDownId = firstDynamicChipId
+        chipRecent.nextFocusDownId = firstDynamicChipId
+        chipFavorite.nextFocusDownId = firstDynamicChipId
+
+        if (smartVisible) {
+            val nextDownId = if (folderVisible) folderChips.first().id else R.id.tv_sort_label
+            wireDynamicChipRow(smartChips, nextUpId = R.id.chip_all, nextDownId = nextDownId)
+        }
+        if (folderVisible) {
+            val nextUpId = if (smartVisible) smartChips.first().id else R.id.chip_all
+            wireDynamicChipRow(folderChips, nextUpId = nextUpId, nextDownId = R.id.tv_sort_label)
+        }
+    }
+
+    private fun dynamicChipChildren(group: ChipGroup): List<Chip> {
+        return (0 until group.childCount).mapNotNull { index ->
+            group.getChildAt(index) as? Chip
+        }.onEach { chip ->
+            if (chip.id == View.NO_ID) chip.id = View.generateViewId()
+        }
+    }
+
+    private fun wireDynamicChipRow(chips: List<Chip>, nextUpId: Int, nextDownId: Int) {
+        chips.forEachIndexed { index, chip ->
+            chip.nextFocusLeftId = chips.getOrNull(index - 1)?.id ?: chip.id
+            chip.nextFocusRightId = chips.getOrNull(index + 1)?.id ?: chip.id
+            chip.nextFocusUpId = nextUpId
+            chip.nextFocusDownId = nextDownId
         }
     }
 
@@ -690,12 +833,16 @@ class HomeFragment : Fragment() {
     }
 
     private fun confirmDelete(video: VideoItem) {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_delete_title)
             .setMessage(getString(R.string.dialog_delete_message, video.title))
             .setPositiveButton(R.string.action_delete) { _, _ -> deleteVideosWithSystemRequest(listOf(video)) }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        cancelButton.post {
+            cancelButton.requestFocus()
+        }
     }
 
     private fun startMultiSelectMode(category: HomeCategory) {
@@ -738,7 +885,7 @@ class HomeFragment : Fragment() {
 
     private fun confirmDeleteSelected() {
         val selected = activeAdapter.getSelectedItems()
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_batch_delete_title)
             .setMessage(getString(R.string.dialog_batch_delete_message, selected.size))
             .setPositiveButton(R.string.action_delete) { _, _ ->
@@ -748,6 +895,10 @@ class HomeFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        cancelButton.post {
+            cancelButton.requestFocus()
+        }
     }
 
     private fun deleteVideosWithSystemRequest(videos: List<VideoItem>) {

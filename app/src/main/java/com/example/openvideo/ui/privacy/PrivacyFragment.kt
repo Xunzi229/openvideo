@@ -75,10 +75,13 @@ class PrivacyFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        input.post {
+            input.requestFocus()
+        }
     }
 
     private fun confirmRemove(path: String) {
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.privacy_remove_title)
             .setMessage(getString(R.string.privacy_remove_message, path))
             .setPositiveButton(R.string.action_remove) { _, _ ->
@@ -87,5 +90,9 @@ class PrivacyFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        cancelButton.post {
+            cancelButton.requestFocus()
+        }
     }
 }

@@ -203,16 +203,20 @@ class PlaylistDetailFragment : Fragment() {
     }
 
     private fun confirmClear() {
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.playlist_clear_title)
             .setMessage(getString(R.string.playlist_clear_message, playlistName))
             .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearPlaylist(playlistId) }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        cancelButton.post {
+            cancelButton.requestFocus()
+        }
     }
 
     private fun confirmCleanup() {
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.playlist_cleanup_title)
             .setMessage(getString(R.string.playlist_cleanup_message, playlistName))
             .setPositiveButton(R.string.playlist_cleanup) { _, _ ->
@@ -223,6 +227,10 @@ class PlaylistDetailFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        cancelButton.post {
+            cancelButton.requestFocus()
+        }
     }
 
     private fun showCleanupUndo(removedVideos: List<PlaylistVideoEntity>) {

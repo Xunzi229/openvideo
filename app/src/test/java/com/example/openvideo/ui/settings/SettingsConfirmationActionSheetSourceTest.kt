@@ -63,6 +63,18 @@ class SettingsConfirmationActionSheetSourceTest {
         assertFalse(source.contains("MaterialAlertDialogBuilder"))
     }
 
+    @Test
+    fun actionSheetRequestsCancelDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(actionSheetSource()))
+
+        assertTrue(source.contains("private var defaultFocusView: View? = null"))
+        assertTrue(source.contains("defaultFocusView = cancelAction"))
+        assertTrue(source.contains("requestDefaultFocus()"))
+        assertTrue(source.contains("private fun requestDefaultFocus()"))
+        assertTrue(source.contains("defaultFocusView?.post"))
+        assertTrue(source.contains("defaultFocusView?.requestFocus()"))
+    }
+
     private fun settingsFragmentSource(): Path {
         val relativePath = Paths.get(
             "src",

@@ -9,7 +9,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.subtitle.SubtitleCandidate
 import com.example.openvideo.core.subtitle.SubtitleLoader
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.io.File
 
 class PlayerSubtitleController(
     private val activity: AppCompatActivity,
@@ -40,11 +43,37 @@ class PlayerSubtitleController(
     }
 
     fun loadSubtitlesAsync(uriString: String, videoPath: String, showToast: Boolean = false) {
-        viewModel.loadSubtitles(uriString, videoPath, showToast) { decision ->
-            PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)?.let { messageRes ->
-                Toast.makeText(activity, messageRes, Toast.LENGTH_SHORT).show()
+        viewModel.loadSubtitles(
+            uriString = uriString,
+            videoPath = videoPath,
+            showToast = showToast,
+            onFinished = { decision ->
+                PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)?.let { messageRes ->
+                    Toast.makeText(activity, messageRes, Toast.LENGTH_SHORT).show()
+                }
+                startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
+            },
+            onCandidateChoiceRequired = { candidates ->
+                showSubtitleCandidateChoiceDialog(candidates)
             }
-            startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
+        )
+    }
+
+    private fun showSubtitleCandidateChoiceDialog(candidates: List<SubtitleCandidate>) {
+        if (candidates.isEmpty()) return
+        val labels = candidates.map { candidate ->
+            File(candidate.path).name.ifBlank { candidate.path }
+        }.toTypedArray()
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.player_subtitle_candidate_choice_title)
+            .setItems(labels) { _, which ->
+                val candidate = candidates[which]
+                playerPrefs.externalSubtitleUri = candidate.path
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
+        dialog.listView?.post {
+            dialog.listView?.requestFocus()
         }
     }
 

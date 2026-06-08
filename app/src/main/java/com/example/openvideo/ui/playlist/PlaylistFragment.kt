@@ -87,6 +87,9 @@ class PlaylistFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        input.post {
+            input.requestFocus()
+        }
     }
 
     private fun showPlaylistOptions(playlist: com.example.openvideo.data.local.PlaylistEntity) {

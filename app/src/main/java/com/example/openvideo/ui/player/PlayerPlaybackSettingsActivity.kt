@@ -79,13 +79,16 @@ class PlayerPlaybackSettingsActivity : ComponentActivity() {
         updatePlaybackEndText()
         tvPlaybackEnd.setOnClickListener {
             val options = PlayerPlaybackEndBehaviorUi.options()
-            AlertDialog.Builder(this)
+            val dialog = AlertDialog.Builder(this)
                 .setTitle(R.string.settings_playback_end_behavior)
                 .setItems(options.map { PlayerPlaybackEndBehaviorUi.label(this, it) }.toTypedArray()) { _, which ->
                     playerPrefs.playbackEndBehavior = options[which]
                     updatePlaybackEndText()
                 }
                 .show()
+            dialog.listView?.post {
+                dialog.listView?.requestFocus()
+            }
         }
 
         // Seek interval

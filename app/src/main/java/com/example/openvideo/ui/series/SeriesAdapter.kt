@@ -14,7 +14,8 @@ import com.example.openvideo.R
 import java.io.File
 
 class SeriesAdapter(
-    private val onClick: (SeriesUiState) -> Unit
+    private val onClick: (SeriesUiState) -> Unit,
+    private val onFocusChanged: (SeriesUiState) -> Unit = {}
 ) : ListAdapter<SeriesUiState, SeriesAdapter.ViewHolder>(DIFF) {
 
     companion object {
@@ -36,6 +37,10 @@ class SeriesAdapter(
             view.setOnClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) onClick(getItem(pos))
+            }
+            view.setOnFocusChangeListener { _, hasFocus ->
+                val pos = bindingAdapterPosition
+                if (hasFocus && pos != RecyclerView.NO_POSITION) onFocusChanged(getItem(pos))
             }
         }
     }

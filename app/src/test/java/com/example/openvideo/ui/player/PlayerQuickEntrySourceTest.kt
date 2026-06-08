@@ -140,6 +140,20 @@ class PlayerQuickEntrySourceTest {
     }
 
     @Test
+    fun glassSheetSingleChoiceRequestsDefaultFocusForRemoteUse() {
+        val source = read(playerGlassSheetDialogSource())
+
+        assertTrue(source.contains("var selectedFocusRow: View? = null"))
+        assertTrue(source.contains("var firstEnabledRow: View? = null"))
+        assertTrue(source.contains("if (choice.enabled && firstEnabledRow == null) firstEnabledRow = row"))
+        assertTrue(source.contains("if (choice.selected && choice.enabled) selectedFocusRow = row"))
+        assertTrue(source.contains("requestDefaultFocus(selectedFocusRow ?: firstEnabledRow, scroll)"))
+        assertTrue(source.contains("private fun requestDefaultFocus(row: View?, scroll: NestedScrollView)"))
+        assertTrue(source.contains("row.requestFocus()"))
+        assertTrue(source.contains("scroll.smoothScrollTo(0, row.top)"))
+    }
+
+    @Test
     fun aspectQuickDialogUsesSettingsOptionsAndSelectionPolicy() {
         val source = read(playerQuickDialogControllerSource())
         val aspectBlock = source.substringAfter("fun showAspectRatioQuickDialog()")

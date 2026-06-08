@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -561,8 +562,9 @@ class PlayerActivity : AppCompatActivity() {
         setContentView(R.layout.activity_player)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                val decision = PlayerLockGesturePolicy.onBackPressed(isScreenLocked)
+                val decision = PlayerLockGesturePolicy.onBackPressed(isScreenLocked, controlsVisible)
                 if (decision.revealLockedControls) showLockedControls()
+                if (decision.revealControls) showControls()
                 if (decision.finishPlayer) finishPlayer()
             }
         })
@@ -838,6 +840,83 @@ class PlayerActivity : AppCompatActivity() {
     private fun restoreChromeAfterSettingsOverlay() = playerChrome.restoreChromeAfterSettingsOverlay()
 
     private fun scheduleHideControls() = playerChrome.scheduleHideControls()
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER,
+            KeyEvent.KEYCODE_NUMPAD_ENTER,
+            KeyEvent.KEYCODE_SPACE,
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> runRemoteTransportAction {
+                togglePlayPauseAndSyncIcon()
+            }
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_MENU -> runRemoteChromeVisibilityAction {
+                showControls()
+            }
+            KeyEvent.KEYCODE_DPAD_DOWN -> runRemoteChromeVisibilityAction {
+                hideControls()
+            }
+            KeyEvent.KEYCODE_S -> runKeyboardSettingsShortcutAction(keyCode, event) {
+                quickDialogs.showSubtitleQuickDialog()
+            }
+            KeyEvent.KEYCODE_A -> runKeyboardSettingsShortcutAction(keyCode, event) {
+                quickDialogs.showAudioTrackQuickDialog()
+            }
+            KeyEvent.KEYCODE_K -> runKeyboardShortcutAction(keyCode, event) {
+                togglePlayPauseAndSyncIcon()
+            }
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_MEDIA_REWIND -> runRemoteTransportAction {
+                viewModel.seekBackward()
+            }
+            KeyEvent.KEYCODE_J -> runKeyboardShortcutAction(keyCode, event) {
+                viewModel.seekBackward()
+            }
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> runRemoteTransportAction {
+                viewModel.seekForward()
+            }
+            KeyEvent.KEYCODE_L -> runKeyboardShortcutAction(keyCode, event) {
+                viewModel.seekForward()
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
+    }
+
+    private fun runKeyboardShortcutAction(keyCode: Int, event: KeyEvent, action: () -> Unit): Boolean {
+        if (!playerPrefs.keyboardShortcuts) return super.onKeyDown(keyCode, event)
+        return runRemoteTransportAction(action)
+    }
+
+    private fun runKeyboardSettingsShortcutAction(keyCode: Int, event: KeyEvent, action: () -> Unit): Boolean {
+        if (!playerPrefs.keyboardShortcuts) return super.onKeyDown(keyCode, event)
+        if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.SETTINGS, isScreenLocked)) {
+            showLockedControls()
+            return true
+        }
+        action()
+        return true
+    }
+
+    private fun runRemoteChromeVisibilityAction(action: () -> Unit): Boolean {
+        if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.CHROME_TOGGLE, isScreenLocked)) {
+            showLockedControls()
+            return true
+        }
+        action()
+        return true
+    }
+
+    private fun runRemoteTransportAction(action: () -> Unit): Boolean {
+        if (!PlayerLockedControlsPolicy.allows(PlayerLockedInteraction.TRANSPORT, isScreenLocked)) {
+            showLockedControls()
+            return true
+        }
+        action()
+        showControls()
+        return true
+    }
 
     private fun applyChromePresentation(presentation: PlayerChromePresentation) =
         playerChrome.applyChromePresentation(presentation)

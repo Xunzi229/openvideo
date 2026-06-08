@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,8 +17,15 @@ import com.example.openvideo.core.prefs.ContentFrameMode
 import com.example.openvideo.core.subtitle.DualSubtitleText
 import com.example.openvideo.core.subtitle.DualSubtitleState
 import com.example.openvideo.core.subtitle.PrimarySubtitle
+import com.example.openvideo.core.subtitle.SecondarySubtitle
+import com.example.openvideo.core.subtitle.SubtitleCandidate
+import com.example.openvideo.core.subtitle.SubtitleDelayCorrectionPolicy
+import com.example.openvideo.core.subtitle.SubtitleExportWriter
+import com.example.openvideo.core.subtitle.SubtitleInfo
+import com.example.openvideo.core.subtitle.SubtitleInfoPolicy
 import com.example.openvideo.core.subtitle.SubtitleItem
 import com.example.openvideo.core.subtitle.SubtitleLoader
+import com.example.openvideo.core.subtitle.SubtitleUtf8ExportPolicy
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -277,10 +285,27 @@ class PlayerViewModel @Inject constructor(
         )
     }
 
-    fun loadSubtitles(
+    fun setSecondarySubtitles(subtitles: List<SubtitleItem>, enabled: Boolean = true) {
+        val current = _uiState.value.dualSubtitles
+        _uiState.value = _uiState.value.copy(
+            dualSubtitles = current.copy(
+                secondary = SecondarySubtitle(items = subtitles, enabled = enabled)
+            )
+        )
+    }
+
+    fun setSecondarySubtitlesEnabled(enabled: Boolean) {
+        val current = _uiState.value.dualSubtitles
+        _uiState.value = _uiState.value.copy(
+            dualSubtitles = current.copy(
+                secondary = current.secondary.copy(enabled = enabled)
+            )
+        )
+    }
+
+    fun loadSecondarySubtitles(
         uriString: String,
         videoPath: String,
-        showToast: Boolean = false,
         onFinished: (PlayerSubtitleLoadApplyDecision) -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -289,18 +314,162 @@ class PlayerViewModel @Inject constructor(
                     uriString,
                     videoPath,
                     subtitleLoader,
+                    requestHeaders = requestHeaders
+                )
+            }
+            val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, requestedToast = true)
+            if (decision.shouldApplyToPlayer) {
+                setSecondarySubtitles(subtitles)
+            }
+            onFinished(decision)
+        }
+    }
+
+    fun loadSubtitles(
+        uriString: String,
+        videoPath: String,
+        showToast: Boolean = false,
+        onFinished: (PlayerSubtitleLoadApplyDecision) -> Unit = {},
+        onCandidateChoiceRequired: (List<SubtitleCandidate>) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val outcome = withContext(Dispatchers.IO) {
+                PlayerSubtitleLoadCoordinator.loadWithOutcome(
+                    uriString,
+                    videoPath,
+                    subtitleLoader,
                     requestHeaders = requestHeaders,
                     rememberedSubtitlePath = playerPrefs.externalSubtitleUri,
                     languagePreference = playerPrefs.subtitleLanguagePreference()
                 )
             }
-            val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, showToast)
-            if (decision.shouldApplyToPlayer) {
-                setSubtitles(subtitles)
+            when (outcome) {
+                is PlayerSubtitleLoadOutcome.Loaded -> {
+                    val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(outcome.subtitles.size, showToast)
+                    if (decision.shouldApplyToPlayer) {
+                        setSubtitles(outcome.subtitles)
+                    }
+                    onFinished(decision)
+                }
+                is PlayerSubtitleLoadOutcome.RequiresUserChoice -> {
+                    onCandidateChoiceRequired(outcome.candidates)
+                    onFinished(PlayerSubtitleLoadApplyDecision(false, PlayerSubtitleLoadToastKind.NONE))
+                }
+                PlayerSubtitleLoadOutcome.None -> {
+                    val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(0, showToast)
+                    onFinished(decision)
+                }
             }
-            onFinished(decision)
         }
     }
+
+    sealed class SubtitleExportResult {
+        data object Success : SubtitleExportResult()
+        data object NoSubtitles : SubtitleExportResult()
+        data object NoDelay : SubtitleExportResult()
+        data object OriginalOverwriteBlocked : SubtitleExportResult()
+        data object OpenStreamFailed : SubtitleExportResult()
+        data object WriteFailed : SubtitleExportResult()
+    }
+
+    fun hasCurrentSubtitles(): Boolean =
+        _uiState.value.subtitles.isNotEmpty()
+
+    suspend fun writeCurrentSubtitleUtf8ExportTo(
+        context: Context,
+        uri: Uri
+    ): SubtitleExportResult = withContext(Dispatchers.IO) {
+        val subtitles = _uiState.value.subtitles
+        if (subtitles.isEmpty()) return@withContext SubtitleExportResult.NoSubtitles
+        if (SubtitleUtf8ExportPolicy.targetsOriginalSubtitle(
+                targetUri = uri.toString(),
+                originalSubtitleUri = playerPrefs.externalSubtitleUri
+            )
+        ) {
+            return@withContext SubtitleExportResult.OriginalOverwriteBlocked
+        }
+        val plan = SubtitleUtf8ExportPolicy.planSrtCopy(
+            items = subtitles,
+            sourceName = currentVideoSource()
+        )
+        val stream = try {
+            context.contentResolver.openOutputStream(uri)
+                ?: return@withContext SubtitleExportResult.OpenStreamFailed
+        } catch (_: Exception) {
+            return@withContext SubtitleExportResult.OpenStreamFailed
+        }
+        try {
+            stream.use { out ->
+                when (SubtitleExportWriter.writePlanToOutputStream(out, plan)) {
+                    is SubtitleExportWriter.Result.Success -> SubtitleExportResult.Success
+                    is SubtitleExportWriter.Result.Failure -> SubtitleExportResult.WriteFailed
+                }
+            }
+        } catch (_: Exception) {
+            SubtitleExportResult.WriteFailed
+        }
+    }
+
+    fun suggestedSubtitleExportFileName(): String =
+        SubtitleUtf8ExportPolicy.planSrtCopy(
+            items = _uiState.value.subtitles,
+            sourceName = currentVideoSource()
+        ).suggestedCopyName
+
+    suspend fun writeCurrentSubtitleDelayCorrectionExportTo(
+        context: Context,
+        uri: Uri
+    ): SubtitleExportResult = withContext(Dispatchers.IO) {
+        val subtitles = _uiState.value.subtitles
+        if (subtitles.isEmpty()) return@withContext SubtitleExportResult.NoSubtitles
+        if (playerPrefs.subtitleDelayMs == 0) return@withContext SubtitleExportResult.NoDelay
+        if (SubtitleUtf8ExportPolicy.targetsOriginalSubtitle(
+                targetUri = uri.toString(),
+                originalSubtitleUri = playerPrefs.externalSubtitleUri
+            )
+        ) {
+            return@withContext SubtitleExportResult.OriginalOverwriteBlocked
+        }
+        val delayPlan = SubtitleDelayCorrectionPolicy.planShiftedCopy(
+            items = subtitles,
+            deltaMs = playerPrefs.subtitleDelayMs,
+            sourceName = currentVideoSource()
+        )
+        val exportPlan = SubtitleUtf8ExportPolicy.planSrtCopy(
+            items = delayPlan.items,
+            sourceName = delayPlan.suggestedCopyName
+        )
+        val stream = try {
+            context.contentResolver.openOutputStream(uri)
+                ?: return@withContext SubtitleExportResult.OpenStreamFailed
+        } catch (_: Exception) {
+            return@withContext SubtitleExportResult.OpenStreamFailed
+        }
+        try {
+            stream.use { out ->
+                when (SubtitleExportWriter.writePlanToOutputStream(out, exportPlan)) {
+                    is SubtitleExportWriter.Result.Success -> SubtitleExportResult.Success
+                    is SubtitleExportWriter.Result.Failure -> SubtitleExportResult.WriteFailed
+                }
+            }
+        } catch (_: Exception) {
+            SubtitleExportResult.WriteFailed
+        }
+    }
+
+    fun suggestedSubtitleDelayCorrectionExportFileName(): String =
+        SubtitleDelayCorrectionPolicy.planShiftedCopy(
+            items = _uiState.value.subtitles,
+            deltaMs = playerPrefs.subtitleDelayMs,
+            sourceName = currentVideoSource()
+        ).suggestedCopyName
+
+    fun currentSubtitleInfo(): SubtitleInfo =
+        SubtitleInfoPolicy.summarize(
+            items = _uiState.value.subtitles,
+            sourceLabel = currentVideoSource(),
+            encoding = playerPrefs.subtitleEncoding
+        )
 
     fun getCurrentSubtitle(): String {
         return getCurrentDualSubtitle()

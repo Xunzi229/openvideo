@@ -16,15 +16,19 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.data.scanner.VideoDeleteResult
+import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
+import com.example.openvideo.ui.MainActivity
 import com.example.openvideo.ui.home.HomeViewModel
 import com.example.openvideo.ui.home.VideoGridAdapter
 import com.example.openvideo.ui.home.VideoOptionsSheet
+import com.example.openvideo.ui.home.ViewMode
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
@@ -41,6 +45,8 @@ class FolderVideosFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
+    private var lastFocusedVideoId: Long? = null
+    private var pendingVideoFocusRestoreId: Long? = null
 
     private val deleteRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -67,16 +73,22 @@ class FolderVideosFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recycler_videos)
         emptyView = view.findViewById(R.id.tv_empty)
+        emptyView.isFocusable = true
+        emptyView.nextFocusUpId = R.id.btn_back
         view.findViewById<TextView>(R.id.tv_title).text = folderName
         view.findViewById<ImageButton>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
+        updateFolderVideoFocusOrder(view, hasVideos = false)
 
         adapter = VideoGridAdapter(
             onClick = { video -> openPlayer(video) },
-            onMoreOptions = { video, _ -> showVideoOptions(video) }
+            onMoreOptions = { video, _ -> showVideoOptions(video) },
+            onFocusChanged = { video -> lastFocusedVideoId = video.id }
         )
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        val spanCount = BrowseAdaptiveLayoutPolicy.contentSpanCount(currentBreakpoint())
+        adapter.viewMode = if (spanCount > 1) ViewMode.GRID else ViewMode.LIST
+        recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
         recyclerView.adapter = adapter
 
         observeVideos()
@@ -91,15 +103,27 @@ class FolderVideosFragment : Fragment() {
                         VideoFolderGrouper.folderKey(it.path) == folderKey
                     }
                     folderVideosSnapshot = folderVideos
-                    adapter.submitList(folderVideos)
-                    emptyView.visibility = if (folderVideos.isEmpty()) View.VISIBLE else View.GONE
-                    recyclerView.visibility = if (folderVideos.isEmpty()) View.GONE else View.VISIBLE
+                    adapter.submitList(folderVideos) { restoreVideoFocusIfNeeded(folderVideos) }
+                    val hasVideos = folderVideos.isNotEmpty()
+                    emptyView.visibility = if (hasVideos) View.GONE else View.VISIBLE
+                    recyclerView.visibility = if (hasVideos) View.VISIBLE else View.GONE
+                    updateFolderVideoFocusOrder(requireView(), hasVideos)
                 }
             }
         }
     }
 
+    private fun updateFolderVideoFocusOrder(view: View, hasVideos: Boolean) {
+        val contentFocusTargetId = if (hasVideos) R.id.recycler_videos else R.id.tv_empty
+        view.findViewById<View>(R.id.btn_back).nextFocusDownId = contentFocusTargetId
+    }
+
+    private fun currentBreakpoint(): ScreenBreakpoint =
+        (activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT
+
     private fun openPlayer(video: VideoItem) {
+        lastFocusedVideoId = video.id
+        pendingVideoFocusRestoreId = lastFocusedVideoId
         val orderedQueue = PlayerEpisodeOrderingPolicy.orderSameFolderQueue(folderVideosSnapshot)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
             putSessionQueue(orderedQueue)
@@ -111,6 +135,19 @@ class FolderVideosFragment : Fragment() {
             putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, video.height)
         }
         startActivity(intent)
+    }
+
+    private fun restoreVideoFocusIfNeeded(videos: List<VideoItem>) {
+        val videoId = pendingVideoFocusRestoreId ?: return
+        val position = videos.indexOfFirst { it.id == videoId }
+        if (position == -1) return
+        pendingVideoFocusRestoreId = null
+        recyclerView.post {
+            recyclerView.scrollToPosition(position)
+            recyclerView.post {
+                recyclerView.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
+            }
+        }
     }
 
     private fun showVideoOptions(video: VideoItem) {
@@ -142,7 +179,7 @@ class FolderVideosFragment : Fragment() {
         val names = playlists.map { it.name }
             .plus(getString(R.string.playlist_create_and_add))
             .toTypedArray()
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.playlist_add_to_title)
             .setItems(names) { _, which ->
                 if (which == playlists.size) {
@@ -152,6 +189,9 @@ class FolderVideosFragment : Fragment() {
                 }
             }
             .show()
+        dialog.listView?.post {
+            dialog.listView?.requestFocus()
+        }
     }
 
     private fun showCreatePlaylistForVideoDialog(video: VideoItem) {
@@ -169,15 +209,22 @@ class FolderVideosFragment : Fragment() {
             }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        input.post {
+            input.requestFocus()
+        }
     }
 
     private fun confirmDelete(video: VideoItem) {
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_delete_title)
             .setMessage(getString(R.string.dialog_delete_message, video.title))
             .setPositiveButton(R.string.action_delete) { _, _ -> deleteVideosWithSystemRequest(listOf(video)) }
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
+        cancelButton.post {
+            cancelButton.requestFocus()
+        }
     }
 
     private fun deleteVideosWithSystemRequest(videos: List<VideoItem>) {

@@ -30,6 +30,33 @@ class PlayerSubtitleSettingsSheetTest {
         assertTrue(layout.contains("@+id/btn_subtitle_delay_minus"))
         assertTrue(layout.contains("@+id/btn_subtitle_delay_plus"))
         assertTrue(layout.contains("@+id/btn_subtitle_delay_reset"))
+        assertTrue(layout.contains("@+id/tv_subtitle_info_summary"))
+        assertTrue(layout.contains("@+id/btn_export_subtitle_delay_corrected"))
+    }
+
+    @Test
+    fun subtitleSettingsSheetIncludesLanguagePreferenceControls() {
+        val layout = String(Files.readAllBytes(playerSubtitleSettingsLayout()))
+        val source = String(Files.readAllBytes(playerSubtitleSettingsSheetSource()))
+
+        assertTrue(layout.contains("@+id/tv_subtitle_primary_language_value"))
+        assertTrue(layout.contains("@+id/tv_subtitle_secondary_language_value"))
+        assertTrue(layout.contains("@+id/switch_subtitle_prefer_bilingual"))
+        assertTrue(source.contains("playerPrefs.subtitlePrimaryLanguage"))
+        assertTrue(source.contains("playerPrefs.subtitleSecondaryLanguage"))
+        assertTrue(source.contains("playerPrefs.subtitlePreferBilingual"))
+    }
+
+    @Test
+    fun subtitleSettingsSheetRequestsDefaultFocusForRemoteUse() {
+        val sheetSource = String(Files.readAllBytes(playerSubtitleSettingsSheetSource()))
+        val baseSheetSource = String(Files.readAllBytes(baseSettingsSheetSource()))
+
+        assertTrue(sheetSource.contains("override fun settingsSheetDefaultFocusId(): Int = R.id.btn_load_subtitle"))
+        assertTrue(baseSheetSource.contains("protected open fun settingsSheetDefaultFocusId(): Int? = null"))
+        assertTrue(baseSheetSource.contains("requestSettingsSheetDefaultFocus()"))
+        assertTrue(baseSheetSource.contains("val defaultFocusView = view?.findViewById<View>(focusViewId) ?: return"))
+        assertTrue(baseSheetSource.contains("defaultFocusView.requestFocus()"))
     }
 
     @Test

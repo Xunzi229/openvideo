@@ -29,9 +29,9 @@ class PlayerSubtitleLoadSourceTest {
         val block = source.substringAfter("fun loadSubtitles(")
             .substringBefore("\n    fun getCurrentSubtitle()")
 
-        assertTrue(block.contains("PlayerSubtitleLoadCoordinator.load("))
+        assertTrue(block.contains("PlayerSubtitleLoadCoordinator.loadWithOutcome("))
         assertTrue(block.contains("PlayerSubtitleLoadApplyPolicy.afterLoad("))
-        assertTrue(block.contains("setSubtitles(subtitles)"))
+        assertTrue(block.contains("setSubtitles(outcome.subtitles)"))
         assertTrue(block.contains("rememberedSubtitlePath = playerPrefs.externalSubtitleUri"))
         assertTrue(block.contains("languagePreference = playerPrefs.subtitleLanguagePreference()"))
     }
@@ -46,6 +46,36 @@ class PlayerSubtitleLoadSourceTest {
         assertTrue(block.contains("SubtitleCandidateSelectionPolicy.select("))
         assertTrue(block.contains("is SubtitleCandidateSelection.AutoApply"))
         assertFalse(block.contains("subtitleFiles[0]"))
+    }
+
+    @Test
+    fun sidecarCandidateChoicesAreSurfacedInsteadOfDropped() {
+        val coordinator = String(Files.readAllBytes(kotlinSource("PlayerSubtitleLoadCoordinator.kt")))
+        val viewModel = String(Files.readAllBytes(playerViewModelSource()))
+        val controller = String(Files.readAllBytes(playerSubtitleControllerSource()))
+
+        assertTrue(coordinator.contains("sealed interface PlayerSubtitleLoadOutcome"))
+        assertTrue(coordinator.contains("data class RequiresUserChoice"))
+        assertTrue(coordinator.contains("fun loadWithOutcome("))
+        assertTrue(coordinator.contains("PlayerSubtitleLoadOutcome.RequiresUserChoice(selection.candidates)"))
+        assertTrue(viewModel.contains("onCandidateChoiceRequired: (List<SubtitleCandidate>) -> Unit"))
+        assertTrue(viewModel.contains("is PlayerSubtitleLoadOutcome.RequiresUserChoice"))
+        assertTrue(viewModel.contains("onCandidateChoiceRequired(outcome.candidates)"))
+        assertTrue(controller.contains("showSubtitleCandidateChoiceDialog"))
+        assertTrue(controller.contains("MaterialAlertDialogBuilder"))
+        assertTrue(controller.contains(".setItems("))
+        assertTrue(controller.contains("playerPrefs.externalSubtitleUri = candidate.path"))
+    }
+
+    @Test
+    fun sidecarCandidateChoiceDialogRequestsDefaultFocusForRemoteUse() {
+        val controller = String(Files.readAllBytes(playerSubtitleControllerSource()))
+        val block = controller.substringAfter("private fun showSubtitleCandidateChoiceDialog(candidates: List<SubtitleCandidate>) {")
+            .substringBefore("\n    fun registerPrefsListener()")
+
+        assertTrue(block.contains("val dialog = MaterialAlertDialogBuilder(activity)"))
+        assertTrue(block.contains("dialog.listView?.post"))
+        assertTrue(block.contains("dialog.listView?.requestFocus()"))
     }
 
     private fun playerViewModelSource(): Path {

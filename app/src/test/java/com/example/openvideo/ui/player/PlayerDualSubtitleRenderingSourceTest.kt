@@ -48,7 +48,10 @@ class PlayerDualSubtitleRenderingSourceTest {
         val source = String(Files.readAllBytes(playerDisplayControllerSource()))
 
         assertTrue(source.contains("private val secondarySubtitleProvider: () -> TextView"))
-        assertTrue(source.contains("listOf(subtitleProvider(), secondarySubtitleProvider()).forEach"))
+        assertTrue(source.contains("subtitle = subtitleProvider()"))
+        assertTrue(source.contains("subtitle = secondarySubtitleProvider()"))
+        assertTrue(source.contains("sizeSp = playerPrefs.subtitleSize"))
+        assertTrue(source.contains("sizeSp = playerPrefs.secondarySubtitleSize"))
     }
 
     private fun playerActivitySource(): Path = kotlinSource("PlayerActivity.kt")

@@ -65,6 +65,10 @@ object SettingsBackupImporter {
         section.subtitleColor?.let { prefs.subtitleColor = it }
         section.subtitleBgStyle?.let { key -> prefs.subtitleBgStyle = SubtitleBgStyle.fromKey(key) }
         section.subtitlePosition?.let { prefs.subtitlePosition = it }
+        section.secondarySubtitleSize?.let { prefs.secondarySubtitleSize = it }
+        section.secondarySubtitleColor?.let { prefs.secondarySubtitleColor = it }
+        section.secondarySubtitleBgStyle?.let { key -> prefs.secondarySubtitleBgStyle = SubtitleBgStyle.fromKey(key) }
+        section.secondarySubtitlePosition?.let { prefs.secondarySubtitlePosition = it }
         section.subtitleEncoding?.let { prefs.subtitleEncoding = it }
         section.subtitleDelayMs?.let { prefs.subtitleDelayMs = it }
         section.subtitlesEnabled?.let { prefs.subtitlesEnabled = it }

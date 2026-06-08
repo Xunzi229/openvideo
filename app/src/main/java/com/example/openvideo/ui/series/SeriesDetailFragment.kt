@@ -12,9 +12,12 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.ScreenBreakpoint
+import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
+import com.example.openvideo.ui.MainActivity
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.putSessionQueue
 import dagger.hilt.android.AndroidEntryPoint
@@ -30,6 +33,8 @@ class SeriesDetailFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
     private var episodeSnapshot: List<SeriesEpisodeUiState> = emptyList()
+    private var lastFocusedEpisodeId: Long? = null
+    private var pendingEpisodeFocusRestoreId: Long? = null
 
     companion object {
         fun newInstance(seriesId: Long, seriesTitle: String): SeriesDetailFragment {
@@ -66,26 +71,45 @@ class SeriesDetailFragment : Fragment() {
 
         recyclerView = view.findViewById(R.id.recycler_episodes)
         emptyView = view.findViewById(R.id.tv_empty)
-        adapter = SeriesEpisodeAdapter { episode ->
-            openEpisode(episode)
-        }
+        emptyView.isFocusable = true
+        emptyView.nextFocusUpId = R.id.btn_back
+        updateEpisodeFocusOrder(view, hasEpisodes = false)
+        adapter = SeriesEpisodeAdapter(
+            onClick = { episode -> openEpisode(episode) },
+            onFocusChanged = { episode -> lastFocusedEpisodeId = episode.episodeId }
+        )
 
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.layoutManager = GridLayoutManager(
+            requireContext(),
+            BrowseAdaptiveLayoutPolicy.contentSpanCount(currentBreakpoint())
+        )
         recyclerView.adapter = adapter
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.getEpisodesForSeries(seriesId).collect { episodes ->
                     episodeSnapshot = episodes
-                    adapter.submitList(episodes)
-                    emptyView.visibility = if (episodes.isEmpty()) View.VISIBLE else View.GONE
-                    recyclerView.visibility = if (episodes.isEmpty()) View.GONE else View.VISIBLE
+                    adapter.submitList(episodes) { restoreEpisodeFocusIfNeeded(episodes) }
+                    val hasEpisodes = episodes.isNotEmpty()
+                    emptyView.visibility = if (hasEpisodes) View.GONE else View.VISIBLE
+                    recyclerView.visibility = if (hasEpisodes) View.VISIBLE else View.GONE
+                    updateEpisodeFocusOrder(requireView(), hasEpisodes)
                 }
             }
         }
     }
 
+    private fun updateEpisodeFocusOrder(view: View, hasEpisodes: Boolean) {
+        val contentFocusTargetId = if (hasEpisodes) R.id.recycler_episodes else R.id.tv_empty
+        view.findViewById<View>(R.id.btn_back).nextFocusDownId = contentFocusTargetId
+    }
+
+    private fun currentBreakpoint(): ScreenBreakpoint =
+        (activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT
+
     private fun openEpisode(episode: SeriesEpisodeUiState) {
+        lastFocusedEpisodeId = episode.episodeId
+        pendingEpisodeFocusRestoreId = lastFocusedEpisodeId
         val selectedVideo = episode.toVideoItem()
         val queue = episodeSnapshot.filter { it.isAvailable }.map { it.toVideoItem() }
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
@@ -98,5 +122,18 @@ class SeriesDetailFragment : Fragment() {
             putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, selectedVideo.height)
         }
         startActivity(intent)
+    }
+
+    private fun restoreEpisodeFocusIfNeeded(episodes: List<SeriesEpisodeUiState>) {
+        val episodeId = pendingEpisodeFocusRestoreId ?: return
+        val position = episodes.indexOfFirst { it.episodeId == episodeId }
+        if (position == -1) return
+        pendingEpisodeFocusRestoreId = null
+        recyclerView.post {
+            recyclerView.scrollToPosition(position)
+            recyclerView.post {
+                recyclerView.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
+            }
+        }
     }
 }

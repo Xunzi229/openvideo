@@ -54,6 +54,13 @@ sealed interface OnlineSubtitlePrivacyDecision {
     data class Blocked(val reason: String) : OnlineSubtitlePrivacyDecision
 }
 
+data class OnlineSubtitlePrivacyNotice(
+    val title: String,
+    val sentFields: List<String>,
+    val includesFileHash: Boolean,
+    val requiresUserConfirmation: Boolean
+)
+
 object OnlineSubtitlePrivacyPolicy {
     fun evaluate(request: OnlineSubtitleSearchRequest): OnlineSubtitlePrivacyDecision {
         if (request.trigger != OnlineSubtitleSearchTrigger.MANUAL) {
@@ -64,4 +71,11 @@ object OnlineSubtitlePrivacyPolicy {
         }
         return OnlineSubtitlePrivacyDecision.Allowed
     }
+
+    fun firstUseNotice(): OnlineSubtitlePrivacyNotice = OnlineSubtitlePrivacyNotice(
+        title = "Online subtitle privacy",
+        sentFields = listOf("title", "season", "episode", "language"),
+        includesFileHash = false,
+        requiresUserConfirmation = true
+    )
 }

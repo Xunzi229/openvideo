@@ -42,18 +42,34 @@ class PlayerLockGesturePolicyTest {
     }
 
     @Test
-    fun unlockedBackPressFinishesPlayer() {
+    fun unlockedBackPressRevealsControlsBeforeFinishingPlayer() {
         assertEquals(
-            PlayerLockBackDecision(finishPlayer = true, revealLockedControls = false),
-            PlayerLockGesturePolicy.onBackPressed(isLocked = false)
+            PlayerLockBackDecision(
+                finishPlayer = false,
+                revealLockedControls = false,
+                revealControls = true
+            ),
+            PlayerLockGesturePolicy.onBackPressed(isLocked = false, controlsVisible = false)
+        )
+        assertEquals(
+            PlayerLockBackDecision(
+                finishPlayer = true,
+                revealLockedControls = false,
+                revealControls = false
+            ),
+            PlayerLockGesturePolicy.onBackPressed(isLocked = false, controlsVisible = true)
         )
     }
 
     @Test
     fun lockedBackPressOnlyRevealsUnlockControl() {
         assertEquals(
-            PlayerLockBackDecision(finishPlayer = false, revealLockedControls = true),
-            PlayerLockGesturePolicy.onBackPressed(isLocked = true)
+            PlayerLockBackDecision(
+                finishPlayer = false,
+                revealLockedControls = true,
+                revealControls = false
+            ),
+            PlayerLockGesturePolicy.onBackPressed(isLocked = true, controlsVisible = false)
         )
     }
 }

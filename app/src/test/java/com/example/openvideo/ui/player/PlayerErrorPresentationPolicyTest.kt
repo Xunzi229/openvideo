@@ -221,6 +221,19 @@ class PlayerErrorPresentationPolicyTest {
         assertTrue(source.contains("PlayerErrorPresentationPolicy.present(error.errorCode, error.cause)"))
     }
 
+    @Test
+    fun errorHudRequestsDefaultFocusOnVisibleActionAfterShowing() {
+        val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
+
+        assertTrue(source.contains("playerErrorHud.post { focusDefaultAction() }"))
+        assertTrue(source.contains("private fun focusDefaultAction()"))
+        assertTrue(source.contains("retryButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("softDecodeButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("copyDiagnosticsButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("backButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("?.requestFocus()"))
+    }
+
     private fun readResource(dir: String, file: String): String =
         String(Files.readAllBytes(resource(dir, file)))
 

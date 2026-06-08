@@ -318,6 +318,43 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun audioSettingsSheetRequestsDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(legacySettingsSource("PlayerAudioSettingsSheet.kt")))
+
+        assertTrue(source.contains("override fun settingsSheetDefaultFocusId(): Int = R.id.sw_preserve_pitch"))
+    }
+
+    @Test
+    fun displaySettingsSheetRequestsDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(legacySettingsSource("PlayerDisplaySettingsSheet.kt")))
+
+        assertTrue(source.contains("override fun settingsSheetDefaultFocusId(): Int = R.id.tv_aspect_value"))
+    }
+
+    @Test
+    fun gestureSettingsSheetRequestsDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(legacySettingsSource("PlayerGestureSettingsSheet.kt")))
+
+        assertTrue(source.contains("override fun settingsSheetDefaultFocusId(): Int = R.id.tv_left_action"))
+    }
+
+    @Test
+    fun playbackSettingsSheetRequestsDefaultFocusForSelectedSpeed() {
+        val source = String(Files.readAllBytes(legacySettingsSource("PlayerPlaybackSettingsSheet.kt")))
+        assertTrue(source.contains("override fun settingsSheetDefaultFocusId(): Int = when (playerPrefs.speed)"))
+        val defaultFocusBlock = source
+            .substringAfter("override fun settingsSheetDefaultFocusId(): Int = when (playerPrefs.speed)")
+            .substringBefore("\n\n    override fun onViewCreated")
+
+        assertTrue(defaultFocusBlock.contains("0.5f -> R.id.rb_speed_0_5"))
+        assertTrue(defaultFocusBlock.contains("0.75f -> R.id.rb_speed_0_75"))
+        assertTrue(defaultFocusBlock.contains("1.25f -> R.id.rb_speed_1_25"))
+        assertTrue(defaultFocusBlock.contains("1.5f -> R.id.rb_speed_1_5"))
+        assertTrue(defaultFocusBlock.contains("2.0f -> R.id.rb_speed_2_0"))
+        assertTrue(defaultFocusBlock.contains("else -> R.id.rb_speed_1_0"))
+    }
+
+    @Test
     fun tutorialSettingsUseChineseTextAndNestedDetailPages() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val tutorialBlock = dialogSource

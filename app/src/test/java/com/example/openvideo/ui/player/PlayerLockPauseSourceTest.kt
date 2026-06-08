@@ -42,8 +42,9 @@ class PlayerLockPauseSourceTest {
         val backCallback = source.substringAfter("override fun handleOnBackPressed() {")
             .substringBefore("\n            }")
 
-        assertTrue(backCallback.contains("PlayerLockGesturePolicy.onBackPressed(isScreenLocked)"))
+        assertTrue(backCallback.contains("PlayerLockGesturePolicy.onBackPressed(isScreenLocked, controlsVisible)"))
         assertTrue(backCallback.contains("if (decision.revealLockedControls) showLockedControls()"))
+        assertTrue(backCallback.contains("if (decision.revealControls) showControls()"))
         assertTrue(backCallback.contains("if (decision.finishPlayer) finishPlayer()"))
     }
 

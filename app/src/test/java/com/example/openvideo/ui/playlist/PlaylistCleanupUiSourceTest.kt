@@ -42,6 +42,22 @@ class PlaylistCleanupUiSourceTest {
         assertTrue(source.contains("viewModel.restorePlaylistVideos(removedVideos)"))
     }
 
+    @Test
+    fun playlistDetailDestructiveDialogsRequestCancelDefaultFocusForRemoteUse() {
+        val source = sourceText("PlaylistDetailFragment.kt")
+        val clearBlock = source.substringAfter("private fun confirmClear()")
+            .substringBefore("\n    private fun confirmCleanup()")
+        val cleanupBlock = source.substringAfter("private fun confirmCleanup()")
+            .substringBefore("\n    private fun showCleanupUndo(")
+
+        listOf(clearBlock, cleanupBlock).forEach { block ->
+            assertTrue(block.contains("setNegativeButton(R.string.action_cancel, null)"))
+            assertTrue(block.contains("getButton(android.app.AlertDialog.BUTTON_NEGATIVE)"))
+            assertTrue(block.contains("cancelButton.post"))
+            assertTrue(block.contains("cancelButton.requestFocus()"))
+        }
+    }
+
     private fun sourceText(name: String): String = String(Files.readAllBytes(sourceFile(name)))
 
     private fun sourceFile(name: String): Path {

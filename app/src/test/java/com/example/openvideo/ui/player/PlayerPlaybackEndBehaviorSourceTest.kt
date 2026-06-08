@@ -29,6 +29,21 @@ class PlayerPlaybackEndBehaviorSourceTest {
         assertTrue(dialogSource.contains("playbackEndBehaviorLabel"))
     }
 
+    @Test
+    fun playbackEndBehaviorPickerRequestsListDefaultFocusForRemoteUse() {
+        listOf(
+            String(Files.readAllBytes(playbackSettingsActivitySource())),
+            String(Files.readAllBytes(playbackSettingsSheetSource()))
+        ).forEach { source ->
+            val pickerBlock = source.substringAfter("tvPlaybackEnd.setOnClickListener")
+                .substringBefore("\n        }\n")
+
+            assertTrue(pickerBlock.contains("val dialog = AlertDialog.Builder"))
+            assertTrue(pickerBlock.contains("dialog.listView?.post"))
+            assertTrue(pickerBlock.contains("dialog.listView?.requestFocus()"))
+        }
+    }
+
     private fun playerActivitySource(): Path = moduleSource("ui", "player", "PlayerActivity.kt")
 
     private fun playerPlaybackEndControllerSource(): Path =

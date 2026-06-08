@@ -15,7 +15,8 @@ data class PlayerLockTouchDecision(
 
 data class PlayerLockBackDecision(
     val finishPlayer: Boolean,
-    val revealLockedControls: Boolean
+    val revealLockedControls: Boolean,
+    val revealControls: Boolean
 )
 
 object PlayerLockGesturePolicy {
@@ -32,10 +33,21 @@ object PlayerLockGesturePolicy {
         )
     }
 
-    fun onBackPressed(isLocked: Boolean): PlayerLockBackDecision =
-        if (isLocked) {
-            PlayerLockBackDecision(finishPlayer = false, revealLockedControls = true)
-        } else {
-            PlayerLockBackDecision(finishPlayer = true, revealLockedControls = false)
-        }
+    fun onBackPressed(isLocked: Boolean, controlsVisible: Boolean): PlayerLockBackDecision = when {
+        isLocked -> PlayerLockBackDecision(
+            finishPlayer = false,
+            revealLockedControls = true,
+            revealControls = false
+        )
+        !controlsVisible -> PlayerLockBackDecision(
+            finishPlayer = false,
+            revealLockedControls = false,
+            revealControls = true
+        )
+        else -> PlayerLockBackDecision(
+            finishPlayer = true,
+            revealLockedControls = false,
+            revealControls = false
+        )
+    }
 }

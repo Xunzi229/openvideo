@@ -1,6 +1,8 @@
 package com.example.openvideo.core.subtitle
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
 
@@ -40,5 +42,22 @@ class SubtitleFileCandidateScannerTest {
             emptyList<SubtitleFileCandidateScanner.Item>(),
             SubtitleFileCandidateScanner.candidatesNear("content://media/external/video/1")
         )
+    }
+
+    @Test
+    fun candidatesNearVideoCapsDirectoryScanAndKeepsBasenameMatches() {
+        val root = Files.createTempDirectory("openvideo-subtitle-budget").toFile()
+        val video = root.resolve("Show.S01E02.mkv").apply { writeText("video") }
+        val related = root.resolve("Show.S01E02.zh.srt").apply { writeText("related") }
+        val unrelated = (1..60).map { index ->
+            root.resolve("Other.${index.toString().padStart(2, '0')}.srt")
+                .apply { writeText("other") }
+        }
+
+        val candidates = SubtitleFileCandidateScanner.candidatesNear(video.absolutePath)
+
+        assertEquals(40, candidates.size)
+        assertTrue(candidates.any { it.path == related.absolutePath })
+        assertFalse(candidates.any { it.path == unrelated.last().absolutePath })
     }
 }

@@ -73,7 +73,18 @@ class PlayerErrorHudController(
 
         controlsContainerProvider().visibility = View.GONE
         firstFrameScrimProvider().visibility = View.GONE
-        playerErrorHudProvider().visibility = View.VISIBLE
+        val playerErrorHud = playerErrorHudProvider()
+        playerErrorHud.visibility = View.VISIBLE
+        playerErrorHud.post { focusDefaultAction() }
+    }
+
+    private fun focusDefaultAction() {
+        listOfNotNull(
+            retryButtonProvider()?.takeIf { it.isVisible },
+            softDecodeButtonProvider()?.takeIf { it.isVisible },
+            copyDiagnosticsButtonProvider()?.takeIf { it.isVisible },
+            backButtonProvider()?.takeIf { it.isVisible }
+        ).firstOrNull()?.requestFocus()
     }
 
     fun hide() {

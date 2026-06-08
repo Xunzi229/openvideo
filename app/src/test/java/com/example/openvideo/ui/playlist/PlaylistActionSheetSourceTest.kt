@@ -62,6 +62,29 @@ class PlaylistActionSheetSourceTest {
         }
     }
 
+    @Test
+    fun playlistOptionsActionSheetRequestsCancelDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(playlistOptionsActionSheetSource()))
+
+        assertTrue(source.contains("private var defaultFocusView: View? = null"))
+        assertTrue(source.contains("defaultFocusView = cancelAction"))
+        assertTrue(source.contains("requestDefaultFocus()"))
+        assertTrue(source.contains("private fun requestDefaultFocus()"))
+        assertTrue(source.contains("defaultFocusView?.post"))
+        assertTrue(source.contains("defaultFocusView?.requestFocus()"))
+    }
+
+    @Test
+    fun playlistCreateDialogRequestsNameInputDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(playlistFragmentSource()))
+        val createBlock = source.substringAfter("private fun showCreateDialog()")
+            .substringBefore("\n    private fun showPlaylistOptions(")
+
+        assertTrue(createBlock.contains("MaterialAlertDialogBuilder(requireContext())"))
+        assertTrue(createBlock.contains("input.post"))
+        assertTrue(createBlock.contains("input.requestFocus()"))
+    }
+
     private fun playlistFragmentSource(): Path = moduleSource("PlaylistFragment.kt")
     private fun playlistOptionsActionSheetSource(): Path = moduleSource("PlaylistOptionsActionSheet.kt")
     private fun playlistRenameActionSheetSource(): Path = moduleSource("PlaylistRenameActionSheet.kt")

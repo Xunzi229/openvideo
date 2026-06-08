@@ -31,6 +31,7 @@ class SettingsConfirmationActionSheet private constructor(
 
     private var closing = false
     private var content: View? = null
+    private var defaultFocusView: View? = null
     private val colors: ActionSheetColors
         get() = ActionSheetColors.from(context)
 
@@ -41,6 +42,7 @@ class SettingsConfirmationActionSheet private constructor(
         setContentView(content)
         configureWindow()
         SettingsConfirmationActionSheet.enter(content)
+        requestDefaultFocus()
     }
 
     override fun dismiss() {
@@ -133,13 +135,15 @@ class SettingsConfirmationActionSheet private constructor(
             background = roundedSheetBackground(colors)
             clipToOutline = true
         }
-        cancelCard.addView(actionText(
+        val cancelAction = actionText(
             textRes = cancelRes,
             color = colors.cancel,
             bold = true
         ).apply {
             setOnClickListener { dismissWithAnimation { super@SettingsConfirmationActionSheet.dismiss() } }
-        })
+        }
+        defaultFocusView = cancelAction
+        cancelCard.addView(cancelAction)
 
         root.addView(actionCard, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -184,6 +188,12 @@ class SettingsConfirmationActionSheet private constructor(
         val typedArray = context.obtainStyledAttributes(attrs)
         return typedArray.getDrawable(0).also {
             typedArray.recycle()
+        }
+    }
+
+    private fun requestDefaultFocus() {
+        defaultFocusView?.post {
+            defaultFocusView?.requestFocus()
         }
     }
 

@@ -11,7 +11,8 @@ import com.example.openvideo.R
 
 class VideoFolderAdapter(
     private val onClick: (VideoFolder) -> Unit,
-    private val onLongClick: (VideoFolder) -> Unit
+    private val onLongClick: (VideoFolder) -> Unit,
+    private val onFocusChanged: (VideoFolder) -> Unit = {}
 ) : ListAdapter<VideoFolder, VideoFolderAdapter.ViewHolder>(DIFF) {
 
     companion object {
@@ -41,6 +42,10 @@ class VideoFolderAdapter(
                 } else {
                     false
                 }
+            }
+            view.setOnFocusChangeListener { _, hasFocus ->
+                val position = bindingAdapterPosition
+                if (hasFocus && position != RecyclerView.NO_POSITION) onFocusChanged(getItem(position))
             }
         }
 

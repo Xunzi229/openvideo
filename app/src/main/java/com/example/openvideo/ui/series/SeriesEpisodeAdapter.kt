@@ -10,7 +10,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
 
 class SeriesEpisodeAdapter(
-    private val onClick: (SeriesEpisodeUiState) -> Unit
+    private val onClick: (SeriesEpisodeUiState) -> Unit,
+    private val onFocusChanged: (SeriesEpisodeUiState) -> Unit = {}
 ) : ListAdapter<SeriesEpisodeUiState, SeriesEpisodeAdapter.ViewHolder>(DIFF) {
 
     companion object {
@@ -34,6 +35,10 @@ class SeriesEpisodeAdapter(
                 if (pos != RecyclerView.NO_POSITION) {
                     if (getItem(pos).isAvailable) onClick(getItem(pos))
                 }
+            }
+            view.setOnFocusChangeListener { _, hasFocus ->
+                val pos = bindingAdapterPosition
+                if (hasFocus && pos != RecyclerView.NO_POSITION) onFocusChanged(getItem(pos))
             }
         }
     }

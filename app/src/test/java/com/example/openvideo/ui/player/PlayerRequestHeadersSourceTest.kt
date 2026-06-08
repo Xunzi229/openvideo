@@ -43,7 +43,7 @@ class PlayerRequestHeadersSourceTest {
         val loadSubtitles = source.substringAfter("fun loadSubtitles(")
             .substringBefore("\n    fun getCurrentSubtitle()")
 
-        assertTrue(loadSubtitles.contains("PlayerSubtitleLoadCoordinator.load("))
+        assertTrue(loadSubtitles.contains("PlayerSubtitleLoadCoordinator.loadWithOutcome("))
         assertTrue(loadSubtitles.contains("requestHeaders = requestHeaders"))
     }
 

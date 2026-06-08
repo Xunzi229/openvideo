@@ -18,6 +18,8 @@ import com.example.openvideo.core.prefs.AudioChannel
 class PlayerAudioSettingsSheet : BaseSettingsSheet() {
     override val layoutResId: Int = R.layout.activity_player_audio_settings
 
+    override fun settingsSheetDefaultFocusId(): Int = R.id.sw_preserve_pitch
+
     @Inject lateinit var playerPrefs: PlayerPrefs
 
 

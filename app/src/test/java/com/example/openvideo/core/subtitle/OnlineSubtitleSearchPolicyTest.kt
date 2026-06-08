@@ -52,6 +52,19 @@ class OnlineSubtitleSearchPolicyTest {
     }
 
     @Test
+    fun firstUseNoticeExplainsManualSearchPayloadAndRequiresConfirmation() {
+        val notice = OnlineSubtitlePrivacyPolicy.firstUseNotice()
+
+        assertEquals("Online subtitle privacy", notice.title)
+        assertTrue(notice.requiresUserConfirmation)
+        assertFalse(notice.includesFileHash)
+        assertTrue(notice.sentFields.contains("title"))
+        assertTrue(notice.sentFields.contains("season"))
+        assertTrue(notice.sentFields.contains("episode"))
+        assertTrue(notice.sentFields.contains("language"))
+    }
+
+    @Test
     fun resultAndDownloadModelsCarryDisplayAndDownloadData() {
         val result = OnlineSubtitleSearchResult(
             id = "os-1",

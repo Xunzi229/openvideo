@@ -17,10 +17,13 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
+import com.example.openvideo.ui.MainActivity
 import com.example.openvideo.ui.home.MediaLibraryEmptyState
 import com.example.openvideo.ui.home.MediaLibraryPermissionPolicy
 import com.example.openvideo.ui.home.MediaLibraryScanLoadingUi
@@ -50,6 +53,8 @@ class LocalFolderFragment : Fragment() {
     private var continuePlaybackPositionMs: Long = 0L
     private var latestEmptyState: MediaLibraryEmptyState = MediaLibraryEmptyState.LOADING
     private var latestScanProgress: MediaLibraryScanProgress? = null
+    private var lastFocusedFolderKey: String? = null
+    private var pendingFolderFocusRestoreKey: String? = null
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -67,6 +72,8 @@ class LocalFolderFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recycler_folders)
         emptyView = view.findViewById(R.id.tv_empty)
+        emptyView.isFocusable = true
+        emptyView.nextFocusUpId = R.id.btn_refresh
         scanLoadingContainer = view.findViewById(R.id.scan_loading_container)
         scanProgressBar = view.findViewById(R.id.scan_progress_bar)
         scanProgressLabel = view.findViewById(R.id.tv_scan_progress)
@@ -74,15 +81,20 @@ class LocalFolderFragment : Fragment() {
 
         adapter = VideoFolderAdapter(
             onClick = { folder -> openFolder(folder) },
-            onLongClick = { folder -> viewModel.togglePinnedFolder(folder.key) }
+            onLongClick = { folder -> viewModel.togglePinnedFolder(folder.key) },
+            onFocusChanged = { folder -> lastFocusedFolderKey = folder.key }
         )
-        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.layoutManager = GridLayoutManager(
+            requireContext(),
+            BrowseAdaptiveLayoutPolicy.contentSpanCount(currentBreakpoint())
+        )
         recyclerView.adapter = adapter
 
         continuePlaybackFab.setOnClickListener {
             continuePlaybackVideo?.let { video -> openPlayer(video) }
         }
 
+        updateFolderFocusOrder(view, hasFolders = false)
         view.findViewById<View>(R.id.btn_refresh).setOnClickListener {
             checkPermissionAndLoad()
         }
@@ -99,7 +111,7 @@ class LocalFolderFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.folders.collect { folders ->
-                        adapter.submitList(folders)
+                        adapter.submitList(folders) { restoreFolderFocusIfNeeded(folders) }
                     }
                 }
                 launch {
@@ -160,6 +172,7 @@ class LocalFolderFragment : Fragment() {
         }
 
     private fun updateFolderListVisibility(hasFolders: Boolean) {
+        view?.let { updateFolderFocusOrder(it, hasFolders) }
         if (hasFolders) {
             scanLoadingContainer.visibility = View.GONE
             emptyView.visibility = View.GONE
@@ -172,6 +185,12 @@ class LocalFolderFragment : Fragment() {
             isContentEmpty = true
         )
         recyclerView.visibility = View.GONE
+    }
+
+    private fun updateFolderFocusOrder(view: View, hasFolders: Boolean) {
+        val contentFocusTargetId = if (hasFolders) R.id.recycler_folders else R.id.tv_empty
+        view.findViewById<View>(R.id.btn_series).nextFocusDownId = contentFocusTargetId
+        view.findViewById<View>(R.id.btn_refresh).nextFocusDownId = contentFocusTargetId
     }
 
     private fun bindEmptyUi(
@@ -191,12 +210,17 @@ class LocalFolderFragment : Fragment() {
         )
     }
 
+    private fun currentBreakpoint(): ScreenBreakpoint =
+        (activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT
+
     override fun onResume() {
         super.onResume()
         checkPermissionAndLoad()
     }
 
     private fun openFolder(folder: VideoFolder) {
+        lastFocusedFolderKey = folder.key
+        pendingFolderFocusRestoreKey = lastFocusedFolderKey
         parentFragmentManager.beginTransaction()
             .replace(
                 R.id.fragment_container,
@@ -204,6 +228,19 @@ class LocalFolderFragment : Fragment() {
             )
             .addToBackStack("folder:${folder.key}")
             .commit()
+    }
+
+    private fun restoreFolderFocusIfNeeded(folders: List<VideoFolder>) {
+        val key = pendingFolderFocusRestoreKey ?: return
+        val position = folders.indexOfFirst { it.key == key }
+        if (position == -1) return
+        pendingFolderFocusRestoreKey = null
+        recyclerView.post {
+            recyclerView.scrollToPosition(position)
+            recyclerView.post {
+                recyclerView.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
+            }
+        }
     }
 
     private fun openSeriesList() {

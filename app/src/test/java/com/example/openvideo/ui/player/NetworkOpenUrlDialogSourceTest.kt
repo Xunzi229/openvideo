@@ -22,6 +22,14 @@ class NetworkOpenUrlDialogSourceTest {
     }
 
     @Test
+    fun sharedDialogRequestsUrlInputDefaultFocusForRemoteUse() {
+        val source = playerSource("NetworkOpenUrlDialog.kt")
+
+        assertTrue(source.contains("input.post"))
+        assertTrue(source.contains("input.requestFocus()"))
+    }
+
+    @Test
     fun homeFragmentUsesSharedDialogInsteadOfDuplicatingUrlValidation() {
         val source = loadText(
             Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "home", "HomeFragment.kt")
