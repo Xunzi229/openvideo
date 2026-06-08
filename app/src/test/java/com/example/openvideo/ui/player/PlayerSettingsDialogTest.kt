@@ -355,6 +355,22 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun legacyPlayerSettingsActivitiesRequestDefaultFocusForRemoteUse() {
+        mapOf(
+            "PlayerAudioSettingsActivity.kt" to "swPitch.requestFocus()",
+            "PlayerDisplaySettingsActivity.kt" to "tvAspect.requestFocus()",
+            "PlayerGestureSettingsActivity.kt" to "tvLeft.requestFocus()",
+            "PlayerPlaybackSettingsActivity.kt" to "findViewById<View>(rgSpeed.checkedRadioButtonId)?.requestFocus()",
+            "PlayerSubtitleSettingsActivity.kt" to "btnLoad.requestFocus()"
+        ).forEach { (fileName, focusRequest) ->
+            val source = String(Files.readAllBytes(legacySettingsSource(fileName)))
+
+            assertTrue("$fileName should post default focus", source.contains(".post {"))
+            assertTrue("$fileName should request the expected default focus", source.contains(focusRequest))
+        }
+    }
+
+    @Test
     fun tutorialSettingsUseChineseTextAndNestedDetailPages() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
         val tutorialBlock = dialogSource

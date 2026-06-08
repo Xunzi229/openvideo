@@ -51,6 +51,10 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
         val btnSubtitleDelayPlus = findViewById<MaterialButton>(R.id.btn_subtitle_delay_plus)
         val btnSubtitleDelayReset = findViewById<MaterialButton>(R.id.btn_subtitle_delay_reset)
 
+        btnLoad.post {
+            btnLoad.requestFocus()
+        }
+
         fun updateSubtitlePreview(position: Float = playerPrefs.subtitlePosition) {
             PlayerSubtitleSettingsPreviewPolicy.apply(
                 preview = tvPreview,

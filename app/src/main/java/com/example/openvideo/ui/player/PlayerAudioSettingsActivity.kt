@@ -24,6 +24,10 @@ class PlayerAudioSettingsActivity : ComponentActivity() {
         val tvChannel = findViewById<TextView>(R.id.tv_channel_value)
         val tvDelay = findViewById<TextView>(R.id.tv_delay_value)
 
+        swPitch.post {
+            swPitch.requestFocus()
+        }
+
         swPitch.isChecked = playerPrefs.speedPreservePitch
         swPitch.setOnCheckedChangeListener { _, checked -> playerPrefs.speedPreservePitch = checked }
 

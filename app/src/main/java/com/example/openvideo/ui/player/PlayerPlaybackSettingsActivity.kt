@@ -10,6 +10,7 @@ import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import com.example.openvideo.core.prefs.PlayerPrefs
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
+import android.view.View
 import android.widget.TextView
 import android.widget.RadioGroup
 
@@ -53,6 +54,9 @@ class PlayerPlaybackSettingsActivity : ComponentActivity() {
                 else -> 1.0f
             }
             playerPrefs.speed = speed
+        }
+        rgSpeed.post {
+            findViewById<View>(rgSpeed.checkedRadioButtonId)?.requestFocus()
         }
 
         // Loop mode

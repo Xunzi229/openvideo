@@ -39,6 +39,10 @@ class PlayerDisplaySettingsActivity : ComponentActivity() {
         val swMirror = findViewById<SwitchMaterial>(R.id.sw_mirror)
         val swAutoOrientation = findViewById<SwitchMaterial>(R.id.sw_auto_orientation)
 
+        tvAspect.post {
+            tvAspect.requestFocus()
+        }
+
         fun updateAspectText() {
             val textRes = when (aspectRatios[aspectIndex]) {
                 AspectRatio.FIT -> R.string.settings_ratio_fit

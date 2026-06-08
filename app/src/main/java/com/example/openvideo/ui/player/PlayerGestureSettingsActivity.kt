@@ -28,6 +28,10 @@ class PlayerGestureSettingsActivity : ComponentActivity() {
         val doubleTapActions = com.example.openvideo.core.prefs.DoubleTapAction.entries.toTypedArray()
         val longPressActions = com.example.openvideo.core.prefs.LongPressAction.entries.toTypedArray()
 
+        tvLeft.post {
+            tvLeft.requestFocus()
+        }
+
         fun updateAllTexts() {
             tvLeft.text = playerPrefs.leftVerticalGesture.key
             tvRight.text = playerPrefs.rightVerticalGesture.key
