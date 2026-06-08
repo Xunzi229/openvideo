@@ -2,15 +2,20 @@ package com.example.openvideo.ui.settings
 
 import android.app.Dialog
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -19,6 +24,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
+import com.example.openvideo.core.ui.ScreenBreakpoint
+import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.ui.player.PlayerAspectRatioOptions
@@ -26,6 +33,7 @@ import com.example.openvideo.ui.player.PlayerGlassSheetChoice
 import com.example.openvideo.ui.player.PlayerGlassSheetDialog
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @AndroidEntryPoint
 class SettingsFragment : Fragment() {
@@ -100,6 +108,7 @@ class SettingsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        applyAdaptiveSettingsLayout(view)
 
         val tvTheme = view.findViewById<TextView>(R.id.tv_theme_value)
         val tvLanguage = view.findViewById<TextView>(R.id.tv_language_value)
@@ -208,6 +217,52 @@ class SettingsFragment : Fragment() {
             }
         }
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        view?.let(::applyAdaptiveSettingsLayout)
+    }
+
+    private fun applyAdaptiveSettingsLayout(view: View) {
+        val breakpoint = (activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT
+        val wide = breakpoint.isAtLeastMedium
+        val content = view.findViewById<LinearLayout>(R.id.settings_content)
+        val columns = view.findViewById<LinearLayout>(R.id.settings_columns)
+        val primaryColumn = view.findViewById<LinearLayout>(R.id.settings_primary_column)
+        val secondaryColumn = view.findViewById<LinearLayout>(R.id.settings_secondary_column)
+        val horizontalPadding = if (wide) 16.dpToPx() else 0
+        val columnGap = if (wide) 12.dpToPx() else 0
+        val maxContentWidthDp = if (breakpoint == ScreenBreakpoint.EXPANDED) 1120 else 920
+
+        content.updateLayoutParams<FrameLayout.LayoutParams> {
+            width = if (wide) {
+                maxContentWidthDp.dpToPx().coerceAtMost(resources.displayMetrics.widthPixels)
+            } else {
+                ViewGroup.LayoutParams.MATCH_PARENT
+            }
+            gravity = if (wide) Gravity.TOP or Gravity.CENTER_HORIZONTAL else Gravity.TOP
+        }
+        if (wide) {
+            columns.orientation = LinearLayout.HORIZONTAL
+        } else {
+            columns.orientation = LinearLayout.VERTICAL
+        }
+        columns.setPadding(horizontalPadding, 0, horizontalPadding, 0)
+        primaryColumn.updateLayoutParams<LinearLayout.LayoutParams> {
+            width = if (wide) 0 else ViewGroup.LayoutParams.MATCH_PARENT
+            weight = if (wide) 1f else 0f
+            marginStart = 0
+            marginEnd = columnGap
+        }
+        secondaryColumn.updateLayoutParams<LinearLayout.LayoutParams> {
+            width = if (wide) 0 else ViewGroup.LayoutParams.MATCH_PARENT
+            weight = if (wide) 1f else 0f
+            marginStart = columnGap
+            marginEnd = 0
+        }
+    }
+
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).roundToInt()
 
     private fun updateThemeLabel(tv: TextView) {
         tv.text = when (viewModel.themeMode) {

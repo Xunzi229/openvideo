@@ -8,6 +8,7 @@
     android:fillViewport="true">
 
     <LinearLayout
+        android:id="@+id/settings_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -24,6 +25,18 @@
             android:textColor="@color/ov_text_primary"
             android:textSize="28sp"
             android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/settings_columns"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/settings_primary_column"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
         <!-- General Section -->
         <TextView
@@ -273,6 +286,14 @@
             android:layout_height="0.5dp"
             android:background="@color/ov_divider" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/settings_secondary_column"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
         <!-- Storage Section -->
         <TextView
             android:layout_width="match_parent"
@@ -469,6 +490,10 @@
                 android:text="@string/settings_license"
                 android:textColor="@color/ov_text_primary"
                 android:textSize="16sp" />
+        </LinearLayout>
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>
