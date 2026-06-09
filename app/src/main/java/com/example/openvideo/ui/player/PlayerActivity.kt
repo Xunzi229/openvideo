@@ -867,14 +867,14 @@ class PlayerActivity : AppCompatActivity() {
                 togglePlayPauseAndSyncIcon()
             }
             KeyEvent.KEYCODE_DPAD_LEFT,
-            KeyEvent.KEYCODE_MEDIA_REWIND -> runRemoteTransportAction {
+            KeyEvent.KEYCODE_MEDIA_REWIND -> runRemoteSeekAction(event) {
                 viewModel.seekBackward()
             }
             KeyEvent.KEYCODE_J -> runKeyboardShortcutAction(keyCode, event) {
                 viewModel.seekBackward()
             }
             KeyEvent.KEYCODE_DPAD_RIGHT,
-            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> runRemoteTransportAction {
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> runRemoteSeekAction(event) {
                 viewModel.seekForward()
             }
             KeyEvent.KEYCODE_L -> runKeyboardShortcutAction(keyCode, event) {
@@ -906,6 +906,12 @@ class PlayerActivity : AppCompatActivity() {
         }
         action()
         return true
+    }
+
+    private fun runRemoteSeekAction(event: KeyEvent, action: () -> Unit): Boolean {
+        // Android reports D-pad long-press as repeated key down events; each repeat is one seek interval.
+        if (event.repeatCount >= 0) return runRemoteTransportAction(action)
+        return super.onKeyDown(event.keyCode, event)
     }
 
     private fun runRemoteTransportAction(action: () -> Unit): Boolean {

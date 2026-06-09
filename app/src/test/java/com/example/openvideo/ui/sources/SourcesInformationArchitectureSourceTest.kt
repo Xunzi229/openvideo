@@ -38,6 +38,29 @@ class SourcesInformationArchitectureSourceTest {
     }
 
     @Test
+    fun sourcesRowsUseSharedFocusableForegroundForRemoteNavigation() {
+        val layout = resourceText("layout", "fragment_sources.xml")
+        listOf(
+            "row_source_local",
+            "row_source_open_url",
+            "row_source_webdav",
+            "row_source_future"
+        ).forEach { rowId ->
+            assertFocusableSourceRow(
+                name = rowId,
+                block = layout.substringAfter("""android:id="@+id/$rowId"""").substringBefore("<ImageView")
+            )
+        }
+
+        listOf("item_media_source.xml", "item_source_recent_playback.xml").forEach { name ->
+            assertFocusableSourceRow(
+                name = name,
+                block = resourceText("layout", name).substringBefore("<ImageView")
+            )
+        }
+    }
+
+    @Test
     fun sourcesFragmentReusesSharedOpenUrlDialog() {
         val source = sourceText("sources", "SourcesFragment.kt")
 
@@ -46,11 +69,28 @@ class SourcesInformationArchitectureSourceTest {
         assertTrue(source.contains("repository.recordNetworkRecentUrl(normalizedUrl, title)"))
     }
 
+    @Test
+    fun sourcesFragmentDefaultsFocusToLocalSourceRowForRemoteUse() {
+        val source = sourceText("sources", "SourcesFragment.kt")
+
+        assertTrue(source.contains("val localSourceRow = view.findViewById<View>(R.id.row_source_local)"))
+        assertTrue(source.contains("localSourceRow.post { localSourceRow.requestFocus() }"))
+    }
+
     private fun sourceText(vararg parts: String): String =
         loadText(Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", *parts))
 
     private fun resourceText(dir: String, name: String): String =
         loadText(Paths.get("src", "main", "res", dir, name))
+
+    private fun assertFocusableSourceRow(name: String, block: String) {
+        assertTrue("$name must be reachable by D-pad focus", block.contains("""android:focusable="true""""))
+        assertTrue("$name must remain an explicit click target", block.contains("""android:clickable="true""""))
+        assertTrue(
+            "$name must show the shared focus ring",
+            block.contains("""android:foreground="@drawable/bg_focusable_card"""")
+        )
+    }
 
     private fun loadText(relativePath: Path): String {
         val path = sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)

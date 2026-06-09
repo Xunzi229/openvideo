@@ -40,6 +40,18 @@ class PlayerRemoteKeySourceTest {
     }
 
     @Test
+    fun playerRemoteSeekKeysHandleLongPressRepeatKeyDowns() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val normalized = source.replace(Regex("\\s+"), " ")
+
+        assertTrue(normalized.contains("KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> runRemoteSeekAction(event) { viewModel.seekBackward() }"))
+        assertTrue(normalized.contains("KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> runRemoteSeekAction(event) { viewModel.seekForward() }"))
+        assertTrue(source.contains("private fun runRemoteSeekAction(event: KeyEvent, action: () -> Unit): Boolean"))
+        assertTrue(source.contains("event.repeatCount >= 0"))
+        assertTrue(source.contains("return super.onKeyDown(event.keyCode, event)"))
+    }
+
+    @Test
     fun playerActivityMapsJklKeyboardShortcutsThroughShortcutGate() {
         val source = String(Files.readAllBytes(playerActivitySource()))
         val normalized = source.replace(Regex("\\s+"), " ")

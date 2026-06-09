@@ -51,6 +51,17 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class HomeFragment : Fragment() {
 
+    companion object {
+        private const val ARG_INITIAL_CATEGORY = "initial_category"
+
+        fun newInstance(initialCategory: HomeCategory): HomeFragment =
+            HomeFragment().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_INITIAL_CATEGORY, initialCategory.name)
+                }
+            }
+    }
+
     private val viewModel: HomeViewModel by viewModels()
     private val adapters = mutableMapOf<HomeCategory, VideoGridAdapter>()
     private val recyclerViews = mutableMapOf<HomeCategory, RecyclerView>()
@@ -153,7 +164,10 @@ class HomeFragment : Fragment() {
         initCategoryList(HomeCategory.ALL, view.findViewById(R.id.recycler_all_videos))
         initCategoryList(HomeCategory.RECENT, view.findViewById(R.id.recycler_recent_videos))
         initCategoryList(HomeCategory.FAVORITES, view.findViewById(R.id.recycler_favorite_videos))
-        showCategoryPage(HomeCategory.ALL)
+        val initialCategory = initialCategory()
+        activeCategory = initialCategory
+        viewModel.setCategory(initialCategory)
+        showCategoryPage(initialCategory)
 
         view.findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {
             checkPermissionAndLoad()
@@ -172,6 +186,11 @@ class HomeFragment : Fragment() {
 
         observeVideos()
         checkPermissionAndLoad()
+    }
+
+    private fun initialCategory(): HomeCategory {
+        val name = arguments?.getString(ARG_INITIAL_CATEGORY) ?: return HomeCategory.ALL
+        return runCatching { HomeCategory.valueOf(name) }.getOrDefault(HomeCategory.ALL)
     }
 
     private fun initCategoryList(category: HomeCategory, recyclerView: RecyclerView) {

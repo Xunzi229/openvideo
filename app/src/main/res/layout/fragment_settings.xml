@@ -40,6 +40,7 @@
 
         <!-- General Section -->
         <TextView
+            android:id="@+id/settings_general_section_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingHorizontal="16dp"
@@ -54,7 +55,7 @@
         <LinearLayout
             android:id="@+id/row_theme"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -78,6 +79,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/divider_theme"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
             android:layout_marginStart="16dp"
@@ -87,7 +89,7 @@
         <LinearLayout
             android:id="@+id/row_language"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -111,6 +113,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/divider_language"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
             android:layout_marginStart="16dp"
@@ -120,7 +123,7 @@
         <LinearLayout
             android:id="@+id/row_notifications"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -136,6 +139,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/divider_notifications"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
             android:background="@color/ov_divider" />
@@ -162,7 +166,7 @@
         <LinearLayout
             android:id="@+id/row_export_settings"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -187,7 +191,7 @@
         <LinearLayout
             android:id="@+id/row_import_settings"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -225,7 +229,7 @@
         <LinearLayout
             android:id="@+id/row_default_ratio"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -258,7 +262,7 @@
         <LinearLayout
             android:id="@+id/row_default_speed"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -286,6 +290,94 @@
             android:layout_height="0.5dp"
             android:background="@color/ov_divider" />
 
+        <!-- TV Subtitle Settings -->
+        <LinearLayout
+            android:id="@+id/row_tv_subtitle_settings"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_group_subtitle"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divider_tv_subtitle_settings"
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:layout_marginStart="16dp"
+            android:background="@color/ov_divider"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- TV Audio Settings -->
+        <LinearLayout
+            android:id="@+id/row_tv_audio_settings"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_group_audio"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divider_tv_audio_settings"
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="@color/ov_divider"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <!-- TV Sources Settings -->
+        <LinearLayout
+            android:id="@+id/row_tv_sources_settings"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/nav_sources"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divider_tv_sources_settings"
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="@color/ov_divider"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
             </LinearLayout>
 
             <LinearLayout
@@ -310,7 +402,7 @@
         <LinearLayout
             android:id="@+id/row_clear_cache"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -343,7 +435,7 @@
         <LinearLayout
             android:id="@+id/row_clear_history"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -387,7 +479,7 @@
         <LinearLayout
             android:id="@+id/row_check_update"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -412,6 +504,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/divider_check_update"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
             android:layout_marginStart="16dp"
@@ -420,7 +513,7 @@
         <!-- Version -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
@@ -452,7 +545,7 @@
         <LinearLayout
             android:id="@+id/row_project_repo"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -468,6 +561,7 @@
         </LinearLayout>
 
         <View
+            android:id="@+id/divider_project_repo"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
             android:layout_marginStart="16dp"
@@ -477,7 +571,7 @@
         <LinearLayout
             android:id="@+id/row_license"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"

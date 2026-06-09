@@ -27,7 +27,7 @@ class PlayerSettingsRowBuilder(
         detailContainerProvider().addView(LinearLayout(context).apply {
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(52)
+            minimumHeight = dp(56)
             addView(TextView(context).apply {
                 text = title
                 setTextColor(Color.WHITE)
@@ -52,7 +52,7 @@ class PlayerSettingsRowBuilder(
             setTextColor(Color.rgb(85, 85, 85))
             textSize = 15f
             gravity = Gravity.CENTER_VERTICAL
-            minHeight = dp(52)
+            minHeight = dp(56)
         })
         addDivider(detailContainerProvider())
     }
@@ -67,7 +67,7 @@ class PlayerSettingsRowBuilder(
             isBaselineAligned = false
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(52)
+            minimumHeight = dp(56)
             addView(TextView(context).apply {
                 text = title
                 setTextColor(Color.WHITE)
@@ -121,7 +121,7 @@ class PlayerSettingsRowBuilder(
             buttonTintList = context.getColorStateList(R.color.player_accent)
             setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
             textSize = 15f
-            minHeight = dp(52)
+            minHeight = dp(56)
             setOnClickListener { if (enabled) onClick() }
         })
         addDivider(detailContainerProvider())
@@ -140,7 +140,7 @@ class PlayerSettingsRowBuilder(
             buttonTintList = context.getColorStateList(R.color.player_accent)
             setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
             textSize = 15f
-            minHeight = dp(52)
+            minHeight = dp(56)
             setOnCheckedChangeListener { _, value -> onChanged(value) }
         })
         addDivider(detailContainerProvider())
@@ -153,7 +153,7 @@ class PlayerSettingsRowBuilder(
                 setTextColor(Color.WHITE)
                 textSize = 15f
                 gravity = Gravity.CENTER_VERTICAL
-                minHeight = dp(52)
+                minHeight = dp(56)
                 isClickable = true
                 isFocusable = true
                 setOnClickListener { onClick() }
@@ -179,7 +179,7 @@ class PlayerSettingsRowBuilder(
                 setTextColor(context.getColor(R.color.player_accent))
                 textSize = 15f
                 gravity = Gravity.CENTER_VERTICAL
-                minHeight = dp(52)
+                minHeight = dp(56)
                 isClickable = true
                 isFocusable = true
                 setOnClickListener { onClick() }
@@ -193,7 +193,7 @@ class PlayerSettingsRowBuilder(
             isBaselineAligned = false
             gravity = Gravity.CENTER_VERTICAL
             orientation = LinearLayout.HORIZONTAL
-            minimumHeight = dp(54)
+            minimumHeight = dp(56)
             isClickable = true
             isFocusable = true
             setOnClickListener { onClick() }

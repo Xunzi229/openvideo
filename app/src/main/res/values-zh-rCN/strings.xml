@@ -567,6 +567,24 @@
     <string name="player_land_cast">投屏（敬请期待）</string>
     <string name="player_land_tv">TV</string>
 
+    <!-- TV home -->
+    <string name="tv_home_title">清影 TV</string>
+    <string name="tv_home_subtitle">用遥控器浏览，并进入现有媒体库页面。</string>
+    <string name="tv_home_continue">继续观看</string>
+    <string name="tv_home_continue_desc">最近视频和智能列表</string>
+    <string name="tv_home_continue_recent_summary">%1$s · 最近 %2$d 个</string>
+    <string name="tv_home_folders">文件夹</string>
+    <string name="tv_home_folders_desc">此设备上的本地文件夹</string>
+    <string name="tv_home_series">剧集</string>
+    <string name="tv_home_series_desc">已分组的分集</string>
+    <string name="tv_home_sources">来源</string>
+    <string name="tv_home_sources_desc">URL 和 WebDAV 来源</string>
+    <string name="tv_home_settings">设置</string>
+    <string name="tv_home_settings_desc">播放、字幕和存储</string>
+    <string name="tv_permission_title">允许访问本地视频</string>
+    <string name="tv_permission_desc">清影需要视频访问权限，才能扫描本地文件夹并在电视上显示继续观看。</string>
+    <string name="tv_permission_action">按 OK 授权并扫描</string>
+
     <!-- Dialogs -->
     <string name="dialog_delete_title">删除视频</string>
     <string name="dialog_delete_message">确定删除「%s」？删除后不可恢复。</string>

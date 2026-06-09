@@ -29,8 +29,11 @@ import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.ui.player.PlayerAspectRatioOptions
+import com.example.openvideo.ui.player.PlayerAudioSettingsActivity
 import com.example.openvideo.ui.player.PlayerGlassSheetChoice
 import com.example.openvideo.ui.player.PlayerGlassSheetDialog
+import com.example.openvideo.ui.player.PlayerSubtitleSettingsActivity
+import com.example.openvideo.ui.sources.SourcesFragment
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -157,6 +160,18 @@ class SettingsFragment : Fragment() {
             showDefaultSpeedDialog(tvSpeed)
         }
 
+        view.findViewById<View>(R.id.row_tv_subtitle_settings).setOnClickListener {
+            startActivity(Intent(requireContext(), PlayerSubtitleSettingsActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.row_tv_audio_settings).setOnClickListener {
+            startActivity(Intent(requireContext(), PlayerAudioSettingsActivity::class.java))
+        }
+
+        view.findViewById<View>(R.id.row_tv_sources_settings).setOnClickListener {
+            openTvSourcesSettings()
+        }
+
         view.findViewById<View>(R.id.row_clear_cache).setOnClickListener {
             showExclusiveSettingsDialog { onDismiss ->
                 SettingsConfirmationActionSheet.show(
@@ -224,7 +239,8 @@ class SettingsFragment : Fragment() {
     }
 
     private fun applyAdaptiveSettingsLayout(view: View) {
-        val breakpoint = (activity as? MainActivity)?.breakpoint ?: ScreenBreakpoint.COMPACT
+        val mainActivity = activity as? MainActivity
+        val breakpoint = mainActivity?.breakpoint ?: ScreenBreakpoint.COMPACT
         val wide = breakpoint.isAtLeastMedium
         val content = view.findViewById<LinearLayout>(R.id.settings_content)
         val columns = view.findViewById<LinearLayout>(R.id.settings_columns)
@@ -260,6 +276,68 @@ class SettingsFragment : Fragment() {
             marginStart = columnGap
             marginEnd = 0
         }
+        applyTvSettingsSimplification(view, mainActivity?.isTvMode == true)
+    }
+
+    private fun applyTvSettingsSimplification(view: View, tvMode: Boolean) {
+        val visibility = if (tvMode) View.GONE else View.VISIBLE
+        intArrayOf(
+            R.id.settings_general_section_title,
+            R.id.row_theme,
+            R.id.divider_theme,
+            R.id.row_language,
+            R.id.divider_language,
+            R.id.row_notifications,
+            R.id.divider_notifications,
+            R.id.row_check_update,
+            R.id.divider_check_update,
+            R.id.row_project_repo,
+            R.id.divider_project_repo
+        ).forEach { id ->
+            view.findViewById<View>(id)?.visibility = visibility
+        }
+        if (tvMode) {
+            view.findViewById<View>(R.id.settings_backup_section)?.visibility = View.GONE
+        }
+        val tvShortcutVisibility = if (tvMode) View.VISIBLE else View.GONE
+        listOf(
+            R.id.row_tv_subtitle_settings,
+            R.id.divider_tv_subtitle_settings,
+            R.id.row_tv_audio_settings,
+            R.id.divider_tv_audio_settings,
+            R.id.row_tv_sources_settings,
+            R.id.divider_tv_sources_settings
+        ).forEach { id ->
+            view.findViewById<View>(id)?.visibility = tvShortcutVisibility
+        }
+        applyTvSettingsFocusDefaults(view, tvMode)
+    }
+
+    private fun applyTvSettingsFocusDefaults(view: View, tvMode: Boolean) {
+        listOf(
+            R.id.row_default_ratio,
+            R.id.row_default_speed,
+            R.id.row_tv_subtitle_settings,
+            R.id.row_tv_audio_settings,
+            R.id.row_tv_sources_settings,
+            R.id.row_clear_cache,
+            R.id.row_clear_history,
+            R.id.row_license
+        ).forEach { id ->
+            val row = view.findViewById<View>(id) ?: return@forEach
+            row.isFocusable = tvMode
+        }
+        if (tvMode) {
+            val defaultFocus = view.findViewById<View>(R.id.row_default_ratio)
+            defaultFocus.post { defaultFocus.requestFocus() }
+        }
+    }
+
+    private fun openTvSourcesSettings() {
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.fragment_container, SourcesFragment())
+            .addToBackStack("tv_settings_sources")
+            .commit()
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).roundToInt()

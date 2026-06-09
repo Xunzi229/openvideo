@@ -66,9 +66,11 @@ class SourcesFragment : Fragment() {
         savedSourcesRecycler.adapter = savedSourcesAdapter
         savedSourcesRecycler.isNestedScrollingEnabled = false
 
-        view.findViewById<View>(R.id.row_source_local).setOnClickListener {
+        val localSourceRow = view.findViewById<View>(R.id.row_source_local)
+        localSourceRow.setOnClickListener {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav).selectedItemId = R.id.nav_home
         }
+        localSourceRow.post { localSourceRow.requestFocus() }
         view.findViewById<View>(R.id.row_source_open_url).setOnClickListener {
             NetworkOpenUrlDialog.show(requireContext()) { normalizedUrl, title ->
                 viewLifecycleOwner.lifecycleScope.launch {

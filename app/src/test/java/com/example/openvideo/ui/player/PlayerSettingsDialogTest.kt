@@ -275,6 +275,19 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
+    fun playerSettingsRowsUseAtLeast56dpTouchTargets() {
+        val rowBuilderSource = String(Files.readAllBytes(sourceFile("PlayerSettingsRowBuilder.kt")))
+        val quickRowLayout = String(Files.readAllBytes(playerQuickBottomSheetRowLayout()))
+
+        assertFalse(rowBuilderSource.contains("dp(52)"))
+        assertFalse(rowBuilderSource.contains("dp(54)"))
+        assertTrue(rowBuilderSource.contains("minimumHeight = dp(56)"))
+        assertTrue(rowBuilderSource.contains("minHeight = dp(56)"))
+        assertFalse(quickRowLayout.contains("""android:minHeight="52dp""""))
+        assertTrue(quickRowLayout.contains("""android:minHeight="56dp""""))
+    }
+
+    @Test
     fun preferenceBackedSeekRowsCommitOnStopUnlessTheyAreSafeWindowBrightness() {
         val dialogSource = String(Files.readAllBytes(playerSettingsDialogSource()))
 
@@ -565,6 +578,20 @@ class PlayerSettingsDialogTest {
             "res",
             "layout",
             "dialog_player_settings.xml"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun playerQuickBottomSheetRowLayout(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "res",
+            "layout",
+            "item_player_quick_bottom_sheet_row.xml"
         )
         return sequenceOf(
             relativePath,

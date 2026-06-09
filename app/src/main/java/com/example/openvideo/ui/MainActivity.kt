@@ -1,9 +1,11 @@
 package com.example.openvideo.ui
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.openvideo.R
@@ -22,6 +24,7 @@ import com.example.openvideo.ui.playlist.PlaylistFragment
 import com.example.openvideo.ui.settings.SettingsFragment
 import com.example.openvideo.ui.settings.SettingsViewModel
 import com.example.openvideo.ui.sources.SourcesFragment
+import com.example.openvideo.ui.tv.TvHomeFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -37,6 +40,9 @@ class MainActivity : AppCompatActivity() {
     var breakpoint: ScreenBreakpoint = ScreenBreakpoint.COMPACT
         private set
 
+    var isTvMode: Boolean = false
+        private set
+
     private val settingsViewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,14 +52,13 @@ class MainActivity : AppCompatActivity() {
         settingsViewModel.checkForAppUpdateSilently()
 
         breakpoint = WindowSizeHelper.computeBreakpoint(this)
+        isTvMode = computeTvMode()
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.isVisible = !isTvMode
         if (savedInstanceState == null) {
-            bottomNav.selectedItemId = R.id.nav_home
-        }
-
-        if (savedInstanceState == null) {
-            loadFragment(LocalFolderFragment())
+            if (!isTvMode) bottomNav.selectedItemId = R.id.nav_home
+            loadFragment(if (isTvMode) TvHomeFragment() else LocalFolderFragment())
         }
 
         bottomNav.setOnItemSelectedListener { item ->
@@ -87,7 +92,14 @@ class MainActivity : AppCompatActivity() {
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
         breakpoint = WindowSizeHelper.computeBreakpoint(this)
+        isTvMode = computeTvMode()
     }
+
+    private fun computeTvMode(): Boolean =
+        MainActivityTvModePolicy.isTvMode(
+            uiMode = resources.configuration.uiMode,
+            hasLeanbackFeature = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        )
 
     private fun pauseHiddenPlayerIfNeeded() {
         val player = playerManager.player
