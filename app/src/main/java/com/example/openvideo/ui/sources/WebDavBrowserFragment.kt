@@ -54,9 +54,11 @@ class WebDavBrowserFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        view.findViewById<View>(R.id.btn_webdav_back).setOnClickListener {
+        val backButton = view.findViewById<View>(R.id.btn_webdav_back)
+        backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
+        backButton.post { backButton.requestFocus() }
         view.findViewById<TextView>(R.id.tv_webdav_path).text = directoryUrl
         adapter = WebDavEntryAdapter { entry -> openEntry(entry) }
         view.findViewById<RecyclerView>(R.id.recycler_webdav_entries).apply {
@@ -78,6 +80,7 @@ class WebDavBrowserFragment : Fragment() {
                 progress.visibility = View.GONE
                 empty.visibility = View.VISIBLE
                 empty.setText(R.string.webdav_credentials_missing)
+                updateContentFocusTarget(hasEntries = false)
                 return@launch
             }
             this@WebDavBrowserFragment.credentials = credentials
@@ -92,14 +95,22 @@ class WebDavBrowserFragment : Fragment() {
                     progress.visibility = View.GONE
                     empty.visibility = if (result.entries.isEmpty()) View.VISIBLE else View.GONE
                     empty.setText(R.string.webdav_directory_empty)
+                    updateContentFocusTarget(result.entries.isNotEmpty())
                 }
                 is WebDavConnectionClient.DirectoryResult.Failure -> {
                     progress.visibility = View.GONE
                     empty.visibility = View.VISIBLE
                     empty.setText(webDavFailureMessage(result.error))
+                    updateContentFocusTarget(hasEntries = false)
                 }
             }
         }
+    }
+
+    private fun updateContentFocusTarget(hasEntries: Boolean) {
+        val contentFocusTargetId = if (hasEntries) R.id.recycler_webdav_entries else R.id.tv_webdav_empty
+        val backButton = requireView().findViewById<View>(R.id.btn_webdav_back)
+        backButton.nextFocusDownId = contentFocusTargetId
     }
 
     private fun openEntry(entry: WebDavDirectoryParser.Entry) {

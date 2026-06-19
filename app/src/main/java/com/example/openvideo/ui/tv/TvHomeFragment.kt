@@ -36,12 +36,15 @@ class TvHomeFragment : Fragment() {
 
     private val homeViewModel: HomeViewModel by viewModels()
     private val seriesViewModel: SeriesListViewModel by viewModels()
+    private var lastFocusedCardId: Int = R.id.tv_card_continue
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
         view?.let(::bindPermissionPanel)
         if (grants.any { it.value }) {
             navigateTo(LocalFolderFragment())
+        } else {
+            view?.let(::requestInitialFocus)
         }
     }
 
@@ -68,11 +71,15 @@ class TvHomeFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        view?.let(::bindPermissionPanel)
+        view?.let { root ->
+            bindPermissionPanel(root)
+            requestResumeFocus(root)
+        }
     }
 
     private fun bindCard(root: View, cardId: Int, fragmentFactory: () -> Fragment) {
         root.findViewById<View>(cardId).setOnClickListener {
+            lastFocusedCardId = cardId
             navigateTo(fragmentFactory())
         }
     }
@@ -95,6 +102,15 @@ class TvHomeFragment : Fragment() {
             permissionPanel.requestFocus()
         } else {
             root.findViewById<View>(R.id.tv_card_continue).requestFocus()
+        }
+    }
+
+    private fun requestResumeFocus(root: View) {
+        val permissionPanel = root.findViewById<View>(R.id.tv_permission_panel)
+        if (permissionPanel.isVisible) {
+            permissionPanel.requestFocus()
+        } else {
+            root.findViewById<View>(lastFocusedCardId).requestFocus()
         }
     }
 

@@ -37,6 +37,8 @@ class SourcesFragment : Fragment() {
 
     @Inject lateinit var repository: VideoRepository
     @Inject lateinit var webDavConnectionClient: WebDavConnectionClient
+    private var hasSavedSources = false
+    private var hasRecentPlayback = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -58,6 +60,7 @@ class SourcesFragment : Fragment() {
         recentRecycler.layoutManager = LinearLayoutManager(requireContext())
         recentRecycler.adapter = recentAdapter
         recentRecycler.isNestedScrollingEnabled = false
+        recentRecycler.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
 
         val savedSourcesAdapter = SavedMediaSourceAdapter { source -> openSourceDetail(source) }
         val savedSourcesRecycler = view.findViewById<RecyclerView>(R.id.recycler_saved_sources)
@@ -65,12 +68,14 @@ class SourcesFragment : Fragment() {
         savedSourcesRecycler.layoutManager = LinearLayoutManager(requireContext())
         savedSourcesRecycler.adapter = savedSourcesAdapter
         savedSourcesRecycler.isNestedScrollingEnabled = false
+        savedSourcesRecycler.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS
 
         val localSourceRow = view.findViewById<View>(R.id.row_source_local)
         localSourceRow.setOnClickListener {
             requireActivity().findViewById<BottomNavigationView>(R.id.bottom_nav).selectedItemId = R.id.nav_home
         }
         localSourceRow.post { localSourceRow.requestFocus() }
+        updateSourcesContentFocusTargets(view, hasSavedSources, hasRecentPlayback)
         view.findViewById<View>(R.id.row_source_open_url).setOnClickListener {
             NetworkOpenUrlDialog.show(requireContext()) { normalizedUrl, title ->
                 viewLifecycleOwner.lifecycleScope.launch {
@@ -119,9 +124,11 @@ class SourcesFragment : Fragment() {
                         localFileExists = { path -> File(path).exists() }
                     )
                 }.collect { items ->
+                    hasRecentPlayback = items.isNotEmpty()
                     recentAdapter.submitList(items)
                     recentEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
                     recentRecycler.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+                    updateSourcesContentFocusTargets(view, hasSavedSources, hasRecentPlayback)
                 }
             }
         }
@@ -129,12 +136,44 @@ class SourcesFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 repository.getMediaSources().collect { sources ->
+                    hasSavedSources = sources.isNotEmpty()
                     savedSourcesAdapter.submitList(sources)
                     savedSourcesEmpty.visibility = if (sources.isEmpty()) View.VISIBLE else View.GONE
                     savedSourcesRecycler.visibility = if (sources.isEmpty()) View.GONE else View.VISIBLE
+                    updateSourcesContentFocusTargets(view, hasSavedSources, hasRecentPlayback)
                 }
             }
         }
+    }
+
+    private fun updateSourcesContentFocusTargets(
+        view: View,
+        hasSavedSources: Boolean,
+        hasRecentPlayback: Boolean
+    ) {
+        val contentAfterOpenUrlId = when {
+            hasSavedSources -> R.id.recycler_saved_sources
+            hasRecentPlayback -> R.id.recycler_source_recent
+            else -> R.id.row_source_webdav
+        }
+        val contentAfterSavedId = if (hasRecentPlayback) R.id.recycler_source_recent else R.id.row_source_webdav
+        val webDavUpId = when {
+            hasRecentPlayback -> R.id.recycler_source_recent
+            hasSavedSources -> R.id.recycler_saved_sources
+            else -> R.id.row_source_open_url
+        }
+
+        view.findViewById<View>(R.id.row_source_local).nextFocusDownId = R.id.row_source_open_url
+        view.findViewById<View>(R.id.row_source_open_url).nextFocusUpId = R.id.row_source_local
+        view.findViewById<View>(R.id.row_source_open_url).nextFocusDownId = contentAfterOpenUrlId
+        view.findViewById<View>(R.id.recycler_saved_sources).nextFocusUpId = R.id.row_source_open_url
+        view.findViewById<View>(R.id.recycler_saved_sources).nextFocusDownId = contentAfterSavedId
+        view.findViewById<View>(R.id.recycler_source_recent).nextFocusUpId =
+            if (hasSavedSources) R.id.recycler_saved_sources else R.id.row_source_open_url
+        view.findViewById<View>(R.id.recycler_source_recent).nextFocusDownId = R.id.row_source_webdav
+        view.findViewById<View>(R.id.row_source_webdav).nextFocusUpId = webDavUpId
+        view.findViewById<View>(R.id.row_source_webdav).nextFocusDownId = R.id.row_source_future
+        view.findViewById<View>(R.id.row_source_future).nextFocusUpId = R.id.row_source_webdav
     }
 
     private fun openSourceDetail(source: MediaSourceEntity) {

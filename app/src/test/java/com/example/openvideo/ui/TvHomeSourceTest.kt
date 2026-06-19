@@ -73,10 +73,27 @@ class TvHomeSourceTest {
             """android:nextFocusUp="@id/tv_card_folders"""",
             """android:nextFocusLeft="@id/tv_card_series"""",
             """android:nextFocusRight="@id/tv_card_settings"""",
-            """android:nextFocusLeft="@id/tv_card_sources""""
+            """android:nextFocusLeft="@id/tv_card_sources"""",
+            """android:nextFocusUp="@id/tv_card_folders"""",
+            """android:nextFocusRight="@id/tv_card_settings"""",
+            """android:nextFocusDown="@id/tv_card_settings""""
         ).forEach { focusRule ->
             assertTrue("Missing focus rule: $focusRule", layout.contains(focusRule))
         }
+    }
+
+    @Test
+    fun tvHomeLayoutKeepsDpadFocusInsideCardGridAtEdges() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+
+        assertTrue(cardBlock(layout, "tv_card_continue").contains("""android:nextFocusLeft="@id/tv_card_continue""""))
+        assertTrue(cardBlock(layout, "tv_card_folders").contains("""android:nextFocusUp="@id/tv_card_folders""""))
+        assertTrue(cardBlock(layout, "tv_card_folders").contains("""android:nextFocusRight="@id/tv_card_folders""""))
+        assertTrue(cardBlock(layout, "tv_card_series").contains("""android:nextFocusLeft="@id/tv_card_series""""))
+        assertTrue(cardBlock(layout, "tv_card_series").contains("""android:nextFocusDown="@id/tv_card_series""""))
+        assertTrue(cardBlock(layout, "tv_card_sources").contains("""android:nextFocusDown="@id/tv_card_sources""""))
+        assertTrue(cardBlock(layout, "tv_card_settings").contains("""android:nextFocusRight="@id/tv_card_settings""""))
+        assertTrue(cardBlock(layout, "tv_card_settings").contains("""android:nextFocusDown="@id/tv_card_settings""""))
     }
 
     @Test
@@ -165,15 +182,18 @@ class TvHomeSourceTest {
         val source = loadText(
             Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
         )
+        val permissionPanelBlock = cardBlock(layout, "tv_permission_panel")
 
         assertTrue(layout.contains("""android:id="@+id/tv_permission_panel""""))
         assertTrue(layout.contains("""@string/tv_permission_title"""))
         assertTrue(layout.contains("""@string/tv_permission_desc"""))
         assertTrue(layout.contains("""@string/tv_permission_action"""))
-        assertTrue(layout.contains("""android:focusable="true""""))
-        assertTrue(layout.contains("""android:foreground="@drawable/bg_focusable_card""""))
-        assertTrue(layout.contains("""android:nextFocusDown="@id/tv_card_continue""""))
-        assertTrue(layout.contains("""android:nextFocusUp="@id/tv_permission_panel""""))
+        assertTrue(permissionPanelBlock.contains("""android:focusable="true""""))
+        assertTrue(permissionPanelBlock.contains("""android:foreground="@drawable/bg_focusable_card""""))
+        assertTrue(permissionPanelBlock.contains("""android:nextFocusUp="@id/tv_permission_panel""""))
+        assertTrue(permissionPanelBlock.contains("""android:nextFocusLeft="@id/tv_permission_panel""""))
+        assertTrue(permissionPanelBlock.contains("""android:nextFocusRight="@id/tv_permission_panel""""))
+        assertTrue(permissionPanelBlock.contains("""android:nextFocusDown="@id/tv_card_continue""""))
 
         assertTrue(source.contains("import androidx.activity.result.contract.ActivityResultContracts"))
         assertTrue(source.contains("import androidx.core.content.ContextCompat"))
@@ -199,8 +219,36 @@ class TvHomeSourceTest {
         assertTrue(source.contains("continueCard.nextFocusUpId = if (permissionPanel.isVisible) permissionPanel.id else continueCard.id"))
     }
 
+    @Test
+    fun tvHomePermissionDenialReturnsFocusToPermissionPanel() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("if (grants.any { it.value }) {"))
+        assertTrue(source.contains("navigateTo(LocalFolderFragment())"))
+        assertTrue(source.contains("} else {"))
+        assertTrue(source.contains("view?.let(::requestInitialFocus)"))
+    }
+
+    @Test
+    fun tvHomeRestoresLastFocusedCardWhenReturningFromChildScreen() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("private var lastFocusedCardId: Int = R.id.tv_card_continue"))
+        assertTrue(source.contains("lastFocusedCardId = cardId"))
+        assertTrue(source.contains("requestResumeFocus(root)"))
+        assertTrue(source.contains("root.findViewById<View>(lastFocusedCardId).requestFocus()"))
+    }
+
     private fun loadText(relativePath: Path): String {
         val path = sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
         return String(Files.readAllBytes(path))
     }
+
+    private fun cardBlock(layout: String, id: String): String =
+        layout.substringAfter("""android:id="@+id/$id"""")
+            .substringBefore("</LinearLayout>")
 }

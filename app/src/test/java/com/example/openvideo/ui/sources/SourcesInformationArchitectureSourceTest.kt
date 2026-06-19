@@ -77,6 +77,25 @@ class SourcesInformationArchitectureSourceTest {
         assertTrue(source.contains("localSourceRow.post { localSourceRow.requestFocus() }"))
     }
 
+    @Test
+    fun sourcesFragmentKeepsRemoteFocusOrderAlignedWithDynamicSections() {
+        val source = sourceText("sources", "SourcesFragment.kt")
+
+        assertTrue(source.contains("recentRecycler.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS"))
+        assertTrue(source.contains("savedSourcesRecycler.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS"))
+        assertTrue(source.contains("private fun updateSourcesContentFocusTargets("))
+        assertTrue(source.contains("val contentAfterOpenUrlId = when"))
+        assertTrue(source.contains("R.id.recycler_saved_sources"))
+        assertTrue(source.contains("R.id.recycler_source_recent"))
+        assertTrue(source.contains("R.id.row_source_webdav"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_local).nextFocusDownId = R.id.row_source_open_url"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_open_url).nextFocusUpId = R.id.row_source_local"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_open_url).nextFocusDownId = contentAfterOpenUrlId"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_webdav).nextFocusDownId = R.id.row_source_future"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_future).nextFocusUpId = R.id.row_source_webdav"))
+        assertTrue(source.contains("updateSourcesContentFocusTargets(view, hasSavedSources, hasRecentPlayback)"))
+    }
+
     private fun sourceText(vararg parts: String): String =
         loadText(Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", *parts))
 

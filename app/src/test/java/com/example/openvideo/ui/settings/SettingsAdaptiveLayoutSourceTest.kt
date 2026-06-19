@@ -102,6 +102,25 @@ class SettingsAdaptiveLayoutSourceTest {
     }
 
     @Test
+    fun tvModeSettingsRowsHaveStableRemoteFocusOrder() {
+        val fragment = String(Files.readAllBytes(settingsFragmentSource()))
+
+        assertTrue(fragment.contains("applyTvSettingsFocusOrder(view)"))
+        assertTrue(fragment.contains("private fun applyTvSettingsFocusOrder(view: View)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_default_ratio, R.id.row_default_ratio, R.id.row_default_speed)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_default_speed, R.id.row_default_ratio, R.id.row_tv_subtitle_settings)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_tv_subtitle_settings, R.id.row_default_speed, R.id.row_tv_audio_settings)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_tv_audio_settings, R.id.row_tv_subtitle_settings, R.id.row_tv_sources_settings)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_tv_sources_settings, R.id.row_tv_audio_settings, R.id.row_clear_cache)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_clear_cache, R.id.row_tv_sources_settings, R.id.row_clear_history)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_clear_history, R.id.row_clear_cache, R.id.row_license)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_license, R.id.row_clear_history, R.id.row_license)"))
+        assertTrue(fragment.contains("private fun linkTvSettingsFocus(view: View, rowId: Int, upId: Int, downId: Int)"))
+        assertTrue(fragment.contains("row.nextFocusUpId = upId"))
+        assertTrue(fragment.contains("row.nextFocusDownId = downId"))
+    }
+
+    @Test
     fun tvModeSettingsExposeSubtitleAndAudioShortcutsThroughExistingActivities() {
         val fragment = String(Files.readAllBytes(settingsFragmentSource()))
         val layout = String(Files.readAllBytes(settingsLayoutSource()))

@@ -56,7 +56,11 @@
         android:id="@+id/tv_webdav_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="@drawable/bg_focusable_card"
         android:gravity="center"
+        android:nextFocusUp="@id/btn_webdav_back"
         android:padding="24dp"
         android:text="@string/webdav_directory_empty"
         android:textColor="@color/ov_text_secondary"
@@ -68,5 +72,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:descendantFocusability="afterDescendants"
+        android:nextFocusUp="@id/btn_webdav_back"
         android:overScrollMode="never" />
 </LinearLayout>

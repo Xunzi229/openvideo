@@ -43,9 +43,11 @@ class SourceDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.findViewById<View>(R.id.btn_back).setOnClickListener {
+        val backButton = view.findViewById<View>(R.id.btn_back)
+        backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
+        backButton.post { backButton.requestFocus() }
         view.findViewById<Button>(R.id.btn_test_source).setOnClickListener {
             testCurrentSource()
         }
@@ -70,10 +72,11 @@ class SourceDetailFragment : Fragment() {
         currentSource = source
         val missing = view?.findViewById<TextView>(R.id.tv_source_detail_missing) ?: return
         if (source == null) {
-            missing.visibility = View.VISIBLE
+            showMissingSource(missing)
             return
         }
         missing.visibility = View.GONE
+        setSourceDetailContentVisible(isVisible = true)
         val state = SourceDetailPresentationPolicy.buildUiState(
             source = source,
             labels = SourceDetailLabels.from(requireContext()),
@@ -85,9 +88,50 @@ class SourceDetailFragment : Fragment() {
         requireView().findViewById<TextView>(R.id.tv_source_detail_last_used).text =
             getString(R.string.source_detail_last_used, state.lastUsedLabel)
         requireView().findViewById<Button>(R.id.btn_test_source).isEnabled = state.canTestConnection
+        val showBrowse = source.type.equals("webdav", ignoreCase = true)
         requireView().findViewById<Button>(R.id.btn_browse_source).visibility =
-            if (source.type.equals("webdav", ignoreCase = true)) View.VISIBLE else View.GONE
+            if (showBrowse) View.VISIBLE else View.GONE
+        applyActionFocusOrder(showBrowse)
         requireView().findViewById<Button>(R.id.btn_delete_source).isEnabled = state.canDelete
+    }
+
+    private fun showMissingSource(missing: TextView) {
+        missing.visibility = View.VISIBLE
+        setSourceDetailContentVisible(isVisible = false)
+        val backButton = requireView().findViewById<View>(R.id.btn_back)
+        backButton.nextFocusDownId = R.id.tv_source_detail_missing
+        missing.nextFocusUpId = R.id.btn_back
+    }
+
+    private fun setSourceDetailContentVisible(isVisible: Boolean) {
+        val visibility = if (isVisible) View.VISIBLE else View.GONE
+        listOf(
+            R.id.tv_source_detail_type,
+            R.id.tv_source_detail_name,
+            R.id.tv_source_detail_address,
+            R.id.tv_source_detail_last_used,
+            R.id.btn_test_source,
+            R.id.btn_browse_source,
+            R.id.btn_delete_source,
+            R.id.tv_source_detail_privacy_notice
+        ).forEach { id ->
+            requireView().findViewById<View>(id).visibility = visibility
+        }
+    }
+
+    private fun applyActionFocusOrder(showBrowse: Boolean) {
+        val root = requireView()
+        val backButton = root.findViewById<View>(R.id.btn_back)
+        val testButton = root.findViewById<Button>(R.id.btn_test_source)
+        val browseButton = root.findViewById<Button>(R.id.btn_browse_source)
+        val deleteButton = root.findViewById<Button>(R.id.btn_delete_source)
+
+        backButton.nextFocusDownId = R.id.btn_test_source
+        testButton.nextFocusUpId = R.id.btn_back
+        testButton.nextFocusDownId = if (showBrowse) R.id.btn_browse_source else R.id.btn_delete_source
+        browseButton.nextFocusUpId = R.id.btn_test_source
+        browseButton.nextFocusDownId = R.id.btn_delete_source
+        deleteButton.nextFocusUpId = if (showBrowse) R.id.btn_browse_source else R.id.btn_test_source
     }
 
     private fun testCurrentSource() {

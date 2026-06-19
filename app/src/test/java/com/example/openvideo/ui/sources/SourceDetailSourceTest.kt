@@ -62,6 +62,46 @@ class SourceDetailSourceTest {
     }
 
     @Test
+    fun sourceDetailFragmentDefaultsFocusToBackButtonForRemoteUse() {
+        val source = sourceText("sources", "SourceDetailFragment.kt")
+
+        assertTrue(source.contains("val backButton = view.findViewById<View>(R.id.btn_back)"))
+        assertTrue(source.contains("backButton.post { backButton.requestFocus() }"))
+    }
+
+    @Test
+    fun sourceDetailFragmentKeepsActionFocusOrderStableWhenBrowseIsHidden() {
+        val source = sourceText("sources", "SourceDetailFragment.kt")
+
+        assertTrue(source.contains("private fun applyActionFocusOrder(showBrowse: Boolean)"))
+        assertTrue(source.contains("backButton.nextFocusDownId = R.id.btn_test_source"))
+        assertTrue(source.contains("testButton.nextFocusUpId = R.id.btn_back"))
+        assertTrue(source.contains("testButton.nextFocusDownId = if (showBrowse) R.id.btn_browse_source else R.id.btn_delete_source"))
+        assertTrue(source.contains("browseButton.nextFocusUpId = R.id.btn_test_source"))
+        assertTrue(source.contains("browseButton.nextFocusDownId = R.id.btn_delete_source"))
+        assertTrue(source.contains("deleteButton.nextFocusUpId = if (showBrowse) R.id.btn_browse_source else R.id.btn_test_source"))
+        assertTrue(source.contains("val showBrowse = source.type.equals(\"webdav\", ignoreCase = true)"))
+        assertTrue(source.contains("applyActionFocusOrder(showBrowse)"))
+    }
+
+    @Test
+    fun sourceDetailMissingStateKeepsRemoteFocusOnBackAndMessage() {
+        val source = sourceText("sources", "SourceDetailFragment.kt")
+        val layout = resourceText("layout", "fragment_source_detail.xml")
+        val missingBlock = layout.substringAfter("""android:id="@+id/tv_source_detail_missing"""")
+
+        assertTrue(missingBlock.contains("""android:clickable="true""""))
+        assertTrue(missingBlock.contains("""android:focusable="true""""))
+        assertTrue(missingBlock.contains("""android:foreground="@drawable/bg_focusable_card""""))
+        assertTrue(missingBlock.contains("""android:nextFocusUp="@id/btn_back""""))
+        assertTrue(source.contains("private fun showMissingSource(missing: TextView)"))
+        assertTrue(source.contains("setSourceDetailContentVisible(isVisible = false)"))
+        assertTrue(source.contains("backButton.nextFocusDownId = R.id.tv_source_detail_missing"))
+        assertTrue(source.contains("missing.nextFocusUpId = R.id.btn_back"))
+        assertTrue(source.contains("setSourceDetailContentVisible(isVisible = true)"))
+    }
+
+    @Test
     fun destructiveConfirmationRuleRequiresSettingsActionSheetStyle() {
         val designSystem = rootText("docs", "design-system.md")
 

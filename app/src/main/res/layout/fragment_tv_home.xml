@@ -42,6 +42,9 @@
             android:focusable="true"
             android:foreground="@drawable/bg_focusable_card"
             android:minHeight="96dp"
+            android:nextFocusUp="@id/tv_permission_panel"
+            android:nextFocusLeft="@id/tv_permission_panel"
+            android:nextFocusRight="@id/tv_permission_panel"
             android:nextFocusDown="@id/tv_card_continue"
             android:orientation="vertical"
             android:padding="20dp"
@@ -91,6 +94,7 @@
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
                 android:nextFocusUp="@id/tv_permission_panel"
+                android:nextFocusLeft="@id/tv_card_continue"
                 android:nextFocusRight="@id/tv_card_folders"
                 android:nextFocusDown="@id/tv_card_series"
                 android:orientation="vertical"
@@ -143,7 +147,9 @@
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
+                android:nextFocusUp="@id/tv_card_folders"
                 android:nextFocusLeft="@id/tv_card_continue"
+                android:nextFocusRight="@id/tv_card_folders"
                 android:nextFocusDown="@id/tv_card_sources"
                 android:orientation="vertical"
                 android:padding="20dp">
@@ -192,7 +198,9 @@
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
                 android:nextFocusUp="@id/tv_card_continue"
+                android:nextFocusLeft="@id/tv_card_series"
                 android:nextFocusRight="@id/tv_card_sources"
+                android:nextFocusDown="@id/tv_card_series"
                 android:orientation="vertical"
                 android:padding="20dp">
 
@@ -245,6 +253,7 @@
                 android:nextFocusUp="@id/tv_card_folders"
                 android:nextFocusLeft="@id/tv_card_series"
                 android:nextFocusRight="@id/tv_card_settings"
+                android:nextFocusDown="@id/tv_card_sources"
                 android:orientation="vertical"
                 android:padding="20dp">
 
@@ -284,7 +293,10 @@
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
+                android:nextFocusUp="@id/tv_card_folders"
                 android:nextFocusLeft="@id/tv_card_sources"
+                android:nextFocusRight="@id/tv_card_settings"
+                android:nextFocusDown="@id/tv_card_settings"
                 android:orientation="vertical"
                 android:padding="20dp">
 

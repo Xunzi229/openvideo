@@ -328,9 +328,27 @@ class SettingsFragment : Fragment() {
             row.isFocusable = tvMode
         }
         if (tvMode) {
+            applyTvSettingsFocusOrder(view)
             val defaultFocus = view.findViewById<View>(R.id.row_default_ratio)
             defaultFocus.post { defaultFocus.requestFocus() }
         }
+    }
+
+    private fun applyTvSettingsFocusOrder(view: View) {
+        linkTvSettingsFocus(view, R.id.row_default_ratio, R.id.row_default_ratio, R.id.row_default_speed)
+        linkTvSettingsFocus(view, R.id.row_default_speed, R.id.row_default_ratio, R.id.row_tv_subtitle_settings)
+        linkTvSettingsFocus(view, R.id.row_tv_subtitle_settings, R.id.row_default_speed, R.id.row_tv_audio_settings)
+        linkTvSettingsFocus(view, R.id.row_tv_audio_settings, R.id.row_tv_subtitle_settings, R.id.row_tv_sources_settings)
+        linkTvSettingsFocus(view, R.id.row_tv_sources_settings, R.id.row_tv_audio_settings, R.id.row_clear_cache)
+        linkTvSettingsFocus(view, R.id.row_clear_cache, R.id.row_tv_sources_settings, R.id.row_clear_history)
+        linkTvSettingsFocus(view, R.id.row_clear_history, R.id.row_clear_cache, R.id.row_license)
+        linkTvSettingsFocus(view, R.id.row_license, R.id.row_clear_history, R.id.row_license)
+    }
+
+    private fun linkTvSettingsFocus(view: View, rowId: Int, upId: Int, downId: Int) {
+        val row = view.findViewById<View>(rowId) ?: return
+        row.nextFocusUpId = upId
+        row.nextFocusDownId = downId
     }
 
     private fun openTvSourcesSettings() {
