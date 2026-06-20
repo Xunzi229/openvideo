@@ -200,7 +200,7 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        bindBackupSection(view)
+        bindBackupSection(view, tvMode = (activity as? MainActivity)?.isTvMode == true)
 
         view.findViewById<View>(R.id.row_project_repo).setOnClickListener {
             startActivity(Intent(Intent.ACTION_VIEW, PROJECT_REPO_URI))
@@ -322,6 +322,7 @@ class SettingsFragment : Fragment() {
             R.id.row_tv_sources_settings,
             R.id.row_clear_cache,
             R.id.row_clear_history,
+            R.id.row_version,
             R.id.row_license
         ).forEach { id ->
             val row = view.findViewById<View>(id) ?: return@forEach
@@ -341,14 +342,17 @@ class SettingsFragment : Fragment() {
         linkTvSettingsFocus(view, R.id.row_tv_audio_settings, R.id.row_tv_subtitle_settings, R.id.row_tv_sources_settings)
         linkTvSettingsFocus(view, R.id.row_tv_sources_settings, R.id.row_tv_audio_settings, R.id.row_clear_cache)
         linkTvSettingsFocus(view, R.id.row_clear_cache, R.id.row_tv_sources_settings, R.id.row_clear_history)
-        linkTvSettingsFocus(view, R.id.row_clear_history, R.id.row_clear_cache, R.id.row_license)
-        linkTvSettingsFocus(view, R.id.row_license, R.id.row_clear_history, R.id.row_license)
+        linkTvSettingsFocus(view, R.id.row_clear_history, R.id.row_clear_cache, R.id.row_version)
+        linkTvSettingsFocus(view, R.id.row_version, R.id.row_clear_history, R.id.row_license)
+        linkTvSettingsFocus(view, R.id.row_license, R.id.row_version, R.id.row_license)
     }
 
     private fun linkTvSettingsFocus(view: View, rowId: Int, upId: Int, downId: Int) {
         val row = view.findViewById<View>(rowId) ?: return
         row.nextFocusUpId = upId
         row.nextFocusDownId = downId
+        row.nextFocusLeftId = rowId
+        row.nextFocusRightId = rowId
     }
 
     private fun openTvSourcesSettings() {
@@ -428,8 +432,12 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private fun bindBackupSection(view: View) {
+    private fun bindBackupSection(view: View, tvMode: Boolean) {
         val section = view.findViewById<View>(R.id.settings_backup_section)
+        if (tvMode) {
+            section.visibility = View.GONE
+            return
+        }
         val exportVisible = SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE
         val importVisible = SettingsBackupUiPolicy.SETTINGS_IMPORT_ENTRY_VISIBLE
         if (!exportVisible && !importVisible) {

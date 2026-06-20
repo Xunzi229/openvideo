@@ -39,6 +39,7 @@
             android:layout_marginTop="24dp"
             android:background="@drawable/bg_elevated_card_strong"
             android:clickable="true"
+            android:contentDescription="@string/tv_permission_title"
             android:focusable="true"
             android:foreground="@drawable/bg_focusable_card"
             android:minHeight="96dp"
@@ -90,6 +91,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_elevated_card_strong"
                 android:clickable="true"
+                android:contentDescription="@string/tv_home_continue"
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
@@ -144,6 +146,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_elevated_card_strong"
                 android:clickable="true"
+                android:contentDescription="@string/tv_home_folders"
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
@@ -155,6 +158,7 @@
                 android:padding="20dp">
 
                 <ImageView
+                    android:id="@+id/tv_home_folders_icon"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:contentDescription="@string/tv_home_folders"
@@ -171,6 +175,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tv_home_folders_detail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -194,6 +199,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_elevated_card_strong"
                 android:clickable="true"
+                android:contentDescription="@string/tv_home_series"
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
@@ -231,6 +237,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tv_home_series_detail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -247,6 +254,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_elevated_card_strong"
                 android:clickable="true"
+                android:contentDescription="@string/tv_home_sources"
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
@@ -258,6 +266,7 @@
                 android:padding="20dp">
 
                 <ImageView
+                    android:id="@+id/tv_home_sources_icon"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:contentDescription="@string/tv_home_sources"
@@ -274,6 +283,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tv_home_sources_detail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
@@ -290,6 +300,7 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_elevated_card_strong"
                 android:clickable="true"
+                android:contentDescription="@string/tv_home_settings"
                 android:focusable="true"
                 android:foreground="@drawable/bg_focusable_card"
                 android:minHeight="112dp"
@@ -301,6 +312,7 @@
                 android:padding="20dp">
 
                 <ImageView
+                    android:id="@+id/tv_home_settings_icon"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
                     android:contentDescription="@string/tv_home_settings"
@@ -317,6 +329,7 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tv_home_settings_detail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"

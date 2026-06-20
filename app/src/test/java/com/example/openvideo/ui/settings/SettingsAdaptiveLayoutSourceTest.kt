@@ -96,6 +96,7 @@ class SettingsAdaptiveLayoutSourceTest {
         assertTrue(fragment.contains("R.id.row_default_speed"))
         assertTrue(fragment.contains("R.id.row_clear_cache"))
         assertTrue(fragment.contains("R.id.row_clear_history"))
+        assertTrue(fragment.contains("R.id.row_version"))
         assertTrue(fragment.contains("R.id.row_license"))
         assertTrue(fragment.contains("row.isFocusable = tvMode"))
         assertTrue(fragment.contains("defaultFocus.post { defaultFocus.requestFocus() }"))
@@ -113,11 +114,39 @@ class SettingsAdaptiveLayoutSourceTest {
         assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_tv_audio_settings, R.id.row_tv_subtitle_settings, R.id.row_tv_sources_settings)"))
         assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_tv_sources_settings, R.id.row_tv_audio_settings, R.id.row_clear_cache)"))
         assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_clear_cache, R.id.row_tv_sources_settings, R.id.row_clear_history)"))
-        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_clear_history, R.id.row_clear_cache, R.id.row_license)"))
-        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_license, R.id.row_clear_history, R.id.row_license)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_clear_history, R.id.row_clear_cache, R.id.row_version)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_version, R.id.row_clear_history, R.id.row_license)"))
+        assertTrue(fragment.contains("linkTvSettingsFocus(view, R.id.row_license, R.id.row_version, R.id.row_license)"))
         assertTrue(fragment.contains("private fun linkTvSettingsFocus(view: View, rowId: Int, upId: Int, downId: Int)"))
         assertTrue(fragment.contains("row.nextFocusUpId = upId"))
         assertTrue(fragment.contains("row.nextFocusDownId = downId"))
+    }
+
+    @Test
+    fun tvModeSettingsRowsKeepHorizontalDpadFocusOnCurrentRow() {
+        val fragment = String(Files.readAllBytes(settingsFragmentSource()))
+
+        assertTrue(fragment.contains("row.nextFocusLeftId = rowId"))
+        assertTrue(fragment.contains("row.nextFocusRightId = rowId"))
+    }
+
+    @Test
+    fun tvModeSettingsKeepsVersionRowInRemoteFocusOrder() {
+        val layout = String(Files.readAllBytes(settingsLayoutSource()))
+
+        val versionRow = layout.substringBefore("""android:text="@string/settings_version"""")
+            .substringAfterLast("<LinearLayout")
+        assertTrue(versionRow.contains("""android:id="@+id/row_version""""))
+        assertTrue(versionRow.contains("""android:layout_height="56dp""""))
+        assertTrue(versionRow.contains("""android:background="?attr/selectableItemBackground""""))
+        assertTrue(
+            layout.indexOf("""android:id="@+id/row_clear_history"""") <
+                layout.indexOf("""android:id="@+id/row_version"""")
+        )
+        assertTrue(
+            layout.indexOf("""android:id="@+id/row_version"""") <
+                layout.indexOf("""android:id="@+id/row_license"""")
+        )
     }
 
     @Test
@@ -160,6 +189,18 @@ class SettingsAdaptiveLayoutSourceTest {
         assertTrue(layout.contains("""android:id="@+id/divider_tv_sources_settings""""))
         assertTrue(layout.contains("""android:text="@string/nav_sources""""))
         assertTrue(layout.contains("""android:visibility="gone""""))
+    }
+
+    @Test
+    fun tvModeKeepsBackupSectionHiddenEvenIfBackupUiSwitchesAreEnabled() {
+        val fragment = String(Files.readAllBytes(settingsFragmentSource()))
+
+        assertTrue(fragment.contains("bindBackupSection(view, tvMode = (activity as? MainActivity)?.isTvMode == true)"))
+        assertTrue(fragment.contains("private fun bindBackupSection(view: View, tvMode: Boolean)"))
+        assertTrue(fragment.contains("if (tvMode) {"))
+        assertTrue(fragment.contains("section.visibility = View.GONE"))
+        assertTrue(fragment.contains("return"))
+        assertTrue(fragment.contains("SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE"))
     }
 
     private fun settingsFragmentSource(): Path {

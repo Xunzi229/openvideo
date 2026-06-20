@@ -1,4 +1,4 @@
-package com.example.openvideo.ui
+﻿package com.example.openvideo.ui
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -97,6 +97,24 @@ class TvHomeSourceTest {
     }
 
     @Test
+    fun tvHomeFocusableCardsHaveStaticContentDescriptionFallbacks() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+
+        mapOf(
+            "tv_card_continue" to "tv_home_continue",
+            "tv_card_folders" to "tv_home_folders",
+            "tv_card_series" to "tv_home_series",
+            "tv_card_sources" to "tv_home_sources",
+            "tv_card_settings" to "tv_home_settings"
+        ).forEach { (cardId, stringName) ->
+            assertTrue(
+                "Missing contentDescription for $cardId",
+                cardOpeningTag(layout, cardId).contains("""android:contentDescription="@string/$stringName"""")
+            )
+        }
+    }
+
+    @Test
     fun tvHomeSeriesCardReusesSeriesPosterCoverWithFallback() {
         val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
         val source = loadText(
@@ -111,10 +129,52 @@ class TvHomeSourceTest {
         assertTrue(source.contains("import com.example.openvideo.ui.series.SeriesListViewModel"))
         assertTrue(source.contains("private val seriesViewModel: SeriesListViewModel by viewModels()"))
         assertTrue(source.contains("Glide.with(seriesCover)"))
-        assertTrue(source.contains(".load(posterModel(series.firstOrNull"))
+        assertTrue(source.contains(".load(posterModel(firstPosterSeries?.posterPath))"))
         assertTrue(source.contains(".placeholder(R.drawable.ic_movie)"))
         assertTrue(source.contains(".fallback(R.drawable.ic_movie)"))
         assertTrue(source.contains(".error(R.drawable.ic_movie)"))
+    }
+
+
+    @Test
+    fun tvHomeSeriesCardUpdatesCoverDescriptionFromPosterSeriesTitle() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val firstPosterSeries = series.firstOrNull { it.posterPath?.isNotBlank() == true }"))
+        assertTrue(source.contains("seriesCover.contentDescription = firstPosterSeries?.title"))
+        assertTrue(source.contains("?: getString(R.string.tv_home_series)"))
+    }
+
+    @Test
+    fun tvHomeSeriesCardShowsPosterSeriesTitleAndCountSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val strings = loadText(Paths.get("src", "main", "res", "values", "strings.xml"))
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_series_detail""""))
+        assertTrue(layout.contains("""android:text="@string/tv_home_series_desc""""))
+        assertTrue(strings.contains("""name="tv_home_series_summary""""))
+        assertTrue(source.contains("val seriesDetail = root.findViewById<TextView>(R.id.tv_home_series_detail)"))
+        assertTrue(source.contains("val seriesSummary = if (firstPosterSeries == null) {"))
+        assertTrue(source.contains("seriesDetail.text = seriesSummary"))
+        assertTrue(source.contains("getString(R.string.tv_home_series_desc)"))
+        assertTrue(source.contains("getString(R.string.tv_home_series_summary, firstPosterSeries.title, series.size)"))
+    }
+
+    @Test
+    fun tvHomeSeriesFocusableCardUsesSeriesSummaryDescription() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val seriesCard = root.findViewById<View>(R.id.tv_card_series)"))
+        assertTrue(source.contains("val seriesSummary = if (firstPosterSeries == null) {"))
+        assertTrue(source.contains("seriesDetail.text = seriesSummary"))
+        assertTrue(source.contains("seriesCard.contentDescription = seriesSummary"))
     }
 
     @Test
@@ -132,11 +192,31 @@ class TvHomeSourceTest {
         assertTrue(source.contains("private val homeViewModel: HomeViewModel by viewModels()"))
         assertTrue(source.contains("bindContinueCover(view)"))
         assertTrue(source.contains("val continueCover = root.findViewById<ImageView>(R.id.tv_home_continue_cover)"))
-        assertTrue(source.contains("homeViewModel.recentVideos.collect { recent ->"))
-        assertTrue(source.contains(".load(firstRecent?.thumbnailUri)"))
+        assertTrue(source.contains("homeViewModel.recentVideos,"))
+        assertTrue(source.contains(".load(continueCoverModel)"))
         assertTrue(source.contains(".placeholder(R.drawable.ic_play)"))
         assertTrue(source.contains(".fallback(R.drawable.ic_play)"))
         assertTrue(source.contains(".error(R.drawable.ic_play)"))
+    }
+
+    @Test
+    fun tvHomeContinueCardUsesFirstAvailableRecentThumbnail() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val continueCoverModel = recent.firstNotNullOfOrNull { it.thumbnailUri }"))
+        assertTrue(source.contains(".load(continueCoverModel)"))
+    }
+
+    @Test
+    fun tvHomeContinueCardUpdatesCoverDescriptionFromCurrentRecentTitle() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("continueCover.contentDescription = firstRecent?.title"))
+        assertTrue(source.contains("?: getString(R.string.tv_home_continue)"))
     }
 
     @Test
@@ -153,9 +233,37 @@ class TvHomeSourceTest {
         assertTrue(source.contains("import android.widget.TextView"))
         assertTrue(source.contains("val continueDetail = root.findViewById<TextView>(R.id.tv_home_continue_detail)"))
         assertTrue(source.contains("val firstRecent = recent.firstOrNull()"))
-        assertTrue(source.contains("continueDetail.text = if (firstRecent == null)"))
+        assertTrue(source.contains("val continueSummary = when {"))
+        assertTrue(source.contains("continueDetail.text = continueSummary"))
         assertTrue(source.contains("getString(R.string.tv_home_continue_desc)"))
         assertTrue(source.contains("getString(R.string.tv_home_continue_recent_summary, firstRecent.title, recent.size)"))
+    }
+
+    @Test
+    fun tvHomeContinueFocusableCardUsesRecentSummaryDescription() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val continueCard = root.findViewById<View>(R.id.tv_card_continue)"))
+        assertTrue(source.contains("val continueSummary = when {"))
+        assertTrue(source.contains("continueDetail.text = continueSummary"))
+        assertTrue(source.contains("continueCard.contentDescription = continueSummary"))
+    }
+
+    @Test
+    fun tvHomeContinueCardShowsProgressSummaryWhenRecentBadgeExists() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val strings = loadText(Paths.get("src", "main", "res", "values", "strings.xml"))
+
+        assertTrue(strings.contains("""name="tv_home_continue_progress_summary""""))
+        assertTrue(source.contains("import kotlinx.coroutines.flow.combine"))
+        assertTrue(source.contains("homeViewModel.recentContinueWatchingBadges"))
+        assertTrue(source.contains("val firstRecentBadge = firstRecent?.let { badges[it.id] }"))
+        assertTrue(source.contains("R.string.tv_home_continue_progress_summary"))
+        assertTrue(source.contains("firstRecent.title,\n                            firstRecentBadge.progressLabel,\n                            recent.size"))
     }
 
     @Test
@@ -174,6 +282,145 @@ class TvHomeSourceTest {
         assertTrue(homeSource.contains("val initialCategory = initialCategory()"))
         assertTrue(homeSource.contains("viewModel.setCategory(initialCategory)"))
         assertTrue(homeSource.contains("showCategoryPage(initialCategory)"))
+    }
+
+    @Test
+    fun tvHomeFoldersCardShowsFolderAndVideoCountSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val strings = loadText(Paths.get("src", "main", "res", "values", "strings.xml"))
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_folders_detail""""))
+        assertTrue(layout.contains("""android:text="@string/tv_home_folders_desc""""))
+        assertTrue(strings.contains("""name="tv_home_folders_summary""""))
+        assertTrue(source.contains("bindFoldersSummary(view)"))
+        assertTrue(source.contains("val foldersDetail = root.findViewById<TextView>(R.id.tv_home_folders_detail)"))
+        assertTrue(source.contains("homeViewModel.folders.collect { folders ->"))
+        assertTrue(source.contains("val videoCount = folders.sumOf { it.videoCount }"))
+        assertTrue(source.contains("val foldersSummary = if (folders.isEmpty()) {"))
+        assertTrue(source.contains("foldersDetail.text = foldersSummary"))
+        assertTrue(source.contains("getString(R.string.tv_home_folders_desc)"))
+        assertTrue(source.contains("getString(R.string.tv_home_folders_summary, folders.size, videoCount)"))
+    }
+
+    @Test
+    fun tvHomeFoldersCardUpdatesIconDescriptionWithFolderSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_folders_icon""""))
+        assertTrue(source.contains("val foldersIcon = root.findViewById<ImageView>(R.id.tv_home_folders_icon)"))
+        assertTrue(source.contains("val foldersSummary = if (folders.isEmpty()) {"))
+        assertTrue(source.contains("foldersDetail.text = foldersSummary"))
+        assertTrue(source.contains("foldersIcon.contentDescription = foldersSummary"))
+    }
+
+    @Test
+    fun tvHomeFoldersFocusableCardUsesFolderSummaryDescription() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val foldersCard = root.findViewById<View>(R.id.tv_card_folders)"))
+        assertTrue(source.contains("foldersCard.contentDescription = foldersSummary"))
+    }
+
+    @Test
+    fun tvHomeSourcesCardShowsSavedSourceCountSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val strings = loadText(Paths.get("src", "main", "res", "values", "strings.xml"))
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_sources_detail""""))
+        assertTrue(layout.contains("""android:text="@string/tv_home_sources_desc""""))
+        assertTrue(strings.contains("""name="tv_home_sources_summary""""))
+        assertTrue(source.contains("import com.example.openvideo.data.repository.VideoRepository"))
+        assertTrue(source.contains("@Inject lateinit var repository: VideoRepository"))
+        assertTrue(source.contains("bindSourcesSummary(view)"))
+        assertTrue(source.contains("val sourcesDetail = root.findViewById<TextView>(R.id.tv_home_sources_detail)"))
+        assertTrue(source.contains("repository.getMediaSources().collect { sources ->"))
+        assertTrue(source.contains("val sourcesSummary = if (sources.isEmpty()) {"))
+        assertTrue(source.contains("sourcesDetail.text = sourcesSummary"))
+        assertTrue(source.contains("getString(R.string.tv_home_sources_desc)"))
+        assertTrue(source.contains("getString(R.string.tv_home_sources_summary, sources.size)"))
+    }
+
+    @Test
+    fun tvHomeSourcesCardUpdatesIconDescriptionWithSavedSourceSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_sources_icon""""))
+        assertTrue(source.contains("val sourcesIcon = root.findViewById<ImageView>(R.id.tv_home_sources_icon)"))
+        assertTrue(source.contains("val sourcesSummary = if (sources.isEmpty()) {"))
+        assertTrue(source.contains("sourcesDetail.text = sourcesSummary"))
+        assertTrue(source.contains("sourcesIcon.contentDescription = sourcesSummary"))
+    }
+
+    @Test
+    fun tvHomeSourcesFocusableCardUsesSavedSourceSummaryDescription() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val sourcesCard = root.findViewById<View>(R.id.tv_card_sources)"))
+        assertTrue(source.contains("sourcesCard.contentDescription = sourcesSummary"))
+    }
+
+    @Test
+    fun tvHomeSettingsCardShowsDefaultPlaybackSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val strings = loadText(Paths.get("src", "main", "res", "values", "strings.xml"))
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_settings_detail""""))
+        assertTrue(layout.contains("""android:text="@string/tv_home_settings_desc""""))
+        assertTrue(strings.contains("""name="tv_home_settings_summary""""))
+        assertTrue(source.contains("import com.example.openvideo.ui.player.PlayerAspectRatioOptions"))
+        assertTrue(source.contains("import com.example.openvideo.ui.settings.SettingsViewModel"))
+        assertTrue(source.contains("private val settingsViewModel: SettingsViewModel by viewModels()"))
+        assertTrue(source.contains("bindSettingsSummary(view)"))
+        assertTrue(source.contains("val settingsDetail = root.findViewById<TextView>(R.id.tv_home_settings_detail)"))
+        assertTrue(source.contains("val ratioLabel = PlayerAspectRatioOptions.entries.firstOrNull { it.ratio == settingsViewModel.defaultRatio }"))
+        assertTrue(source.contains("val settingsSummary = getString("))
+        assertTrue(source.contains("settingsDetail.text = settingsSummary"))
+        assertTrue(source.contains("R.string.tv_home_settings_summary,"))
+        assertTrue(source.contains("getString(ratioLabel?.labelRes ?: R.string.settings_ratio_default),"))
+        assertTrue(source.contains("\"${'$'}{settingsViewModel.defaultSpeed}x\""))
+    }
+
+    @Test
+    fun tvHomeSettingsCardUpdatesIconDescriptionWithPlaybackSummary() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(layout.contains("""android:id="@+id/tv_home_settings_icon""""))
+        assertTrue(source.contains("val settingsIcon = root.findViewById<ImageView>(R.id.tv_home_settings_icon)"))
+        assertTrue(source.contains("val settingsSummary = getString("))
+        assertTrue(source.contains("settingsDetail.text = settingsSummary"))
+        assertTrue(source.contains("settingsIcon.contentDescription = settingsSummary"))
+    }
+
+    @Test
+    fun tvHomeSettingsFocusableCardUsesPlaybackSummaryDescription() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val settingsCard = root.findViewById<View>(R.id.tv_card_settings)"))
+        assertTrue(source.contains("settingsCard.contentDescription = settingsSummary"))
     }
 
     @Test
@@ -220,6 +467,28 @@ class TvHomeSourceTest {
     }
 
     @Test
+    fun tvHomePermissionPanelHasStaticContentDescriptionFallback() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+
+        assertTrue(
+            cardOpeningTag(layout, "tv_permission_panel")
+                .contains("""android:contentDescription="@string/tv_permission_title"""")
+        )
+    }
+
+    @Test
+    fun tvHomePermissionPanelUsesExistingCopyAsFocusableDescription() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("permissionPanel.contentDescription = getString("))
+        assertTrue(source.contains("R.string.tv_permission_title"))
+        assertTrue(source.contains("R.string.tv_permission_desc"))
+        assertTrue(source.contains("R.string.tv_permission_action"))
+    }
+
+    @Test
     fun tvHomePermissionDenialReturnsFocusToPermissionPanel() {
         val source = loadText(
             Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
@@ -232,6 +501,18 @@ class TvHomeSourceTest {
     }
 
     @Test
+    fun tvHomePermissionGrantReturnsToFoldersCardAfterLocalScan() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val grantBranch = source.substringAfter("if (grants.any { it.value }) {")
+            .substringBefore("} else {")
+
+        assertTrue(grantBranch.contains("lastFocusedCardId = R.id.tv_card_folders"))
+        assertTrue(grantBranch.contains("navigateTo(LocalFolderFragment())"))
+    }
+
+    @Test
     fun tvHomeRestoresLastFocusedCardWhenReturningFromChildScreen() {
         val source = loadText(
             Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
@@ -240,7 +521,80 @@ class TvHomeSourceTest {
         assertTrue(source.contains("private var lastFocusedCardId: Int = R.id.tv_card_continue"))
         assertTrue(source.contains("lastFocusedCardId = cardId"))
         assertTrue(source.contains("requestResumeFocus(root)"))
-        assertTrue(source.contains("root.findViewById<View>(lastFocusedCardId).requestFocus()"))
+        assertTrue(source.contains("requestFocusAfterLayout(resumeTarget)"))
+    }
+
+    @Test
+    fun tvHomePersistsLastFocusedCardAcrossConfigurationChanges() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("private const val KEY_LAST_FOCUSED_CARD_ID = \"tv_home_last_focused_card_id\""))
+        assertTrue(source.contains("savedInstanceState?.getInt(KEY_LAST_FOCUSED_CARD_ID, R.id.tv_card_continue)"))
+        assertTrue(source.contains("override fun onSaveInstanceState(outState: Bundle)"))
+        assertTrue(source.contains("outState.putInt(KEY_LAST_FOCUSED_CARD_ID, lastFocusedCardId)"))
+    }
+
+    @Test
+    fun tvHomeTracksFocusedCardBeforeClickingIt() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("setOnFocusChangeListener { _, hasFocus ->"))
+        assertTrue(source.contains("if (hasFocus) {"))
+        assertTrue(source.contains("lastFocusedCardId = cardId"))
+    }
+
+    @Test
+    fun tvHomeDefersInitialAndResumeFocusUntilLayoutPass() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("private fun requestFocusAfterLayout(target: View)"))
+        assertTrue(source.contains("target.post { target.requestFocus() }"))
+        assertTrue(source.contains("requestFocusAfterLayout(permissionPanel)"))
+        assertTrue(source.contains("requestFocusAfterLayout(root.findViewById(R.id.tv_card_continue))"))
+        assertTrue(source.contains("requestFocusAfterLayout(resumeTarget)"))
+    }
+
+    @Test
+    fun tvHomeFallsBackToContinueWhenSavedFocusTargetIsMissing() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("val resumeTarget = root.findViewById<View>(lastFocusedCardId)"))
+        assertTrue(source.contains("?: root.findViewById(R.id.tv_card_continue)"))
+        assertTrue(source.contains("requestFocusAfterLayout(resumeTarget)"))
+    }
+
+    @Test
+    fun tvHomeUsesResumeFocusWhenViewIsRecreatedWithSavedCard() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("if (savedInstanceState == null) {"))
+        assertTrue(source.contains("requestInitialFocus(view)"))
+        assertTrue(source.contains("} else {"))
+        assertTrue(source.contains("requestResumeFocus(view)"))
+    }
+
+    @Test
+    fun tvHomeSkipsDuplicateFocusRequestOnFirstResumeAfterViewCreated() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+
+        assertTrue(source.contains("private var skipNextResumeFocusRequest: Boolean = false"))
+        assertTrue(source.contains("skipNextResumeFocusRequest = true"))
+        assertTrue(source.contains("if (skipNextResumeFocusRequest) {"))
+        assertTrue(source.contains("skipNextResumeFocusRequest = false"))
+        assertTrue(source.contains("} else {"))
+        assertTrue(source.contains("requestResumeFocus(root)"))
     }
 
     private fun loadText(relativePath: Path): String {
@@ -251,4 +605,8 @@ class TvHomeSourceTest {
     private fun cardBlock(layout: String, id: String): String =
         layout.substringAfter("""android:id="@+id/$id"""")
             .substringBefore("</LinearLayout>")
+
+    private fun cardOpeningTag(layout: String, id: String): String =
+        layout.substringAfter("""android:id="@+id/$id"""")
+            .substringBefore(">")
 }

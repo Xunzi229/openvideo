@@ -512,8 +512,10 @@
 
         <!-- Version -->
         <LinearLayout
+            android:id="@+id/row_version"
             android:layout_width="match_parent"
             android:layout_height="56dp"
+            android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">

@@ -22,7 +22,7 @@ class SettingsBackupExportSourceTest {
             "README.md"
         ).let { String(Files.readAllBytes(it)) }
 
-        assertTrue(fragment.contains("bindBackupSection(view)"))
+        assertTrue(fragment.contains("bindBackupSection(view, tvMode = (activity as? MainActivity)?.isTvMode == true)"))
         assertTrue(fragment.contains("SettingsBackupUiPolicy.SETTINGS_EXPORT_ENTRY_VISIBLE"))
         assertTrue(policy.contains("SETTINGS_EXPORT_ENTRY_VISIBLE = false"))
         assertTrue(policy.contains("SETTINGS_IMPORT_ENTRY_VISIBLE = false"))
