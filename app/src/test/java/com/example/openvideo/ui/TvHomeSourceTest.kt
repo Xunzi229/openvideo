@@ -60,6 +60,25 @@ class TvHomeSourceTest {
     }
 
     @Test
+    fun tvHomeFocusableCardsAllowProgrammaticFocusInTouchMode() {
+        val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
+
+        listOf(
+            "tv_permission_panel",
+            "tv_card_continue",
+            "tv_card_folders",
+            "tv_card_series",
+            "tv_card_sources",
+            "tv_card_settings"
+        ).forEach { id ->
+            assertTrue(
+                "Missing focusableInTouchMode for $id",
+                cardOpeningTag(layout, id).contains("""android:focusableInTouchMode="true"""")
+            )
+        }
+    }
+
+    @Test
     fun tvHomeLayoutDefinesExplicitDpadFocusOrder() {
         val layout = loadText(Paths.get("src", "main", "res", "layout", "fragment_tv_home.xml"))
 
@@ -494,7 +513,7 @@ class TvHomeSourceTest {
             Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
         )
 
-        assertTrue(source.contains("if (grants.any { it.value }) {"))
+        assertTrue(source.contains("if (hasMediaReadAccess()) {"))
         assertTrue(source.contains("navigateTo(LocalFolderFragment())"))
         assertTrue(source.contains("} else {"))
         assertTrue(source.contains("view?.let(::requestInitialFocus)"))
@@ -505,9 +524,11 @@ class TvHomeSourceTest {
         val source = loadText(
             Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
         )
-        val grantBranch = source.substringAfter("if (grants.any { it.value }) {")
+        val grantBranch = source.substringAfter("if (hasMediaReadAccess()) {")
             .substringBefore("} else {")
 
+        assertTrue(source.contains(") { _ ->"))
+        assertTrue(source.contains("if (hasMediaReadAccess()) {"))
         assertTrue(grantBranch.contains("lastFocusedCardId = R.id.tv_card_folders"))
         assertTrue(grantBranch.contains("navigateTo(LocalFolderFragment())"))
     }
@@ -554,10 +575,25 @@ class TvHomeSourceTest {
         )
 
         assertTrue(source.contains("private fun requestFocusAfterLayout(target: View)"))
-        assertTrue(source.contains("target.post { target.requestFocus() }"))
+        assertTrue(source.contains("target.post {"))
+        assertTrue(source.contains("if (target.isShown) {"))
+        assertTrue(source.contains("target.requestFocus()"))
         assertTrue(source.contains("requestFocusAfterLayout(permissionPanel)"))
         assertTrue(source.contains("requestFocusAfterLayout(root.findViewById(R.id.tv_card_continue))"))
         assertTrue(source.contains("requestFocusAfterLayout(resumeTarget)"))
+    }
+
+    @Test
+    fun tvHomeSkipsDeferredFocusWhenTargetIsHidden() {
+        val source = loadText(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "ui", "tv", "TvHomeFragment.kt")
+        )
+        val focusHelper = source.substringAfter("private fun requestFocusAfterLayout(target: View)")
+            .substringBefore("\n\n    private fun hasMediaReadAccess")
+
+        assertTrue(focusHelper.contains("target.post {"))
+        assertTrue(focusHelper.contains("if (target.isShown) {"))
+        assertTrue(focusHelper.contains("target.requestFocus()"))
     }
 
     @Test

@@ -50,9 +50,9 @@ class TvHomeFragment : Fragment() {
     private var skipNextResumeFocusRequest: Boolean = false
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { grants ->
+    ) { _ ->
         view?.let(::bindPermissionPanel)
-        if (grants.any { it.value }) {
+        if (hasMediaReadAccess()) {
             lastFocusedCardId = R.id.tv_card_folders
             navigateTo(LocalFolderFragment())
         } else {
@@ -158,7 +158,11 @@ class TvHomeFragment : Fragment() {
     }
 
     private fun requestFocusAfterLayout(target: View) {
-        target.post { target.requestFocus() }
+        target.post {
+            if (target.isShown) {
+                target.requestFocus()
+            }
+        }
     }
 
     private fun hasMediaReadAccess(): Boolean =

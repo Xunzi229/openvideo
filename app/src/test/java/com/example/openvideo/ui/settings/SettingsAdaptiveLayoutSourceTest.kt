@@ -99,6 +99,7 @@ class SettingsAdaptiveLayoutSourceTest {
         assertTrue(fragment.contains("R.id.row_version"))
         assertTrue(fragment.contains("R.id.row_license"))
         assertTrue(fragment.contains("row.isFocusable = tvMode"))
+        assertTrue(fragment.contains("row.isFocusableInTouchMode = tvMode"))
         assertTrue(fragment.contains("defaultFocus.post { defaultFocus.requestFocus() }"))
     }
 
@@ -192,6 +193,96 @@ class SettingsAdaptiveLayoutSourceTest {
     }
 
     @Test
+    fun tvModeShortcutRowsHaveStaticFocusableDescriptions() {
+        val layout = String(Files.readAllBytes(settingsLayoutSource()))
+
+        assertTrue(
+            rowOpeningTag(layout, "row_tv_subtitle_settings")
+                .contains("""android:contentDescription="@string/settings_group_subtitle"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_tv_audio_settings")
+                .contains("""android:contentDescription="@string/settings_group_audio"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_tv_sources_settings")
+                .contains("""android:contentDescription="@string/nav_sources"""")
+        )
+    }
+
+    @Test
+    fun tvModeRetainedRowsHaveStaticFocusableDescriptions() {
+        val layout = String(Files.readAllBytes(settingsLayoutSource()))
+
+        assertTrue(
+            rowOpeningTag(layout, "row_default_ratio")
+                .contains("""android:contentDescription="@string/settings_default_ratio"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_default_speed")
+                .contains("""android:contentDescription="@string/settings_default_speed"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_clear_cache")
+                .contains("""android:contentDescription="@string/settings_clear_cache"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_clear_history")
+                .contains("""android:contentDescription="@string/settings_clear_history"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_version")
+                .contains("""android:contentDescription="@string/settings_version"""")
+        )
+        assertTrue(
+            rowOpeningTag(layout, "row_license")
+                .contains("""android:contentDescription="@string/settings_license"""")
+        )
+    }
+
+    @Test
+    fun defaultPlaybackRowsSyncFocusableDescriptionsWithCurrentValues() {
+        val fragment = String(Files.readAllBytes(settingsFragmentSource()))
+
+        val ratioBlock = fragment.substringAfter("private fun updateRatioLabel(tv: TextView)")
+            .substringBefore("\n    private fun updateSpeedLabel")
+        assertTrue(ratioBlock.contains("updateSettingsRowDescription(tv, R.string.settings_default_ratio)"))
+
+        val speedBlock = fragment.substringAfter("private fun updateSpeedLabel(tv: TextView)")
+            .substringBefore("\n    private fun showDefaultRatioDialog")
+        assertTrue(speedBlock.contains("updateSettingsRowDescription(tv, R.string.settings_default_speed)"))
+
+        assertTrue(fragment.contains("private fun updateSettingsRowDescription(valueView: TextView, titleRes: Int)"))
+        assertTrue(fragment.contains("(valueView.parent as? View)?.contentDescription"))
+        assertTrue(fragment.contains("listOf(getString(titleRes), valueView.text).joinToString(\" \")"))
+    }
+
+    @Test
+    fun storageRowsSyncFocusableDescriptionsWithCurrentValues() {
+        val fragment = String(Files.readAllBytes(settingsFragmentSource()))
+
+        val cacheCollector = fragment.substringAfter("viewModel.cacheSize.collect")
+            .substringBefore("\n                }")
+        assertTrue(cacheCollector.contains("tvCacheSize.text = it"))
+        assertTrue(cacheCollector.contains("updateSettingsRowDescription(tvCacheSize, R.string.settings_clear_cache)"))
+
+        val historyCollector = fragment.substringAfter("viewModel.historyCount.collect")
+            .substringBefore("\n                }")
+        assertTrue(historyCollector.contains("tvHistoryCount.text = it.toString()"))
+        assertTrue(historyCollector.contains("updateSettingsRowDescription(tvHistoryCount, R.string.settings_clear_history)"))
+    }
+
+    @Test
+    fun versionRowSyncsFocusableDescriptionWithInstalledVersion() {
+        val fragment = String(Files.readAllBytes(settingsFragmentSource()))
+
+        val versionInitBlock = fragment.substringAfter("val tvVersion = view.findViewById<TextView>(R.id.tv_version)")
+            .substringBefore("\n\n        view.findViewById<View>(R.id.row_theme)")
+        assertTrue(versionInitBlock.contains("tvVersion.text = viewModel.installedVersionName()"))
+        assertTrue(versionInitBlock.contains("updateSettingsRowDescription(tvVersion, R.string.settings_version)"))
+    }
+
+    @Test
     fun tvModeKeepsBackupSectionHiddenEvenIfBackupUiSwitchesAreEnabled() {
         val fragment = String(Files.readAllBytes(settingsFragmentSource()))
 
@@ -221,5 +312,14 @@ class SettingsAdaptiveLayoutSourceTest {
     private fun settingsLayoutSource(): Path {
         val relativePath = Paths.get("src", "main", "res", "layout", "fragment_settings.xml")
         return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+
+    private fun rowOpeningTag(layout: String, rowId: String): String {
+        val rowIdIndex = layout.indexOf("""android:id="@+id/$rowId"""")
+        assertTrue("Missing row id $rowId", rowIdIndex >= 0)
+        val tagStart = layout.lastIndexOf("<LinearLayout", rowIdIndex)
+        val tagEnd = layout.indexOf(">", rowIdIndex)
+        assertTrue("Missing row opening tag for $rowId", tagStart >= 0 && tagEnd > tagStart)
+        return layout.substring(tagStart, tagEnd)
     }
 }

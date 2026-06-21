@@ -126,6 +126,7 @@ class SettingsFragment : Fragment() {
         updateRatioLabel(tvRatio)
         updateSpeedLabel(tvSpeed)
         tvVersion.text = viewModel.installedVersionName()
+        updateSettingsRowDescription(tvVersion, R.string.settings_version)
 
         view.findViewById<View>(R.id.row_theme).setOnClickListener {
             val modes = ThemeMode.entries
@@ -219,10 +220,16 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.cacheSize.collect { tvCacheSize.text = it }
+                    viewModel.cacheSize.collect {
+                        tvCacheSize.text = it
+                        updateSettingsRowDescription(tvCacheSize, R.string.settings_clear_cache)
+                    }
                 }
                 launch {
-                    viewModel.historyCount.collect { tvHistoryCount.text = it.toString() }
+                    viewModel.historyCount.collect {
+                        tvHistoryCount.text = it.toString()
+                        updateSettingsRowDescription(tvHistoryCount, R.string.settings_clear_history)
+                    }
                 }
                 launch {
                     viewModel.updateBadgeVisible.collect { visible ->
@@ -327,6 +334,7 @@ class SettingsFragment : Fragment() {
         ).forEach { id ->
             val row = view.findViewById<View>(id) ?: return@forEach
             row.isFocusable = tvMode
+            row.isFocusableInTouchMode = tvMode
         }
         if (tvMode) {
             applyTvSettingsFocusOrder(view)
@@ -383,10 +391,17 @@ class SettingsFragment : Fragment() {
     private fun updateRatioLabel(tv: TextView) {
         val option = PlayerAspectRatioOptions.entries.firstOrNull { it.ratio == viewModel.defaultRatio }
         tv.text = option?.let { getString(it.labelRes) }.orEmpty()
+        updateSettingsRowDescription(tv, R.string.settings_default_ratio)
     }
 
     private fun updateSpeedLabel(tv: TextView) {
         tv.text = "${viewModel.defaultSpeed}x"
+        updateSettingsRowDescription(tv, R.string.settings_default_speed)
+    }
+
+    private fun updateSettingsRowDescription(valueView: TextView, titleRes: Int) {
+        (valueView.parent as? View)?.contentDescription =
+            listOf(getString(titleRes), valueView.text).joinToString(" ")
     }
 
     private fun showDefaultRatioDialog(tvRatio: TextView) {

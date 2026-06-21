@@ -231,6 +231,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_default_ratio"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
@@ -264,6 +265,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_default_speed"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
@@ -296,6 +298,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_group_subtitle"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -326,6 +329,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_group_audio"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -355,6 +359,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/nav_sources"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp"
@@ -404,6 +409,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_clear_cache"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
@@ -437,6 +443,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_clear_history"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
@@ -516,6 +523,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_version"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
@@ -575,6 +583,7 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="?attr/selectableItemBackground"
+            android:contentDescription="@string/settings_license"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingHorizontal="16dp">
