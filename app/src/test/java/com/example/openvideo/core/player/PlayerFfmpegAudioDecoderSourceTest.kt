@@ -19,6 +19,16 @@ class PlayerFfmpegAudioDecoderSourceTest {
     }
 
     @Test
+    fun media3BaselineIncludesMp4ExtractorNalLengthFixes() {
+        val versions = String(Files.readAllBytes(rootFile("gradle", "libs.versions.toml")))
+
+        assertTrue(versions.contains("media3 = \"1.9.0\""))
+        assertTrue(versions.contains("media3FfmpegDecoder = \"1.9.0+1\""))
+        assertTrue(versions.indexOf("media3 = \"1.9.0\"") < versions.indexOf("[libraries]"))
+        assertTrue(versions.indexOf("media3FfmpegDecoder = \"1.9.0+1\"") < versions.indexOf("[libraries]"))
+    }
+
+    @Test
     fun playerPrefersExtensionAudioRenderers() {
         val source = String(Files.readAllBytes(sourceFile("PlayerManager.kt")))
 
