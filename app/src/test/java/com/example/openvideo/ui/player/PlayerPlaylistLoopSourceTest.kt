@@ -44,8 +44,20 @@ class PlayerPlaylistLoopSourceTest {
             .substringAfter("private fun switchSessionVideo(item: VideoItem, onSwitched: () -> Unit = {})")
             .substringBefore("\n    private fun", missingDelimiterValue = "")
 
-        assertTrue(switchHandler.contains("viewModel.switchToVideo(item)"))
+        assertTrue(switchHandler.contains("viewModel.switchToVideo("))
+        assertTrue(switchHandler.contains("item = item"))
+        assertTrue(switchHandler.contains("onPlayerRecreated = ::reattachPlayerAfterRetry"))
         assertTrue(switchHandler.contains("resetPlaybackSessionForNewVideo()"))
+
+        val viewModel = String(Files.readAllBytes(playerViewModelSource()))
+        val switchToVideo = viewModel
+            .substringAfter("fun switchToVideo(")
+            .substringBefore("\n    private fun", missingDelimiterValue = "")
+
+        assertTrue(switchToVideo.contains("playerManager.initialize(item.uri)"))
+        assertTrue(switchToVideo.contains("playerListener?.let { playerManager.addListener(it) }"))
+        assertTrue(switchToVideo.contains("onPlayerRecreated()"))
+        assertTrue(switchToVideo.contains("playerManager.setMediaUri(item.uri)"))
     }
 
     private fun playerActivitySource(): Path {
@@ -58,6 +70,10 @@ class PlayerPlaylistLoopSourceTest {
 
     private fun playerEventControllerSource(): Path {
         return kotlinSource("PlayerEventController.kt")
+    }
+
+    private fun playerViewModelSource(): Path {
+        return kotlinSource("PlayerViewModel.kt")
     }
 
     private fun kotlinSource(name: String): Path {

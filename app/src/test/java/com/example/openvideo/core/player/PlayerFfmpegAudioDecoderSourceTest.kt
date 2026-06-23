@@ -39,6 +39,16 @@ class PlayerFfmpegAudioDecoderSourceTest {
     }
 
     @Test
+    fun softwareDecodeModePrefersSoftwareVideoCodecs() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerManager.kt")))
+
+        assertTrue(source.contains("MediaCodecSelector"))
+        assertTrue(source.contains("setMediaCodecSelector(codecSelectorFor(decodeMode))"))
+        assertTrue(source.contains("MediaCodecSelector.PREFER_SOFTWARE"))
+        assertTrue(source.contains("MediaCodecSelector.DEFAULT"))
+    }
+
+    @Test
     fun playerMarksSpecialAudioAsSoftwareFallbackCandidates() {
         val trackInfoSource = String(Files.readAllBytes(sourceFile("PlayerAudioTrackInfo.kt")))
         val mediaInfoSource = String(

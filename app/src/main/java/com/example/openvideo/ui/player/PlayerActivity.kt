@@ -324,6 +324,7 @@ class PlayerActivity : AppCompatActivity() {
             controlsContainerProvider = { controlsContainer },
             firstFrameScrimProvider = { firstFrameScrim },
             onShowControls = ::showControls,
+            onReattachPlayerAfterRetry = ::reattachPlayerAfterRetry,
             onFinishPlayer = ::finishPlayer
         )
     }
@@ -721,10 +722,19 @@ class PlayerActivity : AppCompatActivity() {
         quickDialogs.dismissSubtitleSettingsSheet()
         firstFrames.showForNewMedia()
         preApplyOrientationForItem(item)
-        viewModel.switchToVideo(item) {
+        viewModel.switchToVideo(
+            item = item,
+            onPlayerRecreated = ::reattachPlayerAfterRetry
+        ) {
             resetPlaybackSessionForNewVideo()
             onSwitched()
         }
+    }
+
+    private fun reattachPlayerAfterRetry() {
+        playerEvents.detach()
+        playbackNotifications.reattachPlayerSurfaceFromBackground()
+        playerEvents.attach()
     }
 
     private fun setupControls() {
@@ -739,6 +749,7 @@ class PlayerActivity : AppCompatActivity() {
         val reset = PlayerVideoSwitchPolicy.resetForNewVideo()
         abLoop.reset(reset)
         firstFrames.resetForNewVideo(reset.awaitFirstFrame)
+        smartCrop.clearSession()
         manualVideoZoom = reset.manualVideoZoom
         playbackWasBuffering = false
         playbackTicks.resetForNewVideo(reset)

@@ -190,12 +190,15 @@ class PlayerContentFrameTransformController(
         unappliedRotationDegrees: Int?
     ): DisplayFrameSize {
         val vs = viewModel.player?.videoSize
+        val currentItem = viewModel.currentVideoItemForDiagnostics()
         val intent = intentProvider()
         val rawWidth = width?.takeIf { it > 0 }
             ?: vs?.width?.takeIf { it > 0 }
+            ?: currentItem?.width?.takeIf { it > 0 }
             ?: intent.getIntExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, 0)
         val rawHeight = height?.takeIf { it > 0 }
             ?: vs?.height?.takeIf { it > 0 }
+            ?: currentItem?.height?.takeIf { it > 0 }
             ?: intent.getIntExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, 0)
         return PlayerVideoLayoutPolicy.displayFrameSize(
             width = rawWidth,

@@ -148,6 +148,15 @@ class PlayerSmartCropSourceTest {
         assertTrue(clearIndex < applyIndex)
     }
 
+    @Test
+    fun switchingSessionVideoClearsSmartCropSession() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val resetBlock = source.substringAfter("private fun resetPlaybackSessionForNewVideo() {")
+            .substringBefore("\n    }")
+
+        assertTrue(resetBlock.contains("smartCrop.clearSession()"))
+    }
+
     private fun landscapeControlsSource(): Path =
         resource("layout-land", "player_controls.xml")
 

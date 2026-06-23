@@ -134,6 +134,21 @@ class PlayerHistorySourceTest {
     }
 
     @Test
+    fun viewModelIgnoresStalePlaybackMemoryAfterVideoSwitch() {
+        val source = String(Files.readAllBytes(sourceFile("PlayerViewModel.kt")))
+        val restorePrefs = source.substringAfter("fun restorePlaybackPreferences(videoId: Long, onRestored: () -> Unit) {")
+            .substringBefore("\n    fun togglePlayPause")
+        val restorePosition = source.substringAfter("fun restorePosition(videoId: Long, fallbackPositionMs: Long = 0L) {")
+            .substringBefore("\n    fun setSessionQueue")
+        val switchToVideo = source.substringAfter("fun switchToVideo(")
+            .substringBefore("\n    private fun markPlaybackStarted()")
+
+        assertTrue(restorePrefs.contains("if (videoId != this@PlayerViewModel.videoId) return@launch"))
+        assertTrue(restorePosition.contains("if (videoId != this@PlayerViewModel.videoId) return@launch"))
+        assertTrue(switchToVideo.contains("if (item.id == videoId)"))
+    }
+
+    @Test
     fun activityWaitsForPlaybackMemoryRestoreBeforeApplyingDisplayAndSubtitleState() {
         val source = String(Files.readAllBytes(sourceFile("PlayerActivity.kt")))
         val onCreate = source.substringAfter("override fun onCreate(savedInstanceState: Bundle?) {")

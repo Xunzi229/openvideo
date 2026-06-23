@@ -34,6 +34,19 @@ class PlayerSubtitleLoadSourceTest {
         assertTrue(block.contains("setSubtitles(subtitles)"))
     }
 
+    @Test
+    fun playerViewModelIgnoresStaleSubtitleLoadAfterVideoSwitch() {
+        val source = String(Files.readAllBytes(playerViewModelSource()))
+        val block = source.substringAfter("fun loadSubtitles(")
+            .substringBefore("\n    fun getCurrentSubtitle()")
+        val staleGuardIndex = block.indexOf("if (videoPath != this@PlayerViewModel.videoPath)")
+        val applyIndex = block.indexOf("setSubtitles(subtitles)")
+
+        assertTrue(staleGuardIndex >= 0)
+        assertTrue(applyIndex >= 0)
+        assertTrue(staleGuardIndex < applyIndex)
+    }
+
     private fun playerViewModelSource(): Path {
         val relativePath = Paths.get(
             "src",

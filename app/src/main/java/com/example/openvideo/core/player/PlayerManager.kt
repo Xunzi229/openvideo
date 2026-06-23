@@ -14,6 +14,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.example.openvideo.core.prefs.AspectRatio
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -65,6 +66,7 @@ class PlayerManager @Inject constructor(
         val renderersFactory = DefaultRenderersFactory(context)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
             .setEnableDecoderFallback(true)
+            .setMediaCodecSelector(codecSelectorFor(decodeMode))
 
         val player = ExoPlayer.Builder(context)
             .setRenderersFactory(renderersFactory)
@@ -205,8 +207,13 @@ class PlayerManager @Inject constructor(
 
     fun applyDecodeMode(mode: DecodeMode) {
         decodeMode = mode
-        // Software vs hardware decode is device-dependent; ExoPlayer selects decoders automatically.
     }
+
+    private fun codecSelectorFor(mode: DecodeMode): MediaCodecSelector =
+        when (mode) {
+            DecodeMode.SOFT -> MediaCodecSelector.PREFER_SOFTWARE
+            DecodeMode.HARD -> MediaCodecSelector.DEFAULT
+        }
 
     fun getAspectRatioValue(): Float {
         return when (aspectRatio) {
