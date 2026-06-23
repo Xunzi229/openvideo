@@ -49,6 +49,21 @@ class PlayerContentFrameSourceTest {
         )
     }
 
+    @Test
+    fun contentFrameSourceSizeUsesCurrentQueueItemBeforeInitialIntentFallback() {
+        val source = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val block = source.substringAfter("fun sourceSize(")
+            .substringBefore("\n    fun videoRenderView()")
+        val currentItemIndex = block.indexOf("viewModel.currentVideoItemForDiagnostics()")
+        val currentWidthIndex = block.indexOf("currentItem?.width")
+        val intentWidthIndex = block.indexOf("intent.getIntExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, 0)")
+
+        assertTrue(currentItemIndex >= 0)
+        assertTrue(currentWidthIndex >= 0)
+        assertTrue(intentWidthIndex >= 0)
+        assertTrue(currentWidthIndex < intentWidthIndex)
+    }
+
     private fun playerActivitySource(): Path {
         return kotlinSource("PlayerActivity.kt")
     }

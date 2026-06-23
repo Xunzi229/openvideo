@@ -137,6 +137,7 @@ class PlayerViewModel @Inject constructor(
     fun restorePosition(videoId: Long, fallbackPositionMs: Long = 0L) {
         viewModelScope.launch {
             val history = repository.getHistory(videoId)
+            if (videoId != this@PlayerViewModel.videoId) return@launch
             val restorePositionMs = history?.lastPosition?.takeIf { it > 0 } ?: fallbackPositionMs
             if (restorePositionMs > 0) {
                 pendingRestorePosition = restorePositionMs
@@ -152,6 +153,7 @@ class PlayerViewModel @Inject constructor(
     fun restorePlaybackPreferences(videoId: Long, onRestored: () -> Unit) {
         viewModelScope.launch {
             val history = repository.getHistory(videoId)
+            if (videoId != this@PlayerViewModel.videoId) return@launch
             val speed: Float
             if (history != null) {
                 speed = history.speed
@@ -205,6 +207,10 @@ class PlayerViewModel @Inject constructor(
             resetNetworkAutoRetry()
         }
         val uri = videoUri ?: return
+        if (_uiState.value.decodeMode == DecodeMode.SOFT) {
+            playerManager.initialize(uri)
+            playerListener?.let { playerManager.addListener(it) }
+        }
         playerManager.setMediaUri(uri, requestHeaders)
     }
 
@@ -343,6 +349,7 @@ class PlayerViewModel @Inject constructor(
                     languagePreference = playerPrefs.subtitleLanguagePreference()
                 )
             }
+            if (videoPath != this@PlayerViewModel.videoPath) return@launch
             when (outcome) {
                 is PlayerSubtitleLoadOutcome.Loaded -> {
                     val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(outcome.subtitles.size, showToast)
@@ -610,7 +617,11 @@ class PlayerViewModel @Inject constructor(
     /**
      * 在同一会话队列中切换到其它视频（保存当前进度后加载新媒体）。
      */
-    fun switchToVideo(item: VideoItem, onSwitched: () -> Unit = {}) {
+    fun switchToVideo(
+        item: VideoItem,
+        onPlayerRecreated: () -> Unit = {},
+        onSwitched: () -> Unit = {}
+    ) {
         viewModelScope.launch {
             persistCurrentPlaybackProgress()
             withContext(Dispatchers.Main.immediate) {
@@ -625,10 +636,15 @@ class PlayerViewModel @Inject constructor(
                     currentPosition = 0,
                     duration = 0
                 )
+                playerManager.initialize(item.uri)
+                playerListener?.let { playerManager.addListener(it) }
+                onPlayerRecreated()
                 playerManager.setMediaUri(item.uri, emptyMap())
             }
             val isFav = repository.isFavorite(item.id)
-            _uiState.value = _uiState.value.copy(isFavorite = isFav)
+            if (item.id == videoId) {
+                _uiState.value = _uiState.value.copy(isFavorite = isFav)
+            }
             restorePlaybackPreferences(item.id) {
                 if (playerPrefs.rememberProgress) {
                     restorePosition(item.id)

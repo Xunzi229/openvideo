@@ -210,6 +210,8 @@ class PlayerErrorPresentationPolicyTest {
             .substringBefore("\n        }")
 
         assertTrue(block.contains("viewModel.setDecodeMode(DecodeMode.SOFT)"))
+        assertTrue(block.contains("viewModel.retryPlayback()"))
+        assertTrue(block.contains("onReattachPlayerAfterRetry()"))
         assertFalse(block.contains("playerPrefs.hwAcceleration"))
         assertFalse(block.contains("playerPrefs.softwareAudioDecoder"))
     }
@@ -234,6 +236,29 @@ class PlayerErrorPresentationPolicyTest {
         assertTrue(source.contains("?.requestFocus()"))
     }
 
+    @Test
+    fun softwareDecodeRetryReinitializesPlayerWithSoftCodecSelection() {
+        val source = String(Files.readAllBytes(playerViewModelSource()))
+        val retry = source.substringAfter("fun retryPlayback(")
+            .substringBefore("\n    fun seekForward")
+
+        assertTrue(retry.contains("playerManager.initialize(uri)"))
+        assertTrue(retry.contains("playerManager.addListener(it)"))
+        assertTrue(retry.contains("playerManager.setMediaUri(uri, requestHeaders)"))
+    }
+
+    @Test
+    fun playerActivityReattachesSurfaceAndEventsAfterSoftwareRetry() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val helper = source.substringAfter("private fun reattachPlayerAfterRetry() {")
+            .substringBefore("\n    }")
+
+        assertTrue(source.contains("onReattachPlayerAfterRetry = ::reattachPlayerAfterRetry"))
+        assertTrue(helper.contains("playerEvents.detach()"))
+        assertTrue(helper.contains("playbackNotifications.reattachPlayerSurfaceFromBackground()"))
+        assertTrue(helper.contains("playerEvents.attach()"))
+    }
+
     private fun readResource(dir: String, file: String): String =
         String(Files.readAllBytes(resource(dir, file)))
 
@@ -243,6 +268,10 @@ class PlayerErrorPresentationPolicyTest {
 
     private fun playerErrorHudControllerSource(): Path {
         return kotlinSource("PlayerErrorHudController.kt")
+    }
+
+    private fun playerViewModelSource(): Path {
+        return kotlinSource("PlayerViewModel.kt")
     }
 
     private fun kotlinSource(name: String): Path {

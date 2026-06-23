@@ -26,6 +26,7 @@ class PlayerErrorHudController(
     private val controlsContainerProvider: () -> View,
     private val firstFrameScrimProvider: () -> View,
     private val onShowControls: () -> Unit,
+    private val onReattachPlayerAfterRetry: () -> Unit,
     private val onFinishPlayer: () -> Unit
 ) {
     fun show(error: PlaybackException) {
@@ -52,6 +53,7 @@ class PlayerErrorHudController(
             viewModel.setDecodeMode(DecodeMode.SOFT)
             hide()
             viewModel.retryPlayback()
+            onReattachPlayerAfterRetry()
         }
         retryButtonProvider()?.setOnClickListener {
             hide()
