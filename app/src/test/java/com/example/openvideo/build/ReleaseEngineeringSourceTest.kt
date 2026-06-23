@@ -81,17 +81,15 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
-    fun ciRunsDebugVerificationWithGradleWarningGate() {
-        val workflow = rootFile(".github", "workflows", "android.yml").readText()
+    fun githubWorkflowAutoChecksAreRemoved() {
         val appBuild = rootFile("app", "build.gradle.kts").readText()
 
-        assertTrue(workflow.contains("actions/checkout@"))
-        assertTrue(workflow.contains("actions/setup-java@"))
-        assertTrue(workflow.contains("gradle/actions/setup-gradle@"))
-        assertTrue(workflow.contains("gradlew.bat :app:testDebugUnitTest --warning-mode fail"))
-        assertTrue(workflow.contains("gradlew.bat :app:assembleDebug --warning-mode fail"))
-        assertTrue(workflow.contains("gradlew.bat :app:lintDebug --warning-mode fail"))
-        assertFalse(workflow.contains("--warning-mode all"))
+        val workflowExists = sequenceOf(
+            Paths.get(".github", "workflows", "android.yml"),
+            Paths.get("..", ".github", "workflows", "android.yml")
+        ).any(Files::exists)
+
+        assertFalse(workflowExists)
         assertTrue(appBuild.contains("baseline = file(\"lint-baseline.xml\")"))
     }
 

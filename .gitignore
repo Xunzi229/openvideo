@@ -35,3 +35,4 @@ resume_flash_after_frames
 tools/adb/*.png
 tools/adb/*.mp4
 tools/adb/*_frames/
+.codex
