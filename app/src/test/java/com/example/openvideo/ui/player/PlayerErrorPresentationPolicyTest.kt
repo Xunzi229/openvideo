@@ -150,6 +150,20 @@ class PlayerErrorPresentationPolicyTest {
     }
 
     @Test
+    fun unrecognizedInputFormatShowsUnsupportedContainerWithoutRetry() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+        )
+
+        assertEquals(R.string.player_error_title_format, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_format, presentation.descRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in presentation.actions)
+    }
+
+    @Test
     fun allPresentationActionsIncludeCopyDiagnosticsAndGoBack() {
         val codes = listOf(
             PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
