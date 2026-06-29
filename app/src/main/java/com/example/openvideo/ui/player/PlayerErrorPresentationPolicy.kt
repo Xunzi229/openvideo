@@ -36,6 +36,14 @@ object PlayerErrorPresentationPolicy {
 
     fun present(errorCode: Int): Presentation {
         return when {
+            isUnsupportedContainerError(errorCode) -> Presentation(
+                titleRes = R.string.player_error_title_format,
+                descRes  = R.string.player_error_desc_format,
+                actions  = listOf(
+                    ErrorAction.COPY_DIAGNOSTICS,
+                    ErrorAction.GO_BACK
+                )
+            )
             isDecoderError(errorCode) -> Presentation(
                 titleRes = R.string.player_error_title_decode,
                 descRes  = R.string.player_error_desc_decode,
@@ -66,6 +74,9 @@ object PlayerErrorPresentationPolicy {
             )
         }
     }
+
+    private fun isUnsupportedContainerError(errorCode: Int): Boolean =
+        errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
 
     /** 解码 / Codec 相关错误码。 */
     fun isDecoderError(errorCode: Int): Boolean = errorCode in setOf(

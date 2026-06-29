@@ -461,9 +461,11 @@
     <string name="player_unlocked">Screen unlocked</string>
     <string name="player_error_title_decode">Decoding Failed</string>
     <string name="player_error_title_io">File Unavailable</string>
+    <string name="player_error_title_format">Unsupported Video Format</string>
     <string name="player_error_title_general">Playback Error</string>
     <string name="player_error_desc_decode">This video could not be decoded. Try switching to software decoding.</string>
     <string name="player_error_desc_io">The file could not be read. It may have been moved or deleted.</string>
+    <string name="player_error_desc_format">This file could be opened, but its container header is not recognized by the player.</string>
     <string name="player_error_desc_general">An error occurred during playback. The error has been logged.</string>
     <string name="player_error_action_soft_decode">Software Decode</string>
     <string name="player_error_action_retry">Retry</string>
