@@ -4,6 +4,7 @@ import androidx.annotation.OptIn
 import androidx.annotation.StringRes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkErrorClassifier
 
@@ -38,6 +39,14 @@ object PlayerErrorPresentationPolicy {
     fun present(errorCode: Int, cause: Throwable? = null): Presentation {
         networkPresentation(errorCode, cause)?.let { return it }
         return when {
+            isUnsupportedContainerError(errorCode, cause) -> Presentation(
+                titleRes = R.string.player_error_title_format,
+                descRes  = R.string.player_error_desc_format,
+                actions  = listOf(
+                    ErrorAction.COPY_DIAGNOSTICS,
+                    ErrorAction.GO_BACK
+                )
+            )
             isDecoderError(errorCode) -> Presentation(
                 titleRes = R.string.player_error_title_decode,
                 descRes  = R.string.player_error_desc_decode,
@@ -68,6 +77,10 @@ object PlayerErrorPresentationPolicy {
             )
         }
     }
+
+    private fun isUnsupportedContainerError(errorCode: Int, cause: Throwable?): Boolean =
+        errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
+            cause is UnrecognizedInputFormatException
 
     private fun networkPresentation(errorCode: Int, cause: Throwable?): Presentation? {
         val classification = NetworkErrorClassifier.classifyPlaybackError(errorCode, cause)

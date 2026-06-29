@@ -581,9 +581,11 @@
     <string name="player_error_title_decode">Decoding Failed</string>
     <string name="player_error_title_io">File Unavailable</string>
     <string name="player_error_title_network">Network Playback Error</string>
+    <string name="player_error_title_format">Unsupported Video Format</string>
     <string name="player_error_title_general">Playback Error</string>
     <string name="player_error_desc_decode">This video could not be decoded. Try switching to software decoding.</string>
     <string name="player_error_desc_io">The file could not be read. It may have been moved or deleted.</string>
+    <string name="player_error_desc_format">This file could be opened, but its container header is not recognized by the player.</string>
     <string name="player_error_desc_network_connection">The network connection failed. Check the address or connection and try again.</string>
     <string name="player_error_desc_network_dns">The server name could not be resolved. Check the URL host and network DNS.</string>
     <string name="player_error_desc_network_timeout">The network request timed out. Try again when the connection is stable.</string>
