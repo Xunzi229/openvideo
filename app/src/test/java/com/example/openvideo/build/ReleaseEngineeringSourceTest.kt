@@ -108,6 +108,8 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("release/*.apk"))
         assertTrue(workflow.contains("publish_release:"))
         assertTrue(workflow.contains("if: github.event_name == 'push' || inputs.publish_release"))
+        assertTrue(workflow.contains("Select-Object -First 1"))
+        assertFalse(workflow.contains("Select-Object -Single"))
         assertFalse(Regex("STORE_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
         assertFalse(Regex("KEY_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
     }

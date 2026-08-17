@@ -135,7 +135,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $apk = Get-ChildItem release -Filter "*.apk" | Select-Object -Single
+          $apk = Get-ChildItem release -Filter "*.apk" | Select-Object -First 1
           $arguments = @(
             "release", "create", $env:RELEASE_TAG,
             $apk.FullName, (Resolve-Path "release/SHA256SUMS.txt").Path,
