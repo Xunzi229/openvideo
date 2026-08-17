@@ -112,7 +112,11 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("Select-Object -First 1"))
         assertFalse(workflow.contains("Select-Object -Single"))
         assertTrue(workflow.contains("gh release delete"))
-        assertTrue(workflow.contains("--cleanup-tag"))
+        assertTrue(workflow.contains("gh release view"))
+        assertTrue(workflow.contains("git ls-remote --exit-code --tags origin"))
+        assertTrue(workflow.contains("git push origin --delete"))
+        assertFalse(workflow.contains("--cleanup-tag"))
+        assertTrue(workflow.contains("Open Video ${'$'}env:RELEASE_TAG"))
         assertFalse(Regex("STORE_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
         assertFalse(Regex("KEY_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
     }

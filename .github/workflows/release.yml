@@ -144,15 +144,26 @@ jobs:
         run: |
           $apk = Get-ChildItem release -Filter "*.apk" | Select-Object -First 1
           if ($env:REPLACE_EXISTING_RELEASE -eq "true") {
-            & gh release delete $env:RELEASE_TAG --yes --cleanup-tag
-            if ($LASTEXITCODE -ne 0) {
-              throw "Failed to remove existing release $env:RELEASE_TAG."
+            & gh release view $env:RELEASE_TAG *> $null
+            if ($LASTEXITCODE -eq 0) {
+              & gh release delete $env:RELEASE_TAG --yes
+              if ($LASTEXITCODE -ne 0) {
+                throw "Failed to remove existing release $env:RELEASE_TAG."
+              }
+            }
+
+            & git ls-remote --exit-code --tags origin "refs/tags/$env:RELEASE_TAG" *> $null
+            if ($LASTEXITCODE -eq 0) {
+              & git push origin --delete $env:RELEASE_TAG
+              if ($LASTEXITCODE -ne 0) {
+                throw "Failed to remove existing tag $env:RELEASE_TAG."
+              }
             }
           }
           $arguments = @(
             "release", "create", $env:RELEASE_TAG,
             $apk.FullName, (Resolve-Path "release/SHA256SUMS.txt").Path,
-            "--title", "OpenVideo $env:RELEASE_TAG",
+            "--title", "Open Video $env:RELEASE_TAG",
             "--generate-notes"
           )
           if ($env:GITHUB_REF_TYPE -eq "tag") {
