@@ -1,0 +1,4 @@
+# Keep the real value in the ignored local.properties file.
+# An empty value disables remote crash reporting for that build.
+# GitHub Actions reads the same key from the repository secret instead.
+FEISHU_WEBHOOK_URL=

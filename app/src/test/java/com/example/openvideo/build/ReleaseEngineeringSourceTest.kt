@@ -96,8 +96,19 @@ class ReleaseEngineeringSourceTest {
 
     @Test
     fun githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk() {
+        val appBuild = rootFile("app", "build.gradle.kts").readText()
+        val localPropertiesExample = rootFile("local.properties.example").readText()
+        val previewWorkflow = rootFile(".github", "workflows", "preview.yml").readText()
         val workflow = rootFile(".github", "workflows", "release.yml").readText()
+        val webhookSecret = "FEISHU_WEBHOOK_URL: ${'$'}{{ secrets.FEISHU_WEBHOOK_URL }}"
 
+        assertTrue(appBuild.contains("providers.environmentVariable(\"FEISHU_WEBHOOK_URL\")"))
+        assertTrue(appBuild.contains("localProperties.getProperty(\"FEISHU_WEBHOOK_URL\", \"\")"))
+        assertTrue(localPropertiesExample.lineSequence().any { it.trim() == "FEISHU_WEBHOOK_URL=" })
+        assertFalse(localPropertiesExample.contains("open-apis/bot"))
+        assertTrue(previewWorkflow.contains(webhookSecret))
+        assertTrue(workflow.contains(webhookSecret))
+        assertTrue(workflow.contains("\"FEISHU_WEBHOOK_URL\","))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_STORE_PASSWORD"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEY_ALIAS"))

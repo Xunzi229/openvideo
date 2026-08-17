@@ -18,6 +18,7 @@ jobs:
     name: Build preview APK
     runs-on: windows-latest
     env:
+      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
       OPENVIDEO_SOURCES_NAV_ENABLED: ${{ vars.OPENVIDEO_SOURCES_NAV_ENABLED || 'false' }}
 
     steps:
