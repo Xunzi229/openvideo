@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import android.net.Uri
 import androidx.media3.common.PlaybackException
 import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 import com.example.openvideo.R
@@ -168,7 +169,7 @@ class PlayerErrorPresentationPolicyTest {
     fun nestedUnrecognizedInputFormatOverridesGenericIoError() {
         val extractorFailure = UnrecognizedInputFormatException(
             "None of the available extractors could read the stream",
-            null,
+            Uri.EMPTY,
             emptyList()
         )
         val presentation = PlayerErrorPresentationPolicy.present(
