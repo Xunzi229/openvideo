@@ -107,9 +107,12 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("gh @arguments"))
         assertTrue(workflow.contains("release/*.apk"))
         assertTrue(workflow.contains("publish_release:"))
+        assertTrue(workflow.contains("replace_existing_release:"))
         assertTrue(workflow.contains("if: github.event_name == 'push' || inputs.publish_release"))
         assertTrue(workflow.contains("Select-Object -First 1"))
         assertFalse(workflow.contains("Select-Object -Single"))
+        assertTrue(workflow.contains("gh release delete"))
+        assertTrue(workflow.contains("--cleanup-tag"))
         assertFalse(Regex("STORE_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
         assertFalse(Regex("KEY_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
     }

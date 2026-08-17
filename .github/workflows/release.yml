@@ -15,6 +15,11 @@ on:
         required: true
         default: false
         type: boolean
+      replace_existing_release:
+        description: "Replace an existing GitHub Release and tag after verification"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -34,6 +39,7 @@ jobs:
       KEYSTORE_BASE64: ${{ secrets.OPENVIDEO_RELEASE_KEYSTORE_BASE64 }}
       MANUAL_RELEASE_TAG: ${{ inputs.release_tag }}
       OPENVIDEO_SOURCES_NAV_ENABLED: ${{ vars.OPENVIDEO_SOURCES_NAV_ENABLED || 'false' }}
+      REPLACE_EXISTING_RELEASE: ${{ inputs.replace_existing_release }}
 
     steps:
       - name: Check out repository
@@ -90,6 +96,7 @@ jobs:
       - name: Run feature packaging regression tests
         run: >-
           .\gradlew.bat :app:testDebugUnitTest
+          --tests "com.example.openvideo.build.AppNameLocalizationSourceTest"
           --tests "com.example.openvideo.build.FeaturePackagingBuildConfigTest"
           --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"
 
@@ -136,6 +143,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $apk = Get-ChildItem release -Filter "*.apk" | Select-Object -First 1
+          if ($env:REPLACE_EXISTING_RELEASE -eq "true") {
+            & gh release delete $env:RELEASE_TAG --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) {
+              throw "Failed to remove existing release $env:RELEASE_TAG."
+            }
+          }
           $arguments = @(
             "release", "create", $env:RELEASE_TAG,
             $apk.FullName, (Resolve-Path "release/SHA256SUMS.txt").Path,
