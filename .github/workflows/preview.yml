@@ -17,6 +17,8 @@ jobs:
   build-preview:
     name: Build preview APK
     runs-on: windows-latest
+    env:
+      OPENVIDEO_SOURCES_NAV_ENABLED: ${{ vars.OPENVIDEO_SOURCES_NAV_ENABLED || 'false' }}
 
     steps:
       - name: Check out repository
@@ -39,6 +41,8 @@ jobs:
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubPreviewWorkflowBuildsAndUploadsDebugApk"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.localSigningWrapperDoesNotContainSigningPasswords"
+          --tests "com.example.openvideo.build.FeaturePackagingBuildConfigTest"
+          --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"
 
       - name: Build preview APK
         run: .\gradlew.bat :app:assembleDebug

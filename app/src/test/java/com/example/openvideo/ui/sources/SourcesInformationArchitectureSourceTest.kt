@@ -9,7 +9,7 @@ import java.nio.file.Paths
 class SourcesInformationArchitectureSourceTest {
 
     @Test
-    fun bottomNavigationExposesSourcesTab() {
+    fun bottomNavigationKeepsSourcesTabAvailableForBuildConfiguration() {
         val menu = resourceText("menu", "bottom_nav_menu.xml")
 
         assertTrue(menu.contains("""android:id="@+id/nav_sources""""))
@@ -21,6 +21,8 @@ class SourcesInformationArchitectureSourceTest {
     fun mainActivityRoutesSourcesTabToSourcesFragment() {
         val source = sourceText("MainActivity.kt")
 
+        assertTrue(source.contains("BuildConfig.SOURCES_NAV_ENABLED"))
+        assertTrue(source.contains("bottomNav.menu.findItem(R.id.nav_sources).isVisible"))
         assertTrue(source.contains("import com.example.openvideo.ui.sources.SourcesFragment"))
         assertTrue(source.contains("R.id.nav_sources -> SourcesFragment()"))
     }

@@ -71,6 +71,12 @@ The tag must exactly equal `v` plus `VERSION_NAME`. The workflow can also be sta
 
 Run `scripts/tests/Test-OpenVideoRelease.ps1` before release packaging to guard version parsing and release artifact formatting.
 
+### Feature packaging flags
+
+The phone bottom-navigation Sources entry is disabled by default while the feature is incomplete. Set `OPENVIDEO_SOURCES_NAV_ENABLED=true` as an environment variable, a Gradle project property (`-POPENVIDEO_SOURCES_NAV_ENABLED=true`), or a `local.properties` value to include the entry in a local build.
+
+GitHub Actions reads the repository variable with the same name. Leave it unset or set it to `false` to hide Sources; set it to `true` to show Sources in Preview and Release APKs. This flag only controls the phone bottom-navigation entry and does not remove the Sources implementation.
+
 ## Local Verification
 
 GitHub workflow auto checks are intentionally not used. Run the verification commands locally before packaging or pushing release changes.

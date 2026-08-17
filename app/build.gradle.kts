@@ -31,6 +31,11 @@ val releaseSigningConfigured = listOf(
     releaseKeyAlias,
     releaseKeyPassword
 ).all { it.isNotBlank() }
+val sourcesNavigationEnabled = providers.environmentVariable("OPENVIDEO_SOURCES_NAV_ENABLED")
+    .orElse(providers.gradleProperty("OPENVIDEO_SOURCES_NAV_ENABLED"))
+    .orElse(localProperties.getProperty("OPENVIDEO_SOURCES_NAV_ENABLED", "false"))
+    .get()
+    .toBooleanStrictOrNull() ?: false
 
 fun String.asBuildConfigString(): String =
     "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -55,6 +60,7 @@ android {
             .get()
         buildConfigField("String", "FEISHU_WEBHOOK_URL", feishuWebhookUrl.asBuildConfigString())
         buildConfigField("Boolean", "REMOTE_CRASH_REPORTING_ENABLED", feishuWebhookUrl.isNotBlank().toString())
+        buildConfigField("Boolean", "SOURCES_NAV_ENABLED", sourcesNavigationEnabled.toString())
     }
 
     signingConfigs {

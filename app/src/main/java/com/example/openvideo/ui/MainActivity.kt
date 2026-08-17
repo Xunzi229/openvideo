@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.example.openvideo.BuildConfig
 import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkRecentUrlPolicy
 import com.example.openvideo.core.network.NetworkSharedUrlPolicy
@@ -55,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         isTvMode = computeTvMode()
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.menu.findItem(R.id.nav_sources).isVisible = BuildConfig.SOURCES_NAV_ENABLED
         bottomNav.isVisible = !isTvMode
         if (savedInstanceState == null) {
             if (!isTvMode) bottomNav.selectedItemId = R.id.nav_home
