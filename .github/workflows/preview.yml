@@ -37,6 +37,8 @@ jobs:
           --tests "com.example.openvideo.ui.player.PlayerErrorPresentationPolicyTest"
           --tests "com.example.openvideo.data.scanner.VideoScannerCacheSourceTest"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubPreviewWorkflowBuildsAndUploadsDebugApk"
+          --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk"
+          --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.localSigningWrapperDoesNotContainSigningPasswords"
 
       - name: Build preview APK
         run: .\gradlew.bat :app:assembleDebug

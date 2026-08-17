@@ -95,6 +95,35 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
+    fun githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk() {
+        val workflow = rootFile(".github", "workflows", "release.yml").readText()
+
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_STORE_PASSWORD"))
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEY_ALIAS"))
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEY_PASSWORD"))
+        assertTrue(workflow.contains(":app:assembleRelease"))
+        assertTrue(workflow.contains("apksigner verify"))
+        assertTrue(workflow.contains("gh @arguments"))
+        assertTrue(workflow.contains("release/*.apk"))
+        assertFalse(Regex("STORE_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
+        assertFalse(Regex("KEY_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
+    }
+
+    @Test
+    fun localSigningWrapperDoesNotContainSigningPasswords() {
+        val wrapper = rootFile("scripts", "sign-release-default.ps1").readText()
+        val secretSetup = rootFile("scripts", "configure-github-release-secrets.ps1").readText()
+
+        assertTrue(wrapper.contains("OPENVIDEO_RELEASE_STORE_PASSWORD"))
+        assertTrue(wrapper.contains("OPENVIDEO_RELEASE_KEY_PASSWORD"))
+        assertFalse(Regex("StorePassword\\s*=\\s*\"[^\"]+\"").containsMatchIn(wrapper))
+        assertFalse(Regex("KeyPassword\\s*=\\s*\"[^\"]+\"").containsMatchIn(wrapper))
+        assertTrue(secretSetup.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
+        assertTrue(secretSetup.contains("Read-Host -AsSecureString"))
+    }
+
+    @Test
     fun androidGradlePluginAvoidsGradle10MultiStringDependencyDeprecation() {
         val versions = rootFile("gradle", "libs.versions.toml").readText()
 

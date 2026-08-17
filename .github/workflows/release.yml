@@ -1,0 +1,137 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag, for example v0.0.16"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  build-release:
+    name: Build signed release APK
+    runs-on: windows-latest
+    env:
+      OPENVIDEO_RELEASE_STORE_PASSWORD: ${{ secrets.OPENVIDEO_RELEASE_STORE_PASSWORD }}
+      OPENVIDEO_RELEASE_KEY_ALIAS: ${{ secrets.OPENVIDEO_RELEASE_KEY_ALIAS }}
+      OPENVIDEO_RELEASE_KEY_PASSWORD: ${{ secrets.OPENVIDEO_RELEASE_KEY_PASSWORD }}
+      KEYSTORE_BASE64: ${{ secrets.OPENVIDEO_RELEASE_KEYSTORE_BASE64 }}
+      MANUAL_RELEASE_TAG: ${{ inputs.release_tag }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Validate release tag and signing secrets
+        shell: pwsh
+        run: |
+          $required = @(
+            "KEYSTORE_BASE64",
+            "OPENVIDEO_RELEASE_STORE_PASSWORD",
+            "OPENVIDEO_RELEASE_KEY_ALIAS",
+            "OPENVIDEO_RELEASE_KEY_PASSWORD"
+          )
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Missing GitHub Actions secret: $name"
+            }
+          }
+
+          $properties = Get-Content gradle.properties -Raw
+          $versionMatch = [regex]::Match($properties, '(?m)^VERSION_NAME\s*=\s*(.+?)\s*$')
+          if (-not $versionMatch.Success) {
+            throw "VERSION_NAME is missing from gradle.properties"
+          }
+
+          $versionName = $versionMatch.Groups[1].Value.Trim()
+          $releaseTag = if ($env:GITHUB_REF_TYPE -eq "tag") { $env:GITHUB_REF_NAME } else { $env:MANUAL_RELEASE_TAG }
+          if ($releaseTag -ne "v$versionName") {
+            throw "Release tag '$releaseTag' must match VERSION_NAME '$versionName' (expected v$versionName)."
+          }
+
+          "RELEASE_TAG=$releaseTag" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "RELEASE_VERSION=$versionName" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore release keystore
+        shell: pwsh
+        run: |
+          $keystorePath = Join-Path $env:RUNNER_TEMP "openvideo-release.jks"
+          [IO.File]::WriteAllBytes($keystorePath, [Convert]::FromBase64String($env:KEYSTORE_BASE64))
+          "OPENVIDEO_RELEASE_STORE_FILE=$keystorePath" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build signed release APK
+        run: .\gradlew.bat :app:assembleRelease
+
+      - name: Verify and stage release artifacts
+        shell: pwsh
+        run: |
+          $sourceApk = "app/build/outputs/apk/release/app-release.apk"
+          if (-not (Test-Path $sourceApk)) {
+            throw "Signed release APK was not produced: $sourceApk"
+          }
+
+          $buildTools = Get-ChildItem (Join-Path $env:ANDROID_SDK_ROOT "build-tools") -Directory |
+            Sort-Object { [version]$_.Name } -Descending |
+            Select-Object -First 1
+          $apksigner = Join-Path $buildTools.FullName "apksigner.bat"
+          & $apksigner verify --verbose --print-certs $sourceApk
+          if ($LASTEXITCODE -ne 0) {
+            throw "APK signature verification failed."
+          }
+
+          New-Item -ItemType Directory -Path release -Force | Out-Null
+          $apkName = "openvideo-$env:RELEASE_TAG-app-release.apk"
+          Copy-Item $sourceApk (Join-Path release $apkName)
+          $hash = (Get-FileHash (Join-Path release $apkName) -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $apkName" | Set-Content release/SHA256SUMS.txt -Encoding utf8
+
+      - name: Upload signed release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openvideo-${{ env.RELEASE_TAG }}-signed
+          path: |
+            release/*.apk
+            release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $apk = Get-ChildItem release -Filter "*.apk" | Select-Object -Single
+          $arguments = @(
+            "release", "create", $env:RELEASE_TAG,
+            $apk.FullName, (Resolve-Path "release/SHA256SUMS.txt").Path,
+            "--title", "OpenVideo $env:RELEASE_TAG",
+            "--generate-notes"
+          )
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $arguments += "--verify-tag"
+          } else {
+            $arguments += @("--target", $env:GITHUB_SHA)
+          }
+          & gh @arguments

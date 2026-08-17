@@ -29,7 +29,15 @@ output
 keys/
 release/
 docs/
-scripts/
+scripts/*
+!scripts/OpenVideo.Release.psm1
+!scripts/package-helper.ps1
+!scripts/sign-release.ps1
+!scripts/sign-release-default.ps1
+!scripts/configure-github-release-secrets.ps1
+!scripts/tests/
+scripts/tests/*
+!scripts/tests/Test-OpenVideoRelease.ps1
 resume_flash_before_frames
 resume_flash_after_frames
 tools/adb/*.png
