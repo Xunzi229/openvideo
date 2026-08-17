@@ -10,6 +10,11 @@ on:
         description: "Release tag, for example v0.0.16"
         required: true
         type: string
+      publish_release:
+        description: "Create the GitHub Release after building"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -118,6 +123,7 @@ jobs:
           retention-days: 30
 
       - name: Publish GitHub Release
+        if: github.event_name == 'push' || inputs.publish_release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}

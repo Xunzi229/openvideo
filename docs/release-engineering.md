@@ -58,7 +58,7 @@ git tag v0.0.16
 git push origin v0.0.16
 ```
 
-The tag must exactly equal `v` plus `VERSION_NAME`. The workflow can also be started manually with the same tag value from the Actions page.
+The tag must exactly equal `v` plus `VERSION_NAME`. The workflow can also be started manually with the same tag value from the Actions page. Manual runs leave `publish_release` disabled by default, producing a signed artifact without creating a tag or GitHub Release; enable it explicitly when a manual run should publish.
 
 ## Packaging
 

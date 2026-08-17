@@ -106,6 +106,8 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("apksigner verify"))
         assertTrue(workflow.contains("gh @arguments"))
         assertTrue(workflow.contains("release/*.apk"))
+        assertTrue(workflow.contains("publish_release:"))
+        assertTrue(workflow.contains("if: github.event_name == 'push' || inputs.publish_release"))
         assertFalse(Regex("STORE_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
         assertFalse(Regex("KEY_PASSWORD:\\s*\"[^\"]+\"").containsMatchIn(workflow))
     }
