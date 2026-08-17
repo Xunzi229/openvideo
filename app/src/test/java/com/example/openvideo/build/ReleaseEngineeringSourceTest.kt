@@ -81,15 +81,16 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
-    fun githubWorkflowAutoChecksAreRemoved() {
+    fun githubPreviewWorkflowBuildsAndUploadsDebugApk() {
         val appBuild = rootFile("app", "build.gradle.kts").readText()
+        val workflow = rootFile(".github", "workflows", "preview.yml").readText()
 
-        val workflowExists = sequenceOf(
-            Paths.get(".github", "workflows", "android.yml"),
-            Paths.get("..", ".github", "workflows", "android.yml")
-        ).any(Files::exists)
-
-        assertFalse(workflowExists)
+        assertTrue(workflow.contains("workflow_dispatch:"))
+        assertTrue(workflow.contains("codex/**"))
+        assertTrue(workflow.contains(":app:testDebugUnitTest"))
+        assertTrue(workflow.contains(":app:assembleDebug"))
+        assertTrue(workflow.contains("actions/upload-artifact@v4"))
+        assertTrue(workflow.contains("app-debug.apk"))
         assertTrue(appBuild.contains("baseline = file(\"lint-baseline.xml\")"))
     }
 

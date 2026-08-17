@@ -37,9 +37,8 @@ object PlayerErrorPresentationPolicy {
     }
 
     fun present(errorCode: Int, cause: Throwable? = null): Presentation {
-        networkPresentation(errorCode, cause)?.let { return it }
-        return when {
-            isUnsupportedContainerError(errorCode, cause) -> Presentation(
+        if (isUnsupportedContainerError(errorCode, cause)) {
+            return Presentation(
                 titleRes = R.string.player_error_title_format,
                 descRes  = R.string.player_error_desc_format,
                 actions  = listOf(
@@ -47,6 +46,9 @@ object PlayerErrorPresentationPolicy {
                     ErrorAction.GO_BACK
                 )
             )
+        }
+        networkPresentation(errorCode, cause)?.let { return it }
+        return when {
             isDecoderError(errorCode) -> Presentation(
                 titleRes = R.string.player_error_title_decode,
                 descRes  = R.string.player_error_desc_decode,
@@ -80,7 +82,8 @@ object PlayerErrorPresentationPolicy {
 
     private fun isUnsupportedContainerError(errorCode: Int, cause: Throwable?): Boolean =
         errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
-            cause is UnrecognizedInputFormatException
+            generateSequence(cause) { it.cause }
+                .any { it is UnrecognizedInputFormatException }
 
     private fun networkPresentation(errorCode: Int, cause: Throwable?): Presentation? {
         val classification = NetworkErrorClassifier.classifyPlaybackError(errorCode, cause)

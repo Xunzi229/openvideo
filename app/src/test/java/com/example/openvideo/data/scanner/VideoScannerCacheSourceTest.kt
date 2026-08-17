@@ -9,6 +9,14 @@ import java.nio.file.Paths
 class VideoScannerCacheSourceTest {
 
     @Test
+    fun emptyMediaStoreEntriesAreNotReturnedAsPlayableVideos() {
+        val source = String(Files.readAllBytes(videoScannerSource()))
+
+        assertTrue(source.contains("if (size <= 0L) continue"))
+        assertTrue(source.contains("if (size <= 0L) return null"))
+    }
+
+    @Test
     fun deletePathsInvalidateScannerCache() {
         val source = String(Files.readAllBytes(videoScannerSource()))
 

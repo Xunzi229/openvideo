@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import androidx.media3.common.PlaybackException
+import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 import com.example.openvideo.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -161,6 +162,23 @@ class PlayerErrorPresentationPolicyTest {
         assertFalse(PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in presentation.actions)
         assertTrue(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in presentation.actions)
         assertTrue(PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in presentation.actions)
+    }
+
+    @Test
+    fun nestedUnrecognizedInputFormatOverridesGenericIoError() {
+        val extractorFailure = UnrecognizedInputFormatException(
+            "None of the available extractors could read the stream",
+            null,
+            emptyList()
+        )
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            IllegalStateException("source error", extractorFailure)
+        )
+
+        assertEquals(R.string.player_error_title_format, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_format, presentation.descRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
     }
 
     @Test

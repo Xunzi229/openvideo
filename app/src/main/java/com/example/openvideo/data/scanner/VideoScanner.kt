@@ -172,12 +172,14 @@ class VideoScanner @Inject constructor(
             val dateCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idCol)
+                val size = cursor.getLong(sizeCol)
+                if (size <= 0L) continue
                 index[id] = MediaStoreIndexEntry(
                     id = id,
                     displayName = cursor.getString(nameCol) ?: "Unknown",
                     dateAdded = cursor.getLong(dateCol),
                     duration = cursor.getLong(durationCol),
-                    size = cursor.getLong(sizeCol),
+                    size = size,
                     width = cursor.getInt(widthCol),
                     height = cursor.getInt(heightCol)
                 )
@@ -271,6 +273,7 @@ class VideoScanner @Inject constructor(
         val path = cursor.getString(dataCol) ?: ""
         val duration = cursor.getLong(durationCol)
         val size = cursor.getLong(sizeCol)
+        if (size <= 0L) return null
         val rawWidth = cursor.getInt(widthCol)
         val rawHeight = cursor.getInt(heightCol)
         val orientation = if (orientationCol >= 0) cursor.getInt(orientationCol) else 0
