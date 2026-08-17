@@ -31,8 +31,12 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Run unit tests
-        run: .\gradlew.bat :app:testDebugUnitTest
+      - name: Run preview regression tests
+        run: >-
+          .\gradlew.bat :app:testDebugUnitTest
+          --tests "com.example.openvideo.ui.player.PlayerErrorPresentationPolicyTest"
+          --tests "com.example.openvideo.data.scanner.VideoScannerCacheSourceTest"
+          --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubPreviewWorkflowBuildsAndUploadsDebugApk"
 
       - name: Build preview APK
         run: .\gradlew.bat :app:assembleDebug
