@@ -33,7 +33,7 @@ class PlayerLifecycleController(
             isInPictureInPicture = isInPictureInPictureProvider(),
             pauseOnExit = playerPrefs.pauseOnExit,
             backgroundAudio = playerPrefs.bgAudio,
-            isPlaying = viewModel.player?.isPlaying == true
+            isPlaying = viewModel.player?.playWhenReady == true
         )
         if (decision.saveHistory) viewModel.saveHistory()
         if (decision.pausePlayer) {

@@ -3,21 +3,16 @@ package com.example.openvideo.core.diagnostics
 import android.content.Context
 import android.os.Build
 import com.example.openvideo.BuildConfig
+import com.example.openvideo.core.prefs.AppPrefs
 import java.io.File
-import java.io.OutputStreamWriter
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.net.HttpURLConnection
-import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 object CrashLogger {
     private const val DIR_NAME = "crash_logs"
-    private const val REMOTE_CONNECT_TIMEOUT_MS = 5_000
-    private const val REMOTE_READ_TIMEOUT_MS = 5_000
-    private val timestampFormat = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US)
 
     fun install(context: Context) {
         val appContext = context.applicationContext
@@ -27,7 +22,8 @@ object CrashLogger {
                 context = appContext,
                 source = CrashCategoryPolicy.SOURCE_UNCAUGHT,
                 threadName = thread.name,
-                throwable = throwable
+                throwable = throwable,
+                flushAfterWrite = false
             )
             previous?.uncaughtException(thread, throwable)
         }
@@ -39,8 +35,22 @@ object CrashLogger {
             source = CrashCategoryPolicy.SOURCE_PLAYER,
             threadName = Thread.currentThread().name,
             throwable = throwable,
-            diagnostics = diagnostics
+            diagnostics = diagnostics,
+            flushAfterWrite = true
         )
+    }
+
+    fun flushPendingReports(context: Context) {
+        if (!isRemoteReportingAllowed(context)) return
+        CrashReportOutbox.flushAsync(context, BuildConfig.FEISHU_WEBHOOK_URL)
+    }
+
+    fun onRemoteReportingPreferenceChanged(context: Context, enabled: Boolean) {
+        if (enabled && BuildConfig.REMOTE_CRASH_REPORTING_ENABLED) {
+            flushPendingReports(context)
+        } else {
+            CrashReportOutbox.clear(context)
+        }
     }
 
     /**
@@ -60,7 +70,7 @@ object CrashLogger {
             val safeName = name.replace(Regex("[^A-Za-z0-9_-]"), "_")
             val dir = File(context.applicationContext.filesDir, DIR_NAME).apply { mkdirs() }
             val log = buildDiagnosticLog(name, body)
-            File(dir, "${safeName}_${timestampFormat.format(Date())}.txt").writeText(log)
+            File(dir, "${safeName}_${timestamp()}.txt").writeText(log)
         }
     }
 
@@ -69,19 +79,29 @@ object CrashLogger {
         source: String,
         threadName: String,
         throwable: Throwable,
-        diagnostics: String? = null
+        diagnostics: String? = null,
+        flushAfterWrite: Boolean
     ) {
         runCatching {
             val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
             val category = CrashCategoryPolicy.categorize(throwable, source)
-            val fileName = "${source}_${category.token}_${timestampFormat.format(Date())}.txt"
+            val fileName = "${source}_${category.token}_${timestamp()}.txt"
             val log = buildLog(threadName, throwable, category, source, diagnostics)
             File(dir, fileName).writeText(log)
-            if (BuildConfig.REMOTE_CRASH_REPORTING_ENABLED && BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()) {
-                reportRemotely(BuildConfig.FEISHU_WEBHOOK_URL, fileName, log)
+            if (isRemoteReportingAllowed(context)) {
+                CrashReportOutbox.enqueue(context, fileName, buildRemotePayload(fileName, log))
+                if (flushAfterWrite) flushPendingReports(context)
             }
         }
     }
+
+    private fun isRemoteReportingAllowed(context: Context): Boolean =
+        BuildConfig.REMOTE_CRASH_REPORTING_ENABLED &&
+            BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank() &&
+            AppPrefs(context.applicationContext).remoteCrashReportingEnabled
+
+    private fun timestamp(): String =
+        SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
 
     private fun buildDiagnosticLog(name: String, body: String): String {
         return buildString {
@@ -120,31 +140,6 @@ object CrashLogger {
             appendLine()
             append(CrashRedactionPolicy.redact(stack))
         }
-    }
-
-    private fun reportRemotely(webhookUrl: String, title: String, log: String) {
-        Thread {
-            runCatching {
-                val connection = (URL(webhookUrl).openConnection() as HttpURLConnection).apply {
-                    requestMethod = "POST"
-                    connectTimeout = REMOTE_CONNECT_TIMEOUT_MS
-                    readTimeout = REMOTE_READ_TIMEOUT_MS
-                    doOutput = true
-                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                }
-                connection.outputStream.use { stream ->
-                    OutputStreamWriter(stream, Charsets.UTF_8).use { writer ->
-                        writer.write(buildRemotePayload(title, log))
-                    }
-                }
-                runCatching { connection.inputStream.close() }
-                runCatching { connection.errorStream?.close() }
-                connection.disconnect()
-            }
-        }.apply {
-            name = "openvideo-remote-crash-report"
-            isDaemon = true
-        }.start()
     }
 
     private fun buildRemotePayload(title: String, log: String): String {

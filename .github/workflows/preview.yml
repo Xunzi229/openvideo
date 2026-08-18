@@ -38,6 +38,11 @@ jobs:
         run: >-
           .\gradlew.bat :app:testDebugUnitTest
           --tests "com.example.openvideo.ui.player.PlayerErrorPresentationPolicyTest"
+          --tests "com.example.openvideo.ui.player.PlayerLifecyclePolicyTest"
+          --tests "com.example.openvideo.ui.player.PlayerErrorDiagnosticsSourceTest"
+          --tests "com.example.openvideo.core.diagnostics.CrashRedactionPolicyTest"
+          --tests "com.example.openvideo.core.diagnostics.CrashLoggerSourceTest"
+          --tests "com.example.openvideo.core.diagnostics.CrashReportOutboxSourceTest"
           --tests "com.example.openvideo.data.scanner.VideoScannerCacheSourceTest"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubPreviewWorkflowBuildsAndUploadsDebugApk"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk"

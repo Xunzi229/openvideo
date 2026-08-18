@@ -92,6 +92,52 @@ class PlayerViewModel @Inject constructor(
     fun isActiveSessionFor(videoId: Long): Boolean =
         videoId != 0L && this.videoId == videoId && player != null
 
+    fun adoptActiveSession(
+        uri: Uri,
+        title: String,
+        id: Long,
+        path: String = "",
+        requestHeaders: Map<String, String> = emptyMap()
+    ): Boolean {
+        val activePlayer = playerManager.player ?: return false
+        val activeUri = activePlayer.currentMediaItem?.localConfiguration?.uri ?: return false
+        if (activeUri != uri) return false
+
+        resetNetworkAutoRetry()
+        playerListener?.let { playerManager.removeListener(it) }
+        videoId = id
+        videoUri = uri
+        videoPath = path
+        this.requestHeaders = requestHeaders.ifEmpty { playerManager.currentMediaRequestHeaders() }
+        _uiState.value = _uiState.value.copy(
+            title = title,
+            isPlaying = activePlayer.isPlaying,
+            currentPosition = activePlayer.currentPosition,
+            duration = activePlayer.duration.takeIf { it > 0L } ?: 0L
+        )
+        playerListener = object : androidx.media3.common.Player.Listener {
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                _uiState.value = _uiState.value.copy(duration = playerManager.duration)
+                if (playbackState == androidx.media3.common.Player.STATE_READY) {
+                    resetNetworkAutoRetry()
+                    applyPendingAudioSelection()
+                    markPlaybackStarted()
+                    applyPendingRestore()
+                }
+            }
+        }
+        playerManager.addListener(playerListener!!)
+        viewModelScope.launch {
+            val isFav = repository.isFavorite(id)
+            if (id == videoId) _uiState.value = _uiState.value.copy(isFavorite = isFav)
+        }
+        return true
+    }
+
     fun setSessionQueue(videos: List<VideoItem>) {
         _sessionQueue.value = videos
     }
@@ -699,9 +745,13 @@ class PlayerViewModel @Inject constructor(
 
     fun release() {
         saveHistory()
+        detachFromActiveSession()
+        playerManager.release()
+    }
+
+    fun detachFromActiveSession() {
         playerListener?.let { playerManager.removeListener(it) }
         playerListener = null
-        playerManager.release()
     }
 
     val player get() = playerManager.player

@@ -22,7 +22,7 @@ class CrashLoggerSourceTest {
     }
 
     @Test
-    fun crashWritePathOnlyTriggersRemoteReportingWhenBuildConfigEnablesIt() {
+    fun crashWritePathQueuesReportsOnlyWithBuildAndUserConsent() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val writeMethod = source.substringAfter("private fun write(")
             .substringBefore("\n    private fun buildDiagnosticLog")
@@ -30,8 +30,9 @@ class CrashLoggerSourceTest {
         assertTrue(writeMethod.contains("writeText(log)"))
         assertTrue(writeMethod.contains("BuildConfig.REMOTE_CRASH_REPORTING_ENABLED"))
         assertTrue(writeMethod.contains("BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()"))
-        assertTrue(writeMethod.contains("reportRemotely(BuildConfig.FEISHU_WEBHOOK_URL"))
-        assertFalse(writeMethod.contains("reportToFeishu("))
+        assertTrue(writeMethod.contains("AppPrefs(context.applicationContext).remoteCrashReportingEnabled"))
+        assertTrue(writeMethod.contains("CrashReportOutbox.enqueue("))
+        assertTrue(writeMethod.contains("flushAfterWrite"))
 
         assertTrue(
             "write() must classify the crash via CrashCategoryPolicy.",
@@ -107,16 +108,14 @@ class CrashLoggerSourceTest {
     }
 
     @Test
-    fun remoteReportRunsOffMainThreadAndCannotCrashTheApp() {
+    fun uncaughtCrashesArePersistedWithoutStartingNetworkWorkDuringShutdown() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
-        val reportMethod = source.substringAfter("private fun reportRemotely(")
-            .substringBefore("\n    private fun buildRemotePayload")
+        val installMethod = source.substringAfter("fun install(")
+            .substringBefore("\n    fun logPlayerError")
 
-        assertTrue(reportMethod.contains("Thread {") || reportMethod.contains("Thread("))
-        assertTrue(reportMethod.contains("runCatching"))
-        assertTrue(reportMethod.contains("HttpURLConnection"))
-        assertTrue(reportMethod.contains("isDaemon = true"))
-        assertTrue(reportMethod.contains(".start()"))
+        assertTrue(installMethod.contains("flushAfterWrite = false"))
+        assertTrue(source.contains("CrashReportOutbox.enqueue("))
+        assertTrue(source.contains("fun flushPendingReports("))
     }
 
     @Test

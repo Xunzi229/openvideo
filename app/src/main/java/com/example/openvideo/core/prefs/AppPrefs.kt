@@ -74,6 +74,11 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getString(KEY_GITHUB_PENDING_DOWNLOAD_URL, "")
         set(value) = putString(KEY_GITHUB_PENDING_DOWNLOAD_URL, value)
 
+    /** User consent for sending redacted crash reports to the configured endpoint. */
+    var remoteCrashReportingEnabled: Boolean
+        get() = getBoolean(KEY_REMOTE_CRASH_REPORTING_ENABLED, false)
+        set(value) = putBoolean(KEY_REMOTE_CRASH_REPORTING_ENABLED, value)
+
     companion object {
         private const val PREFS_NAME = "app_settings"
 
@@ -100,5 +105,6 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"
         private const val KEY_GITHUB_UPDATE_BADGE = "github_update_badge_visible"
         private const val KEY_GITHUB_PENDING_DOWNLOAD_URL = "github_pending_download_url"
+        private const val KEY_REMOTE_CRASH_REPORTING_ENABLED = "remote_crash_reporting_enabled"
     }
 }

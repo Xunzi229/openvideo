@@ -506,50 +506,6 @@
     </issue>
 
     <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 23): `java.time.Instant#now`"
-        errorLine1="        exportedAt: Instant = Instant.now()"
-        errorLine2="                                      ~~~">
-        <location
-            file="src/main/java/com/example/openvideo/core/prefs/SettingsBackupExporter.kt"
-            line="14"
-            column="39"/>
-    </issue>
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 23): `java.time.Instant#now`"
-        errorLine1="        exportedAt: Instant = Instant.now()"
-        errorLine2="                                      ~~~">
-        <location
-            file="src/main/java/com/example/openvideo/core/prefs/SettingsBackupExporter.kt"
-            line="26"
-            column="39"/>
-    </issue>
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 23): `java.time.Instant#now`"
-        errorLine1="    fun newDocument(exportedAt: Instant = Instant.now()): Document ="
-        errorLine2="                                                  ~~~">
-        <location
-            file="src/main/java/com/example/openvideo/core/prefs/SettingsBackupSchema.kt"
-            line="133"
-            column="51"/>
-    </issue>
-
-    <issue
-        id="NewApi"
-        message="Call requires API level 26, or core library desugaring (current min is 23): `java.time.Instant#parse`"
-        errorLine1="        runCatching { Instant.parse(value) }.isSuccess ||"
-        errorLine2="                              ~~~~~">
-        <location
-            file="src/main/java/com/example/openvideo/core/prefs/SettingsBackupSchema.kt"
-            line="190"
-            column="31"/>
-    </issue>
-
-    <issue
         id="OldTargetApi"
         message="Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the `android.os.Build.VERSION_CODES` javadoc for details."
         errorLine1="        targetSdk = 35"

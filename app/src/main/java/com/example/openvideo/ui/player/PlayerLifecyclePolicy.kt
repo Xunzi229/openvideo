@@ -13,6 +13,12 @@ data class PlayerResumeLifecycleDecision(
     val observeState: Boolean
 )
 
+data class PlayerDestroyLifecycleDecision(
+    val keepPlaybackSession: Boolean,
+    val releasePlayer: Boolean,
+    val dismissPlaybackNotification: Boolean
+)
+
 object PlayerLifecyclePolicy {
 
     fun onPause(
@@ -46,4 +52,19 @@ object PlayerLifecyclePolicy {
             stopPlaybackService = true,
             observeState = true
         )
+
+    fun onDestroy(
+        activityIsFinishing: Boolean,
+        exitRequested: Boolean,
+        backgroundAudio: Boolean,
+        hasPlayer: Boolean,
+        playWhenReady: Boolean
+    ): PlayerDestroyLifecycleDecision {
+        val keepSession = !activityIsFinishing && !exitRequested && backgroundAudio && hasPlayer && playWhenReady
+        return PlayerDestroyLifecycleDecision(
+            keepPlaybackSession = keepSession,
+            releasePlayer = !keepSession,
+            dismissPlaybackNotification = !keepSession
+        )
+    }
 }

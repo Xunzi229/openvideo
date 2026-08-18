@@ -69,4 +69,29 @@ class CrashRedactionPolicyTest {
         assertTrue(redacted.contains("content_resolver.display_name=<file>.mp4"))
         assertFalse(redacted.contains("private birthday"))
     }
+
+    @Test
+    fun networkUrisDoNotExposeCredentialsQueriesOrFragments() {
+        val redacted = CrashRedactionPolicy.redact(
+            "open https://user:pass@example.com/video.m3u8?token=secret#part"
+        )
+
+        assertEquals("open <https-network-uri>", redacted)
+        assertFalse(redacted.contains("secret"))
+        assertFalse(redacted.contains("user"))
+    }
+
+    @Test
+    fun authenticationHeadersAndTokenFieldsAreRedacted() {
+        val redacted = CrashRedactionPolicy.redact(
+            "Authorization: Bearer abc123\nCookie=session=private\nrefresh_token=xyz"
+        )
+
+        assertTrue(redacted.contains("Authorization=<redacted>"))
+        assertTrue(redacted.contains("Cookie=<redacted>"))
+        assertTrue(redacted.contains("refresh_token=<redacted>"))
+        assertFalse(redacted.contains("abc123"))
+        assertFalse(redacted.contains("private"))
+        assertFalse(redacted.contains("xyz"))
+    }
 }

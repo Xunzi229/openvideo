@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import com.example.openvideo.data.model.VideoItem
+import com.example.openvideo.core.diagnostics.CrashRedactionPolicy
 import java.io.File
 
 object PlayerErrorDiagnostics {
@@ -21,7 +22,7 @@ object PlayerErrorDiagnostics {
         return buildString {
             appendLine("source_media.video_id=${video?.id ?: 0L}")
             appendLine("source_media.title=${video?.title.orEmpty()}")
-            appendLine("source_media.uri=${uri?.toString().orEmpty()}")
+            appendLine("source_media.uri=${redactedUri(uri)}")
             appendLine("source_media.path=$path")
             appendLine("source_media.duration_ms=${video?.duration ?: 0L}")
             appendLine("source_media.size_bytes=${video?.size ?: 0L}")
@@ -90,7 +91,7 @@ object PlayerErrorDiagnostics {
         appendLine("player.current_position_ms=${player?.currentPosition ?: 0L}")
         appendLine("player.duration_ms=${player?.duration?.takeIf { it != C.TIME_UNSET } ?: 0L}")
         appendLine("player.buffered_position_ms=${player?.bufferedPosition ?: 0L}")
-        appendLine("player.current_media_uri=${currentMediaUri(player)?.toString().orEmpty()}")
+        appendLine("player.current_media_uri=${redactedUri(currentMediaUri(player))}")
     }
 
     private fun fileFor(path: String, uri: Uri?): File? =
@@ -102,4 +103,7 @@ object PlayerErrorDiagnostics {
 
     private fun currentMediaUri(player: Player?): Uri? =
         player?.currentMediaItem?.localConfiguration?.uri
+
+    private fun redactedUri(uri: Uri?): String =
+        uri?.toString()?.let(CrashRedactionPolicy::redactUri).orEmpty()
 }

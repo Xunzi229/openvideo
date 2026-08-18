@@ -49,6 +49,7 @@ class PlayerErrorDiagnosticsSourceTest {
         assertTrue(source.contains("player.duration_ms="))
         assertTrue(source.contains("player.buffered_position_ms="))
         assertTrue(source.contains("player.current_media_uri="))
+        assertTrue(source.contains("CrashRedactionPolicy::redactUri"))
     }
 
     private fun kotlinSource(name: String): String {

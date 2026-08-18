@@ -593,10 +593,17 @@ class PlayerActivity : AppCompatActivity() {
         }
         viewModel.setSessionQueue(sessionQueue)
 
-        val warmResume = viewModel.isActiveSessionFor(id)
+        val playbackUri = LocalMediaUriPolicy.playbackUri(uriString)
+        val warmResume = viewModel.isActiveSessionFor(id) || viewModel.adoptActiveSession(
+            playbackUri,
+            title,
+            id,
+            videoPath,
+            requestHeaders = requestHeaders
+        )
         if (!warmResume) {
             viewModel.initialize(
-                LocalMediaUriPolicy.playbackUri(uriString),
+                playbackUri,
                 title,
                 id,
                 videoPath,
@@ -1038,13 +1045,25 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        playbackNotifications.dismiss()
+        val decision = PlayerLifecyclePolicy.onDestroy(
+            activityIsFinishing = isFinishing,
+            exitRequested = playerExit.isFinishing,
+            backgroundAudio = playerPrefs.bgAudio,
+            hasPlayer = viewModel.player != null,
+            playWhenReady = viewModel.player?.playWhenReady == true
+        )
+        if (decision.dismissPlaybackNotification) playbackNotifications.dismiss()
         playbackCoordinator.clearHandlers()
         subtitles.unregisterPrefsListener()
         handler.removeCallbacksAndMessages(null)
         playerEvents.detach()
-        preparePlayerExitFrame()
-        releasePlayerAfterExit()
+        if (decision.keepPlaybackSession) {
+            playerView.player = null
+            viewModel.detachFromActiveSession()
+        } else if (decision.releasePlayer) {
+            preparePlayerExitFrame()
+            releasePlayerAfterExit()
+        }
         super.onDestroy()
     }
 

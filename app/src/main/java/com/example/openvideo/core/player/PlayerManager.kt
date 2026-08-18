@@ -47,6 +47,7 @@ class PlayerManager @Inject constructor(
     )
     private val mediaExport = PlayerMediaExportController(context)
     private var httpDataSourceFactory: DefaultHttpDataSource.Factory? = null
+    private var mediaRequestHeaders: Map<String, String> = emptyMap()
 
     var decodeMode = DecodeMode.HARD
     var renderMode = RenderMode.SURFACE
@@ -98,9 +99,11 @@ class PlayerManager @Inject constructor(
         player = null
         trackSelector = null
         httpDataSourceFactory = null
+        mediaRequestHeaders = emptyMap()
     }
 
     fun setMediaUri(uri: Uri, requestHeaders: Map<String, String> = emptyMap()) {
+        mediaRequestHeaders = requestHeaders.toMap()
         httpDataSourceFactory?.setDefaultRequestProperties(
             NetworkPlaybackHeaderPolicy.defaultRequestProperties() + requestHeaders
         )
@@ -111,6 +114,8 @@ class PlayerManager @Inject constructor(
             it.prepare()
         }
     }
+
+    fun currentMediaRequestHeaders(): Map<String, String> = mediaRequestHeaders.toMap()
 
     fun togglePlayPause() {
         player?.let {

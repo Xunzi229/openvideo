@@ -44,6 +44,7 @@
     <string name="settings_notification_allow_system_title">Allow system notifications</string>
     <string name="settings_notification_allow_system_on">Notifications are enabled for OpenVideo</string>
     <string name="settings_notification_allow_system_off">Disabled — tap to open system settings and enable</string>
+    <string name="settings_crash_reporting">Send redacted crash reports</string>
 
     <!-- Player -->
     <string name="player_speed">Speed</string>

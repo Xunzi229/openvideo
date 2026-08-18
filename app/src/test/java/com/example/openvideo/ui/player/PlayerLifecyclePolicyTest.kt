@@ -85,4 +85,61 @@ class PlayerLifecyclePolicyTest {
         assertEquals(true, decision.stopPlaybackService)
         assertEquals(true, decision.observeState)
     }
+
+    @Test
+    fun systemDestroyKeepsActiveBackgroundPlaybackSession() {
+        val decision = PlayerLifecyclePolicy.onDestroy(
+            activityIsFinishing = false,
+            exitRequested = false,
+            backgroundAudio = true,
+            hasPlayer = true,
+            playWhenReady = true
+        )
+
+        assertEquals(true, decision.keepPlaybackSession)
+        assertEquals(false, decision.releasePlayer)
+        assertEquals(false, decision.dismissPlaybackNotification)
+    }
+
+    @Test
+    fun explicitExitReleasesPlayerAndDismissesNotification() {
+        val decision = PlayerLifecyclePolicy.onDestroy(
+            activityIsFinishing = false,
+            exitRequested = true,
+            backgroundAudio = true,
+            hasPlayer = true,
+            playWhenReady = true
+        )
+
+        assertEquals(false, decision.keepPlaybackSession)
+        assertEquals(true, decision.releasePlayer)
+        assertEquals(true, decision.dismissPlaybackNotification)
+    }
+
+    @Test
+    fun destroyWithoutBackgroundAudioReleasesPlayer() {
+        val decision = PlayerLifecyclePolicy.onDestroy(
+            activityIsFinishing = false,
+            exitRequested = false,
+            backgroundAudio = false,
+            hasPlayer = true,
+            playWhenReady = true
+        )
+
+        assertEquals(true, decision.releasePlayer)
+    }
+
+    @Test
+    fun pausedBackgroundSessionDoesNotLeakAfterActivityDestroy() {
+        val decision = PlayerLifecyclePolicy.onDestroy(
+            activityIsFinishing = false,
+            exitRequested = false,
+            backgroundAudio = true,
+            hasPlayer = true,
+            playWhenReady = false
+        )
+
+        assertEquals(false, decision.keepPlaybackSession)
+        assertEquals(true, decision.releasePlayer)
+    }
 }

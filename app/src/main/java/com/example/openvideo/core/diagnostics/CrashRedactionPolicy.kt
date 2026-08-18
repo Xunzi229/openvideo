@@ -20,6 +20,15 @@ object CrashRedactionPolicy {
     private val sensitiveMediaNameLineRegex = Regex(
         """(?m)^(source_media\.title|content_resolver\.display_name)=([^\r\n]*)"""
     )
+    private val networkUriRegex = Regex(
+        """(?i)\b(?:https?|rtsp)://[^\s)>\]"']+"""
+    )
+    private val sensitiveHeaderRegex = Regex(
+        """(?i)\b(authorization|proxy-authorization|cookie|set-cookie|x-api-key)\s*[:=]\s*([^,}\r\n]+)"""
+    )
+    private val sensitiveValueRegex = Regex(
+        """(?i)\b(access_token|refresh_token|api_key|apikey|token|secret|password)\s*[:=]\s*([^\s,;}&]+)"""
+    )
 
     fun redact(text: String): String {
         if (text.isEmpty()) return text
@@ -38,7 +47,17 @@ object CrashRedactionPolicy {
             val value = match.groupValues[2]
             if (value.isBlank()) "$key=" else "$key=${redactedPath(value)}"
         }
+        result = networkUriRegex.replace(result) { match -> redactedNetworkUri(match.value) }
+        result = sensitiveHeaderRegex.replace(result) { match -> "${match.groupValues[1]}=<redacted>" }
+        result = sensitiveValueRegex.replace(result) { match -> "${match.groupValues[1]}=<redacted>" }
         return result
+    }
+
+    fun redactUri(uri: String): String = redact(uri)
+
+    private fun redactedNetworkUri(uri: String): String {
+        val scheme = uri.substringBefore("://").lowercase()
+        return "<$scheme-network-uri>"
     }
 
     private fun redactedPath(path: String): String {

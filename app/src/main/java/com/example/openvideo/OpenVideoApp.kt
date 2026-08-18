@@ -13,5 +13,6 @@ class OpenVideoApp : Application() {
         super.onCreate()
         AppSettingsApplier.apply(AppPrefs(this))
         CrashLogger.install(this)
+        CrashLogger.flushPendingReports(this)
     }
 }
