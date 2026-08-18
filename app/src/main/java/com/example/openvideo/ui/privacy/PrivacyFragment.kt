@@ -14,11 +14,12 @@ import com.example.openvideo.R
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class PrivacyFragment : Fragment() {
 
-    private lateinit var privacyManager: PrivacyManager
+    @Inject lateinit var privacyManager: PrivacyManager
     private lateinit var adapter: PrivacyFolderAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyView: TextView
@@ -31,8 +32,6 @@ class PrivacyFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        privacyManager = PrivacyManager(requireContext())
 
         recyclerView = view.findViewById(R.id.recycler_privacy)
         emptyView = view.findViewById(R.id.tv_empty)

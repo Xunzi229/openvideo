@@ -20,7 +20,7 @@ object MediaLibrarySearchPolicy {
     }
 
     fun matchesQuery(video: VideoItem, query: String): Boolean =
-        matchesQuery(video.title, video.path, query)
+        matchesQuery(video.title, video.libraryPath, query)
 
     fun matchesAdvanced(
         path: String,
@@ -40,7 +40,7 @@ object MediaLibrarySearchPolicy {
         filters: MediaLibraryAdvancedFilters,
         nowEpochSec: Long
     ): Boolean = matchesAdvanced(
-        path = video.path,
+        path = video.libraryPath,
         durationMs = video.duration,
         dateAddedSec = video.dateAdded,
         filters = filters,
@@ -65,7 +65,7 @@ object MediaLibrarySearchPolicy {
         nowEpochSec: Long
     ): Boolean = matchesLibrary(
         title = video.title,
-        path = video.path,
+        path = video.libraryPath,
         durationMs = video.duration,
         dateAddedSec = video.dateAdded,
         query = query,

@@ -21,8 +21,20 @@ class VideoScannerCacheSourceTest {
         val source = String(Files.readAllBytes(videoScannerSource()))
 
         assertTrue(source.contains("removeCachedVideo"))
-        assertTrue(source.contains("cacheMutex"))
+        assertTrue(source.contains("cacheLock"))
+        assertTrue(source.contains("synchronized(cacheLock)"))
         assertTrue(source.contains("SQLITE_MAX_VARIABLES"))
+    }
+
+    @Test
+    fun scopedStorageUsesRelativePathForLibraryAndContentUriForPlayback() {
+        val source = String(Files.readAllBytes(videoScannerSource()))
+
+        assertTrue(source.contains("MediaStore.Video.Media.RELATIVE_PATH"))
+        assertTrue(source.contains("MediaStorePathPolicy.playbackSource"))
+        assertTrue(source.contains("libraryPath = libraryPath"))
+        assertTrue(source.contains("MediaStore.Video.Media.DATE_MODIFIED"))
+        assertTrue(source.contains("orientationDegrees = orientation"))
     }
 
     private fun videoScannerSource(): Path {

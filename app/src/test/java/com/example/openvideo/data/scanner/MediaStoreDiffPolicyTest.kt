@@ -35,6 +35,33 @@ class MediaStoreDiffPolicyTest {
         assertEquals(0, diff.mutationCount)
     }
 
+    @Test
+    fun modifiedTimeOrientationAndLibraryPathInvalidateCachedEntry() {
+        val previous = entry(1L, "a.mp4", dateAdded = 10)
+
+        assertEquals(
+            setOf(1L),
+            MediaStoreDiffPolicy.diff(
+                mapOf(1L to previous),
+                mapOf(1L to previous.copy(dateModified = 20))
+            ).changedIds
+        )
+        assertEquals(
+            setOf(1L),
+            MediaStoreDiffPolicy.diff(
+                mapOf(1L to previous),
+                mapOf(1L to previous.copy(orientationDegrees = 90))
+            ).changedIds
+        )
+        assertEquals(
+            setOf(1L),
+            MediaStoreDiffPolicy.diff(
+                mapOf(1L to previous),
+                mapOf(1L to previous.copy(libraryPath = "/Movies/New/a.mp4"))
+            ).changedIds
+        )
+    }
+
     private fun entry(
         id: Long,
         name: String,
@@ -42,10 +69,13 @@ class MediaStoreDiffPolicyTest {
     ) = MediaStoreIndexEntry(
         id = id,
         displayName = name,
+        libraryPath = "/Movies/$name",
         dateAdded = dateAdded,
+        dateModified = dateAdded,
         duration = 60_000,
         size = 1_000,
         width = 1920,
-        height = 1080
+        height = 1080,
+        orientationDegrees = 0
     )
 }

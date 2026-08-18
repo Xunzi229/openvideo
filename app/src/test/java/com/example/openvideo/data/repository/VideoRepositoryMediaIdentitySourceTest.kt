@@ -23,7 +23,8 @@ class VideoRepositoryMediaIdentitySourceTest {
         assertTrue(source.contains("mediaIdentityDao.findFingerprintCandidates"))
         assertTrue(source.contains("mediaIdentityDao.upsertIdentity"))
         assertTrue(source.contains("mediaIdentityDao.upsertPathHistory"))
-        assertTrue(source.contains("dateAdded * MILLIS_PER_SECOND"))
+        assertTrue(source.contains("dateModified * MILLIS_PER_SECOND"))
+        assertTrue(source.contains("pathOrUri = video.libraryPath"))
     }
 
     @Test

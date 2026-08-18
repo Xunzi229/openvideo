@@ -24,6 +24,9 @@ fun VideoItem.toSessionBundle(): Bundle =
         putInt("height", height)
         putLong("dateAdded", dateAdded)
         putString("thumb", thumbnailUri?.toString())
+        putString("libraryPath", libraryPath)
+        putLong("dateModified", dateModified)
+        putInt("orientationDegrees", orientationDegrees)
     }
 
 fun Bundle.toVideoItemOrNull(): VideoItem? {
@@ -39,7 +42,10 @@ fun Bundle.toVideoItemOrNull(): VideoItem? {
             width = getInt("width"),
             height = getInt("height"),
             dateAdded = getLong("dateAdded"),
-            thumbnailUri = getString("thumb")?.takeIf { it.isNotBlank() }?.let(Uri::parse)
+            thumbnailUri = getString("thumb")?.takeIf { it.isNotBlank() }?.let(Uri::parse),
+            libraryPath = getString("libraryPath").orEmpty().ifBlank { getString("path").orEmpty() },
+            dateModified = getLong("dateModified").takeIf { it > 0L } ?: getLong("dateAdded"),
+            orientationDegrees = getInt("orientationDegrees")
         )
     } catch (_: Exception) {
         null

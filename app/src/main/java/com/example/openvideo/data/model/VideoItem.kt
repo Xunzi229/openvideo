@@ -12,5 +12,9 @@ data class VideoItem(
     val width: Int,
     val height: Int,
     val dateAdded: Long,      // epoch seconds
-    val thumbnailUri: Uri?
+    val thumbnailUri: Uri?,
+    /** Path used for folder grouping and display; playback must use [uri] or [path]. */
+    val libraryPath: String = path,
+    val dateModified: Long = dateAdded,
+    val orientationDegrees: Int = 0
 )

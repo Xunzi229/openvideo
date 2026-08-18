@@ -100,7 +100,7 @@ class FolderVideosFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.videos.collect { videos ->
                     val folderVideos = videos.filter {
-                        VideoFolderGrouper.folderKey(it.path) == folderKey
+                        VideoFolderGrouper.folderKey(it.libraryPath) == folderKey
                     }
                     folderVideosSnapshot = folderVideos
                     adapter.submitList(folderVideos) { restoreVideoFocusIfNeeded(folderVideos) }

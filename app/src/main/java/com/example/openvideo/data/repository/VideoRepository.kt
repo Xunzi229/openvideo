@@ -92,12 +92,12 @@ class VideoRepository @Inject constructor(
         videos.forEach { video ->
             val fingerprint = MediaFingerprintPolicy.fromFields(
                 title = video.title,
-                pathOrUri = video.path,
+                pathOrUri = video.libraryPath,
                 sizeBytes = video.size,
                 durationMs = video.duration,
                 width = video.width,
                 height = video.height,
-                timestamp = video.dateAdded * MILLIS_PER_SECOND
+                timestamp = video.dateModified * MILLIS_PER_SECOND
             ) ?: return@forEach
 
             val existing = resolveMediaIdentity(video, fingerprint)
@@ -150,7 +150,7 @@ class VideoRepository @Inject constructor(
     }
 
     private suspend fun syncSeriesEpisode(video: VideoItem, identityId: Long, now: Long) {
-        val normalizedPath = MediaPathNormalizer.normalize(video.path) ?: return
+        val normalizedPath = MediaPathNormalizer.normalize(video.libraryPath) ?: return
         val match = EpisodeNameParser.parse(
             fileName = normalizedPath.fileName,
             parentFolderName = parentFolderName(normalizedPath.displayPath)
@@ -164,7 +164,7 @@ class VideoRepository @Inject constructor(
         )
         val discoveredPosterPath = LocalArtworkFinder.find(
             videoPath = video.path,
-            candidatePaths = LocalArtworkCandidateScanner.candidatesNear(video.path)
+            candidatePaths = LocalArtworkCandidateScanner.candidatesNear(video.libraryPath)
         )
         val seriesId = seriesEpisodeDao.insertSeries(
             existingSeries?.copy(
@@ -246,12 +246,12 @@ class VideoRepository @Inject constructor(
     private suspend fun resolveMediaIdentityId(video: VideoItem): Long? {
         val fingerprint = MediaFingerprintPolicy.fromFields(
             title = video.title,
-            pathOrUri = video.path,
+            pathOrUri = video.libraryPath,
             sizeBytes = video.size,
             durationMs = video.duration,
             width = video.width,
             height = video.height,
-            timestamp = video.dateAdded * MILLIS_PER_SECOND
+            timestamp = video.dateModified * MILLIS_PER_SECOND
         ) ?: return null
 
         return when (val decision = resolveMediaIdentity(video, fingerprint)) {

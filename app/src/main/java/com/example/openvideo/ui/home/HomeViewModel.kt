@@ -163,7 +163,7 @@ class HomeViewModel @Inject constructor(
         _pinnedFolderKeys
     ) { videos, pinnedKeys ->
         VideoFolderFilterPolicy.displayFolders(
-            folders = VideoFolderGrouper.groupPaths(videos.map { it.path }),
+            folders = VideoFolderGrouper.groupPaths(videos.map { it.libraryPath }),
             pinnedKeys = pinnedKeys
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -469,14 +469,16 @@ class HomeViewModel @Inject constructor(
                         _hiddenFolders.value = hiddenFolders
                         _scannedVideoCount.value = list.size
                         _hiddenFilteredCount.value = MediaLibraryPolicy.hiddenFilteredCount(
-                            list.map { it.path },
+                            list.map { it.libraryPath },
                             hiddenFolders
                         )
                         val visibleVideos = MediaLibraryPolicy.visibleVideos(
                             videos = list,
                             hiddenFolders = hiddenFolders
                         )
-                        val availableFolderKeys = VideoFolderGrouper.groupPaths(visibleVideos.map { it.path })
+                        val availableFolderKeys = VideoFolderGrouper.groupPaths(
+                            visibleVideos.map { it.libraryPath }
+                        )
                             .map { it.key }
                             .toSet()
                         val prunedPinned = VideoFolderFilterPolicy.prunePinnedKeys(

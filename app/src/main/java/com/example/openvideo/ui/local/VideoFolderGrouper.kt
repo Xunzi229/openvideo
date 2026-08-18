@@ -37,7 +37,7 @@ object VideoFolderGrouper {
 
     fun groupVideos(videos: List<VideoItem>): List<VideoFolder> {
         return videos
-            .groupBy { folderKey(it.path) }
+            .groupBy { folderKey(it.libraryPath) }
             .map { (key, items) ->
                 VideoFolder(
                     key = key,

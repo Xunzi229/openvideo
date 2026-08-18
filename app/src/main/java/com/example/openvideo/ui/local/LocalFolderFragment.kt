@@ -252,7 +252,8 @@ class LocalFolderFragment : Fragment() {
 
     private fun openPlayer(video: VideoItem) {
         val sameFolderQueue = localVideosSnapshot.filter {
-            VideoFolderGrouper.folderKey(it.path) == VideoFolderGrouper.folderKey(video.path)
+            VideoFolderGrouper.folderKey(it.libraryPath) ==
+                VideoFolderGrouper.folderKey(video.libraryPath)
         }
         val orderedQueue = PlayerEpisodeOrderingPolicy.orderSameFolderQueue(sameFolderQueue)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {

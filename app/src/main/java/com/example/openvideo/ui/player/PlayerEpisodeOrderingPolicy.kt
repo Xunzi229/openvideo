@@ -44,7 +44,7 @@ object PlayerEpisodeOrderingPolicy {
         PlayerEpisodeOrderingCandidate(
             id = video.id,
             title = video.title,
-            path = video.path,
+            path = video.libraryPath,
             dateAdded = video.dateAdded
         )
 

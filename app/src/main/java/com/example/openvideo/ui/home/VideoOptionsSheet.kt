@@ -72,7 +72,7 @@ class VideoOptionsSheet(
     private fun showDetails() {
         val details = buildString {
             appendLine("${context.getString(R.string.detail_filename)}: ${video.title}")
-            appendLine("${context.getString(R.string.detail_path)}: ${video.path}")
+            appendLine("${context.getString(R.string.detail_path)}: ${video.libraryPath}")
             appendLine("${context.getString(R.string.detail_resolution)}: ${video.width}x${video.height}")
             val durationSec = video.duration / 1000
             val h = durationSec / 3600

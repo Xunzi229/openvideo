@@ -2,6 +2,7 @@ package com.example.openvideo.ui.home
 
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.local.VideoFolderGrouper
+import com.example.openvideo.ui.privacy.PrivacyPathPolicy
 
 enum class MediaLibraryEmptyState {
     LOADING,
@@ -19,7 +20,7 @@ data class MediaScanSignature(
 ) {
     companion object {
         fun fromVideos(videos: List<VideoItem>): MediaScanSignature =
-            fromPaths(videos.map { it.path to it.dateAdded })
+            fromPaths(videos.map { it.libraryPath to it.dateModified })
 
         fun fromPaths(paths: List<Pair<String, Long>>): MediaScanSignature =
             MediaScanSignature(
@@ -38,8 +39,8 @@ object MediaLibraryPolicy {
         folderKey: String? = null
     ): List<VideoItem> =
         videos.filter { video ->
-            !isHiddenPath(video.path, hiddenFolders) &&
-                (folderKey == null || VideoFolderGrouper.folderKey(video.path) == folderKey)
+            !isHiddenPath(video.libraryPath, hiddenFolders) &&
+                (folderKey == null || VideoFolderGrouper.folderKey(video.libraryPath) == folderKey)
         }
 
     fun visiblePaths(
@@ -56,14 +57,7 @@ object MediaLibraryPolicy {
         paths.count { isHiddenPath(it, hiddenFolders) }
 
     fun isHiddenPath(path: String, hiddenFolders: List<String>): Boolean {
-        val normalizedPath = normalizePath(path)
-        if (normalizedPath.isBlank() || normalizedPath.startsWith("content://")) return false
-        return hiddenFolders
-            .map(::normalizePath)
-            .filter { it.isNotBlank() && !it.startsWith("content://") }
-            .any { hidden ->
-                normalizedPath == hidden || normalizedPath.startsWith("$hidden/")
-            }
+        return hiddenFolders.any { hidden -> PrivacyPathPolicy.isWithin(path, hidden) }
     }
 
     fun shouldPublishScan(previous: MediaScanSignature?, next: MediaScanSignature): Boolean =
@@ -118,4 +112,4 @@ object MediaLibraryPolicy {
 }
 
 private fun normalizePath(path: String): String =
-    path.trim().replace('\\', '/').trimEnd('/')
+    PrivacyPathPolicy.canonical(path)
