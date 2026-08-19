@@ -41,6 +41,7 @@ jobs:
       MANUAL_RELEASE_TAG: ${{ inputs.release_tag }}
       OPENVIDEO_SOURCES_NAV_ENABLED: ${{ vars.OPENVIDEO_SOURCES_NAV_ENABLED || 'false' }}
       REPLACE_EXISTING_RELEASE: ${{ inputs.replace_existing_release }}
+      EXPECTED_RELEASE_CERT_SHA256: ${{ vars.OPENVIDEO_RELEASE_CERT_SHA256 }}
 
     steps:
       - name: Check out repository
@@ -65,12 +66,16 @@ jobs:
             "FEISHU_WEBHOOK_URL",
             "OPENVIDEO_RELEASE_STORE_PASSWORD",
             "OPENVIDEO_RELEASE_KEY_ALIAS",
-            "OPENVIDEO_RELEASE_KEY_PASSWORD"
+            "OPENVIDEO_RELEASE_KEY_PASSWORD",
+            "EXPECTED_RELEASE_CERT_SHA256"
           )
           foreach ($name in $required) {
             if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
               throw "Missing GitHub Actions secret: $name"
             }
+          }
+          if ($env:EXPECTED_RELEASE_CERT_SHA256 -notmatch '^[0-9a-fA-F]{64}$') {
+            throw "OPENVIDEO_RELEASE_CERT_SHA256 must be a 64-character SHA-256 fingerprint."
           }
 
           $properties = Get-Content gradle.properties -Raw
@@ -118,9 +123,20 @@ jobs:
             Sort-Object { [version]$_.Name } -Descending |
             Select-Object -First 1
           $apksigner = Join-Path $buildTools.FullName "apksigner.bat"
-          & $apksigner verify --verbose --print-certs $sourceApk
+          $verifyOutput = & $apksigner verify --verbose --print-certs $sourceApk 2>&1
+          $verifyOutput | Write-Host
           if ($LASTEXITCODE -ne 0) {
             throw "APK signature verification failed."
+          }
+
+          $certMatch = [regex]::Match(($verifyOutput -join "`n"), 'certificate SHA-256 digest:\s*([0-9a-fA-F]{64})')
+          if (-not $certMatch.Success) {
+            throw "Could not read the APK signing certificate SHA-256 fingerprint."
+          }
+          $actual = $certMatch.Groups[1].Value.ToLowerInvariant()
+          $expected = $env:EXPECTED_RELEASE_CERT_SHA256.Trim().ToLowerInvariant()
+          if ($actual -ne $expected) {
+            throw "Release signing certificate mismatch. Expected $expected, got $actual."
           }
 
           New-Item -ItemType Directory -Path release -Force | Out-Null

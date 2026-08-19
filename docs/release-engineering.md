@@ -29,6 +29,17 @@ Keystores and signing material must not be committed.
 
 The local wrapper uses `output/openvideo-default.jks` and alias `openvideo` by default, but passwords are read interactively or from the same `OPENVIDEO_RELEASE_*` environment variables. Passwords are never stored in the script.
 
+### Signing Consistency
+
+GitHub Actions Preview artifacts and published Release artifacts are both built with the release
+keystore. Both workflows verify the APK certificate against the public
+`OPENVIDEO_RELEASE_CERT_SHA256` repository variable before upload. Preview builds do not create a
+tag or GitHub Release; "preview" describes distribution status, not a different signing identity.
+
+When release signing values are present locally, Gradle also signs Debug builds with the release
+keystore so they can update an installed release build. Without those values, Debug builds retain
+Android's development key and must not be distributed as Preview artifacts.
+
 ## GitHub Actions Release
 
 The `Release APK` workflow restores the existing keystore from encrypted GitHub Actions secrets, builds the signed release APK, verifies its certificate, writes `SHA256SUMS.txt`, and publishes both files to a GitHub Release.

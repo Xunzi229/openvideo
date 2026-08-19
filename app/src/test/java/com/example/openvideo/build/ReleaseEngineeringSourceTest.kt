@@ -40,6 +40,8 @@ class ReleaseEngineeringSourceTest {
         assertTrue(appBuild.contains("OPENVIDEO_RELEASE_KEY_ALIAS"))
         assertTrue(appBuild.contains("OPENVIDEO_RELEASE_STORE_PASSWORD"))
         assertTrue(appBuild.contains("OPENVIDEO_RELEASE_KEY_PASSWORD"))
+        assertTrue(appBuild.contains("debug {"))
+        assertTrue(appBuild.contains("signingConfig = signingConfigs.getByName(\"release\")"))
     }
 
     @Test
@@ -81,16 +83,21 @@ class ReleaseEngineeringSourceTest {
     }
 
     @Test
-    fun githubPreviewWorkflowBuildsAndUploadsDebugApk() {
+    fun githubPreviewWorkflowBuildsAndUploadsSignedReleaseApk() {
         val appBuild = rootFile("app", "build.gradle.kts").readText()
         val workflow = rootFile(".github", "workflows", "preview.yml").readText()
 
         assertTrue(workflow.contains("workflow_dispatch:"))
         assertTrue(workflow.contains("codex/**"))
         assertTrue(workflow.contains(":app:testDebugUnitTest"))
-        assertTrue(workflow.contains(":app:assembleDebug"))
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_CERT_SHA256"))
+        assertTrue(workflow.contains(":app:assembleRelease"))
         assertTrue(workflow.contains("actions/upload-artifact@v4"))
-        assertTrue(workflow.contains("app-debug.apk"))
+        assertTrue(workflow.contains("apksigner verify"))
+        assertTrue(workflow.contains("preview/*.apk"))
+        assertFalse(workflow.contains(":app:assembleDebug"))
+        assertFalse(workflow.contains("app-debug.apk"))
         assertTrue(appBuild.contains("baseline = file(\"lint-baseline.xml\")"))
     }
 
@@ -113,6 +120,7 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_STORE_PASSWORD"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEY_ALIAS"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEY_PASSWORD"))
+        assertTrue(workflow.contains("OPENVIDEO_RELEASE_CERT_SHA256"))
         assertTrue(workflow.contains(":app:assembleRelease"))
         assertTrue(workflow.contains("apksigner verify"))
         assertTrue(workflow.contains("gh @arguments"))
