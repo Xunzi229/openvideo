@@ -159,22 +159,35 @@ object GitHubReleaseChecker {
         return null
     }
 
-    internal fun parseLatest(jsonBody: String): LatestRelease? {
+    private fun parseLatest(jsonBody: String): LatestRelease? {
         val root = JSONObject(jsonBody)
         val tag = root.optString("tag_name").ifBlank { return null }
         val htmlUrl = root.optString("html_url").ifBlank { return null }
-        if (!UpdateUrlPolicy.isTrustedReleasePage(htmlUrl)) return null
-        val arr = root.optJSONArray("assets") ?: return LatestRelease(tag, htmlUrl, emptyList())
+        val arr = root.optJSONArray("assets") ?: return trustedReleaseOrNull(tag, htmlUrl, emptyList())
         val list = ArrayList<ReleaseAsset>()
         for (i in 0 until arr.length()) {
             val a = arr.optJSONObject(i) ?: continue
             val name = a.optString("name")
             if (name.isBlank()) continue
             val url = a.optString("browser_download_url")
-            if (!UpdateUrlPolicy.isTrustedReleaseAsset(url)) continue
             list.add(ReleaseAsset(name = name, browserDownloadUrl = url))
         }
-        return LatestRelease(tagName = tag, releaseHtmlUrl = htmlUrl, assets = list)
+        return trustedReleaseOrNull(tag, htmlUrl, list)
+    }
+
+    internal fun trustedReleaseOrNull(
+        tagName: String,
+        releaseHtmlUrl: String,
+        assets: List<ReleaseAsset>
+    ): LatestRelease? {
+        if (tagName.isBlank() || !UpdateUrlPolicy.isTrustedReleasePage(releaseHtmlUrl)) return null
+        return LatestRelease(
+            tagName = tagName,
+            releaseHtmlUrl = releaseHtmlUrl,
+            assets = assets.filter { asset ->
+                asset.name.isNotBlank() && UpdateUrlPolicy.isTrustedReleaseAsset(asset.browserDownloadUrl)
+            }
+        )
     }
 
     private fun stripPrefixV(s: String): String {

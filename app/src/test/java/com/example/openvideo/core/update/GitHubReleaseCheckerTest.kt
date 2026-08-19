@@ -16,22 +16,25 @@ class GitHubReleaseCheckerTest {
     }
 
     @Test
-    fun parseLatestDropsUntrustedAssetsAndRejectsUntrustedReleasePages() {
-        val parsed = GitHubReleaseChecker.parseLatest(
-            """{
-              "tag_name":"v0.0.16",
-              "html_url":"https://github.com/Xunzi229/openvideo/releases/tag/v0.0.16",
-              "assets":[
-                {"name":"openvideo.apk","browser_download_url":"https://github.com/Xunzi229/openvideo/releases/download/v0.0.16/openvideo.apk"},
-                {"name":"spoof.apk","browser_download_url":"https://evil.example/spoof.apk"}
-              ]
-            }"""
+    fun releasePolicyDropsUntrustedAssetsAndRejectsUntrustedReleasePages() {
+        val parsed = GitHubReleaseChecker.trustedReleaseOrNull(
+            tagName = "v0.0.16",
+            releaseHtmlUrl = "https://github.com/Xunzi229/openvideo/releases/tag/v0.0.16",
+            assets = listOf(
+                GitHubReleaseChecker.ReleaseAsset(
+                    "openvideo.apk",
+                    "https://github.com/Xunzi229/openvideo/releases/download/v0.0.16/openvideo.apk"
+                ),
+                GitHubReleaseChecker.ReleaseAsset("spoof.apk", "https://evil.example/spoof.apk")
+            )
         )
         assertEquals(listOf("openvideo.apk"), parsed?.assets?.map { it.name })
 
         assertNull(
-            GitHubReleaseChecker.parseLatest(
-                """{"tag_name":"v9","html_url":"https://evil.example/release","assets":[]}"""
+            GitHubReleaseChecker.trustedReleaseOrNull(
+                tagName = "v9",
+                releaseHtmlUrl = "https://evil.example/release",
+                assets = emptyList()
             )
         )
     }
