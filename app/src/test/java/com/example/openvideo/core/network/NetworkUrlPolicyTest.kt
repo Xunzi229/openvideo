@@ -20,6 +20,10 @@ class NetworkUrlPolicyTest {
             NetworkUrlPolicy.Validation.Valid("http://example.com/video.mp4?quality=720p"),
             NetworkUrlPolicy.validatePlaybackUrl("http://example.com/video.mp4?quality=720p")
         )
+        assertEquals(
+            NetworkUrlPolicy.Validation.Valid("https://[2001:db8::1]/video.mp4"),
+            NetworkUrlPolicy.validatePlaybackUrl("https://[2001:DB8::1]/video.mp4")
+        )
     }
 
     @Test
@@ -28,6 +32,8 @@ class NetworkUrlPolicyTest {
         assertInvalid("example.com/video.mp4", NetworkUrlPolicy.Error.MISSING_SCHEME)
         assertInvalid("ftp://example.com/video.mp4", NetworkUrlPolicy.Error.UNSUPPORTED_SCHEME)
         assertInvalid("https:///video.mp4", NetworkUrlPolicy.Error.MISSING_HOST)
+        assertInvalid("https://user:secret@example.com/video.mp4", NetworkUrlPolicy.Error.USERINFO_NOT_ALLOWED)
+        assertInvalid("https://example.com:70000/video.mp4", NetworkUrlPolicy.Error.INVALID_PORT)
         assertInvalid("https://example.com/a bad.mp4", NetworkUrlPolicy.Error.ILLEGAL_CHARACTER)
         assertInvalid("https://example.com/video.mp4\nAuthorization: token", NetworkUrlPolicy.Error.ILLEGAL_CHARACTER)
     }

@@ -6,9 +6,6 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import java.io.File
-import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.security.MessageDigest
 
 /**
@@ -25,28 +22,7 @@ object UpdateApkInstaller {
     }
 
     fun downloadApk(url: String, dest: File, userAgent: String): Boolean {
-        dest.parentFile?.mkdirs()
-        if (dest.exists()) dest.delete()
-
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 30_000
-            readTimeout = 120_000
-            setRequestProperty("User-Agent", userAgent)
-        }
-        return try {
-            val code = conn.responseCode
-            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            if (code !in 200..299) return false
-            FileOutputStream(dest).use { out ->
-                stream.copyTo(out)
-            }
-            dest.length() > 0L
-        } catch (_: Exception) {
-            false
-        } finally {
-            conn.disconnect()
-        }
+        return UpdateHttpClient.download(url, dest, userAgent)
     }
 
     fun sha256Hex(file: File): String {

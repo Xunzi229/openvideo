@@ -27,6 +27,7 @@ class WebDavConnectionPolicyTest {
         assertInvalid("https://user:pass@example.com/dav", WebDavConnectionPolicy.Error.USERINFO_NOT_ALLOWED)
         assertInvalid("https://example.com/dav?token=secret", WebDavConnectionPolicy.Error.QUERY_OR_FRAGMENT_NOT_ALLOWED)
         assertInvalid("https://example.com/dav#folder", WebDavConnectionPolicy.Error.QUERY_OR_FRAGMENT_NOT_ALLOWED)
+        assertInvalid("https://example.com:70000/dav", WebDavConnectionPolicy.Error.INVALID_PORT)
     }
 
     @Test
@@ -81,6 +82,10 @@ class WebDavConnectionPolicyTest {
         assertEquals(
             WebDavConnectionPolicy.ConnectionResult.Failure(WebDavConnectionPolicy.Error.NOT_FOUND),
             WebDavConnectionPolicy.classifyHttpStatus(404)
+        )
+        assertEquals(
+            WebDavConnectionPolicy.ConnectionResult.Failure(WebDavConnectionPolicy.Error.REDIRECT_REJECTED),
+            WebDavConnectionPolicy.classifyHttpStatus(302)
         )
     }
 

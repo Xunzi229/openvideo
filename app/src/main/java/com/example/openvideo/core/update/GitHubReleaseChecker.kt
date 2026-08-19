@@ -32,6 +32,7 @@ object GitHubReleaseChecker {
 
     fun fetchLatestRelease(userAgent: String): LatestRelease? {
         val conn = (URL(API_URL).openConnection() as HttpURLConnection).apply {
+            instanceFollowRedirects = false
             requestMethod = "GET"
             connectTimeout = 12_000
             readTimeout = 12_000
@@ -40,9 +41,21 @@ object GitHubReleaseChecker {
         }
         return try {
             val code = conn.responseCode
-            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            val body = stream.bufferedReader().use { it.readText() }
             if (code !in 200..299) return null
+            if (conn.contentLengthLong > MAX_RELEASE_JSON_BYTES) return null
+            val body = conn.inputStream.use { input ->
+                val output = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var total = 0L
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                    if (total > MAX_RELEASE_JSON_BYTES) return null
+                    output.write(buffer, 0, count)
+                }
+                output.toString(Charsets.UTF_8.name())
+            }
             parseLatest(body)
         } catch (_: Exception) {
             null
@@ -119,27 +132,12 @@ object GitHubReleaseChecker {
     }
 
     fun fetchUrlText(url: String, userAgent: String): String? {
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-            requestMethod = "GET"
-            connectTimeout = 15_000
-            readTimeout = 15_000
-            setRequestProperty("User-Agent", userAgent)
-        }
-        return try {
-            val code = conn.responseCode
-            val stream = if (code in 200..299) conn.inputStream else conn.errorStream
-            if (code !in 200..299) return null
-            stream.bufferedReader().use { it.readText() }
-        } catch (_: Exception) {
-            null
-        } finally {
-            conn.disconnect()
-        }
+        return UpdateHttpClient.readText(url, userAgent)
     }
 
     fun normalizeSha256Hex(raw: String): String? {
-        val hex = raw.trim().lowercase().filter { it in '0'..'9' || it in 'a'..'f' }
-        return hex.takeIf { it.length == 64 }
+        val hex = raw.trim().lowercase()
+        return hex.takeIf { it.matches(Regex("[0-9a-f]{64}")) }
     }
 
     fun parseSingleHexLine(text: String): String? {
@@ -161,10 +159,11 @@ object GitHubReleaseChecker {
         return null
     }
 
-    private fun parseLatest(jsonBody: String): LatestRelease? {
+    internal fun parseLatest(jsonBody: String): LatestRelease? {
         val root = JSONObject(jsonBody)
         val tag = root.optString("tag_name").ifBlank { return null }
         val htmlUrl = root.optString("html_url").ifBlank { return null }
+        if (!UpdateUrlPolicy.isTrustedReleasePage(htmlUrl)) return null
         val arr = root.optJSONArray("assets") ?: return LatestRelease(tag, htmlUrl, emptyList())
         val list = ArrayList<ReleaseAsset>()
         for (i in 0 until arr.length()) {
@@ -172,7 +171,7 @@ object GitHubReleaseChecker {
             val name = a.optString("name")
             if (name.isBlank()) continue
             val url = a.optString("browser_download_url")
-            if (url.isBlank()) continue
+            if (!UpdateUrlPolicy.isTrustedReleaseAsset(url)) continue
             list.add(ReleaseAsset(name = name, browserDownloadUrl = url))
         }
         return LatestRelease(tagName = tag, releaseHtmlUrl = htmlUrl, assets = list)
@@ -187,4 +186,6 @@ object GitHubReleaseChecker {
         s.split('.').mapNotNull { part ->
             part.takeWhile { it.isDigit() }.toIntOrNull()
         }
+
+    private const val MAX_RELEASE_JSON_BYTES = 1024L * 1024L
 }

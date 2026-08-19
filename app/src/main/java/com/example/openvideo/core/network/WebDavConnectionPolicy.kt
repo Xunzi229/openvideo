@@ -34,6 +34,7 @@ object WebDavConnectionPolicy {
         USERINFO_NOT_ALLOWED,
         QUERY_OR_FRAGMENT_NOT_ALLOWED,
         ILLEGAL_CHARACTER,
+        INVALID_PORT,
         EMPTY_USERNAME,
         EMPTY_PASSWORD,
         UNAUTHORIZED,
@@ -41,6 +42,8 @@ object WebDavConnectionPolicy {
         NOT_FOUND,
         TIMEOUT,
         CERTIFICATE_ERROR,
+        REDIRECT_REJECTED,
+        INVALID_RESPONSE,
         BAD_STATUS,
         NETWORK_ERROR
     }
@@ -59,15 +62,17 @@ object WebDavConnectionPolicy {
 
         val scheme = uri.scheme?.lowercase() ?: return Validation.Invalid(Error.MISSING_SCHEME)
         if (scheme !in setOf("http", "https")) return Validation.Invalid(Error.UNSUPPORTED_SCHEME)
-        val host = uri.host?.lowercase() ?: return Validation.Invalid(Error.MISSING_HOST)
+        val host = uri.host?.lowercase()?.removeSurrounding("[", "]")
+            ?: return Validation.Invalid(Error.MISSING_HOST)
         if (uri.userInfo != null) return Validation.Invalid(Error.USERINFO_NOT_ALLOWED)
+        if (uri.port > 65_535) return Validation.Invalid(Error.INVALID_PORT)
         if (uri.rawQuery != null || uri.rawFragment != null) {
             return Validation.Invalid(Error.QUERY_OR_FRAGMENT_NOT_ALLOWED)
         }
         val path = uri.rawPath?.takeIf { it.isNotBlank() } ?: "/"
         val normalizedPath = if (path.endsWith('/')) path else "$path/"
         val authority = buildString {
-            append(host)
+            append(if (host.contains(':')) "[$host]" else host)
             if (uri.port >= 0) append(":${uri.port}")
         }
         return Validation.Valid("$scheme://$authority$normalizedPath")
@@ -108,6 +113,7 @@ object WebDavConnectionPolicy {
             401 -> ConnectionResult.Failure(Error.UNAUTHORIZED)
             403 -> ConnectionResult.Failure(Error.FORBIDDEN)
             404 -> ConnectionResult.Failure(Error.NOT_FOUND)
+            in 300..399 -> ConnectionResult.Failure(Error.REDIRECT_REJECTED)
             else -> ConnectionResult.Failure(Error.BAD_STATUS)
         }
 

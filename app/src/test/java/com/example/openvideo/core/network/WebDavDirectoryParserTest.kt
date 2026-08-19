@@ -64,4 +64,32 @@ class WebDavDirectoryParserTest {
         assertFalse(request.url.toString().contains("alice"))
         assertFalse(request.url.toString().contains("secret"))
     }
+
+    @Test
+    fun dropsCrossOriginAndParentDirectoryEntries() {
+        val entries = WebDavDirectoryParser.parse(
+            baseUrl = "https://example.com/dav/movies/",
+            xml = """
+                <d:multistatus xmlns:d="DAV:">
+                  <d:response><d:href>https://evil.example/video.mp4</d:href></d:response>
+                  <d:response><d:href>/dav/private/video.mp4</d:href></d:response>
+                  <d:response><d:href>/dav/movies/video.mp4</d:href></d:response>
+                </d:multistatus>
+            """.trimIndent()
+        )
+
+        assertEquals(listOf("https://example.com/dav/movies/video.mp4"), entries.map { it.url })
+    }
+
+    @Test
+    fun rejectsDocumentsWithDoctypeDeclarations() {
+        val result = runCatching {
+            WebDavDirectoryParser.parse(
+                baseUrl = "https://example.com/dav/",
+                xml = """<!DOCTYPE x [<!ENTITY leak SYSTEM "file:///etc/passwd">]><multistatus/>"""
+            )
+        }
+
+        assertTrue(result.isFailure)
+    }
 }

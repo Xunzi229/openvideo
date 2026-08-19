@@ -27,6 +27,12 @@ object WebDavDirectoryParser {
         val baseUri = URI(normalizedBase)
         val document = DocumentBuilderFactory.newInstance().apply {
             isNamespaceAware = true
+            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+            setFeature("http://xml.org/sax/features/external-general-entities", false)
+            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
+            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
+            isXIncludeAware = false
+            setExpandEntityReferences(false)
         }.newDocumentBuilder().parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)))
 
         val responses = document.getElementsByTagNameNS("*", "response")
@@ -34,7 +40,9 @@ object WebDavDirectoryParser {
             .mapNotNull { index -> responses.item(index) as? Element }
             .mapNotNull { response ->
                 val href = response.firstText("href") ?: return@mapNotNull null
-                val url = baseUri.resolve(href).toString()
+                val resolved = baseUri.resolve(href).normalize()
+                if (!isTrustedDescendant(baseUri, resolved)) return@mapNotNull null
+                val url = resolved.toString()
                 if (sameDirectory(url, normalizedBase)) return@mapNotNull null
                 val isDirectory = response.getElementsByTagNameNS("*", "collection").length > 0 || url.endsWith("/")
                 val name = response.firstText("displayname")?.takeIf { it.isNotBlank() }
@@ -61,6 +69,18 @@ object WebDavDirectoryParser {
 
     private fun sameDirectory(url: String, baseUrl: String): Boolean =
         url.trimEnd('/') == baseUrl.trimEnd('/')
+
+    private fun isTrustedDescendant(base: URI, candidate: URI): Boolean {
+        val basePort = if (base.port >= 0) base.port else defaultPort(base.scheme)
+        val candidatePort = if (candidate.port >= 0) candidate.port else defaultPort(candidate.scheme)
+        return base.scheme.equals(candidate.scheme, ignoreCase = true) &&
+            base.host.equals(candidate.host, ignoreCase = true) &&
+            basePort == candidatePort &&
+            candidate.userInfo == null &&
+            candidate.rawPath.orEmpty().startsWith(base.rawPath.orEmpty())
+    }
+
+    private fun defaultPort(scheme: String?): Int = if (scheme.equals("https", ignoreCase = true)) 443 else 80
 
     private fun extensionOf(url: String): String =
         URI(url).path.substringAfterLast('.', missingDelimiterValue = "").lowercase()

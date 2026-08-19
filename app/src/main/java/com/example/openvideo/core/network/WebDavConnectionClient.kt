@@ -8,9 +8,14 @@ import javax.inject.Singleton
 
 @Singleton
 class WebDavConnectionClient @Inject constructor(
-    private val okHttpClient: OkHttpClient,
+    okHttpClient: OkHttpClient,
     private val webDavMemoryCache: WebDavMemoryCache
 ) {
+    private val noRedirectClient = okHttpClient.newBuilder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
+
     sealed class DirectoryResult {
         data class Success(val entries: List<WebDavDirectoryParser.Entry>) : DirectoryResult()
         data class Failure(val error: WebDavConnectionPolicy.Error) : DirectoryResult()
@@ -29,7 +34,7 @@ class WebDavConnectionClient @Inject constructor(
             userAgent = userAgent
         )
         runCatching {
-            okHttpClient.newCall(request).execute().use { response ->
+            noRedirectClient.newCall(request).execute().use { response ->
                 WebDavConnectionPolicy.classifyHttpStatus(response.code)
             }
         }.getOrElse { error ->
@@ -59,13 +64,32 @@ class WebDavConnectionClient @Inject constructor(
             depth = "1"
         )
         runCatching {
-            okHttpClient.newCall(request).execute().use { response ->
+            noRedirectClient.newCall(request).execute().use response@{ response ->
                 when (val status = WebDavConnectionPolicy.classifyHttpStatus(response.code)) {
                     WebDavConnectionPolicy.ConnectionResult.Success -> {
-                        val entries = WebDavDirectoryParser.parse(
-                            baseUrl = directoryUrl,
-                            xml = response.body.string()
-                        )
+                        if (response.body.contentLength() > MAX_DIRECTORY_RESPONSE_BYTES) {
+                            return@response DirectoryResult.Failure(WebDavConnectionPolicy.Error.INVALID_RESPONSE)
+                        }
+                        val xml = response.body.byteStream().use input@{ input ->
+                            val output = java.io.ByteArrayOutputStream()
+                            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                            var total = 0L
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                total += count
+                                if (total > MAX_DIRECTORY_RESPONSE_BYTES) {
+                                    return@input null
+                                }
+                                output.write(buffer, 0, count)
+                            }
+                            output.toString(Charsets.UTF_8.name())
+                        } ?: return@response DirectoryResult.Failure(WebDavConnectionPolicy.Error.INVALID_RESPONSE)
+                        val entries = runCatching {
+                            WebDavDirectoryParser.parse(baseUrl = directoryUrl, xml = xml)
+                        }.getOrElse {
+                            return@response DirectoryResult.Failure(WebDavConnectionPolicy.Error.INVALID_RESPONSE)
+                        }
                         webDavMemoryCache.putDirectory(cacheKey, entries)
                         DirectoryResult.Success(entries)
                     }
@@ -75,5 +99,9 @@ class WebDavConnectionClient @Inject constructor(
         }.getOrElse { error ->
             DirectoryResult.Failure(WebDavConnectionPolicy.classifyFailure(error))
         }
+    }
+
+    private companion object {
+        const val MAX_DIRECTORY_RESPONSE_BYTES = 4L * 1024L * 1024L
     }
 }

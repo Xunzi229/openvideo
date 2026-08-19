@@ -17,6 +17,8 @@ object NetworkUrlPolicy {
         MISSING_SCHEME,
         UNSUPPORTED_SCHEME,
         MISSING_HOST,
+        USERINFO_NOT_ALLOWED,
+        INVALID_PORT,
         ILLEGAL_CHARACTER
     }
 
@@ -36,13 +38,12 @@ object NetworkUrlPolicy {
         val scheme = uri.scheme?.lowercase() ?: return Validation.Invalid(Error.MISSING_SCHEME)
         if (scheme !in supportedSchemes) return Validation.Invalid(Error.UNSUPPORTED_SCHEME)
 
-        val host = uri.host?.lowercase() ?: return Validation.Invalid(Error.MISSING_HOST)
+        val host = uri.host?.lowercase()?.removeSurrounding("[", "]")
+            ?: return Validation.Invalid(Error.MISSING_HOST)
+        if (uri.userInfo != null) return Validation.Invalid(Error.USERINFO_NOT_ALLOWED)
+        if (uri.port > 65_535) return Validation.Invalid(Error.INVALID_PORT)
         val authority = buildString {
-            uri.userInfo?.let {
-                append(it)
-                append('@')
-            }
-            append(host)
+            append(if (host.contains(':')) "[$host]" else host)
             if (uri.port >= 0) {
                 append(':')
                 append(uri.port)
