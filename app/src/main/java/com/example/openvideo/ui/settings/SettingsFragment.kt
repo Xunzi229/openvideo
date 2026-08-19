@@ -27,7 +27,6 @@ import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
-import com.google.android.material.materialswitch.MaterialSwitch
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.ui.player.PlayerAspectRatioOptions
 import com.example.openvideo.ui.player.PlayerAudioSettingsActivity
@@ -121,7 +120,6 @@ class SettingsFragment : Fragment() {
         val tvCacheSize = view.findViewById<TextView>(R.id.tv_cache_size)
         val tvHistoryCount = view.findViewById<TextView>(R.id.tv_history_count)
         val tvVersion = view.findViewById<TextView>(R.id.tv_version)
-        val switchCrashReporting = view.findViewById<MaterialSwitch>(R.id.switch_crash_reporting)
 
         updateThemeLabel(tvTheme)
         updateLanguageLabel(tvLanguage)
@@ -129,12 +127,6 @@ class SettingsFragment : Fragment() {
         updateSpeedLabel(tvSpeed)
         tvVersion.text = viewModel.installedVersionName()
         updateSettingsRowDescription(tvVersion, R.string.settings_version)
-        switchCrashReporting.isEnabled = viewModel.remoteCrashReportingAvailable
-        switchCrashReporting.isChecked = viewModel.remoteCrashReportingEnabled
-        switchCrashReporting.setOnCheckedChangeListener { _, checked ->
-            viewModel.setRemoteCrashReportingEnabled(checked)
-        }
-
         view.findViewById<View>(R.id.row_theme).setOnClickListener {
             val modes = ThemeMode.entries
             val next = (modes.indexOf(viewModel.themeMode) + 1) % modes.size
@@ -303,8 +295,6 @@ class SettingsFragment : Fragment() {
             R.id.divider_language,
             R.id.row_notifications,
             R.id.divider_notifications,
-            R.id.row_crash_reporting,
-            R.id.divider_crash_reporting,
             R.id.row_check_update,
             R.id.divider_check_update,
             R.id.row_project_repo,

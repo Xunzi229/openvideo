@@ -446,7 +446,6 @@
     <string name="settings_toast_export_failed">导出失败</string>
     <string name="settings_notifications">通知设置</string>
     <string name="settings_notifications_title">通知设置</string>
-    <string name="settings_crash_reporting">发送脱敏后的崩溃报告</string>
     <string name="playback_notification_channel_name">后台播放</string>
     <string name="playback_notification_channel_description">后台播放时在通知栏显示媒体控件与进度</string>
     <string name="playback_notification_status_playing">正在播放</string>

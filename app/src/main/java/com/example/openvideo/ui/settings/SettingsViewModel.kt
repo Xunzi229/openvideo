@@ -11,8 +11,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.example.openvideo.R
-import com.example.openvideo.BuildConfig
-import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.network.WebDavMemoryCache
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.core.prefs.AspectRatio
@@ -46,10 +44,6 @@ class SettingsViewModel @Inject constructor(
     val language: String get() = appPrefs.language
     val defaultSpeed: Float get() = DefaultPlayerSettings.supportedSpeedOrDefault(playerPrefs.speed)
     val defaultRatio: AspectRatio get() = DefaultPlayerSettings.aspectRatioOrDefault(playerPrefs.aspectRatio)
-    val remoteCrashReportingAvailable: Boolean get() = BuildConfig.REMOTE_CRASH_REPORTING_ENABLED
-    val remoteCrashReportingEnabled: Boolean get() =
-        remoteCrashReportingAvailable && appPrefs.remoteCrashReportingEnabled
-
     private val _cacheSize = MutableStateFlow("0 MB")
     val cacheSize: StateFlow<String> = _cacheSize
 
@@ -185,12 +179,6 @@ class SettingsViewModel @Inject constructor(
     fun setLanguage(lang: String) {
         appPrefs.language = lang
         AppSettingsApplier.apply(appPrefs)
-    }
-
-    fun setRemoteCrashReportingEnabled(enabled: Boolean) {
-        val accepted = enabled && remoteCrashReportingAvailable
-        appPrefs.remoteCrashReportingEnabled = accepted
-        CrashLogger.onRemoteReportingPreferenceChanged(getApplication(), accepted)
     }
 
     fun setDefaultSpeed(speed: Float) {

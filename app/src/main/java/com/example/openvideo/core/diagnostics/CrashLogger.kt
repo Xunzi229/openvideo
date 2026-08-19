@@ -3,7 +3,6 @@ package com.example.openvideo.core.diagnostics
 import android.content.Context
 import android.os.Build
 import com.example.openvideo.BuildConfig
-import com.example.openvideo.core.prefs.AppPrefs
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -41,16 +40,8 @@ object CrashLogger {
     }
 
     fun flushPendingReports(context: Context) {
-        if (!isRemoteReportingAllowed(context)) return
+        if (!isRemoteReportingAllowed()) return
         CrashReportOutbox.flushAsync(context, BuildConfig.FEISHU_WEBHOOK_URL)
-    }
-
-    fun onRemoteReportingPreferenceChanged(context: Context, enabled: Boolean) {
-        if (enabled && BuildConfig.REMOTE_CRASH_REPORTING_ENABLED) {
-            flushPendingReports(context)
-        } else {
-            CrashReportOutbox.clear(context)
-        }
     }
 
     /**
@@ -88,17 +79,16 @@ object CrashLogger {
             val fileName = "${source}_${category.token}_${timestamp()}.txt"
             val log = buildLog(threadName, throwable, category, source, diagnostics)
             File(dir, fileName).writeText(log)
-            if (isRemoteReportingAllowed(context)) {
+            if (isRemoteReportingAllowed()) {
                 CrashReportOutbox.enqueue(context, fileName, buildRemotePayload(fileName, log))
                 if (flushAfterWrite) flushPendingReports(context)
             }
         }
     }
 
-    private fun isRemoteReportingAllowed(context: Context): Boolean =
+    private fun isRemoteReportingAllowed(): Boolean =
         BuildConfig.REMOTE_CRASH_REPORTING_ENABLED &&
-            BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank() &&
-            AppPrefs(context.applicationContext).remoteCrashReportingEnabled
+            BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()
 
     private fun timestamp(): String =
         SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())

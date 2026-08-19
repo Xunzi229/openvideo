@@ -22,7 +22,7 @@ class CrashLoggerSourceTest {
     }
 
     @Test
-    fun crashWritePathQueuesReportsOnlyWithBuildAndUserConsent() {
+    fun crashWritePathQueuesReportsAutomaticallyWhenBuildEndpointIsConfigured() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val writeMethod = source.substringAfter("private fun write(")
             .substringBefore("\n    private fun buildDiagnosticLog")
@@ -30,7 +30,8 @@ class CrashLoggerSourceTest {
         assertTrue(writeMethod.contains("writeText(log)"))
         assertTrue(writeMethod.contains("BuildConfig.REMOTE_CRASH_REPORTING_ENABLED"))
         assertTrue(writeMethod.contains("BuildConfig.FEISHU_WEBHOOK_URL.isNotBlank()"))
-        assertTrue(writeMethod.contains("AppPrefs(context.applicationContext).remoteCrashReportingEnabled"))
+        assertFalse(writeMethod.contains("AppPrefs("))
+        assertFalse(writeMethod.contains("remoteCrashReportingEnabled"))
         assertTrue(writeMethod.contains("CrashReportOutbox.enqueue("))
         assertTrue(writeMethod.contains("flushAfterWrite"))
 
