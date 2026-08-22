@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.result.IntentSenderRequest
@@ -19,6 +18,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleOverlayChrome
+import com.example.openvideo.core.ui.AppleOverlayColors
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.data.local.PlaylistEntity
 import com.example.openvideo.data.model.VideoItem
@@ -32,7 +37,6 @@ import com.example.openvideo.ui.home.ViewMode
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -176,55 +180,59 @@ class FolderVideosFragment : Fragment() {
     }
 
     private fun showPlaylistPicker(video: VideoItem, playlists: List<PlaylistEntity>) {
-        val names = playlists.map { it.name }
-            .plus(getString(R.string.playlist_create_and_add))
-            .toTypedArray()
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_add_to_title)
-            .setItems(names) { _, which ->
-                if (which == playlists.size) {
-                    showCreatePlaylistForVideoDialog(video)
-                } else {
-                    viewModel.addToPlaylist(playlists[which].id, video)
-                }
-            }
-            .show()
-        dialog.listView?.post {
-            dialog.listView?.requestFocus()
-        }
+        AppleActionSheet.show(
+            context = requireContext(),
+            title = getString(R.string.playlist_add_to_title),
+            actions = playlists.map { playlist ->
+                AppleAction(playlist.name) { viewModel.addToPlaylist(playlist.id, video) }
+            } + AppleAction(getString(R.string.playlist_create_and_add)) {
+                showCreatePlaylistForVideoDialog(video)
+            },
+            defaultFocusCancel = false
+        )
     }
 
     private fun showCreatePlaylistForVideoDialog(video: VideoItem) {
-        val input = EditText(requireContext()).apply {
-            hint = getString(R.string.playlist_hint_name)
-            setPadding(48, 32, 48, 16)
-        }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_create_title)
-            .setMessage(getString(R.string.playlist_add_empty_message, video.title))
-            .setView(input)
-            .setPositiveButton(R.string.action_create) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) viewModel.createPlaylistWithVideo(name, video)
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        val input = AppleOverlayChrome.inputField(
+            context = requireContext(),
+            colors = AppleOverlayColors.from(requireContext()),
+            hint = getString(R.string.playlist_hint_name),
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        )
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.playlist_create_title),
+            message = getString(R.string.playlist_add_empty_message, video.title),
+            extraContent = input,
+            includeIme = true,
+            focusView = input,
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(getString(R.string.action_create)) {
+                    val name = input.text.toString().trim()
+                    if (name.isNotEmpty()) viewModel.createPlaylistWithVideo(name, video)
+                }
+            )
+        )
         input.post {
             input.requestFocus()
         }
     }
 
     private fun confirmDelete(video: VideoItem) {
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_delete_title)
-            .setMessage(getString(R.string.dialog_delete_message, video.title))
-            .setPositiveButton(R.string.action_delete) { _, _ -> deleteVideosWithSystemRequest(listOf(video)) }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
-        cancelButton.post {
-            cancelButton.requestFocus()
-        }
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.dialog_delete_title),
+            message = getString(R.string.dialog_delete_message, video.title),
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(
+                    title = getString(R.string.action_delete),
+                    style = AppleActionStyle.DESTRUCTIVE,
+                    onClick = { deleteVideosWithSystemRequest(listOf(video)) }
+                )
+            )
+        )
     }
 
     private fun deleteVideosWithSystemRequest(videos: List<VideoItem>) {

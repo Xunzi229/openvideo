@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -15,8 +14,12 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleOverlayChrome
+import com.example.openvideo.core.ui.AppleOverlayColors
 import com.example.openvideo.ui.settings.SettingsConfirmationActionSheet
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -74,19 +77,26 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun showCreateDialog() {
-        val input = EditText(requireContext()).apply {
-            hint = getString(R.string.playlist_hint_name)
-            setPadding(48, 32, 48, 16)
-        }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_create_title)
-            .setView(input)
-            .setPositiveButton(R.string.action_create) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) viewModel.createPlaylist(name)
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+        val input = AppleOverlayChrome.inputField(
+            context = requireContext(),
+            colors = AppleOverlayColors.from(requireContext()),
+            hint = getString(R.string.playlist_hint_name),
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+        )
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.playlist_create_title),
+            extraContent = input,
+            includeIme = true,
+            focusView = input,
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(getString(R.string.action_create)) {
+                    val name = input.text.toString().trim()
+                    if (name.isNotEmpty()) viewModel.createPlaylist(name)
+                }
+            )
+        )
         input.post {
             input.requestFocus()
         }

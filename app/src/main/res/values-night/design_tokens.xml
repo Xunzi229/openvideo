@@ -23,4 +23,12 @@
     <color name="ov_text_tertiary">#4DEBEBF5</color>
     <color name="ov_divider">#FF38383A</color>
     <color name="ov_icon_default">#FFEBEBF5</color>
+    <color name="ov_danger">#FFFF453A</color>
+
+    <color name="ov_overlay_card">#D91C1C1E</color>
+    <color name="ov_overlay_alert">#FF2C2C2E</color>
+    <color name="ov_overlay_title">#FFF2F2F7</color>
+    <color name="ov_overlay_message">#FFAEAEB2</color>
+    <color name="ov_overlay_hairline">#3DFFFFFF</color>
+    <color name="ov_overlay_input">#FF2C2C2E</color>
 </resources>

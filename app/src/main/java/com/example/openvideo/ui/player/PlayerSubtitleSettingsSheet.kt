@@ -20,7 +20,9 @@ import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.OnlineSubtitlePrivacyPolicy
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -155,22 +157,21 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
     private fun showOnlineSubtitlePrivacyNotice() {
         val notice = OnlineSubtitlePrivacyPolicy.firstUseNotice()
         if (!notice.requiresUserConfirmation) return
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.player_settings_online_subtitle_privacy_title)
-            .setMessage(R.string.player_settings_online_subtitle_privacy_message)
-            .setPositiveButton(R.string.action_ok) { _, _ ->
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_online_subtitle_search_pending,
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
-        cancelButton.post {
-            cancelButton.requestFocus()
-        }
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.player_settings_online_subtitle_privacy_title),
+            message = getString(R.string.player_settings_online_subtitle_privacy_message),
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(getString(R.string.action_ok)) {
+                    Toast.makeText(
+                        requireContext(),
+                        R.string.player_settings_online_subtitle_search_pending,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            )
+        )
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

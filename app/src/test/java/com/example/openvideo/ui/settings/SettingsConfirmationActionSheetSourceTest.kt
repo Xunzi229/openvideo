@@ -41,37 +41,26 @@ class SettingsConfirmationActionSheetSourceTest {
     @Test
     fun actionSheetUsesIosBottomSheetVisualContract() {
         val source = String(Files.readAllBytes(actionSheetSource()))
+        val chrome = String(Files.readAllBytes(appleActionSheetSource()))
 
-        assertTrue(source.contains("Gravity.BOTTOM"))
-        assertTrue(source.contains("dimAmount = 0.52f"))
-        assertTrue(source.contains("setCanceledOnTouchOutside(true)"))
-        assertTrue(source.contains("SettingsConfirmationActionSheet.enter(content)"))
-        assertTrue(source.contains("fun dismissWithAnimation"))
-        assertTrue(source.contains("Color.parseColor(\"#FF3B30\")"))
-        assertTrue(source.contains("Color.parseColor(\"#007AFF\")"))
-        assertTrue(source.contains("Color.parseColor(\"#EBFFFFFF\")"))
-        assertTrue(source.contains("Color.parseColor(\"#2E3C3C43\")"))
-        assertTrue(source.contains("OverlayWindowInsets.bind"))
-        assertTrue(source.contains("Configuration.UI_MODE_NIGHT_YES"))
-        assertTrue(source.contains("ActionSheetColors"))
-        assertTrue(source.contains("Color.parseColor(\"#D91C1C1E\")"))
-        assertTrue(source.contains("Color.parseColor(\"#F2F2F7\")"))
-        assertTrue(source.contains("Color.parseColor(\"#AEAEB2\")"))
-        assertTrue(source.contains("Color.parseColor(\"#FF453A\")"))
-        assertTrue(source.contains("Color.parseColor(\"#0A84FF\")"))
+        assertTrue(source.contains("AppleActionSheet.show("))
+        assertTrue(source.contains("AppleActionStyle.DESTRUCTIVE"))
         assertFalse(source.contains("MaterialAlertDialogBuilder"))
+
+        assertTrue(chrome.contains("Gravity.BOTTOM"))
+        assertTrue(chrome.contains("setCanceledOnTouchOutside(true)"))
+        assertTrue(chrome.contains("OverlayWindowInsets.bind"))
+        assertTrue(chrome.contains("AppleOverlayColors.from"))
+        assertFalse(chrome.contains("MaterialAlertDialogBuilder"))
     }
 
     @Test
     fun actionSheetRequestsCancelDefaultFocusForRemoteUse() {
-        val source = String(Files.readAllBytes(actionSheetSource()))
+        val chrome = String(Files.readAllBytes(appleActionSheetSource()))
 
-        assertTrue(source.contains("private var defaultFocusView: View? = null"))
-        assertTrue(source.contains("defaultFocusView = cancelAction"))
-        assertTrue(source.contains("requestDefaultFocus()"))
-        assertTrue(source.contains("private fun requestDefaultFocus()"))
-        assertTrue(source.contains("defaultFocusView?.post"))
-        assertTrue(source.contains("defaultFocusView?.requestFocus()"))
+        assertTrue(chrome.contains("private var defaultFocusView: View? = null"))
+        assertTrue(chrome.contains("defaultFocusCancel"))
+        assertTrue(chrome.contains("defaultFocusView?.requestFocus()"))
     }
 
     private fun settingsFragmentSource(): Path {
@@ -100,6 +89,21 @@ class SettingsConfirmationActionSheetSourceTest {
             "ui",
             "settings",
             "SettingsConfirmationActionSheet.kt"
+        )
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+
+    private fun appleActionSheetSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "core",
+            "ui",
+            "AppleActionSheet.kt"
         )
         return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
     }

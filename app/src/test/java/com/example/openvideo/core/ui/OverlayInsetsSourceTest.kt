@@ -1,5 +1,6 @@
 package com.example.openvideo.core.ui
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -11,11 +12,11 @@ class OverlayInsetsSourceTest {
     @Test
     fun overlayWindowsBindSharedBottomInsets() {
         val files = listOf(
+            source("core", "ui", "AppleActionSheet.kt"),
+            source("core", "ui", "AppleAlertDialog.kt"),
+            source("core", "ui", "AppleFormSheet.kt"),
             source("ui", "home", "VideoLibraryFilterPopover.kt"),
-            source("ui", "home", "VideoOptionsSheet.kt"),
-            source("ui", "playlist", "PlaylistOptionsActionSheet.kt"),
             source("ui", "playlist", "PlaylistRenameActionSheet.kt"),
-            source("ui", "settings", "SettingsConfirmationActionSheet.kt"),
             source("ui", "player", "PlayerGlassSheetDialog.kt"),
             source("ui", "player", "PlayerSettingsSheetChrome.kt"),
             source("ui", "player", "PlayerVideoListDialog.kt"),
@@ -26,18 +27,23 @@ class OverlayInsetsSourceTest {
         )
         files.forEach { path ->
             val text = String(Files.readAllBytes(path))
-            assertTrue("$path must use OverlayWindowInsets", text.contains("OverlayWindowInsets"))
+            val usesInsets = text.contains("OverlayWindowInsets") ||
+                text.contains("AppleFormSheet") ||
+                text.contains("AppleAlertDialog")
+            assertTrue("$path must use OverlayWindowInsets", usesInsets)
         }
     }
 
     @Test
     fun filterPopoverKeepsActionsAboveSystemBars() {
+        val formSheet = String(Files.readAllBytes(source("core", "ui", "AppleFormSheet.kt")))
         val popover = String(Files.readAllBytes(source("ui", "home", "VideoLibraryFilterPopover.kt")))
         val layout = String(Files.readAllBytes(res("layout", "view_video_library_filter_popover.xml")))
         val theme = String(Files.readAllBytes(res("values", "themes.xml")))
 
-        assertTrue(popover.contains("overlayMaxHeight"))
-        assertTrue(popover.contains("filter_popover_scroll"))
+        assertTrue(formSheet.contains("overlayMaxHeight"))
+        assertTrue(formSheet.contains("OverlayWindowInsets.bind"))
+        assertTrue(popover.contains("AppleFormSheet.show"))
         assertTrue(layout.contains("@+id/filter_popover_scroll"))
         assertTrue(layout.contains("@+id/filter_popover_actions"))
         assertTrue(theme.contains("windowOptOutEdgeToEdgeEnforcement"))

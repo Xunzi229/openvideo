@@ -29,9 +29,11 @@ class HomeSearchFilterSourceTest {
             )
         )
 
+        val popoverSource = String(Files.readAllBytes(moduleSource("ui", "home", "VideoLibraryFilterPopover.kt")))
         assertTrue(layout.contains("@+id/btn_library_filter"))
         assertTrue(source.contains("VideoLibraryFilterPopover"))
         assertTrue(source.contains("toggleAdvancedFilterPopover"))
+        assertTrue(popoverSource.contains("AppleFormSheet.show"))
         assertTrue(popoverLayout.contains("@+id/chip_group_duration"))
         assertTrue(popoverLayout.contains("@+id/btn_filter_apply"))
         assertTrue(popoverLayout.contains("@+id/filter_popover_scroll"))

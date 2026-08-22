@@ -23,6 +23,14 @@
     <color name="ov_text_tertiary">#4D3C3C43</color>
     <color name="ov_divider">#FFC6C6C8</color>
     <color name="ov_icon_default">#FF3C3C43</color>
+    <color name="ov_danger">#FFFF3B30</color>
+
+    <color name="ov_overlay_card">#EBFFFFFF</color>
+    <color name="ov_overlay_alert">#F2FFFFFF</color>
+    <color name="ov_overlay_title">#FF1C1C1E</color>
+    <color name="ov_overlay_message">#FF6E6E73</color>
+    <color name="ov_overlay_hairline">#2E3C3C43</color>
+    <color name="ov_overlay_input">#1AF2F2F7</color>
 
     <dimen name="ov_space_xs">4dp</dimen>
     <dimen name="ov_space_sm">8dp</dimen>
@@ -37,6 +45,9 @@
     <dimen name="ov_radius_md">10dp</dimen>
     <dimen name="ov_radius_lg">14dp</dimen>
     <dimen name="ov_radius_sheet">14dp</dimen>
+    <dimen name="ov_alert_width">270dp</dimen>
+    <dimen name="ov_overlay_sheet_max_width">420dp</dimen>
+    <dimen name="ov_overlay_sheet_gutter">14dp</dimen>
     <dimen name="ov_radius_pill">999dp</dimen>
 
     <dimen name="ov_text_large_title">28sp</dimen>

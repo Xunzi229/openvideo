@@ -15,13 +15,11 @@ import android.view.WindowManager.LayoutParams
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.ui.OverlayWindowInsets
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.max
 import kotlin.math.min
 
@@ -88,10 +86,7 @@ object PlayerGlassSheetDialog {
         }
 
         dialog = when (chrome) {
-            PlayerGlassSheetChrome.CENTER -> MaterialAlertDialogBuilder(context)
-                .setView(content)
-                .setOnDismissListener { onDismiss?.invoke() }
-                .create()
+            PlayerGlassSheetChrome.CENTER,
             PlayerGlassSheetChrome.PLAYER_BOTTOM,
             PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> Dialog(context).apply {
                 requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -199,28 +194,22 @@ object PlayerGlassSheetDialog {
     }
 
     fun applyRowVisual(context: Context, row: View, selected: Boolean) {
-        val density = context.resources.displayMetrics.density
-        row.setBackgroundResource(
-            if (selected) R.drawable.player_aspect_ratio_row_selected
-            else R.drawable.player_aspect_ratio_row_unselected
-        )
-        row.findViewById<ImageView>(R.id.player_glass_sheet_radio).setImageResource(
-            if (selected) R.drawable.ic_player_aspect_radio_on
-            else R.drawable.ic_player_aspect_radio_off
-        )
+        row.setBackgroundResource(R.drawable.bg_player_touch)
+        val radio = row.findViewById<ImageView>(R.id.player_glass_sheet_radio)
+        radio.visibility = if (selected) View.VISIBLE else View.INVISIBLE
+        radio.setImageResource(R.drawable.ic_player_aspect_radio_on)
         row.findViewById<TextView>(R.id.player_glass_sheet_label).setTextColor(
             ContextCompat.getColor(
                 context,
-                if (selected) R.color.player_aspect_row_label_selected
-                else R.color.player_aspect_row_label_normal
+                if (selected) R.color.ov_accent_blue else R.color.player_aspect_row_label_normal
             )
         )
-        row.translationZ = if (selected) 4f * density else 0f
+        row.translationZ = 0f
     }
 
     private fun rowLayout(chrome: PlayerGlassSheetChrome): Int =
         when (chrome) {
-            PlayerGlassSheetChrome.CENTER -> R.layout.item_player_glass_sheet_row
+            PlayerGlassSheetChrome.CENTER,
             PlayerGlassSheetChrome.PLAYER_BOTTOM,
             PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL -> R.layout.item_player_quick_bottom_sheet_row
         }
@@ -246,7 +235,7 @@ object PlayerGlassSheetDialog {
         row.findViewById<TextView>(R.id.player_glass_sheet_label).setTextColor(
             ContextCompat.getColor(
                 context,
-                if (selected) R.color.player_accent else R.color.player_title_normal
+                if (selected) R.color.ov_accent_blue else R.color.player_title_normal
             )
         )
         row.translationZ = 0f

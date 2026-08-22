@@ -1,113 +1,51 @@
 package com.example.openvideo.ui.home
 
+import android.app.Dialog
 import android.content.Context
 import android.content.res.ColorStateList
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.doOnLayout
-import androidx.core.view.updateLayoutParams
-import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
-import com.example.openvideo.core.ui.OverlayWindowInsets
-import com.example.openvideo.core.ui.SystemBarInsetsPolicy
+import com.example.openvideo.core.ui.AppleFormSheet
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
-/**
- * Top-end anchored filter popover with glass styling, chip groups, and light animations.
- * Apply/reset callbacks connect to [HomeViewModel] advanced filters.
- */
 class VideoLibraryFilterPopover(
     private val anchor: View,
     initial: MediaLibraryAdvancedFilters,
     private val onApply: (MediaLibraryAdvancedFilters) -> Unit,
     private val onDismiss: () -> Unit = {}
 ) {
-    private var popup: PopupWindow? = null
+    private var dialog: Dialog? = null
     private var draft = VideoLibraryFilterUiState.from(initial)
-    private var popupVisible = false
 
     fun toggle(current: MediaLibraryAdvancedFilters = draft.toAdvancedFilters()) {
         draft = VideoLibraryFilterUiState.from(current)
-        if (popupVisible) dismiss() else show()
+        if (isShowing()) dismiss() else show()
     }
 
-    fun isShowing(): Boolean = popupVisible
+    fun isShowing(): Boolean = dialog?.isShowing == true
 
     fun dismiss() {
-        val window = popup ?: return
-        val panel = window.contentView?.findViewById<View>(R.id.filter_popover_root) ?: run {
-            window.dismiss()
-            return
-        }
-        panel.animate()
-            .alpha(0f)
-            .scaleX(0.94f)
-            .scaleY(0.94f)
-            .setDuration(ANIM_OUT_MS)
-            .withEndAction { window.dismiss() }
-            .start()
+        dialog?.dismiss()
     }
 
     fun show() {
-        if (popupVisible) return
+        if (isShowing()) return
         val context = anchor.context
-        val inflater = LayoutInflater.from(context)
-        val root = inflater.inflate(R.layout.overlay_video_library_filter, null, false)
-        val scrim = root.findViewById<View>(R.id.filter_scrim)
-        val popoverRoot = checkNotNull(root.findViewById(R.id.filter_popover_root))
-        val arrow = root.findViewById<ImageView>(R.id.filter_popover_arrow)
-
-        bindChipGroups(root, context)
-        bindActions(root)
-
-        scrim.setOnClickListener { dismiss() }
-        popoverRoot.isClickable = true
-        popoverRoot.setOnClickListener { /* keep taps on panel from passing through */ }
-
-        val window = PopupWindow(
-            root,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            true
-        ).apply {
-            isClippingEnabled = true
-            isOutsideTouchable = true
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            elevation = context.resources.displayMetrics.density * 12f
-            setOnDismissListener {
-                popup = null
-                popupVisible = false
+        val content = LayoutInflater.from(context).inflate(R.layout.view_video_library_filter_popover, null, false)
+        bindChipGroups(content, context)
+        bindActions(content)
+        dialog = AppleFormSheet.show(
+            context = context,
+            content = content,
+            onDismiss = {
+                dialog = null
                 onDismiss()
             }
-        }
-        popup = window
-        window.showAtLocation(anchor, Gravity.TOP or Gravity.START, 0, 0)
-
-        popoverRoot.doOnLayout {
-            positionPopover(popoverRoot, arrow, anchor, context)
-            popoverRoot.alpha = 0f
-            popoverRoot.scaleX = 0.94f
-            popoverRoot.scaleY = 0.94f
-            popoverRoot.animate()
-                .alpha(1f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setDuration(ANIM_IN_MS)
-                .start()
-        }
-        popupVisible = true
+        )
     }
 
     private fun bindChipGroups(root: View, context: Context) {
@@ -213,86 +151,5 @@ class VideoLibraryFilterPopover(
             onApply(draft.toAdvancedFilters())
             dismiss()
         }
-    }
-
-    private fun positionPopover(host: View, arrow: ImageView, anchor: View, context: Context) {
-        val dm = context.resources.displayMetrics
-        val widthPercent = context.resources.getInteger(R.integer.ov_filter_popover_width_percent)
-        val marginHorizontal = (12 * dm.density).toInt()
-        val byPercent = (dm.widthPixels * widthPercent / 100f).toInt()
-        val maxFit = dm.widthPixels - marginHorizontal * 2
-        val panelWidth = minOf(byPercent, maxFit).coerceAtLeast(dm.widthPixels / 4)
-
-        val anchorLoc = IntArray(2)
-        anchor.getLocationOnScreen(anchorLoc)
-        val anchorCenterX = anchorLoc[0] + anchor.width / 2
-
-        val overlayRoot = host.rootView.findViewById<View>(R.id.filter_overlay_root)
-        val rootLoc = IntArray(2)
-        overlayRoot.getLocationOnScreen(rootLoc)
-
-        val marginEnd = marginHorizontal
-        val gapBelowAnchor = (6 * dm.density).toInt()
-        val x = dm.widthPixels - panelWidth - marginEnd - rootLoc[0]
-        val leftMargin = x.coerceAtLeast(marginEnd)
-        val y = anchorLoc[1] + anchor.height + gapBelowAnchor - rootLoc[1]
-
-        host.layoutParams = (host.layoutParams as? FrameLayout.LayoutParams
-            ?: FrameLayout.LayoutParams(panelWidth, ViewGroup.LayoutParams.WRAP_CONTENT)).apply {
-            width = panelWidth
-            gravity = Gravity.TOP or Gravity.START
-            this.leftMargin = leftMargin
-            topMargin = y.coerceAtLeast(marginEnd)
-        }
-
-        layoutArrowHorizontal(arrow, anchorCenterX, rootLoc[0] + leftMargin, panelWidth, dm.density)
-        constrainToSafeHeight(host, overlayRoot, y, dm.density)
-    }
-
-    private fun constrainToSafeHeight(host: View, overlayRoot: View, topOffset: Int, density: Float) {
-        val insets = ViewCompat.getRootWindowInsets(overlayRoot)?.let { OverlayWindowInsets.edgesFrom(it) }
-            ?: SystemBarInsetsPolicy.Edges(0, 0, 0, 0)
-        val extraBottom = (8 * density).toInt()
-        val maxHeight = SystemBarInsetsPolicy.overlayMaxHeight(
-            containerHeight = overlayRoot.height,
-            topOffset = topOffset,
-            bottomInset = insets.bottom,
-            extraBottom = extraBottom
-        )
-        val scroll = host.findViewById<NestedScrollView>(R.id.filter_popover_scroll)
-        host.post {
-            val chrome = host.height - scroll.height
-            val scrollMax = (maxHeight - chrome).coerceAtLeast(0)
-            if (scroll.height > scrollMax) {
-                scroll.updateLayoutParams {
-                    height = scrollMax
-                }
-            }
-        }
-    }
-
-    private fun layoutArrowHorizontal(
-        arrow: ImageView,
-        anchorCenterScreenX: Int,
-        popoverLeftScreenX: Int,
-        popoverWidthPx: Int,
-        density: Float
-    ) {
-        val arrowW = arrow.resources.getDimensionPixelSize(R.dimen.ov_filter_arrow_width)
-        val minInset = (4 * density).toInt()
-        val maxStart = (popoverWidthPx - arrowW - minInset).coerceAtLeast(minInset)
-        val desired =
-            anchorCenterScreenX - popoverLeftScreenX - arrowW / 2
-        val clamped = desired.coerceIn(minInset, maxStart)
-        arrow.updateLayoutParams<LinearLayout.LayoutParams> {
-            width = arrowW
-            height = arrow.resources.getDimensionPixelSize(R.dimen.ov_filter_arrow_height)
-            marginStart = clamped
-        }
-    }
-
-    companion object {
-        private const val ANIM_IN_MS = 180L
-        private const val ANIM_OUT_MS = 140L
     }
 }

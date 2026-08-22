@@ -1,66 +1,45 @@
 package com.example.openvideo.ui.home
 
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
-import android.view.LayoutInflater
-import android.view.View
-import android.widget.TextView
 import com.example.openvideo.R
-import com.example.openvideo.core.ui.OverlayWindowInsets
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
 import com.example.openvideo.data.model.VideoItem
-import com.google.android.material.bottomsheet.BottomSheetDialog
 
 class VideoOptionsSheet(
-    context: Context,
+    private val context: Context,
     private val video: VideoItem,
     isFavorite: Boolean,
     private val onPlay: () -> Unit,
     private val onFavorite: () -> Unit,
     private val onAddToPlaylist: () -> Unit,
     private val onDelete: () -> Unit
-) : BottomSheetDialog(context) {
+) {
+    private val favoriteTitle = context.getString(
+        if (isFavorite) R.string.option_favorited else R.string.option_favorite
+    )
 
-    init {
-        val view = LayoutInflater.from(context).inflate(R.layout.sheet_video_options, null)
-        setContentView(view)
-        OverlayWindowInsets.bind(view, extraBottomPx = view.resources.getDimensionPixelSize(R.dimen.ov_space_sm))
-
-        val playOption = view.findViewById<TextView>(R.id.option_play)
-        playOption.setOnClickListener {
-            dismiss()
-            onPlay()
-        }
-        playOption.post {
-            playOption.requestFocus()
-        }
-
-        val favoriteOption = view.findViewById<TextView>(R.id.option_favorite)
-        favoriteOption.setText(if (isFavorite) R.string.option_favorited else R.string.option_favorite)
-        favoriteOption.setOnClickListener {
-            dismiss()
-            onFavorite()
-        }
-
-        view.findViewById<TextView>(R.id.option_add_to_playlist).setOnClickListener {
-            dismiss()
-            onAddToPlaylist()
-        }
-
-        view.findViewById<TextView>(R.id.option_details).setOnClickListener {
-            dismiss()
-            showDetails()
-        }
-
-        view.findViewById<TextView>(R.id.option_share).setOnClickListener {
-            dismiss()
-            shareVideo()
-        }
-
-        view.findViewById<TextView>(R.id.option_delete).setOnClickListener {
-            dismiss()
-            onDelete()
-        }
-    }
+    fun show(): Dialog = AppleActionSheet.show(
+        context = context,
+        message = video.title,
+        actions = listOf(
+            AppleAction(context.getString(R.string.option_play), onClick = onPlay),
+            AppleAction(favoriteTitle, onClick = onFavorite),
+            AppleAction(context.getString(R.string.option_add_to_playlist), onClick = onAddToPlaylist),
+            AppleAction(context.getString(R.string.option_details), onClick = { showDetails() }),
+            AppleAction(context.getString(R.string.option_share), onClick = { shareVideo() }),
+            AppleAction(
+                title = context.getString(R.string.action_delete),
+                style = AppleActionStyle.DESTRUCTIVE,
+                onClick = onDelete
+            )
+        ),
+        defaultFocusCancel = false
+    )
 
     private fun shareVideo() {
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -84,14 +63,13 @@ class VideoOptionsSheet(
             val sizeMB = video.size / (1024.0 * 1024.0)
             appendLine("${context.getString(R.string.detail_size)}: %.1f MB".format(sizeMB))
         }
-        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.video_details_title)
-            .setMessage(details)
-            .setPositiveButton(R.string.action_ok, null)
-            .show()
-        val okButton = dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
-        okButton.post {
-            okButton.requestFocus()
-        }
+        AppleAlertDialog.show(
+            context = context,
+            title = context.getString(R.string.video_details_title),
+            message = details.trim(),
+            actions = listOf(
+                AppleAction(context.getString(R.string.action_ok), AppleActionStyle.CANCEL)
+            )
+        )
     }
 }

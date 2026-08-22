@@ -5,11 +5,14 @@ import android.text.InputType
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
 import com.example.openvideo.core.network.WebDavConnectionPolicy
-import com.example.openvideo.core.ui.OverlayWindowInsets
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.openvideo.core.ui.AppleFormSheet
+import com.example.openvideo.core.ui.AppleOverlayChrome
+import com.example.openvideo.core.ui.AppleOverlayColors
 
 object WebDavSourceDialog {
 
@@ -21,82 +24,98 @@ object WebDavSourceDialog {
     )
 
     fun show(context: Context, onSubmit: (Input) -> Unit) {
-        val density = context.resources.displayMetrics.density
-        val content = LinearLayout(context).apply {
+        val colors = AppleOverlayColors.from(context)
+        val fields = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(density, 24), dp(density, 8), dp(density, 24), 0)
+            val pad = AppleOverlayChrome.dp(context, 16)
+            setPadding(pad, AppleOverlayChrome.dp(context, 8), pad, pad)
         }
-        val nameInput = content.addField(
+        fields.addView(TextView(context).apply {
+            text = context.getString(R.string.webdav_add_message)
+            setTextColor(colors.message)
+            textSize = AppleOverlayChrome.MESSAGE_SP
+            gravity = android.view.Gravity.CENTER
+            includeFontPadding = false
+        })
+        val nameInput = fields.addField(
+            colors = colors,
             hint = context.getString(R.string.webdav_name_hint),
             inputType = InputType.TYPE_CLASS_TEXT
         )
-        val baseUrlInput = content.addField(
+        val baseUrlInput = fields.addField(
+            colors = colors,
             hint = context.getString(R.string.webdav_base_url_hint),
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
         )
-        val usernameInput = content.addField(
+        val usernameInput = fields.addField(
+            colors = colors,
             hint = context.getString(R.string.webdav_username_hint),
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_NORMAL
         )
-        val passwordInput = content.addField(
+        val passwordInput = fields.addField(
+            colors = colors,
             hint = context.getString(R.string.webdav_password_hint),
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         )
+        val scroll = NestedScrollView(context)
+        scroll.addView(fields, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
 
-        val dialog = MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.webdav_add_title)
-            .setMessage(R.string.webdav_add_message)
-            .setView(content)
-            .setPositiveButton(R.string.webdav_action_test_save, null)
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        OverlayWindowInsets.bindDialog(dialog, includeIme = true)
+        AppleFormSheet.show(
+            context = context,
+            content = scroll,
+            includeIme = true,
+            title = context.getString(R.string.webdav_add_title),
+            cancelTitle = context.getString(R.string.action_cancel),
+            confirmTitle = context.getString(R.string.webdav_action_test_save),
+            defaultFocus = nameInput,
+            onConfirm = {
+                val baseValidation = WebDavConnectionPolicy.validateBaseUrl(baseUrlInput.text.toString())
+                if (baseValidation !is WebDavConnectionPolicy.Validation.Valid) {
+                    baseUrlInput.error = context.getString(R.string.webdav_base_url_invalid)
+                    false
+                } else {
+                    val username = usernameInput.text.toString()
+                    val password = passwordInput.text.toString()
+                    when (WebDavConnectionPolicy.validateCredentials(username, password)) {
+                        WebDavConnectionPolicy.CredentialValidation.Valid -> {
+                            onSubmit(
+                                Input(
+                                    name = nameInput.text.toString(),
+                                    normalizedBaseUrl = baseValidation.normalizedBaseUrl,
+                                    username = username,
+                                    password = password
+                                )
+                            )
+                            true
+                        }
+                        is WebDavConnectionPolicy.CredentialValidation.Invalid -> {
+                            Toast.makeText(context, R.string.webdav_credentials_invalid, Toast.LENGTH_SHORT).show()
+                            false
+                        }
+                    }
+                }
+            }
+        )
         nameInput.post {
             nameInput.requestFocus()
         }
-
-        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val baseValidation = WebDavConnectionPolicy.validateBaseUrl(baseUrlInput.text.toString())
-            if (baseValidation !is WebDavConnectionPolicy.Validation.Valid) {
-                baseUrlInput.error = context.getString(R.string.webdav_base_url_invalid)
-                return@setOnClickListener
-            }
-            val username = usernameInput.text.toString()
-            val password = passwordInput.text.toString()
-            when (WebDavConnectionPolicy.validateCredentials(username, password)) {
-                WebDavConnectionPolicy.CredentialValidation.Valid -> Unit
-                is WebDavConnectionPolicy.CredentialValidation.Invalid -> {
-                    Toast.makeText(context, R.string.webdav_credentials_invalid, Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-            }
-            dialog.dismiss()
-            onSubmit(
-                Input(
-                    name = nameInput.text.toString(),
-                    normalizedBaseUrl = baseValidation.normalizedBaseUrl,
-                    username = username,
-                    password = password
-                )
-            )
-        }
     }
 
-    private fun LinearLayout.addField(hint: String, inputType: Int): EditText {
-        val field = EditText(context).apply {
-            this.hint = hint
-            this.inputType = inputType
-            setSingleLine(true)
-        }
+    private fun LinearLayout.addField(
+        colors: AppleOverlayColors,
+        hint: String,
+        inputType: Int
+    ): EditText {
+        val field = AppleOverlayChrome.inputField(context, colors, hint, inputType)
         addView(
             field,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+            ).apply {
+                topMargin = AppleOverlayChrome.dp(context, 10)
+            }
         )
         return field
     }
-
-    private fun dp(density: Float, value: Int): Int = (value * density + 0.5f).toInt()
 }

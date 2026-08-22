@@ -62,8 +62,7 @@ class PlayerSubtitleLoadSourceTest {
         assertTrue(viewModel.contains("is PlayerSubtitleLoadOutcome.RequiresUserChoice"))
         assertTrue(viewModel.contains("onCandidateChoiceRequired(outcome.candidates)"))
         assertTrue(controller.contains("showSubtitleCandidateChoiceDialog"))
-        assertTrue(controller.contains("MaterialAlertDialogBuilder"))
-        assertTrue(controller.contains(".setItems("))
+        assertTrue(controller.contains("AppleActionSheet.show"))
         assertTrue(controller.contains("playerPrefs.externalSubtitleUri = candidate.path"))
     }
 
@@ -73,9 +72,9 @@ class PlayerSubtitleLoadSourceTest {
         val block = controller.substringAfter("private fun showSubtitleCandidateChoiceDialog(candidates: List<SubtitleCandidate>) {")
             .substringBefore("\n    fun registerPrefsListener()")
 
-        assertTrue(block.contains("val dialog = MaterialAlertDialogBuilder(activity)"))
-        assertTrue(block.contains("dialog.listView?.post"))
-        assertTrue(block.contains("dialog.listView?.requestFocus()"))
+        assertTrue(block.contains("AppleActionSheet.show"))
+        assertTrue(block.contains("defaultFocusCancel = false"))
+        assertFalse(block.contains("MaterialAlertDialogBuilder"))
     }
 
     @Test

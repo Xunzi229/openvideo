@@ -1,19 +1,21 @@
 package com.example.openvideo.ui.privacy
 
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.EditText
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleOverlayChrome
+import com.example.openvideo.core.ui.AppleOverlayColors
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -58,40 +60,50 @@ class PrivacyFragment : Fragment() {
     }
 
     private fun showAddDialog() {
-        val input = EditText(requireContext()).apply {
-            hint = getString(R.string.privacy_hint_path)
-            setPadding(48, 32, 48, 16)
-        }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.privacy_add_title)
-            .setView(input)
-            .setPositiveButton(R.string.action_add) { _, _ ->
-                val path = input.text.toString().trim()
-                if (path.isNotEmpty()) {
-                    privacyManager.addHiddenFolder(path)
-                    loadFolders()
+        val input = AppleOverlayChrome.inputField(
+            context = requireContext(),
+            colors = AppleOverlayColors.from(requireContext()),
+            hint = getString(R.string.privacy_hint_path),
+            inputType = InputType.TYPE_CLASS_TEXT
+        )
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.privacy_add_title),
+            extraContent = input,
+            includeIme = true,
+            focusView = input,
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(getString(R.string.action_add)) {
+                    val path = input.text.toString().trim()
+                    if (path.isNotEmpty()) {
+                        privacyManager.addHiddenFolder(path)
+                        loadFolders()
+                    }
                 }
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
+            )
+        )
         input.post {
             input.requestFocus()
         }
     }
 
     private fun confirmRemove(path: String) {
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.privacy_remove_title)
-            .setMessage(getString(R.string.privacy_remove_message, path))
-            .setPositiveButton(R.string.action_remove) { _, _ ->
-                privacyManager.removeHiddenFolder(path)
-                loadFolders()
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
-        cancelButton.post {
-            cancelButton.requestFocus()
-        }
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.privacy_remove_title),
+            message = getString(R.string.privacy_remove_message, path),
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(
+                    title = getString(R.string.action_remove),
+                    style = AppleActionStyle.DESTRUCTIVE,
+                    onClick = {
+                        privacyManager.removeHiddenFolder(path)
+                        loadFolders()
+                    }
+                )
+            )
+        )
     }
 }

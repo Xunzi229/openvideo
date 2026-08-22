@@ -130,7 +130,7 @@ class PlayerVideoListDialog(
             holder.text.setTextColor(
                 ContextCompat.getColor(
                     ctx,
-                    if (playing) R.color.player_accent else R.color.player_title_normal
+                    if (playing) R.color.ov_accent_blue else R.color.player_title_normal
                 )
             )
             Glide.with(holder.thumb)

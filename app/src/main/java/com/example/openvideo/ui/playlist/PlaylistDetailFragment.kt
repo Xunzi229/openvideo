@@ -18,12 +18,14 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.example.openvideo.ui.player.toSessionVideoItem
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -203,34 +205,40 @@ class PlaylistDetailFragment : Fragment() {
     }
 
     private fun confirmClear() {
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_clear_title)
-            .setMessage(getString(R.string.playlist_clear_message, playlistName))
-            .setPositiveButton(R.string.action_clear) { _, _ -> viewModel.clearPlaylist(playlistId) }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
-        cancelButton.post {
-            cancelButton.requestFocus()
-        }
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.playlist_clear_title),
+            message = getString(R.string.playlist_clear_message, playlistName),
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(
+                    title = getString(R.string.action_clear),
+                    style = AppleActionStyle.DESTRUCTIVE,
+                    onClick = { viewModel.clearPlaylist(playlistId) }
+                )
+            )
+        )
     }
 
     private fun confirmCleanup() {
-        val dialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.playlist_cleanup_title)
-            .setMessage(getString(R.string.playlist_cleanup_message, playlistName))
-            .setPositiveButton(R.string.playlist_cleanup) { _, _ ->
-                viewLifecycleOwner.lifecycleScope.launch {
-                    val removedVideos = viewModel.cleanupPlaylistVideosForUndo(playlistId)
-                    showCleanupUndo(removedVideos)
-                }
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        val cancelButton = dialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE)
-        cancelButton.post {
-            cancelButton.requestFocus()
-        }
+        AppleAlertDialog.show(
+            context = requireContext(),
+            title = getString(R.string.playlist_cleanup_title),
+            message = getString(R.string.playlist_cleanup_message, playlistName),
+            actions = listOf(
+                AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(
+                    title = getString(R.string.playlist_cleanup),
+                    style = AppleActionStyle.DESTRUCTIVE,
+                    onClick = {
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            val removedVideos = viewModel.cleanupPlaylistVideosForUndo(playlistId)
+                            showCleanupUndo(removedVideos)
+                        }
+                    }
+                )
+            )
+        )
     }
 
     private fun showCleanupUndo(removedVideos: List<PlaylistVideoEntity>) {

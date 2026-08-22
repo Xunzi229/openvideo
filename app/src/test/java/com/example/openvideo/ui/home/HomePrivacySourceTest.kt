@@ -25,7 +25,7 @@ class HomePrivacySourceTest {
         val addBlock = source.substringAfter("private fun showAddDialog()")
             .substringBefore("\n    private fun confirmRemove(")
 
-        assertTrue(addBlock.contains("MaterialAlertDialogBuilder(requireContext())"))
+        assertTrue(addBlock.contains("AppleAlertDialog.show"))
         assertTrue(addBlock.contains("input.post"))
         assertTrue(addBlock.contains("input.requestFocus()"))
     }
@@ -36,10 +36,9 @@ class HomePrivacySourceTest {
         val removeBlock = source.substringAfter("private fun confirmRemove(path: String)")
             .substringBefore("\n}")
 
-        assertTrue(removeBlock.contains("setNegativeButton(R.string.action_cancel, null)"))
-        assertTrue(removeBlock.contains("getButton(android.app.AlertDialog.BUTTON_NEGATIVE)"))
-        assertTrue(removeBlock.contains("cancelButton.post"))
-        assertTrue(removeBlock.contains("cancelButton.requestFocus()"))
+        assertTrue(removeBlock.contains("AppleAlertDialog.show"))
+        assertTrue(removeBlock.contains("AppleActionStyle.CANCEL"))
+        assertTrue(removeBlock.contains("AppleActionStyle.DESTRUCTIVE"))
     }
 
     private fun homeViewModelSource(): Path {

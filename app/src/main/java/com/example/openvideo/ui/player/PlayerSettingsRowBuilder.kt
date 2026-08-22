@@ -118,7 +118,7 @@ class PlayerSettingsRowBuilder(
             text = title
             isChecked = checked
             isEnabled = enabled
-            buttonTintList = context.getColorStateList(R.color.player_accent)
+            buttonTintList = context.getColorStateList(R.color.ov_accent_blue)
             setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
             textSize = 15f
             minHeight = dp(56)
@@ -137,7 +137,7 @@ class PlayerSettingsRowBuilder(
             text = title
             isChecked = checked
             isEnabled = enabled
-            buttonTintList = context.getColorStateList(R.color.player_accent)
+            buttonTintList = context.getColorStateList(R.color.ov_accent_blue)
             setTextColor(if (enabled) Color.WHITE else Color.rgb(85, 85, 85))
             textSize = 15f
             minHeight = dp(56)
@@ -176,7 +176,7 @@ class PlayerSettingsRowBuilder(
         parent.addView(
             TextView(context).apply {
                 text = title
-                setTextColor(context.getColor(R.color.player_accent))
+                setTextColor(context.getColor(R.color.ov_accent_blue))
                 textSize = 15f
                 gravity = Gravity.CENTER_VERTICAL
                 minHeight = dp(56)
@@ -210,7 +210,7 @@ class PlayerSettingsRowBuilder(
             })
             addView(TextView(context).apply {
                 text = value
-                setTextColor(context.getColor(R.color.player_accent))
+                setTextColor(context.getColor(R.color.ov_accent_blue))
                 textSize = 14f
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
@@ -309,7 +309,7 @@ class PlayerSettingsRowBuilder(
         }
         val valueView = TextView(context).apply {
             text = label(value)
-            setTextColor(context.getColor(R.color.player_accent))
+            setTextColor(context.getColor(R.color.ov_accent_blue))
             textSize = 14f
         }
         row.addView(LinearLayout(context).apply {
@@ -342,8 +342,8 @@ class PlayerSettingsRowBuilder(
         row.addView(SeekBar(context).apply {
             max = maxValue - min
             progress = (value - min).coerceIn(0, maxValue - min)
-            progressTintList = context.getColorStateList(R.color.player_accent)
-            thumbTintList = context.getColorStateList(R.color.player_accent)
+            progressTintList = context.getColorStateList(R.color.ov_accent_blue)
+            thumbTintList = context.getColorStateList(R.color.ov_accent_blue)
             var pendingValue = value.coerceIn(min, maxValue)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {

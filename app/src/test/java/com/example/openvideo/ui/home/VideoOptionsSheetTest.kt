@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.home
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -13,7 +14,7 @@ class VideoOptionsSheetTest {
         val source = String(Files.readAllBytes(sourceFile("VideoOptionsSheet.kt")))
 
         assertTrue(source.contains("private val onPlay: () -> Unit"))
-        assertTrue(source.contains("onPlay()"))
+        assertTrue(source.contains("onPlay"))
     }
 
     @Test
@@ -29,18 +30,19 @@ class VideoOptionsSheetTest {
     fun videoOptionsSheetRequestsPlayDefaultFocusForRemoteUse() {
         val source = String(Files.readAllBytes(sourceFile("VideoOptionsSheet.kt")))
 
-        assertTrue(source.contains("val playOption = view.findViewById<TextView>(R.id.option_play)"))
-        assertTrue(source.contains("playOption.post"))
-        assertTrue(source.contains("playOption.requestFocus()"))
+        assertTrue(source.contains("AppleActionSheet.show"))
+        assertTrue(source.contains("R.string.option_play"))
+        assertTrue(source.contains("defaultFocusCancel = false"))
     }
 
     @Test
-    fun videoOptionsSheetRowsAreFocusableForRemoteUse() {
-        val layout = String(Files.readAllBytes(layoutFile("sheet_video_options.xml")))
+    fun videoOptionsSheetUsesAppleActionSheetNotMaterialBottomSheet() {
+        val source = String(Files.readAllBytes(sourceFile("VideoOptionsSheet.kt")))
 
-        assertTrue(layout.contains("""android:id="@+id/option_play""""))
-        assertTrue(layout.contains("""android:focusable="true""""))
-        assertTrue(layout.contains("""android:foreground="?attr/selectableItemBackground""""))
+        assertTrue(source.contains("AppleActionSheet.show"))
+        assertTrue(source.contains("AppleActionStyle.DESTRUCTIVE"))
+        assertFalse(source.contains("BottomSheetDialog"))
+        assertFalse(source.contains("sheet_video_options"))
     }
 
     @Test
@@ -49,11 +51,10 @@ class VideoOptionsSheetTest {
         val detailsBlock = source.substringAfter("private fun showDetails()")
             .substringBefore("\n}")
 
-        assertTrue(detailsBlock.contains("val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(context)"))
-        assertTrue(detailsBlock.contains("setPositiveButton(R.string.action_ok, null)"))
-        assertTrue(detailsBlock.contains("getButton(android.app.AlertDialog.BUTTON_POSITIVE)"))
-        assertTrue(detailsBlock.contains("okButton.post"))
-        assertTrue(detailsBlock.contains("okButton.requestFocus()"))
+        assertTrue(detailsBlock.contains("AppleAlertDialog.show"))
+        assertTrue(detailsBlock.contains("R.string.action_ok"))
+        assertTrue(detailsBlock.contains("AppleActionStyle.CANCEL"))
+        assertFalse(detailsBlock.contains("MaterialAlertDialogBuilder"))
     }
 
     @Test
@@ -65,9 +66,10 @@ class VideoOptionsSheetTest {
             val createBlock = source.substringAfter("private fun showCreatePlaylistForVideoDialog(video: VideoItem)")
                 .substringBefore("\n    private fun ")
 
-            assertTrue(createBlock.contains("MaterialAlertDialogBuilder(requireContext())"))
+            assertTrue(createBlock.contains("AppleAlertDialog.show"))
             assertTrue(createBlock.contains("input.post"))
             assertTrue(createBlock.contains("input.requestFocus()"))
+            assertFalse(createBlock.contains("MaterialAlertDialogBuilder"))
         }
     }
 
@@ -80,9 +82,9 @@ class VideoOptionsSheetTest {
             val pickerBlock = source.substringAfter("private fun showPlaylistPicker(video: VideoItem, playlists: List<PlaylistEntity>)")
                 .substringBefore("\n    private fun showCreatePlaylistForVideoDialog(")
 
-            assertTrue(pickerBlock.contains("val dialog = MaterialAlertDialogBuilder(requireContext())"))
-            assertTrue(pickerBlock.contains("dialog.listView?.post"))
-            assertTrue(pickerBlock.contains("dialog.listView?.requestFocus()"))
+            assertTrue(pickerBlock.contains("AppleActionSheet.show"))
+            assertTrue(pickerBlock.contains("defaultFocusCancel = false"))
+            assertFalse(pickerBlock.contains("MaterialAlertDialogBuilder"))
         }
     }
 
@@ -98,10 +100,10 @@ class VideoOptionsSheetTest {
             .substringBefore("\n    private fun deleteVideosWithSystemRequest(")
 
         listOf(homeDeleteBlock, homeBatchDeleteBlock, folderDeleteBlock).forEach { block ->
-            assertTrue(block.contains("setNegativeButton(R.string.action_cancel, null)"))
-            assertTrue(block.contains("getButton(android.app.AlertDialog.BUTTON_NEGATIVE)"))
-            assertTrue(block.contains("cancelButton.post"))
-            assertTrue(block.contains("cancelButton.requestFocus()"))
+            assertTrue(block.contains("AppleAlertDialog.show"))
+            assertTrue(block.contains("AppleActionStyle.CANCEL"))
+            assertTrue(block.contains("AppleActionStyle.DESTRUCTIVE"))
+            assertFalse(block.contains("MaterialAlertDialogBuilder"))
         }
     }
 
@@ -115,20 +117,6 @@ class VideoOptionsSheetTest {
             "openvideo",
             "ui",
             "home",
-            name
-        )
-        return sequenceOf(
-            relativePath,
-            Paths.get("app").resolve(relativePath)
-        ).first(Files::exists)
-    }
-
-    private fun layoutFile(name: String): Path {
-        val relativePath = Paths.get(
-            "src",
-            "main",
-            "res",
-            "layout",
             name
         )
         return sequenceOf(

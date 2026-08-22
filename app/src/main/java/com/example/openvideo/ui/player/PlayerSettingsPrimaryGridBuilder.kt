@@ -62,7 +62,7 @@ class PlayerSettingsPrimaryGridBuilder(
         }
         iconWrap.addView(ImageView(context).apply {
             setImageResource(item.iconRes)
-            setColorFilter(context.getColor(if (selected) R.color.player_accent else android.R.color.white))
+            setColorFilter(context.getColor(if (selected) R.color.ov_accent_blue else android.R.color.white))
             layoutParams = LinearLayout.LayoutParams(dp(24), dp(24))
         })
 
@@ -70,7 +70,7 @@ class PlayerSettingsPrimaryGridBuilder(
         cell.addView(TextView(context).apply {
             text = context.getString(item.titleRes)
             gravity = Gravity.CENTER
-            setTextColor(context.getColor(if (selected) R.color.player_accent else android.R.color.white))
+            setTextColor(context.getColor(if (selected) R.color.ov_accent_blue else android.R.color.white))
             textSize = 12f
             maxLines = 1
             includeFontPadding = false

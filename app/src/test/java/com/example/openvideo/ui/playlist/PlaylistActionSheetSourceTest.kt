@@ -47,30 +47,32 @@ class PlaylistActionSheetSourceTest {
     fun playlistActionSheetsUseIosBottomSheetVisualContract() {
         val options = String(Files.readAllBytes(playlistOptionsActionSheetSource()))
         val rename = String(Files.readAllBytes(playlistRenameActionSheetSource()))
+        val chrome = String(Files.readAllBytes(appleActionSheetSource()))
 
-        listOf(options, rename).forEach { source ->
-            assertTrue(source.contains("Gravity.BOTTOM"))
-            assertTrue(source.contains("setCanceledOnTouchOutside(true)"))
-            assertTrue(source.contains("Configuration.UI_MODE_NIGHT_YES"))
-            assertTrue(source.contains("Color.parseColor(\"#EBFFFFFF\")"))
-            assertTrue(source.contains("Color.parseColor(\"#D91C1C1E\")"))
-            assertTrue(source.contains("Color.parseColor(\"#FF453A\")"))
-            assertTrue(source.contains("Color.parseColor(\"#0A84FF\")"))
-            assertTrue(source.contains("OverlayWindowInsets.bind"))
-            assertFalse(source.contains("MaterialAlertDialogBuilder"))
-        }
+        assertTrue(options.contains("AppleActionSheet.show("))
+        assertTrue(options.contains("AppleActionStyle.DESTRUCTIVE"))
+        assertFalse(options.contains("MaterialAlertDialogBuilder"))
+
+        assertTrue(rename.contains("Gravity.BOTTOM"))
+        assertTrue(rename.contains("setCanceledOnTouchOutside(true)"))
+        assertTrue(rename.contains("AppleOverlayColors.from"))
+        assertTrue(rename.contains("OverlayWindowInsets.bind"))
+        assertFalse(rename.contains("MaterialAlertDialogBuilder"))
+
+        assertTrue(chrome.contains("Gravity.BOTTOM"))
+        assertTrue(chrome.contains("setCanceledOnTouchOutside(true)"))
+        assertTrue(chrome.contains("OverlayWindowInsets.bind"))
+        assertTrue(chrome.contains("AppleOverlayColors.from"))
+        assertFalse(chrome.contains("MaterialAlertDialogBuilder"))
     }
 
     @Test
     fun playlistOptionsActionSheetRequestsCancelDefaultFocusForRemoteUse() {
-        val source = String(Files.readAllBytes(playlistOptionsActionSheetSource()))
+        val chrome = String(Files.readAllBytes(appleActionSheetSource()))
 
-        assertTrue(source.contains("private var defaultFocusView: View? = null"))
-        assertTrue(source.contains("defaultFocusView = cancelAction"))
-        assertTrue(source.contains("requestDefaultFocus()"))
-        assertTrue(source.contains("private fun requestDefaultFocus()"))
-        assertTrue(source.contains("defaultFocusView?.post"))
-        assertTrue(source.contains("defaultFocusView?.requestFocus()"))
+        assertTrue(chrome.contains("private var defaultFocusView: View? = null"))
+        assertTrue(chrome.contains("defaultFocusCancel"))
+        assertTrue(chrome.contains("defaultFocusView?.requestFocus()"))
     }
 
     @Test
@@ -79,27 +81,19 @@ class PlaylistActionSheetSourceTest {
         val createBlock = source.substringAfter("private fun showCreateDialog()")
             .substringBefore("\n    private fun showPlaylistOptions(")
 
-        assertTrue(createBlock.contains("MaterialAlertDialogBuilder(requireContext())"))
+        assertTrue(createBlock.contains("AppleAlertDialog.show"))
         assertTrue(createBlock.contains("input.post"))
         assertTrue(createBlock.contains("input.requestFocus()"))
+        assertFalse(createBlock.contains("MaterialAlertDialogBuilder"))
     }
 
-    private fun playlistFragmentSource(): Path = moduleSource("PlaylistFragment.kt")
-    private fun playlistOptionsActionSheetSource(): Path = moduleSource("PlaylistOptionsActionSheet.kt")
-    private fun playlistRenameActionSheetSource(): Path = moduleSource("PlaylistRenameActionSheet.kt")
+    private fun playlistFragmentSource(): Path = moduleSource("ui", "playlist", "PlaylistFragment.kt")
+    private fun playlistOptionsActionSheetSource(): Path = moduleSource("ui", "playlist", "PlaylistOptionsActionSheet.kt")
+    private fun playlistRenameActionSheetSource(): Path = moduleSource("ui", "playlist", "PlaylistRenameActionSheet.kt")
+    private fun appleActionSheetSource(): Path = moduleSource("core", "ui", "AppleActionSheet.kt")
 
-    private fun moduleSource(fileName: String): Path {
-        val relativePath = Paths.get(
-            "src",
-            "main",
-            "java",
-            "com",
-            "example",
-            "openvideo",
-            "ui",
-            "playlist",
-            fileName
-        )
+    private fun moduleSource(vararg parts: String): Path {
+        val relativePath = Paths.get("src", "main", "java", "com", "example", "openvideo", *parts)
         return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
     }
 }

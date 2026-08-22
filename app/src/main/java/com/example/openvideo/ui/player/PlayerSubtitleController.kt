@@ -11,7 +11,8 @@ import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.subtitle.SubtitleCandidate
 import com.example.openvideo.core.subtitle.SubtitleLoader
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
 import java.io.File
 
 class PlayerSubtitleController(
@@ -61,20 +62,17 @@ class PlayerSubtitleController(
 
     private fun showSubtitleCandidateChoiceDialog(candidates: List<SubtitleCandidate>) {
         if (candidates.isEmpty()) return
-        val labels = candidates.map { candidate ->
-            File(candidate.path).name.ifBlank { candidate.path }
-        }.toTypedArray()
-        val dialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.player_subtitle_candidate_choice_title)
-            .setItems(labels) { _, which ->
-                val candidate = candidates[which]
-                playerPrefs.externalSubtitleUri = candidate.path
-            }
-            .setNegativeButton(R.string.action_cancel, null)
-            .show()
-        dialog.listView?.post {
-            dialog.listView?.requestFocus()
-        }
+        AppleActionSheet.show(
+            context = activity,
+            title = activity.getString(R.string.player_subtitle_candidate_choice_title),
+            actions = candidates.map { candidate ->
+                val label = File(candidate.path).name.ifBlank { candidate.path }
+                AppleAction(label) {
+                    playerPrefs.externalSubtitleUri = candidate.path
+                }
+            },
+            defaultFocusCancel = false
+        )
     }
 
     fun registerPrefsListener() {

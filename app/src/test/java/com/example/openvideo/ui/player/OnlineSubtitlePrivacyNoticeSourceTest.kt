@@ -30,7 +30,7 @@ class OnlineSubtitlePrivacyNoticeSourceTest {
         assertTrue(layout.contains("""@string/player_settings_online_subtitle_search"""))
         assertTrue(source.contains("showOnlineSubtitlePrivacyNotice"))
         assertTrue(source.contains("OnlineSubtitlePrivacyPolicy.firstUseNotice()"))
-        assertTrue(source.contains("MaterialAlertDialogBuilder"))
+        assertTrue(source.contains("AppleAlertDialog"))
         assertFalse(source.contains("OnlineSubtitleClient"))
         assertFalse(clickBlock.contains(".search("))
     }
@@ -51,11 +51,9 @@ class OnlineSubtitlePrivacyNoticeSourceTest {
         val noticeBlock = source.substringAfter("private fun showOnlineSubtitlePrivacyNotice()")
             .substringBefore("\n    override fun onViewCreated")
 
-        assertTrue(noticeBlock.contains("val dialog = MaterialAlertDialogBuilder(requireContext())"))
-        assertTrue(noticeBlock.contains("setNegativeButton(R.string.action_cancel, null)"))
-        assertTrue(noticeBlock.contains("getButton(android.app.AlertDialog.BUTTON_NEGATIVE)"))
-        assertTrue(noticeBlock.contains("cancelButton.post"))
-        assertTrue(noticeBlock.contains("cancelButton.requestFocus()"))
+        assertTrue(noticeBlock.contains("AppleAlertDialog.show"))
+        assertTrue(noticeBlock.contains("AppleActionStyle.CANCEL"))
+        assertFalse(noticeBlock.contains("MaterialAlertDialogBuilder"))
     }
 
     @Test

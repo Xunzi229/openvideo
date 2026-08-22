@@ -51,10 +51,9 @@ class PlaylistCleanupUiSourceTest {
             .substringBefore("\n    private fun showCleanupUndo(")
 
         listOf(clearBlock, cleanupBlock).forEach { block ->
-            assertTrue(block.contains("setNegativeButton(R.string.action_cancel, null)"))
-            assertTrue(block.contains("getButton(android.app.AlertDialog.BUTTON_NEGATIVE)"))
-            assertTrue(block.contains("cancelButton.post"))
-            assertTrue(block.contains("cancelButton.requestFocus()"))
+            assertTrue(block.contains("AppleAlertDialog.show"))
+            assertTrue(block.contains("AppleActionStyle.CANCEL"))
+            assertTrue(block.contains("AppleActionStyle.DESTRUCTIVE"))
         }
     }
 

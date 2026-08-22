@@ -81,6 +81,7 @@ jobs:
           --tests "com.example.openvideo.core.ui.SystemBarInsetsPolicyTest"
           --tests "com.example.openvideo.core.ui.OverlayInsetsSourceTest"
           --tests "com.example.openvideo.core.ui.AppleStyleAndSizeSourceTest"
+          --tests "com.example.openvideo.core.ui.AppleOverlaySourceTest"
           --tests "com.example.openvideo.ui.home.HomeSearchFilterSourceTest"
           --tests "com.example.openvideo.core.update.UpdateUrlPolicyTest"
           --tests "com.example.openvideo.core.network.NetworkUrlPolicyTest"
