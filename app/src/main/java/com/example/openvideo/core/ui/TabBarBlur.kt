@@ -6,7 +6,8 @@ import android.view.View
 object TabBarBlur {
     fun bind(view: View) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val radiusPx = (25f * view.resources.displayMetrics.density).toInt().coerceAtLeast(1)
-        view.setBackgroundBlurRadius(radiusPx)
+        // Public SDK only exposes Window.setBackgroundBlurRadius (behind the activity).
+        // Tab bar frost is the translucent ov_tab_bar_fill in values-v31.
+        view.elevation = 0f
     }
 }
