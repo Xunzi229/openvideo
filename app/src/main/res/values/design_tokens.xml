@@ -34,6 +34,9 @@
     <color name="ov_segment_selected">#FFFFFFFF</color>
     <color name="ov_hud_bg">#E61C1C1E</color>
     <color name="ov_hud_text">#FFFFFFFF</color>
+    <color name="ov_switch_on">#FF34C759</color>
+    <color name="ov_switch_off">#FFE9E9EA</color>
+    <color name="ov_switch_thumb">#FFFFFFFF</color>
 
     <dimen name="ov_space_xs">4dp</dimen>
     <dimen name="ov_space_sm">8dp</dimen>

@@ -13,8 +13,8 @@ class SettingsLanguageRowSourceTest {
     fun preferenceBackedValueRowsRefreshVisibleLabelsImmediatelyAfterSavingPreference() {
         val source = settingsFragmentSource()
 
-        assertLabelRefreshesAfterSave(source, "viewModel.setThemeMode(modes[next])", "updateThemeLabel(tvTheme)")
-        assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(langs[next])", "updateLanguageLabel(tvLanguage)")
+        assertLabelRefreshesAfterSave(source, "viewModel.setThemeMode(mode)", "updateThemeLabel(tvTheme)")
+        assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(lang)", "updateLanguageLabel(tvLanguage)")
         assertLabelRefreshesAfterSave(source, "viewModel.setDefaultRatio(ratio)", "updateRatioLabel(tvRatio)")
         assertLabelRefreshesAfterSave(source, "viewModel.setDefaultSpeed(speed)", "updateSpeedLabel(tvSpeed)")
     }
@@ -35,6 +35,11 @@ class SettingsLanguageRowSourceTest {
         assertTrue(source.contains("viewModel.setDefaultSpeed(speed)"))
         assertFalse(source.contains("ratios[next]"))
         assertFalse(source.contains("speeds[next]"))
+        assertFalse(source.contains("modes[next]"))
+        assertFalse(source.contains("langs[next]"))
+        assertTrue(source.contains("showThemeSheet(tvTheme)"))
+        assertTrue(source.contains("showLanguageSheet(tvLanguage, row)"))
+        assertTrue(source.contains("AppleActionSheet.show"))
     }
 
     @Test
@@ -58,13 +63,21 @@ class SettingsLanguageRowSourceTest {
             .substringBefore("\n    private fun showDefaultSpeedDialog")
         val speedBlock = source.substringAfter("private fun showDefaultSpeedDialog(tvSpeed: TextView)")
             .substringBefore("\n    private fun bindBackupSection")
+        val themeBlock = source.substringAfter("private fun showThemeSheet(tvTheme: TextView)")
+            .substringBefore("\n    private fun showLanguageSheet")
+        val languageBlock = source.substringAfter("private fun showLanguageSheet(tvLanguage: TextView, row: View)")
+            .substringBefore("\n    private fun showDefaultRatioDialog")
 
         assertTrue(source.contains("private var activeSettingsDialog: Dialog? = null"))
         assertTrue(source.contains("private fun showExclusiveSettingsDialog("))
         assertTrue(ratioBlock.contains("showExclusiveSettingsDialog"))
         assertTrue(speedBlock.contains("showExclusiveSettingsDialog"))
+        assertTrue(themeBlock.contains("showExclusiveSettingsDialog"))
+        assertTrue(languageBlock.contains("showExclusiveSettingsDialog"))
         assertTrue(ratioBlock.indexOf("showExclusiveSettingsDialog") < ratioBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
         assertTrue(speedBlock.indexOf("showExclusiveSettingsDialog") < speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(themeBlock.indexOf("showExclusiveSettingsDialog") < themeBlock.indexOf("AppleActionSheet.show("))
+        assertTrue(languageBlock.indexOf("showExclusiveSettingsDialog") < languageBlock.indexOf("AppleActionSheet.show("))
         assertTrue(source.contains("onDismiss = onDismiss"))
     }
 
@@ -90,7 +103,7 @@ class SettingsLanguageRowSourceTest {
     fun languageRowRefreshesVisibleLabelImmediatelyAfterSavingPreference() {
         val source = settingsFragmentSource()
 
-        assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(langs[next])", "updateLanguageLabel(tvLanguage)")
+        assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(lang)", "updateLanguageLabel(tvLanguage)")
     }
 
     private fun assertLabelRefreshesAfterSave(source: String, saveCall: String, labelUpdateCall: String) {

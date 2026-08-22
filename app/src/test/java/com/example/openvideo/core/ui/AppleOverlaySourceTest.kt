@@ -96,6 +96,7 @@ class AppleOverlaySourceTest {
         val subtitle = uiSource("player", "PlayerSubtitleController.kt")
         val subtitleSheet = uiSource("player", "PlayerSubtitleSettingsSheet.kt")
         val glass = uiSource("player", "PlayerGlassSheetDialog.kt")
+        val settings = uiSource("settings", "SettingsFragment.kt")
 
         assertTrue(home.contains("AppleActionSheet.show"))
         assertTrue(home.contains("AppleAlertDialog.show"))
@@ -115,6 +116,8 @@ class AppleOverlaySourceTest {
         assertFalse(glass.contains("MaterialAlertDialogBuilder"))
         assertTrue(glass.contains("R.color.ov_accent_blue"))
         assertTrue(glass.contains("applyBottomRowVisual("))
+        assertTrue(settings.contains("AppleActionSheet.show"))
+        assertFalse(settings.contains("MaterialAlertDialogBuilder"))
     }
 
     @Test

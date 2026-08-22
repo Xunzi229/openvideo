@@ -23,8 +23,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
-import com.example.openvideo.core.ui.ScreenBreakpoint
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
 import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
@@ -108,24 +110,11 @@ class SettingsFragment : Fragment() {
         tvVersion.text = viewModel.installedVersionName()
         updateSettingsRowDescription(tvVersion, R.string.settings_version)
         view.findViewById<View>(R.id.row_theme).setOnClickListener {
-            val modes = ThemeMode.entries
-            val next = (modes.indexOf(viewModel.themeMode) + 1) % modes.size
-            viewModel.setThemeMode(modes[next])
-            updateThemeLabel(tvTheme)
+            showThemeSheet(tvTheme)
         }
 
         view.findViewById<View>(R.id.row_language).setOnClickListener { row ->
-            val langs = listOf("system", "zh", "en")
-            val current = langs.indexOf(viewModel.language).let { idx ->
-                if (idx >= 0) idx else 0
-            }
-            val next = (current + 1) % langs.size
-            viewModel.setLanguage(langs[next])
-            updateLanguageLabel(tvLanguage)
-            // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                row.post { requireActivity().recreate() }
-            }
+            showLanguageSheet(tvLanguage, row)
         }
 
         view.findViewById<View>(R.id.row_notifications).setOnClickListener {
@@ -352,19 +341,23 @@ class SettingsFragment : Fragment() {
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).roundToInt()
 
     private fun updateThemeLabel(tv: TextView) {
-        tv.text = when (viewModel.themeMode) {
-            ThemeMode.SYSTEM -> getString(R.string.settings_theme_system)
-            ThemeMode.DARK -> getString(R.string.settings_theme_dark)
-            ThemeMode.LIGHT -> getString(R.string.settings_theme_light)
-        }
+        tv.text = themeLabel(viewModel.themeMode)
+    }
+
+    private fun themeLabel(mode: ThemeMode): String = when (mode) {
+        ThemeMode.SYSTEM -> getString(R.string.settings_theme_system)
+        ThemeMode.DARK -> getString(R.string.settings_theme_dark)
+        ThemeMode.LIGHT -> getString(R.string.settings_theme_light)
     }
 
     private fun updateLanguageLabel(tv: TextView) {
-        tv.text = when (viewModel.language) {
-            "zh" -> getString(R.string.settings_language_zh)
-            "en" -> getString(R.string.settings_language_en)
-            else -> getString(R.string.settings_language_system)
-        }
+        tv.text = languageLabel(viewModel.language)
+    }
+
+    private fun languageLabel(lang: String): String = when (lang) {
+        "zh" -> getString(R.string.settings_language_zh)
+        "en" -> getString(R.string.settings_language_en)
+        else -> getString(R.string.settings_language_system)
     }
 
     private fun updateRatioLabel(tv: TextView) {
@@ -381,6 +374,54 @@ class SettingsFragment : Fragment() {
     private fun updateSettingsRowDescription(valueView: TextView, titleRes: Int) {
         (valueView.parent as? View)?.contentDescription =
             listOf(getString(titleRes), valueView.text).joinToString(" ")
+    }
+
+    private fun showThemeSheet(tvTheme: TextView) {
+        showExclusiveSettingsDialog { onDismiss ->
+            AppleActionSheet.show(
+                context = requireContext(),
+                title = getString(R.string.settings_theme),
+                actions = ThemeMode.entries.map { mode ->
+                    AppleAction(
+                        title = themeLabel(mode),
+                        bold = mode == viewModel.themeMode,
+                        onClick = {
+                            viewModel.setThemeMode(mode)
+                            updateThemeLabel(tvTheme)
+                        }
+                    )
+                },
+                defaultFocusCancel = false,
+                onDismiss = onDismiss
+            )
+        }
+    }
+
+    private fun showLanguageSheet(tvLanguage: TextView, row: View) {
+        val langs = listOf("system", "zh", "en")
+        val current = langs.firstOrNull { it == viewModel.language } ?: "system"
+        showExclusiveSettingsDialog { onDismiss ->
+            AppleActionSheet.show(
+                context = requireContext(),
+                title = getString(R.string.settings_language),
+                actions = langs.map { lang ->
+                    AppleAction(
+                        title = languageLabel(lang),
+                        bold = lang == current,
+                        onClick = {
+                            viewModel.setLanguage(lang)
+                            updateLanguageLabel(tvLanguage)
+                            // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                                row.post { requireActivity().recreate() }
+                            }
+                        }
+                    )
+                },
+                defaultFocusCancel = false,
+                onDismiss = onDismiss
+            )
+        }
     }
 
     private fun showDefaultRatioDialog(tvRatio: TextView) {

@@ -9,6 +9,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
 import com.google.android.material.button.MaterialButton
 import android.widget.SeekBar
 import android.widget.TextView
@@ -126,22 +128,32 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
         )
 
         // Subtitle background
-        val subtitleBgStyles = SubtitleBgStyle.entries.toTypedArray()
         fun subtitleBgLabel(style: SubtitleBgStyle): String = when (style) {
             SubtitleBgStyle.NONE -> getString(R.string.settings_subtitle_bg_none)
             SubtitleBgStyle.SEMI_TRANSPARENT -> getString(R.string.settings_subtitle_bg_semi)
             SubtitleBgStyle.OPAQUE -> getString(R.string.settings_subtitle_bg_opaque)
         }
-        var bgIndex = subtitleBgStyles.indexOf(playerPrefs.subtitleBgStyle).takeIf { it >= 0 } ?: 1
         fun updateBgText() {
-            tvBg.text = subtitleBgLabel(subtitleBgStyles[bgIndex])
+            tvBg.text = subtitleBgLabel(playerPrefs.subtitleBgStyle)
         }
         updateBgText()
         tvBg.setOnClickListener {
-            bgIndex = (bgIndex + 1) % subtitleBgStyles.size
-            playerPrefs.subtitleBgStyle = subtitleBgStyles[bgIndex]
-            updateBgText()
-            updateSubtitlePreview()
+            AppleActionSheet.show(
+                context = this,
+                title = getString(R.string.settings_subtitle_bg),
+                actions = SubtitleBgStyle.entries.map { style ->
+                    AppleAction(
+                        title = subtitleBgLabel(style),
+                        bold = style == playerPrefs.subtitleBgStyle,
+                        onClick = {
+                            playerPrefs.subtitleBgStyle = style
+                            updateBgText()
+                            updateSubtitlePreview()
+                        }
+                    )
+                },
+                defaultFocusCancel = false
+            )
         }
 
         // Subtitle position
@@ -185,16 +197,27 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
             onColorChanged = { updateSecondarySubtitlePreview() }
         )
 
-        var secondaryBgIndex = subtitleBgStyles.indexOf(playerPrefs.secondarySubtitleBgStyle).takeIf { it >= 0 } ?: 1
         fun updateSecondaryBgText() {
-            tvSecondaryBg.text = subtitleBgLabel(subtitleBgStyles[secondaryBgIndex])
+            tvSecondaryBg.text = subtitleBgLabel(playerPrefs.secondarySubtitleBgStyle)
         }
         updateSecondaryBgText()
         tvSecondaryBg.setOnClickListener {
-            secondaryBgIndex = (secondaryBgIndex + 1) % subtitleBgStyles.size
-            playerPrefs.secondarySubtitleBgStyle = subtitleBgStyles[secondaryBgIndex]
-            updateSecondaryBgText()
-            updateSecondarySubtitlePreview()
+            AppleActionSheet.show(
+                context = this,
+                title = getString(R.string.settings_subtitle_bg),
+                actions = SubtitleBgStyle.entries.map { style ->
+                    AppleAction(
+                        title = subtitleBgLabel(style),
+                        bold = style == playerPrefs.secondarySubtitleBgStyle,
+                        onClick = {
+                            playerPrefs.secondarySubtitleBgStyle = style
+                            updateSecondaryBgText()
+                            updateSecondarySubtitlePreview()
+                        }
+                    )
+                },
+                defaultFocusCancel = false
+            )
         }
 
         var pendingSecondarySubtitlePosition = playerPrefs.secondarySubtitlePosition
@@ -215,15 +238,28 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
 
         // Subtitle encoding
         val encodings = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
-        var encIndex = encodings.indexOf(playerPrefs.subtitleEncoding).takeIf { it >= 0 } ?: 0
+        fun encodingLabel(encoding: String): String =
+            if (encoding == "auto") getString(R.string.settings_encoding_auto) else encoding
         fun updateEncText() {
-            tvEncoding.text = if (encIndex == 0) getString(R.string.settings_encoding_auto) else encodings[encIndex]
+            tvEncoding.text = encodingLabel(playerPrefs.subtitleEncoding)
         }
         updateEncText()
         tvEncoding.setOnClickListener {
-            encIndex = (encIndex + 1) % encodings.size
-            playerPrefs.subtitleEncoding = encodings[encIndex]
-            updateEncText()
+            AppleActionSheet.show(
+                context = this,
+                title = getString(R.string.settings_subtitle_encoding),
+                actions = encodings.map { encoding ->
+                    AppleAction(
+                        title = encodingLabel(encoding),
+                        bold = encoding == playerPrefs.subtitleEncoding,
+                        onClick = {
+                            playerPrefs.subtitleEncoding = encoding
+                            updateEncText()
+                        }
+                    )
+                },
+                defaultFocusCancel = false
+            )
         }
     }
 }

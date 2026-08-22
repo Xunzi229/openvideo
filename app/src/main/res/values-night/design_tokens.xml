@@ -34,4 +34,7 @@
     <color name="ov_segment_selected">#FF636366</color>
     <color name="ov_hud_bg">#E61C1C1E</color>
     <color name="ov_hud_text">#FFFFFFFF</color>
+    <color name="ov_switch_on">#FF30D158</color>
+    <color name="ov_switch_off">#FF39393D</color>
+    <color name="ov_switch_thumb">#FFFFFFFF</color>
 </resources>

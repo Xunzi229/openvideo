@@ -1,14 +1,16 @@
 package com.example.openvideo.ui.player
 
 import android.os.Bundle
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.example.openvideo.R
+import com.example.openvideo.core.prefs.AudioChannel
+import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
+import com.google.android.material.switchmaterial.SwitchMaterial
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import com.example.openvideo.core.prefs.PlayerPrefs
-import com.google.android.material.switchmaterial.SwitchMaterial
-import android.widget.TextView
-import android.widget.SeekBar
 
 @AndroidEntryPoint
 class PlayerAudioSettingsActivity : ComponentActivity() {
@@ -34,39 +36,54 @@ class PlayerAudioSettingsActivity : ComponentActivity() {
         swBoost.isChecked = playerPrefs.volumeBoost
         swBoost.setOnCheckedChangeListener { _, checked -> playerPrefs.volumeBoost = checked }
 
+        fun channelLabel(channel: AudioChannel): String = when (channel) {
+            AudioChannel.LEFT -> getString(R.string.settings_audio_left)
+            AudioChannel.RIGHT -> getString(R.string.settings_audio_right)
+            AudioChannel.STEREO -> getString(R.string.settings_audio_stereo)
+        }
         fun updateChannel() {
-            tvChannel.text = when (playerPrefs.audioChannel) {
-                com.example.openvideo.core.prefs.AudioChannel.LEFT -> getString(R.string.settings_audio_left)
-                com.example.openvideo.core.prefs.AudioChannel.RIGHT -> getString(R.string.settings_audio_right)
-                else -> getString(R.string.settings_audio_stereo)
-            }
+            tvChannel.text = channelLabel(playerPrefs.audioChannel)
         }
         updateChannel()
         tvChannel.setOnClickListener {
-            val next = when (playerPrefs.audioChannel) {
-                com.example.openvideo.core.prefs.AudioChannel.STEREO -> com.example.openvideo.core.prefs.AudioChannel.LEFT
-                com.example.openvideo.core.prefs.AudioChannel.LEFT -> com.example.openvideo.core.prefs.AudioChannel.RIGHT
-                else -> com.example.openvideo.core.prefs.AudioChannel.STEREO
-            }
-            playerPrefs.audioChannel = next
-            updateChannel()
+            AppleActionSheet.show(
+                context = this,
+                title = getString(R.string.settings_audio_channel),
+                actions = AudioChannel.entries.map { channel ->
+                    AppleAction(
+                        title = channelLabel(channel),
+                        bold = channel == playerPrefs.audioChannel,
+                        onClick = {
+                            playerPrefs.audioChannel = channel
+                            updateChannel()
+                        }
+                    )
+                },
+                defaultFocusCancel = false
+            )
         }
 
+        val delayOptions = listOf(-500, -250, 0, 250, 500)
         fun updateDelay() {
             tvDelay.text = "${playerPrefs.audioDelay}ms"
         }
         updateDelay()
         tvDelay.setOnClickListener {
-            val current = playerPrefs.audioDelay
-            val next = when {
-                current < -250 -> -250
-                current < 0 -> 0
-                current < 250 -> 250
-                current < 500 -> 500
-                else -> -500
-            }
-            playerPrefs.audioDelay = next
-            updateDelay()
+            AppleActionSheet.show(
+                context = this,
+                title = getString(R.string.settings_audio_delay),
+                actions = delayOptions.map { delay ->
+                    AppleAction(
+                        title = "${delay}ms",
+                        bold = delay == playerPrefs.audioDelay,
+                        onClick = {
+                            playerPrefs.audioDelay = delay
+                            updateDelay()
+                        }
+                    )
+                },
+                defaultFocusCancel = false
+            )
         }
     }
 }

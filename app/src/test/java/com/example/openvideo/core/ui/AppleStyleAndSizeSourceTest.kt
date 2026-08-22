@@ -150,6 +150,81 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(!hud.contains("Snackbar"))
     }
 
+    @Test
+    fun batchThreeSettingsSubpagesUseActionSheetsAndGreenSwitch() {
+        val tokens = rootFile("app", "src", "main", "res", "values", "design_tokens.xml").readText()
+        val night = rootFile("app", "src", "main", "res", "values-night", "design_tokens.xml").readText()
+        val theme = rootFile("app", "src", "main", "res", "values", "themes.xml").readText()
+        val settings = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "settings", "SettingsFragment.kt"
+        ).readText()
+        val notification = rootFile(
+            "app", "src", "main", "res", "layout", "activity_notification_settings.xml"
+        ).readText()
+        val notificationActivity = rootFile(
+            "app",
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "settings",
+            "NotificationSettingsActivity.kt"
+        ).readText()
+        val audioActivity = rootFile(
+            "app",
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerAudioSettingsActivity.kt"
+        ).readText()
+        val subtitleActivity = rootFile(
+            "app",
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "player",
+            "PlayerSubtitleSettingsActivity.kt"
+        ).readText()
+
+        assertTrue(tokens.contains("ov_switch_on"))
+        assertTrue(tokens.contains("#FF34C759"))
+        assertTrue(night.contains("#FF30D158"))
+        assertTrue(theme.contains("Widget.OpenVideo.Switch"))
+        assertTrue(theme.contains("@color/ov_switch_track"))
+        assertTrue(notification.contains("include_apple_nav_back"))
+        assertTrue(notification.contains("@style/Widget.OpenVideo.GroupedSection"))
+        assertTrue(notification.contains("@style/Widget.OpenVideo.Switch"))
+        assertTrue(notification.contains("""android:id="@+id/sw_allow_system_notifications""""))
+        assertTrue(notification.contains("""android:id="@+id/sw_bg_notification""""))
+        assertFalse(notification.contains("MaterialToolbar"))
+        assertFalse(notification.contains("ov_accent_blue"))
+        assertTrue(notificationActivity.contains("R.id.btn_back"))
+        assertFalse(notificationActivity.contains("MaterialToolbar"))
+        assertFalse(settings.contains("modes[next]"))
+        assertFalse(settings.contains("langs[next]"))
+        assertTrue(settings.contains("showThemeSheet(tvTheme)"))
+        assertTrue(settings.contains("AppleActionSheet.show"))
+        assertTrue(settings.contains("viewModel.setThemeMode(mode)"))
+        assertTrue(settings.contains("viewModel.setLanguage(lang)"))
+        assertTrue(audioActivity.contains("AppleActionSheet.show"))
+        assertFalse(audioActivity.contains("AudioChannel.STEREO -> com.example.openvideo.core.prefs.AudioChannel.LEFT"))
+        assertTrue(subtitleActivity.contains("AppleActionSheet.show"))
+        assertFalse(subtitleActivity.contains("% subtitleBgStyles.size"))
+        assertFalse(subtitleActivity.contains("% encodings.size"))
+    }
+
     private fun Path.readText(): String = String(Files.readAllBytes(this))
 
     private fun rootFile(vararg parts: String): Path =

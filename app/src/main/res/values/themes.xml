@@ -153,6 +153,12 @@
         <item name="android:paddingEnd">@dimen/ov_space_md</item>
     </style>
 
+    <style name="Widget.OpenVideo.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/ov_switch_thumb_tint</item>
+        <item name="trackTint">@color/ov_switch_track</item>
+        <item name="trackDecorationTint">@android:color/transparent</item>
+    </style>
+
     <style name="Widget.OpenVideo.Chevron" parent="">
         <item name="android:layout_width">8dp</item>
         <item name="android:layout_height">14dp</item>

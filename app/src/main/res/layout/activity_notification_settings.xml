@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_app_root"
@@ -12,126 +11,147 @@
         android:orientation="vertical"
         android:paddingBottom="32dp">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/ov_bg_base"
-            app:navigationIcon="@drawable/ic_chevron_left"
-            app:title="@string/settings_notifications_title"
-            app:titleTextColor="@color/ov_text_primary" />
-
-        <!-- System notifications -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:text="@string/settings_section_system_notifications"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
         <LinearLayout
-            android:id="@+id/row_allow_system_notifications"
+            android:id="@+id/header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
-            android:minHeight="64dp"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="10dp">
+            android:paddingStart="4dp"
+            android:paddingTop="@dimen/ov_space_sm"
+            android:paddingEnd="@dimen/ov_space_page"
+            android:paddingBottom="@dimen/ov_space_sm">
 
-            <LinearLayout
+            <include
+                android:id="@+id/btn_back"
+                layout="@layout/include_apple_nav_back"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp" />
+
+            <TextView
+                android:id="@+id/tv_title"
+                style="@style/TextAppearance.OpenVideo.LargeTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/settings_notification_allow_system_title"
-                    android:textColor="@color/ov_text_primary"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:id="@+id/tv_allow_system_summary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/settings_notification_allow_system_off"
-                    android:textColor="@color/ov_text_secondary"
-                    android:textSize="12sp" />
-            </LinearLayout>
-
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/sw_allow_system_notifications"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:clickable="false"
-                android:focusable="false" />
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/settings_notifications_title" />
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
-            android:background="@color/ov_divider" />
-
-        <!-- Background playback notification -->
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/settings_notification_section_background_playback"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_lg"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/settings_section_system_notifications" />
 
-        <LinearLayout
-            android:id="@+id/row_bg_notification"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:gravity="center_vertical"
-            android:minHeight="64dp"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="10dp">
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/row_allow_system_notifications"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/ov_row_height"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ov_space_lg"
+                android:paddingTop="@dimen/ov_space_sm"
+                android:paddingEnd="@dimen/ov_space_md"
+                android:paddingBottom="@dimen/ov_space_sm">
 
-                <TextView
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="@string/settings_notification_bg_playback_title"
-                    android:textColor="@color/ov_text_primary"
-                    android:textSize="16sp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="match_parent"
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_notification_allow_system_title"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:id="@+id/tv_allow_system_summary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/settings_notification_allow_system_off"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_caption" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/sw_allow_system_notifications"
+                    style="@style/Widget.OpenVideo.Switch"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/settings_notification_bg_playback_summary"
-                    android:textColor="@color/ov_text_secondary"
-                    android:textSize="12sp" />
+                    android:layout_marginStart="@dimen/ov_space_md"
+                    android:clickable="false"
+                    android:focusable="false" />
             </LinearLayout>
+        </LinearLayout>
 
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/sw_bg_notification"
-                android:layout_width="wrap_content"
+        <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/settings_notification_section_background_playback" />
+
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
+
+            <LinearLayout
+                android:id="@+id/row_bg_notification"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp" />
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center_vertical"
+                android:minHeight="@dimen/ov_row_height"
+                android:orientation="horizontal"
+                android:paddingStart="@dimen/ov_space_lg"
+                android:paddingTop="@dimen/ov_space_sm"
+                android:paddingEnd="@dimen/ov_space_md"
+                android:paddingBottom="@dimen/ov_space_sm">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_notification_bg_playback_title"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="@dimen/ov_text_body" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/settings_notification_bg_playback_summary"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="@dimen/ov_text_caption" />
+                </LinearLayout>
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/sw_bg_notification"
+                    style="@style/Widget.OpenVideo.Switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/ov_space_md"
+                    android:clickable="false"
+                    android:focusable="false" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
