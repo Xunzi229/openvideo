@@ -39,6 +39,8 @@ class AppleOverlaySourceTest {
         assertTrue(actionSheet.contains("action.selected == true"))
         assertTrue(actionSheet.contains("fun <T> showPicker"))
         assertTrue(actionSheet.contains("defaultFocusCancel = false"))
+        assertTrue(actionSheet.contains("NestedScrollView"))
+        assertTrue(actionSheet.contains("clipToOutline = true"))
         assertFalse(actionSheet.contains("MaterialAlertDialogBuilder"))
 
         assertTrue(alert.contains("Gravity.CENTER"))
@@ -155,19 +157,21 @@ class AppleOverlaySourceTest {
     @Test
     fun overlayColorsFollowSystemThemeAndForceNightOnPlayerSurface() {
         val colors = source("AppleOverlayColors.kt")
+        val chrome = source("AppleOverlayChrome.kt")
         val light = rootFile("app", "src", "main", "res", "values", "design_tokens.xml").readText()
         val dark = rootFile("app", "src", "main", "res", "values-night", "design_tokens.xml").readText()
 
         assertTrue(light.contains("ov_overlay_card"))
-        assertTrue(light.contains("#EBFFFFFF"))
+        assertTrue(light.contains("<color name=\"ov_overlay_card\">#FFFFFFFF</color>"))
         assertTrue(light.contains("ov_overlay_title"))
-        assertTrue(dark.contains("#D91C1C1E"))
+        assertTrue(dark.contains("<color name=\"ov_overlay_card\">#FF2C2C2E</color>"))
         assertTrue(dark.contains("#FFF2F2F7"))
         assertTrue(colors.contains("createConfigurationContext"))
         assertTrue(colors.contains("R.color.player_bg"))
         assertTrue(colors.contains("UI_MODE_NIGHT_YES"))
         assertTrue(colors.contains("android.R.attr.colorBackground"))
         assertTrue(colors.contains("nightTokens && !currentNight"))
+        assertTrue(chrome.contains("if (action.style == AppleActionStyle.DESTRUCTIVE) colors.danger else colors.title"))
     }
 
     private fun source(name: String): String = String(

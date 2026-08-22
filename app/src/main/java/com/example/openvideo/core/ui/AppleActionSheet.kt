@@ -58,8 +58,6 @@ class AppleActionSheet private constructor(
 
         val actionCard = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            background = AppleOverlayChrome.cardBackground(context, c.card)
-            clipToOutline = true
         }
         var added = false
         if (!title.isNullOrBlank() || !message.isNullOrBlank()) {
@@ -81,7 +79,11 @@ class AppleActionSheet private constructor(
         }
 
         if (added) {
-            val scroll = NestedScrollView(context)
+            val scroll = NestedScrollView(context).apply {
+                background = AppleOverlayChrome.cardBackground(context, c.card)
+                clipToOutline = true
+                overScrollMode = View.OVER_SCROLL_NEVER
+            }
             scroll.addView(actionCard, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             root.addView(scroll, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,

@@ -186,7 +186,9 @@ object AppleOverlayChrome {
             addView(TextView(context).apply {
                 text = action.title
                 gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                setTextColor(colors.colorFor(action.style))
+                setTextColor(
+                    if (action.style == AppleActionStyle.DESTRUCTIVE) colors.danger else colors.title
+                )
                 textSize = textSizeSp
                 includeFontPadding = false
                 maxLines = 1
