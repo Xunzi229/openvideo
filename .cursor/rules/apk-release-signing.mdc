@@ -1,0 +1,34 @@
+---
+description: GitHub Actions 打包必须使用正式版 release 签名，禁止 debug 签名导致无法覆盖安装
+alwaysApply: true
+---
+
+# APK 签名（Preview / Release 同一把正式钥）
+
+GitHub Actions 产出的所有可安装包（Preview、Release、手动 `workflow_dispatch`）必须用仓库里的正式版密钥，不能用 Android debug key，也不能另造一把 key。签名不一致会导致已装 App 无法覆盖安装。
+
+## 必须使用的 Secrets / Variables
+
+- `secrets.OPENVIDEO_RELEASE_KEYSTORE_BASE64`
+- `secrets.OPENVIDEO_RELEASE_STORE_PASSWORD`
+- `secrets.OPENVIDEO_RELEASE_KEY_ALIAS`
+- `secrets.OPENVIDEO_RELEASE_KEY_PASSWORD`
+- `vars.OPENVIDEO_RELEASE_CERT_SHA256`
+
+还原 keystore 后设置 `OPENVIDEO_RELEASE_STORE_FILE`，再跑 `:app:assembleRelease`。上传前用 `apksigner verify` 并核对证书 SHA-256。CI 上缺少上述 secrets 时 Gradle 必须失败，禁止回退 debug 签名。
+
+## 禁止
+
+```yaml
+# ❌ BAD：CI 打 debug 包或不上正式签名
+- run: .\gradlew.bat :app:assembleDebug
+```
+
+```yaml
+# ✅ GOOD：CI 只打正式签名的 release 包
+- run: .\gradlew.bat :app:assembleRelease -POPENVIDEO_ABI_SPLITS=true
+```
+
+- 不要新增使用 debug 签名的 workflow。
+- Preview 不要 `gh release create`；但签名必须与 Release 相同。
+- 不要提交 `.jks` / 密码；只走 GitHub secrets。

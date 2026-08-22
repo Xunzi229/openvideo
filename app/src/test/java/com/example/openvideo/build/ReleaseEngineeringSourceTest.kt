@@ -42,6 +42,8 @@ class ReleaseEngineeringSourceTest {
         assertTrue(appBuild.contains("OPENVIDEO_RELEASE_KEY_PASSWORD"))
         assertTrue(appBuild.contains("debug {"))
         assertTrue(appBuild.contains("signingConfig = signingConfigs.getByName(\"release\")"))
+        assertTrue(appBuild.contains("runningOnCi && !releaseSigningConfigured"))
+        assertTrue(appBuild.contains("CI packaging must use GitHub Actions OPENVIDEO_RELEASE_* secrets"))
     }
 
     @Test
@@ -92,6 +94,8 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains(":app:testDebugUnitTest"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_CERT_SHA256"))
+        assertTrue(workflow.contains("agentRulesRequireOfficialReleaseSigningOnCiPackaging"))
+        assertTrue(appBuild.contains("runningOnCi && !releaseSigningConfigured"))
         assertTrue(workflow.contains(":app:assembleRelease"))
         assertTrue(workflow.contains("actions/upload-artifact@v4"))
         assertTrue(workflow.contains("apksigner verify"))
@@ -109,6 +113,28 @@ class ReleaseEngineeringSourceTest {
         assertTrue(appBuild.contains("include(\"armeabi-v7a\", \"arm64-v8a\", \"x86\", \"x86_64\")"))
         assertTrue(appBuild.contains("isUniversalApk = true"))
         assertTrue(workflow.contains("-POPENVIDEO_ABI_SPLITS=true"))
+    }
+
+    @Test
+    fun agentRulesRequireOfficialReleaseSigningOnCiPackaging() {
+        val rule = rootFile(".cursor", "rules", "apk-release-signing.mdc").readText()
+        val agents = rootFile("AGENTS.md").readText()
+        val claude = rootFile("CLAUDE.md").readText()
+        val previewWorkflow = rootFile(".github", "workflows", "preview.yml").readText()
+        val releaseWorkflow = rootFile(".github", "workflows", "release.yml").readText()
+
+        assertTrue(rule.contains("alwaysApply: true"))
+        assertTrue(rule.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
+        assertTrue(rule.contains(":app:assembleRelease"))
+        assertTrue(rule.contains("assembleDebug"))
+        assertTrue(agents.contains("OPENVIDEO_RELEASE_*"))
+        assertTrue(claude.contains("OPENVIDEO_RELEASE_*"))
+        assertTrue(agents.contains(".cursor/rules/apk-release-signing.mdc"))
+        assertTrue(claude.contains(".cursor/rules/apk-release-signing.mdc"))
+        assertTrue(previewWorkflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
+        assertTrue(releaseWorkflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
+        assertFalse(previewWorkflow.contains(":app:assembleDebug"))
+        assertFalse(releaseWorkflow.contains(":app:assembleDebug"))
     }
 
     @Test

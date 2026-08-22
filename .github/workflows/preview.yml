@@ -102,6 +102,7 @@ jobs:
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubPreviewWorkflowBuildsAndUploadsSignedReleaseApk"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.localSigningWrapperDoesNotContainSigningPasswords"
+          --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.agentRulesRequireOfficialReleaseSigningOnCiPackaging"
           --tests "com.example.openvideo.build.FeaturePackagingBuildConfigTest"
           --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"
 

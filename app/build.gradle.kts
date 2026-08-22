@@ -1,3 +1,4 @@
+import org.gradle.api.GradleException
 import java.util.Properties
 
 plugins {
@@ -41,6 +42,16 @@ val abiSplitsEnabled = providers.environmentVariable("OPENVIDEO_ABI_SPLITS")
     .orElse(localProperties.getProperty("OPENVIDEO_ABI_SPLITS", "false"))
     .get()
     .toBooleanStrictOrNull() ?: false
+
+val runningOnCi = providers.environmentVariable("CI")
+    .orElse("false")
+    .get()
+    .equals("true", ignoreCase = true)
+if (runningOnCi && !releaseSigningConfigured) {
+    throw GradleException(
+        "CI packaging must use GitHub Actions OPENVIDEO_RELEASE_* secrets. Do not fall back to the Android debug key."
+    )
+}
 
 fun String.asBuildConfigString(): String =
     "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
