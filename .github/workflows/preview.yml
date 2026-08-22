@@ -111,6 +111,8 @@ jobs:
           --tests "com.example.openvideo.ui.home.HomeRecentContinueWatchingSourceTest"
           --tests "com.example.openvideo.ui.history.HistoryContinueWatchingPolicyTest"
           --tests "com.example.openvideo.ui.player.PlayerSmartCropSourceTest"
+          --tests "com.example.openvideo.ui.settings.SettingsLanguageRowSourceTest"
+          --tests "com.example.openvideo.ui.home.HomeSortControlSourceTest"
 
       - name: Build preview APKs
         run: .\gradlew.bat :app:assembleRelease -POPENVIDEO_ABI_SPLITS=true

@@ -276,7 +276,7 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(main.contains("TabBarBlur.bind(bottomNav)"))
         assertTrue(main.contains("AppleHaptics.light(bottomNav)"))
         assertTrue(overlay.contains("AppleActionStyle.DESTRUCTIVE"))
-        assertTrue(overlay.contains("AppleHaptics.light(this)"))
+        assertTrue(overlay.contains("AppleHaptics.light(it)"))
         assertTrue(subtitle.contains("AppleHud.show("))
         assertTrue(!subtitle.contains("Toast.makeText"))
         assertTrue(smartCrop.contains("AppleHud.show(activity, messageRes)"))
@@ -285,6 +285,45 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(theme.contains("materialSwitchStyle\">@style/Widget.OpenVideo.Switch"))
         assertTrue(playerControls.contains("@drawable/ic_arrow_back"))
         assertTrue(playerControls.contains("@drawable/ic_more_vert"))
+        assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM"))
+        assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
+    }
+
+    @Test
+    fun batchFiveSettingsPickersUseActionSheetCheckmarks() {
+        val action = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleAction.kt"
+        ).readText()
+        val overlay = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleOverlayChrome.kt"
+        ).readText()
+        val settings = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "settings", "SettingsFragment.kt"
+        ).readText()
+        val home = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "home", "HomeFragment.kt"
+        ).readText()
+        val homeViewModel = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "home", "HomeViewModel.kt"
+        ).readText()
+        val dialog = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player", "PlayerQuickDialogController.kt"
+        ).readText()
+
+        assertTrue(action.contains("val selected: Boolean?"))
+        assertTrue(overlay.contains("R.drawable.ic_check"))
+        assertTrue(overlay.contains("action.selected == null"))
+        assertTrue(settings.contains("showDefaultRatioDialog(tvRatio)"))
+        assertTrue(settings.contains("AppleActionSheet.show("))
+        assertTrue(!settings.contains("PlayerGlassSheetDialog"))
+        assertTrue(settings.contains("selected = option.ratio == viewModel.defaultRatio"))
+        assertTrue(settings.contains("selected = speed == viewModel.defaultSpeed"))
+        assertTrue(settings.contains("selected = mode == viewModel.themeMode"))
+        assertTrue(home.contains("viewModel.setSortField(field)"))
+        assertTrue(home.contains("AppleActionSheet.show("))
+        assertTrue(!home.contains("cycleSortField"))
+        assertTrue(homeViewModel.contains("fun setSortField(field: SortField)"))
+        assertTrue(!homeViewModel.contains("fun cycleSortField()"))
         assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM"))
         assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
     }

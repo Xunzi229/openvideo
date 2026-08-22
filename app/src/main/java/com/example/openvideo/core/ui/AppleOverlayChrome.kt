@@ -1,6 +1,7 @@
 package com.example.openvideo.core.ui
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -13,6 +14,7 @@ import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.example.openvideo.R
@@ -144,26 +146,59 @@ object AppleOverlayChrome {
         minHeightDp: Int = 56,
         textSizeSp: Float = ROW_TEXT_SP,
         onClick: () -> Unit
-    ): TextView = TextView(context).apply {
-        text = action.title
-        gravity = Gravity.CENTER
-        setTextColor(colors.colorFor(action.style))
-        textSize = textSizeSp
-        typeface = if (action.bold || action.style == AppleActionStyle.CANCEL) {
-            Typeface.DEFAULT_BOLD
-        } else {
-            Typeface.DEFAULT
-        }
-        includeFontPadding = false
-        minHeight = dp(context, minHeightDp)
-        isClickable = true
-        isFocusable = true
-        foreground = selectableForeground(context)
-        setOnClickListener {
+    ): View {
+        val onRowClick = View.OnClickListener {
             if (action.style == AppleActionStyle.DESTRUCTIVE) {
-                AppleHaptics.light(this)
+                AppleHaptics.light(it)
             }
             onClick()
+        }
+        if (action.selected == null) {
+            return TextView(context).apply {
+                text = action.title
+                gravity = Gravity.CENTER
+                setTextColor(colors.colorFor(action.style))
+                textSize = textSizeSp
+                typeface = if (action.bold || action.style == AppleActionStyle.CANCEL) {
+                    Typeface.DEFAULT_BOLD
+                } else {
+                    Typeface.DEFAULT
+                }
+                includeFontPadding = false
+                minHeight = dp(context, minHeightDp)
+                isClickable = true
+                isFocusable = true
+                foreground = selectableForeground(context)
+                setOnClickListener(onRowClick)
+            }
+        }
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minHeight = dp(context, minHeightDp)
+            isClickable = true
+            isFocusable = true
+            descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+            foreground = selectableForeground(context)
+            contentDescription = action.title
+            setPadding(dp(context, 20), 0, dp(context, 16), 0)
+            setOnClickListener(onRowClick)
+            addView(TextView(context).apply {
+                text = action.title
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                setTextColor(colors.colorFor(action.style))
+                textSize = textSizeSp
+                includeFontPadding = false
+                maxLines = 1
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(ImageView(context).apply {
+                setImageResource(R.drawable.ic_check)
+                imageTintList = ColorStateList.valueOf(colors.accent)
+                visibility = if (action.selected == true) View.VISIBLE else View.GONE
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }, LinearLayout.LayoutParams(dp(context, 22), dp(context, 22)).apply {
+                marginStart = dp(context, 8)
+            })
         }
     }
 

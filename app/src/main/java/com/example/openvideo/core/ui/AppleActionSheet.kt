@@ -71,7 +71,9 @@ class AppleActionSheet private constructor(
             val row = AppleOverlayChrome.actionRow(context, action, c) {
                 runAction(action)
             }
-            if (!defaultFocusCancel && defaultFocusView == null) {
+            if (action.selected == true) {
+                defaultFocusView = row
+            } else if (!defaultFocusCancel && defaultFocusView == null) {
                 defaultFocusView = row
             }
             actionCard.addView(row)

@@ -15,23 +15,21 @@ class SettingsLanguageRowSourceTest {
 
         assertLabelRefreshesAfterSave(source, "viewModel.setThemeMode(mode)", "updateThemeLabel(tvTheme)")
         assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(lang)", "updateLanguageLabel(tvLanguage)")
-        assertLabelRefreshesAfterSave(source, "viewModel.setDefaultRatio(ratio)", "updateRatioLabel(tvRatio)")
+        assertLabelRefreshesAfterSave(source, "viewModel.setDefaultRatio(option.ratio)", "updateRatioLabel(tvRatio)")
         assertLabelRefreshesAfterSave(source, "viewModel.setDefaultSpeed(speed)", "updateSpeedLabel(tvSpeed)")
     }
 
     @Test
-    fun defaultPlaybackRowsOpenGlassChoiceDialogsInsteadOfCyclingInline() {
+    fun defaultPlaybackRowsOpenActionSheetPickersInsteadOfCyclingInline() {
         val source = settingsFragmentSource()
-        val glassDialogSource = playerGlassSheetDialogSource()
 
         assertTrue(source.contains("showDefaultRatioDialog(tvRatio)"))
         assertTrue(source.contains("showDefaultSpeedDialog(tvSpeed)"))
-        assertTrue(source.contains("PlayerGlassSheetDialog.showSingleChoice"))
-        assertTrue(glassDialogSource.contains("R.layout.dialog_player_glass_sheet"))
-        assertTrue(glassDialogSource.contains("R.layout.item_player_glass_sheet_row"))
+        assertTrue(source.contains("AppleActionSheet.show"))
+        assertFalse(source.contains("PlayerGlassSheetDialog"))
         assertTrue(source.contains("DefaultPlayerSettings.supportedSpeeds"))
         assertTrue(source.contains("PlayerAspectRatioOptions.entries"))
-        assertTrue(source.contains("viewModel.setDefaultRatio(ratio)"))
+        assertTrue(source.contains("viewModel.setDefaultRatio(option.ratio)"))
         assertTrue(source.contains("viewModel.setDefaultSpeed(speed)"))
         assertFalse(source.contains("ratios[next]"))
         assertFalse(source.contains("speeds[next]"))
@@ -39,7 +37,6 @@ class SettingsLanguageRowSourceTest {
         assertFalse(source.contains("langs[next]"))
         assertTrue(source.contains("showThemeSheet(tvTheme)"))
         assertTrue(source.contains("showLanguageSheet(tvLanguage, row)"))
-        assertTrue(source.contains("AppleActionSheet.show"))
     }
 
     @Test
@@ -50,8 +47,8 @@ class SettingsLanguageRowSourceTest {
 
         assertTrue(source.contains("import com.example.openvideo.ui.player.PlayerAspectRatioOptions"))
         assertTrue(ratioBlock.contains("PlayerAspectRatioOptions.entries"))
-        assertTrue(ratioBlock.contains("value = option.ratio"))
-        assertTrue(ratioBlock.contains("label = getString(option.labelRes)"))
+        assertTrue(ratioBlock.contains("selected = option.ratio == viewModel.defaultRatio"))
+        assertTrue(ratioBlock.contains("title = getString(option.labelRes)"))
         assertFalse(ratioBlock.contains("AspectRatio.entries"))
         assertFalse(source.contains("private fun ratioLabel("))
     }
@@ -74,29 +71,27 @@ class SettingsLanguageRowSourceTest {
         assertTrue(speedBlock.contains("showExclusiveSettingsDialog"))
         assertTrue(themeBlock.contains("showExclusiveSettingsDialog"))
         assertTrue(languageBlock.contains("showExclusiveSettingsDialog"))
-        assertTrue(ratioBlock.indexOf("showExclusiveSettingsDialog") < ratioBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
-        assertTrue(speedBlock.indexOf("showExclusiveSettingsDialog") < speedBlock.indexOf("PlayerGlassSheetDialog.showSingleChoice("))
+        assertTrue(ratioBlock.indexOf("showExclusiveSettingsDialog") < ratioBlock.indexOf("AppleActionSheet.show("))
+        assertTrue(speedBlock.indexOf("showExclusiveSettingsDialog") < speedBlock.indexOf("AppleActionSheet.show("))
         assertTrue(themeBlock.indexOf("showExclusiveSettingsDialog") < themeBlock.indexOf("AppleActionSheet.show("))
         assertTrue(languageBlock.indexOf("showExclusiveSettingsDialog") < languageBlock.indexOf("AppleActionSheet.show("))
         assertTrue(source.contains("onDismiss = onDismiss"))
     }
 
     @Test
-    fun defaultRatioAndSpeedDialogsUseSameCenterAnimationChrome() {
+    fun defaultRatioAndSpeedDialogsUseActionSheetPickerChrome() {
         val source = settingsFragmentSource()
-        val glassDialogSource = playerGlassSheetDialogSource()
-        val themeSource = rootFile("app", "src", "main", "res", "values", "themes.xml").readText()
         val ratioBlock = source.substringAfter("private fun showDefaultRatioDialog(tvRatio: TextView)")
             .substringBefore("\n    private fun showDefaultSpeedDialog")
         val speedBlock = source.substringAfter("private fun showDefaultSpeedDialog(tvSpeed: TextView)")
             .substringBefore("\n    private fun bindBackupSection")
 
-        assertFalse("Default ratio dialog should use the shared CENTER chrome.", ratioBlock.contains("chrome ="))
-        assertFalse("Default speed dialog should use the shared CENTER chrome.", speedBlock.contains("chrome ="))
-        assertTrue(glassDialogSource.contains("windowAnimations = R.style.Animation_OpenVideo_CenterDialog"))
-        assertTrue(themeSource.contains("<style name=\"Animation.OpenVideo.CenterDialog\""))
-        assertTrue(themeSource.contains("@anim/dialog_center_in"))
-        assertTrue(themeSource.contains("@anim/dialog_center_out"))
+        assertTrue(ratioBlock.contains("AppleActionSheet.show("))
+        assertTrue(speedBlock.contains("AppleActionSheet.show("))
+        assertTrue(ratioBlock.contains("selected = option.ratio == viewModel.defaultRatio"))
+        assertTrue(speedBlock.contains("selected = speed == viewModel.defaultSpeed"))
+        assertFalse(source.contains("PlayerGlassSheetDialog"))
+        assertFalse(source.contains("PlayerGlassSheetChoice"))
     }
 
     @Test
@@ -126,20 +121,6 @@ class SettingsLanguageRowSourceTest {
             "ui",
             "settings",
             "SettingsFragment.kt"
-        ).readText()
-
-    private fun playerGlassSheetDialogSource(): String =
-        rootFile(
-            "app",
-            "src",
-            "main",
-            "java",
-            "com",
-            "example",
-            "openvideo",
-            "ui",
-            "player",
-            "PlayerGlassSheetDialog.kt"
         ).readText()
 
     private fun Path.readText(): String =

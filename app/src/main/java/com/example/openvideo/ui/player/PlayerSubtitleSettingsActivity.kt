@@ -144,7 +144,7 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
                 actions = SubtitleBgStyle.entries.map { style ->
                     AppleAction(
                         title = subtitleBgLabel(style),
-                        bold = style == playerPrefs.subtitleBgStyle,
+                        selected = style == playerPrefs.subtitleBgStyle,
                         onClick = {
                             playerPrefs.subtitleBgStyle = style
                             updateBgText()
@@ -208,7 +208,7 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
                 actions = SubtitleBgStyle.entries.map { style ->
                     AppleAction(
                         title = subtitleBgLabel(style),
-                        bold = style == playerPrefs.secondarySubtitleBgStyle,
+                        selected = style == playerPrefs.secondarySubtitleBgStyle,
                         onClick = {
                             playerPrefs.secondarySubtitleBgStyle = style
                             updateSecondaryBgText()
@@ -251,7 +251,7 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
                 actions = encodings.map { encoding ->
                     AppleAction(
                         title = encodingLabel(encoding),
-                        bold = encoding == playerPrefs.subtitleEncoding,
+                        selected = encoding == playerPrefs.subtitleEncoding,
                         onClick = {
                             playerPrefs.subtitleEncoding = encoding
                             updateEncText()

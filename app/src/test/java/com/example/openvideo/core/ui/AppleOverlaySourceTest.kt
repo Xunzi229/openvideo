@@ -36,6 +36,7 @@ class AppleOverlaySourceTest {
         assertTrue(actionSheet.contains("AppleOverlayChrome.configureBottomWindow"))
         assertTrue(actionSheet.contains("OverlayWindowInsets.bind"))
         assertTrue(actionSheet.contains("defaultFocusCancel"))
+        assertTrue(actionSheet.contains("action.selected == true"))
         assertFalse(actionSheet.contains("MaterialAlertDialogBuilder"))
 
         assertTrue(alert.contains("Gravity.CENTER"))

@@ -347,11 +347,9 @@ class HomeViewModel @Inject constructor(
         _advancedFilters.value = MediaLibraryAdvancedFilters()
     }
 
-    fun cycleSortField() {
-        val fields = SortField.entries
-        val next = (fields.indexOf(_sortField.value) + 1) % fields.size
-        _sortField.value = fields[next]
-        appPrefs.sortField = fields[next].name.lowercase()
+    fun setSortField(field: SortField) {
+        _sortField.value = field
+        appPrefs.sortField = field.name.lowercase()
     }
 
     fun toggleSortOrder() {

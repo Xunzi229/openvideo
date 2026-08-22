@@ -363,8 +363,20 @@ class HomeFragment : Fragment() {
     }
 
     private fun changeSortFieldAndScrollToTop() {
-        viewModel.cycleSortField()
-        requestVideoListJumpToTop()
+        AppleActionSheet.show(
+            context = requireContext(),
+            actions = SortField.entries.map { field ->
+                AppleAction(
+                    title = getString(field.labelRes),
+                    selected = field == viewModel.sortField.value,
+                    onClick = {
+                        viewModel.setSortField(field)
+                        requestVideoListJumpToTop()
+                    }
+                )
+            },
+            defaultFocusCancel = false
+        )
     }
 
     private fun toggleSortOrderAndScrollToTop() {

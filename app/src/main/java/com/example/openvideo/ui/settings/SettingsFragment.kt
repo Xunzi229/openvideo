@@ -32,8 +32,6 @@ import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.ui.player.PlayerAspectRatioOptions
 import com.example.openvideo.ui.player.PlayerAudioSettingsActivity
-import com.example.openvideo.ui.player.PlayerGlassSheetChoice
-import com.example.openvideo.ui.player.PlayerGlassSheetDialog
 import com.example.openvideo.ui.player.PlayerSubtitleSettingsActivity
 import com.example.openvideo.ui.sources.SourcesFragment
 import dagger.hilt.android.AndroidEntryPoint
@@ -384,7 +382,7 @@ class SettingsFragment : Fragment() {
                 actions = ThemeMode.entries.map { mode ->
                     AppleAction(
                         title = themeLabel(mode),
-                        bold = mode == viewModel.themeMode,
+                        selected = mode == viewModel.themeMode,
                         onClick = {
                             viewModel.setThemeMode(mode)
                             updateThemeLabel(tvTheme)
@@ -407,7 +405,7 @@ class SettingsFragment : Fragment() {
                 actions = langs.map { lang ->
                     AppleAction(
                         title = languageLabel(lang),
-                        bold = lang == current,
+                        selected = lang == current,
                         onClick = {
                             viewModel.setLanguage(lang)
                             updateLanguageLabel(tvLanguage)
@@ -426,44 +424,44 @@ class SettingsFragment : Fragment() {
 
     private fun showDefaultRatioDialog(tvRatio: TextView) {
         showExclusiveSettingsDialog { onDismiss ->
-            PlayerGlassSheetDialog.showSingleChoice(
+            AppleActionSheet.show(
                 context = requireContext(),
-                layoutInflater = layoutInflater,
-                titleRes = R.string.settings_default_ratio,
-                choices = PlayerAspectRatioOptions.entries.map { option ->
-                    PlayerGlassSheetChoice(
-                        value = option.ratio,
-                        label = getString(option.labelRes),
-                        selected = option.ratio == viewModel.defaultRatio
+                title = getString(R.string.settings_default_ratio),
+                actions = PlayerAspectRatioOptions.entries.map { option ->
+                    AppleAction(
+                        title = getString(option.labelRes),
+                        selected = option.ratio == viewModel.defaultRatio,
+                        onClick = {
+                            viewModel.setDefaultRatio(option.ratio)
+                            updateRatioLabel(tvRatio)
+                        }
                     )
                 },
+                defaultFocusCancel = false,
                 onDismiss = onDismiss
-            ) { ratio ->
-                viewModel.setDefaultRatio(ratio)
-                updateRatioLabel(tvRatio)
-            }
+            )
         }
     }
 
     private fun showDefaultSpeedDialog(tvSpeed: TextView) {
         val speeds = DefaultPlayerSettings.supportedSpeeds
         showExclusiveSettingsDialog { onDismiss ->
-            PlayerGlassSheetDialog.showSingleChoice(
+            AppleActionSheet.show(
                 context = requireContext(),
-                layoutInflater = layoutInflater,
-                titleRes = R.string.settings_default_speed,
-                choices = speeds.map { speed ->
-                    PlayerGlassSheetChoice(
-                        value = speed,
-                        label = "${speed}x",
-                        selected = speed == viewModel.defaultSpeed
+                title = getString(R.string.settings_default_speed),
+                actions = speeds.map { speed ->
+                    AppleAction(
+                        title = "${speed}x",
+                        selected = speed == viewModel.defaultSpeed,
+                        onClick = {
+                            viewModel.setDefaultSpeed(speed)
+                            updateSpeedLabel(tvSpeed)
+                        }
                     )
                 },
+                defaultFocusCancel = false,
                 onDismiss = onDismiss
-            ) { speed ->
-                viewModel.setDefaultSpeed(speed)
-                updateSpeedLabel(tvSpeed)
-            }
+            )
         }
     }
 

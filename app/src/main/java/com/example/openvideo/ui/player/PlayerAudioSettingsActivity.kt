@@ -52,7 +52,7 @@ class PlayerAudioSettingsActivity : ComponentActivity() {
                 actions = AudioChannel.entries.map { channel ->
                     AppleAction(
                         title = channelLabel(channel),
-                        bold = channel == playerPrefs.audioChannel,
+                        selected = channel == playerPrefs.audioChannel,
                         onClick = {
                             playerPrefs.audioChannel = channel
                             updateChannel()
@@ -75,7 +75,7 @@ class PlayerAudioSettingsActivity : ComponentActivity() {
                 actions = delayOptions.map { delay ->
                     AppleAction(
                         title = "${delay}ms",
-                        bold = delay == playerPrefs.audioDelay,
+                        selected = delay == playerPrefs.audioDelay,
                         onClick = {
                             playerPrefs.audioDelay = delay
                             updateDelay()
