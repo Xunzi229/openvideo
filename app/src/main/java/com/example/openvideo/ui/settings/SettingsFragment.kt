@@ -180,7 +180,7 @@ class SettingsFragment : Fragment() {
 
         val updateBadgeDot = view.findViewById<View>(R.id.update_badge_dot)
         view.findViewById<View>(R.id.row_check_update).setOnClickListener {
-            viewModel.onCheckUpdateClick(requireContext())
+            viewModel.onCheckUpdateClick(requireActivity())
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

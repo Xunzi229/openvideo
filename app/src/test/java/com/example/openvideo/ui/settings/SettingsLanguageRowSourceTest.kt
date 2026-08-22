@@ -101,6 +101,31 @@ class SettingsLanguageRowSourceTest {
         assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(lang)", "updateLanguageLabel(tvLanguage)")
     }
 
+    @Test
+    fun checkUpdateClickShowsHudThenAlertBeforeDownload() {
+        val fragment = settingsFragmentSource()
+        val viewModel = rootFile(
+            "app",
+            "src",
+            "main",
+            "java",
+            "com",
+            "example",
+            "openvideo",
+            "ui",
+            "settings",
+            "SettingsViewModel.kt"
+        ).readText()
+
+        assertTrue(fragment.contains("viewModel.onCheckUpdateClick(requireActivity())"))
+        assertTrue(viewModel.contains("AppleHud.show(activityContext, R.string.settings_update_checking)"))
+        assertTrue(viewModel.contains("promptAvailableUpdate"))
+        assertTrue(viewModel.contains("AppleAlertDialog.show"))
+        assertTrue(viewModel.contains("R.string.settings_update_now"))
+        assertTrue(viewModel.contains("downloadAndInstallUpdate"))
+        assertTrue(viewModel.contains("settings_update_downloading"))
+    }
+
     private fun assertLabelRefreshesAfterSave(source: String, saveCall: String, labelUpdateCall: String) {
         val saveIndex = source.indexOf(saveCall)
         val labelIndex = source.indexOf(labelUpdateCall, saveIndex)

@@ -19,6 +19,9 @@ import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupImporter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.example.openvideo.core.prefs.ThemeMode
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionStyle
+import com.example.openvideo.core.ui.AppleAlertDialog
 import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.update.GitHubReleaseChecker
 import com.example.openvideo.core.update.UpdateApkInstaller
@@ -29,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -52,6 +56,7 @@ class SettingsViewModel @Inject constructor(
 
     private val _updateBadgeVisible = MutableStateFlow(appPrefs.githubUpdateBadgeVisible)
     val updateBadgeVisible: StateFlow<Boolean> = _updateBadgeVisible
+    private val updateCheckRunning = AtomicBoolean(false)
 
     init {
         computeCacheSize()
@@ -75,60 +80,92 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Checks GitHub latest release; if newer, selects APK for this device's ABI, verifies SHA-256 when a
-     * checksum asset exists, then installs or falls back to browser.
+     * Checks GitHub latest release. Shows HUD immediately, then an alert if a newer APK exists.
      */
     fun onCheckUpdateClick(activityContext: Context) {
-        val app = getApplication<Application>()
+        if (!updateCheckRunning.compareAndSet(false, true)) return
+        AppleHud.show(activityContext, R.string.settings_update_checking)
         viewModelScope.launch(Dispatchers.IO) {
-            val release = fetchLatestReleaseOrNull()
-            if (release == null) {
-                withContext(Dispatchers.Main) {
-                    AppleHud.show(activityContext, R.string.settings_update_check_failed)
+            try {
+                val release = fetchLatestReleaseOrNull()
+                if (release == null) {
+                    withContext(Dispatchers.Main) {
+                        AppleHud.show(activityContext, R.string.settings_update_check_failed)
+                    }
+                    return@launch
                 }
-                return@launch
-            }
-            withContext(Dispatchers.Main) {
-                applyGitHubReleaseCheckResult(release)
-            }
-
-            if (!GitHubReleaseChecker.isRemoteNewer(release.tagName, installedVersionName())) {
                 withContext(Dispatchers.Main) {
-                    AppleHud.show(activityContext, R.string.settings_already_latest)
+                    applyGitHubReleaseCheckResult(release)
                 }
-                return@launch
-            }
-
-            val apk = GitHubReleaseChecker.selectApkForAbi(release.assets, Build.SUPPORTED_ABIS)
-            if (apk == null) {
+                if (!GitHubReleaseChecker.isRemoteNewer(release.tagName, installedVersionName())) {
+                    withContext(Dispatchers.Main) {
+                        AppleHud.show(activityContext, R.string.settings_already_latest)
+                    }
+                    return@launch
+                }
+                val apk = GitHubReleaseChecker.selectApkForAbi(release.assets, Build.SUPPORTED_ABIS)
                 withContext(Dispatchers.Main) {
-                    AppleHud.show(activityContext, R.string.settings_update_no_apk_asset)
+                    AppleHud.dismiss()
+                    promptAvailableUpdate(activityContext, release, apk)
                 }
-                return@launch
+            } finally {
+                updateCheckRunning.set(false)
             }
+        }
+    }
 
+    private fun promptAvailableUpdate(
+        activityContext: Context,
+        release: GitHubReleaseChecker.LatestRelease,
+        apk: GitHubReleaseChecker.ReleaseAsset?
+    ) {
+        val app = getApplication<Application>()
+        AppleAlertDialog.show(
+            context = activityContext,
+            title = app.getString(R.string.settings_update_available_title),
+            message = app.getString(R.string.settings_update_available_message, release.tagName),
+            actions = listOf(
+                AppleAction(app.getString(R.string.action_cancel), AppleActionStyle.CANCEL),
+                AppleAction(app.getString(R.string.settings_update_now)) {
+                    downloadAndInstallUpdate(activityContext, release, apk)
+                }
+            )
+        )
+    }
+
+    private fun downloadAndInstallUpdate(
+        activityContext: Context,
+        release: GitHubReleaseChecker.LatestRelease,
+        apk: GitHubReleaseChecker.ReleaseAsset?
+    ) {
+        val fallbackUrl = apk?.browserDownloadUrl ?: release.releaseHtmlUrl
+        if (apk == null) {
+            AppleHud.show(activityContext, R.string.settings_update_no_apk_asset)
+            openInBrowser(activityContext, fallbackUrl)
+            return
+        }
+        val app = getApplication<Application>()
+        AppleHud.show(activityContext, R.string.settings_update_downloading, long = true)
+        viewModelScope.launch(Dispatchers.IO) {
             val ua = "OpenVideo/${installedVersionName()} (Android)"
             val expectedHex = GitHubReleaseChecker.resolveExpectedSha256Hex(release.assets, apk) { url ->
                 GitHubReleaseChecker.fetchUrlText(url, ua)
             }
-
             if (expectedHex == null) {
                 withContext(Dispatchers.Main) {
                     AppleHud.show(activityContext, R.string.settings_update_no_checksum_browser, long = true)
-                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
+                    openInBrowser(activityContext, apk.browserDownloadUrl)
                 }
                 return@launch
             }
-
             val dest = UpdateApkInstaller.cacheApkFile(app)
             if (!UpdateApkInstaller.downloadApk(apk.browserDownloadUrl, dest, ua)) {
                 withContext(Dispatchers.Main) {
                     AppleHud.show(activityContext, R.string.settings_update_download_failed)
-                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
+                    openInBrowser(activityContext, apk.browserDownloadUrl)
                 }
                 return@launch
             }
-
             if (!UpdateApkInstaller.shaMatches(dest, expectedHex)) {
                 dest.delete()
                 withContext(Dispatchers.Main) {
@@ -136,23 +173,30 @@ class SettingsViewModel @Inject constructor(
                 }
                 return@launch
             }
-
             withContext(Dispatchers.Main) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
                     !activityContext.packageManager.canRequestPackageInstalls()
                 ) {
                     AppleHud.show(activityContext, R.string.settings_update_allow_install_or_browser, long = true)
-                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
+                    openInBrowser(activityContext, apk.browserDownloadUrl)
                     return@withContext
                 }
                 try {
+                    AppleHud.dismiss()
                     activityContext.startActivity(UpdateApkInstaller.buildInstallIntent(activityContext, dest))
                 } catch (_: Exception) {
                     AppleHud.show(activityContext, R.string.settings_update_install_failed_browser)
-                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
+                    openInBrowser(activityContext, apk.browserDownloadUrl)
                 }
             }
         }
+    }
+
+    private fun openInBrowser(context: Context, url: String) {
+        if (url.isBlank()) return
+        context.startActivity(
+            Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
     }
 
     private fun fetchLatestReleaseOrNull(): GitHubReleaseChecker.LatestRelease? {

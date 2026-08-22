@@ -545,6 +545,11 @@
     <string name="settings_project_repo">Project repository</string>
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_already_latest">You\'re on the latest version</string>
+    <string name="settings_update_checking">Checking for updates…</string>
+    <string name="settings_update_downloading">Downloading update…</string>
+    <string name="settings_update_available_title">Update available</string>
+    <string name="settings_update_available_message">Version %1$s is ready to install.</string>
+    <string name="settings_update_now">Update now</string>
     <string name="settings_update_check_failed">Could not check for updates</string>
     <string name="settings_update_no_apk_asset">No APK found in the latest release</string>
     <string name="settings_update_no_checksum_browser">No checksum file in release; opening browser for your ABI APK.</string>
