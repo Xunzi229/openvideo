@@ -26,8 +26,8 @@ function Assert-Equal($expected, $actual, [string] $message) {
 }
 
 $version = Get-OpenVideoProjectVersion -RepoRoot $repoRoot
-Assert-Equal "0.0.16" $version.Name "VERSION_NAME from gradle.properties"
-Assert-Equal 16 $version.Code "VERSION_CODE from gradle.properties"
+Assert-Equal "0.0.17" $version.Name "VERSION_NAME from gradle.properties"
+Assert-Equal 17 $version.Code "VERSION_CODE from gradle.properties"
 
 $tempRoot = Join-Path ([IO.Path]::GetTempPath()) ("openvideo-release-test-" + [guid]::NewGuid().ToString("n"))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
