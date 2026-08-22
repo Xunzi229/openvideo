@@ -475,6 +475,11 @@
     <string name="settings_project_repo">项目地址</string>
     <string name="settings_check_update">检查更新</string>
     <string name="settings_already_latest">当前已是最新版本</string>
+    <string name="settings_update_checking">正在检查更新…</string>
+    <string name="settings_update_downloading">正在下载更新…</string>
+    <string name="settings_update_available_title">发现新版本</string>
+    <string name="settings_update_available_message">新版本 %1$s 可以安装。</string>
+    <string name="settings_update_now">立即更新</string>
     <string name="settings_update_check_failed">无法检查更新</string>
     <string name="settings_update_no_apk_asset">最新 Release 中未找到 APK</string>
     <string name="settings_update_no_checksum_browser">Release 未附带校验文件，改为用浏览器下载对应架构 APK。</string>
