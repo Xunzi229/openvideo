@@ -22,48 +22,15 @@
                 android:textAppearance="?attr/textAppearanceHeadline6"
                 android:layout_marginBottom="8dp" />
 
-            <RadioGroup
-                android:id="@+id/rg_speed_settings"
+            <TextView
+                android:id="@+id/tv_speed_value"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <RadioButton
-                    android:id="@+id/rb_speed_0_5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0.5x" />
-
-                <RadioButton
-                    android:id="@+id/rb_speed_0_75"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0.75x" />
-
-                <RadioButton
-                    android:id="@+id/rb_speed_1_0"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="1.0x" />
-
-                <RadioButton
-                    android:id="@+id/rb_speed_1_25"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="1.25x" />
-
-                <RadioButton
-                    android:id="@+id/rb_speed_1_5"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="1.5x" />
-
-                <RadioButton
-                    android:id="@+id/rb_speed_2_0"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="2.0x" />
-            </RadioGroup>
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackground"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="8dp"
+                android:text="1.0x" />
 
             <View
                 android:layout_width="match_parent"

@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +21,8 @@ import com.example.openvideo.core.network.WebDavConnectionClient
 import com.example.openvideo.core.network.WebDavConnectionPolicy
 import com.example.openvideo.data.local.MediaSourceEntity
 import com.example.openvideo.data.repository.VideoRepository
+import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.GroupedListChrome
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerActivityIntents
 import com.example.openvideo.ui.player.NetworkOpenUrlDialog
@@ -100,17 +101,17 @@ class SourcesFragment : Fragment() {
                                 username = input.username,
                                 password = input.password
                             )
-                            Toast.makeText(requireContext(), R.string.webdav_test_success, Toast.LENGTH_SHORT).show()
+                            AppleHud.show(requireContext(), R.string.webdav_test_success)
                         }
                         is WebDavConnectionPolicy.ConnectionResult.Failure -> {
-                            Toast.makeText(requireContext(), webDavFailureMessage(result.error), Toast.LENGTH_SHORT).show()
+                            AppleHud.show(requireContext(), webDavFailureMessage(result.error))
                         }
                     }
                 }
             }
         }
         view.findViewById<View>(R.id.row_source_future).setOnClickListener {
-            Toast.makeText(requireContext(), R.string.sources_future_status_planned, Toast.LENGTH_SHORT).show()
+            AppleHud.show(requireContext(), R.string.sources_future_status_planned)
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -185,7 +186,7 @@ class SourcesFragment : Fragment() {
 
     private fun openRecentPlayback(item: SourceRecentPlaybackItem) {
         if (!item.isPlayable) {
-            Toast.makeText(requireContext(), R.string.history_continue_missing_file, Toast.LENGTH_SHORT).show()
+            AppleHud.show(requireContext(), R.string.history_continue_missing_file)
             return
         }
         when (item.type) {
@@ -238,6 +239,7 @@ private class SavedMediaSourceAdapter(
         private val name: TextView = view.findViewById(R.id.tv_media_source_name)
         private val address: TextView = view.findViewById(R.id.tv_media_source_address)
         private val type: TextView = view.findViewById(R.id.tv_media_source_type)
+        private val hairline: View = view.findViewById(R.id.row_hairline)
 
         init {
             view.setOnClickListener {
@@ -246,7 +248,7 @@ private class SavedMediaSourceAdapter(
             }
         }
 
-        fun bind(source: MediaSourceEntity) {
+        fun bind(source: MediaSourceEntity, position: Int, itemCount: Int) {
             icon.setImageResource(
                 when (source.type.lowercase()) {
                     "url" -> R.drawable.ic_stream
@@ -257,6 +259,7 @@ private class SavedMediaSourceAdapter(
             name.text = source.name
             address.text = source.displayUrl.ifBlank { source.url }
             type.text = source.type.uppercase()
+            GroupedListChrome.bindContained(hairline, position, itemCount)
         }
     }
 
@@ -266,7 +269,8 @@ private class SavedMediaSourceAdapter(
         return VH(view)
     }
 
-    override fun onBindViewHolder(holder: VH, position: Int) = holder.bind(getItem(position))
+    override fun onBindViewHolder(holder: VH, position: Int) =
+        holder.bind(getItem(position), position, itemCount)
 }
 
 private class SourceRecentPlaybackAdapter(
@@ -285,6 +289,7 @@ private class SourceRecentPlaybackAdapter(
         private val title: TextView = view.findViewById(R.id.tv_source_recent_title)
         private val detail: TextView = view.findViewById(R.id.tv_source_recent_detail)
         private val duration: TextView = view.findViewById(R.id.tv_source_recent_duration)
+        private val hairline: View = view.findViewById(R.id.row_hairline)
 
         init {
             view.setOnClickListener {
@@ -293,7 +298,7 @@ private class SourceRecentPlaybackAdapter(
             }
         }
 
-        fun bind(item: SourceRecentPlaybackItem) {
+        fun bind(item: SourceRecentPlaybackItem, position: Int, itemCount: Int) {
             icon.setImageResource(
                 when (item.type) {
                     SourceRecentPlaybackType.LOCAL -> R.drawable.ic_folder
@@ -305,6 +310,7 @@ private class SourceRecentPlaybackAdapter(
             detail.text = item.detailLabel
             duration.text = formatDuration(item.durationMs)
             itemView.alpha = if (item.isPlayable) 1f else 0.6f
+            GroupedListChrome.bindContained(hairline, position, itemCount)
         }
     }
 
@@ -314,7 +320,8 @@ private class SourceRecentPlaybackAdapter(
         return VH(view)
     }
 
-    override fun onBindViewHolder(holder: VH, position: Int) = holder.bind(getItem(position))
+    override fun onBindViewHolder(holder: VH, position: Int) =
+        holder.bind(getItem(position), position, itemCount)
 
     private fun formatDuration(ms: Long): String {
         if (ms <= 0L) return "--:--"

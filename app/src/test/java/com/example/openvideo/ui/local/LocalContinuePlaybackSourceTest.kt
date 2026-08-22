@@ -9,13 +9,14 @@ import java.nio.file.Paths
 class LocalContinuePlaybackSourceTest {
 
     @Test
-    fun localFolderPageHasContinuePlaybackFabInBottomRight() {
+    fun localFolderPageHasContinuePlaybackRow() {
         val layout = String(Files.readAllBytes(layoutFile()))
 
-        assertTrue(layout.contains("""android:id="@+id/fab_continue_playback""""))
-        assertTrue(layout.contains("""app:layout_constraintBottom_toBottomOf="parent""""))
-        assertTrue(layout.contains("""app:layout_constraintEnd_toEndOf="parent""""))
-        assertTrue(layout.contains("""android:contentDescription="@string/local_continue_playback""""))
+        assertTrue(layout.contains("""android:id="@+id/row_continue_playback""""))
+        assertTrue(layout.contains("""android:id="@+id/tv_continue_title""""))
+        assertTrue(layout.contains("""android:text="@string/local_continue_playback""""))
+        assertTrue(!layout.contains("FloatingActionButton"))
+        assertTrue(!layout.contains("fab_continue_playback"))
     }
 
     @Test
@@ -26,8 +27,9 @@ class LocalContinuePlaybackSourceTest {
         assertTrue(source.contains("private var continuePlaybackPositionMs: Long = 0L"))
         assertTrue(source.contains("viewModel.continuePlaybackVideo.collect { video ->"))
         assertTrue(source.contains("viewModel.continuePlaybackPositionMs.collect { positionMs ->"))
-        assertTrue(source.contains("continuePlaybackFab.visibility = if (video == null) View.GONE else View.VISIBLE"))
-        assertTrue(source.contains("continuePlaybackFab.setOnClickListener"))
+        assertTrue(source.contains("continuePlaybackRow.visibility = if (video == null) View.GONE else View.VISIBLE"))
+        assertTrue(source.contains("continuePlaybackTitle.text = video?.title.orEmpty()"))
+        assertTrue(source.contains("continuePlaybackRow.setOnClickListener"))
         assertTrue(source.contains("openPlayer(video)"))
         assertTrue(source.contains("VideoFolderGrouper.folderKey(it.libraryPath)"))
         assertTrue(source.contains("VideoFolderGrouper.folderKey(video.libraryPath)"))

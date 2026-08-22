@@ -13,6 +13,7 @@ import com.example.openvideo.R
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.AppleOverlayChrome
 import com.example.openvideo.core.ui.AppleOverlayColors
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,7 +46,7 @@ class PrivacyFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
-        view.findViewById<View>(R.id.fab_add).setOnClickListener {
+        view.findViewById<View>(R.id.btn_add).setOnClickListener {
             showAddDialog()
         }
 
@@ -55,7 +56,7 @@ class PrivacyFragment : Fragment() {
     private fun loadFolders() {
         val folders = privacyManager.getHiddenFolders()
         adapter.submitList(folders)
-        emptyView.visibility = if (folders.isEmpty()) View.VISIBLE else View.GONE
+        AppleEmptyState.setVisible(emptyView, folders.isEmpty())
         recyclerView.visibility = if (folders.isEmpty()) View.GONE else View.VISIBLE
     }
 

@@ -58,8 +58,6 @@ class AppleActionSheet private constructor(
 
         val actionCard = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            background = AppleOverlayChrome.cardBackground(context, c.card)
-            clipToOutline = true
         }
         var added = false
         if (!title.isNullOrBlank() || !message.isNullOrBlank()) {
@@ -71,7 +69,9 @@ class AppleActionSheet private constructor(
             val row = AppleOverlayChrome.actionRow(context, action, c) {
                 runAction(action)
             }
-            if (!defaultFocusCancel && defaultFocusView == null) {
+            if (action.selected == true) {
+                defaultFocusView = row
+            } else if (!defaultFocusCancel && defaultFocusView == null) {
                 defaultFocusView = row
             }
             actionCard.addView(row)
@@ -79,7 +79,11 @@ class AppleActionSheet private constructor(
         }
 
         if (added) {
-            val scroll = NestedScrollView(context)
+            val scroll = NestedScrollView(context).apply {
+                background = AppleOverlayChrome.cardBackground(context, c.card)
+                clipToOutline = true
+                overScrollMode = View.OVER_SCROLL_NEVER
+            }
             scroll.addView(actionCard, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             root.addView(scroll, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -108,6 +112,9 @@ class AppleActionSheet private constructor(
         host.addView(root, FrameLayout.LayoutParams(sheetWidth, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         })
+        AppleOverlayChrome.bindScrimDismiss(host, root) {
+            dismissWithAnimation { super.dismiss() }
+        }
         return host
     }
 
@@ -217,5 +224,26 @@ class AppleActionSheet private constructor(
             setOnDismissListener { onDismiss() }
             show()
         }
+
+        fun <T> showPicker(
+            context: Context,
+            title: CharSequence? = null,
+            items: List<Pair<T, CharSequence>>,
+            selected: T?,
+            onDismiss: () -> Unit = {},
+            onSelected: (T) -> Unit
+        ): Dialog = show(
+            context = context,
+            title = title,
+            actions = items.map { (value, label) ->
+                AppleAction(
+                    title = label,
+                    selected = value == selected,
+                    onClick = { onSelected(value) }
+                )
+            },
+            defaultFocusCancel = false,
+            onDismiss = onDismiss
+        )
     }
 }

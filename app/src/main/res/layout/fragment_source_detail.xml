@@ -15,14 +15,11 @@
         android:paddingHorizontal="8dp"
         android:paddingTop="8dp">
 
-        <ImageButton
+        <include
             android:id="@+id/btn_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/action_back"
-            android:src="@drawable/ic_arrow_back"
-            app:tint="@color/ov_text_primary" />
+            layout="@layout/include_apple_nav_back"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp" />
 
         <TextView
             android:id="@+id/tv_source_detail_title"

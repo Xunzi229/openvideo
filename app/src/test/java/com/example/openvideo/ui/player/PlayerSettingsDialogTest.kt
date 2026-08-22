@@ -352,19 +352,9 @@ class PlayerSettingsDialogTest {
     }
 
     @Test
-    fun playbackSettingsSheetRequestsDefaultFocusForSelectedSpeed() {
+    fun playbackSettingsSheetRequestsDefaultFocusForSpeedRow() {
         val source = String(Files.readAllBytes(legacySettingsSource("PlayerPlaybackSettingsSheet.kt")))
-        assertTrue(source.contains("override fun settingsSheetDefaultFocusId(): Int = when (playerPrefs.speed)"))
-        val defaultFocusBlock = source
-            .substringAfter("override fun settingsSheetDefaultFocusId(): Int = when (playerPrefs.speed)")
-            .substringBefore("\n\n    override fun onViewCreated")
-
-        assertTrue(defaultFocusBlock.contains("0.5f -> R.id.rb_speed_0_5"))
-        assertTrue(defaultFocusBlock.contains("0.75f -> R.id.rb_speed_0_75"))
-        assertTrue(defaultFocusBlock.contains("1.25f -> R.id.rb_speed_1_25"))
-        assertTrue(defaultFocusBlock.contains("1.5f -> R.id.rb_speed_1_5"))
-        assertTrue(defaultFocusBlock.contains("2.0f -> R.id.rb_speed_2_0"))
-        assertTrue(defaultFocusBlock.contains("else -> R.id.rb_speed_1_0"))
+        assertTrue(source.contains("override fun settingsSheetDefaultFocusId(): Int = R.id.tv_speed_value"))
     }
 
     @Test
@@ -373,7 +363,7 @@ class PlayerSettingsDialogTest {
             "PlayerAudioSettingsActivity.kt" to "swPitch.requestFocus()",
             "PlayerDisplaySettingsActivity.kt" to "tvAspect.requestFocus()",
             "PlayerGestureSettingsActivity.kt" to "tvLeft.requestFocus()",
-            "PlayerPlaybackSettingsActivity.kt" to "findViewById<View>(rgSpeed.checkedRadioButtonId)?.requestFocus()",
+            "PlayerPlaybackSettingsActivity.kt" to "tvSpeed.requestFocus()",
             "PlayerSubtitleSettingsActivity.kt" to "btnLoad.requestFocus()"
         ).forEach { (fileName, focusRequest) ->
             val source = String(Files.readAllBytes(legacySettingsSource(fileName)))

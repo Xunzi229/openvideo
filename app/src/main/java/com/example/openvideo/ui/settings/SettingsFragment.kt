@@ -13,7 +13,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
@@ -24,14 +23,15 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
+import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
 import com.example.openvideo.ui.player.PlayerAspectRatioOptions
 import com.example.openvideo.ui.player.PlayerAudioSettingsActivity
-import com.example.openvideo.ui.player.PlayerGlassSheetChoice
-import com.example.openvideo.ui.player.PlayerGlassSheetDialog
 import com.example.openvideo.ui.player.PlayerSubtitleSettingsActivity
 import com.example.openvideo.ui.sources.SourcesFragment
 import dagger.hilt.android.AndroidEntryPoint
@@ -51,17 +51,9 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writeSettingsExportTo(requireContext(), uri)) {
                 is SettingsBackupFileWriter.Result.Success ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_export_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_export_success)
                 is SettingsBackupFileWriter.Result.Failure ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_export_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_export_failed)
             }
         }
     }
@@ -73,27 +65,15 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (val result = viewModel.readAndImportSettings(requireContext(), uri)) {
                 is SettingsViewModel.ImportResult.Success -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_import_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_import_success)
                     // Recreate activity so theme / language changes take effect immediately
                     activity?.recreate()
                 }
                 is SettingsViewModel.ImportResult.ParseFailure -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_import_parse_error,
-                        Toast.LENGTH_LONG
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_import_parse_error, long = true)
                 }
                 is SettingsViewModel.ImportResult.ReadFailure -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_import_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_import_failed)
                 }
             }
         }
@@ -128,24 +108,11 @@ class SettingsFragment : Fragment() {
         tvVersion.text = viewModel.installedVersionName()
         updateSettingsRowDescription(tvVersion, R.string.settings_version)
         view.findViewById<View>(R.id.row_theme).setOnClickListener {
-            val modes = ThemeMode.entries
-            val next = (modes.indexOf(viewModel.themeMode) + 1) % modes.size
-            viewModel.setThemeMode(modes[next])
-            updateThemeLabel(tvTheme)
+            showThemeSheet(tvTheme)
         }
 
         view.findViewById<View>(R.id.row_language).setOnClickListener { row ->
-            val langs = listOf("system", "zh", "en")
-            val current = langs.indexOf(viewModel.language).let { idx ->
-                if (idx >= 0) idx else 0
-            }
-            val next = (current + 1) % langs.size
-            viewModel.setLanguage(langs[next])
-            updateLanguageLabel(tvLanguage)
-            // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                row.post { requireActivity().recreate() }
-            }
+            showLanguageSheet(tvLanguage, row)
         }
 
         view.findViewById<View>(R.id.row_notifications).setOnClickListener {
@@ -372,19 +339,23 @@ class SettingsFragment : Fragment() {
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).roundToInt()
 
     private fun updateThemeLabel(tv: TextView) {
-        tv.text = when (viewModel.themeMode) {
-            ThemeMode.SYSTEM -> getString(R.string.settings_theme_system)
-            ThemeMode.DARK -> getString(R.string.settings_theme_dark)
-            ThemeMode.LIGHT -> getString(R.string.settings_theme_light)
-        }
+        tv.text = themeLabel(viewModel.themeMode)
+    }
+
+    private fun themeLabel(mode: ThemeMode): String = when (mode) {
+        ThemeMode.SYSTEM -> getString(R.string.settings_theme_system)
+        ThemeMode.DARK -> getString(R.string.settings_theme_dark)
+        ThemeMode.LIGHT -> getString(R.string.settings_theme_light)
     }
 
     private fun updateLanguageLabel(tv: TextView) {
-        tv.text = when (viewModel.language) {
-            "zh" -> getString(R.string.settings_language_zh)
-            "en" -> getString(R.string.settings_language_en)
-            else -> getString(R.string.settings_language_system)
-        }
+        tv.text = languageLabel(viewModel.language)
+    }
+
+    private fun languageLabel(lang: String): String = when (lang) {
+        "zh" -> getString(R.string.settings_language_zh)
+        "en" -> getString(R.string.settings_language_en)
+        else -> getString(R.string.settings_language_system)
     }
 
     private fun updateRatioLabel(tv: TextView) {
@@ -403,46 +374,94 @@ class SettingsFragment : Fragment() {
             listOf(getString(titleRes), valueView.text).joinToString(" ")
     }
 
-    private fun showDefaultRatioDialog(tvRatio: TextView) {
+    private fun showThemeSheet(tvTheme: TextView) {
         showExclusiveSettingsDialog { onDismiss ->
-            PlayerGlassSheetDialog.showSingleChoice(
+            AppleActionSheet.show(
                 context = requireContext(),
-                layoutInflater = layoutInflater,
-                titleRes = R.string.settings_default_ratio,
-                choices = PlayerAspectRatioOptions.entries.map { option ->
-                    PlayerGlassSheetChoice(
-                        value = option.ratio,
-                        label = getString(option.labelRes),
-                        selected = option.ratio == viewModel.defaultRatio
+                title = getString(R.string.settings_theme),
+                actions = ThemeMode.entries.map { mode ->
+                    AppleAction(
+                        title = themeLabel(mode),
+                        selected = mode == viewModel.themeMode,
+                        onClick = {
+                            viewModel.setThemeMode(mode)
+                            updateThemeLabel(tvTheme)
+                        }
                     )
                 },
+                defaultFocusCancel = false,
                 onDismiss = onDismiss
-            ) { ratio ->
-                viewModel.setDefaultRatio(ratio)
-                updateRatioLabel(tvRatio)
-            }
+            )
+        }
+    }
+
+    private fun showLanguageSheet(tvLanguage: TextView, row: View) {
+        val langs = listOf("system", "zh", "en")
+        val current = langs.firstOrNull { it == viewModel.language } ?: "system"
+        showExclusiveSettingsDialog { onDismiss ->
+            AppleActionSheet.show(
+                context = requireContext(),
+                title = getString(R.string.settings_language),
+                actions = langs.map { lang ->
+                    AppleAction(
+                        title = languageLabel(lang),
+                        selected = lang == current,
+                        onClick = {
+                            viewModel.setLanguage(lang)
+                            updateLanguageLabel(tvLanguage)
+                            // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                                row.post { requireActivity().recreate() }
+                            }
+                        }
+                    )
+                },
+                defaultFocusCancel = false,
+                onDismiss = onDismiss
+            )
+        }
+    }
+
+    private fun showDefaultRatioDialog(tvRatio: TextView) {
+        showExclusiveSettingsDialog { onDismiss ->
+            AppleActionSheet.show(
+                context = requireContext(),
+                title = getString(R.string.settings_default_ratio),
+                actions = PlayerAspectRatioOptions.entries.map { option ->
+                    AppleAction(
+                        title = getString(option.labelRes),
+                        selected = option.ratio == viewModel.defaultRatio,
+                        onClick = {
+                            viewModel.setDefaultRatio(option.ratio)
+                            updateRatioLabel(tvRatio)
+                        }
+                    )
+                },
+                defaultFocusCancel = false,
+                onDismiss = onDismiss
+            )
         }
     }
 
     private fun showDefaultSpeedDialog(tvSpeed: TextView) {
         val speeds = DefaultPlayerSettings.supportedSpeeds
         showExclusiveSettingsDialog { onDismiss ->
-            PlayerGlassSheetDialog.showSingleChoice(
+            AppleActionSheet.show(
                 context = requireContext(),
-                layoutInflater = layoutInflater,
-                titleRes = R.string.settings_default_speed,
-                choices = speeds.map { speed ->
-                    PlayerGlassSheetChoice(
-                        value = speed,
-                        label = "${speed}x",
-                        selected = speed == viewModel.defaultSpeed
+                title = getString(R.string.settings_default_speed),
+                actions = speeds.map { speed ->
+                    AppleAction(
+                        title = "${speed}x",
+                        selected = speed == viewModel.defaultSpeed,
+                        onClick = {
+                            viewModel.setDefaultSpeed(speed)
+                            updateSpeedLabel(tvSpeed)
+                        }
                     )
                 },
+                defaultFocusCancel = false,
                 onDismiss = onDismiss
-            ) { speed ->
-                viewModel.setDefaultSpeed(speed)
-                updateSpeedLabel(tvSpeed)
-            }
+            )
         }
     }
 

@@ -20,6 +20,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.data.model.VideoItem
 import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
@@ -32,7 +33,6 @@ import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.example.openvideo.ui.series.SeriesListFragment
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -47,7 +47,8 @@ class LocalFolderFragment : Fragment() {
     private lateinit var scanLoadingContainer: View
     private lateinit var scanProgressBar: ProgressBar
     private lateinit var scanProgressLabel: TextView
-    private lateinit var continuePlaybackFab: FloatingActionButton
+    private lateinit var continuePlaybackRow: View
+    private lateinit var continuePlaybackTitle: TextView
     private var localVideosSnapshot: List<VideoItem> = emptyList()
     private var continuePlaybackVideo: VideoItem? = null
     private var continuePlaybackPositionMs: Long = 0L
@@ -77,7 +78,8 @@ class LocalFolderFragment : Fragment() {
         scanLoadingContainer = view.findViewById(R.id.scan_loading_container)
         scanProgressBar = view.findViewById(R.id.scan_progress_bar)
         scanProgressLabel = view.findViewById(R.id.tv_scan_progress)
-        continuePlaybackFab = view.findViewById(R.id.fab_continue_playback)
+        continuePlaybackRow = view.findViewById(R.id.row_continue_playback)
+        continuePlaybackTitle = view.findViewById(R.id.tv_continue_title)
 
         adapter = VideoFolderAdapter(
             onClick = { folder -> openFolder(folder) },
@@ -90,7 +92,7 @@ class LocalFolderFragment : Fragment() {
         )
         recyclerView.adapter = adapter
 
-        continuePlaybackFab.setOnClickListener {
+        continuePlaybackRow.setOnClickListener {
             continuePlaybackVideo?.let { video -> openPlayer(video) }
         }
 
@@ -141,7 +143,8 @@ class LocalFolderFragment : Fragment() {
                 launch {
                     viewModel.continuePlaybackVideo.collect { video ->
                         continuePlaybackVideo = video
-                        continuePlaybackFab.visibility = if (video == null) View.GONE else View.VISIBLE
+                        continuePlaybackRow.visibility = if (video == null) View.GONE else View.VISIBLE
+                        continuePlaybackTitle.text = video?.title.orEmpty()
                     }
                 }
                 launch {
@@ -175,7 +178,7 @@ class LocalFolderFragment : Fragment() {
         view?.let { updateFolderFocusOrder(it, hasFolders) }
         if (hasFolders) {
             scanLoadingContainer.visibility = View.GONE
-            emptyView.visibility = View.GONE
+            AppleEmptyState.setVisible(emptyView, false)
             recyclerView.visibility = View.VISIBLE
             return
         }

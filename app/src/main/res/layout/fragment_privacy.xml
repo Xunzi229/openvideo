@@ -5,54 +5,89 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_app_root">
 
-    <TextView
-        android:id="@+id/tv_title"
-        style="@style/TextAppearance.OpenVideo.LargeTitle"
+    <LinearLayout
+        android:id="@+id/header_row"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="@dimen/ov_space_page"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/ov_space_page"
         android:paddingTop="@dimen/ov_space_lg"
+        android:paddingEnd="@dimen/ov_space_page"
         android:paddingBottom="@dimen/ov_space_sm"
-        android:text="@string/privacy_title"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tv_title"
+            style="@style/TextAppearance.OpenVideo.LargeTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/privacy_title" />
+
+        <ImageButton
+            android:id="@+id/btn_add"
+            android:layout_width="@dimen/ov_icon_button_size"
+            android:layout_height="@dimen/ov_icon_button_size"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/privacy_add"
+            android:src="@drawable/ic_add"
+            app:tint="@color/ov_accent_blue" />
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_privacy"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
+        android:paddingHorizontal="@dimen/ov_space_page"
         android:paddingTop="8dp"
         android:paddingBottom="80dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_title" />
+        app:layout_constraintTop_toBottomOf="@id/header_row" />
 
-    <TextView
-        android:id="@+id/tv_empty"
+    <LinearLayout
+        android:id="@+id/empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/privacy_empty"
-        android:textColor="@color/ov_text_secondary"
-        android:textSize="16sp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/recycler_privacy"
         app:layout_constraintEnd_toEndOf="@id/recycler_privacy"
         app:layout_constraintStart_toStartOf="@id/recycler_privacy"
-        app:layout_constraintTop_toTopOf="@id/recycler_privacy" />
+        app:layout_constraintTop_toTopOf="@id/recycler_privacy">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_add"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/ov_space_page"
-        android:contentDescription="@string/privacy_add"
-        android:src="@drawable/ic_add"
-        app:backgroundTint="@color/ov_accent_blue"
-        app:tint="@android:color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_folder"
+            app:tint="@color/ov_text_tertiary" />
+
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/privacy_empty"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:text="@string/empty_hint_privacy"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

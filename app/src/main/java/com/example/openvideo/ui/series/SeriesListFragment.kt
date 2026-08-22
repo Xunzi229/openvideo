@@ -13,6 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
 import com.example.openvideo.ui.MainActivity
@@ -41,9 +42,14 @@ class SeriesListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         view.findViewById<TextView>(R.id.tv_title).setText(R.string.series_list_title)
+        view.findViewById<TextView>(R.id.tv_back_title).setText(R.string.local_folder_title)
+        view.findViewById<View>(R.id.btn_back).setOnClickListener {
+            parentFragmentManager.popBackStack()
+        }
         recyclerView = view.findViewById(R.id.recycler_series)
         emptyView = view.findViewById(R.id.tv_empty)
         emptyView.isFocusable = true
+        emptyView.nextFocusUpId = R.id.btn_back
         adapter = SeriesAdapter(
             onClick = { series ->
                 lastFocusedSeriesId = series.seriesId
@@ -68,7 +74,7 @@ class SeriesListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.series.collect { series ->
                     adapter.submitList(series) { restoreSeriesFocusIfNeeded(series) }
-                    emptyView.visibility = if (series.isEmpty()) View.VISIBLE else View.GONE
+                    AppleEmptyState.setVisible(emptyView, series.isEmpty())
                     recyclerView.visibility = if (series.isEmpty()) View.GONE else View.VISIBLE
                 }
             }

@@ -33,13 +33,14 @@ class PlaylistCleanupUiSourceTest {
     fun playlistDetailFragmentOffersUndoAfterCleanup() {
         val source = sourceText("PlaylistDetailFragment.kt")
 
-        assertTrue(source.contains("import com.google.android.material.snackbar.Snackbar"))
+        assertTrue(source.contains("AppleHud.show("))
         assertTrue(source.contains("cleanupPlaylistVideosForUndo(playlistId)"))
         assertTrue(source.contains("showCleanupUndo(removedVideos)"))
         assertTrue(source.contains("private fun showCleanupUndo(removedVideos: List<PlaylistVideoEntity>)"))
-        assertTrue(source.contains("Snackbar.make(requireView(), R.string.playlist_cleanup_complete, Snackbar.LENGTH_LONG)"))
-        assertTrue(source.contains(".setAction(R.string.action_undo)"))
+        assertTrue(source.contains("R.string.playlist_cleanup_complete"))
+        assertTrue(source.contains("R.string.action_undo"))
         assertTrue(source.contains("viewModel.restorePlaylistVideos(removedVideos)"))
+        assertTrue(!source.contains("Snackbar"))
     }
 
     @Test

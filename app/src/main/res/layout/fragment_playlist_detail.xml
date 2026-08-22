@@ -11,20 +11,19 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="8dp"
-        android:paddingTop="8dp"
+        android:paddingStart="4dp"
+        android:paddingTop="@dimen/ov_space_sm"
+        android:paddingEnd="@dimen/ov_space_page"
+        android:paddingBottom="@dimen/ov_space_sm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <ImageButton
+        <include
             android:id="@+id/btn_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="返回"
-            android:src="@drawable/ic_arrow_back"
-            app:tint="@color/ov_text_primary" />
+            layout="@layout/include_apple_nav_back"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp" />
 
         <TextView
             android:id="@+id/tv_title"
@@ -38,8 +37,8 @@
 
         <ImageButton
             android:id="@+id/btn_import_playlist"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/ov_icon_button_size"
+            android:layout_height="@dimen/ov_icon_button_size"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/playlist_import"
             android:src="@drawable/ic_file_upload"
@@ -47,8 +46,8 @@
 
         <ImageButton
             android:id="@+id/btn_export_playlist"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/ov_icon_button_size"
+            android:layout_height="@dimen/ov_icon_button_size"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/playlist_export"
             android:src="@drawable/ic_file_download"
@@ -56,8 +55,8 @@
 
         <ImageButton
             android:id="@+id/btn_cleanup_playlist"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/ov_icon_button_size"
+            android:layout_height="@dimen/ov_icon_button_size"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/playlist_cleanup"
             android:src="@drawable/ic_filter_tune"
@@ -65,8 +64,8 @@
 
         <ImageButton
             android:id="@+id/btn_clear"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="@dimen/ov_icon_button_size"
+            android:layout_height="@dimen/ov_icon_button_size"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="清空"
             android:src="@drawable/ic_delete"
@@ -85,17 +84,44 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header" />
 
-    <TextView
-        android:id="@+id/tv_empty"
+    <LinearLayout
+        android:id="@+id/empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/playlist_detail_empty"
-        android:textColor="@color/ov_text_secondary"
-        android:textSize="16sp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/recycler_videos"
         app:layout_constraintEnd_toEndOf="@id/recycler_videos"
         app:layout_constraintStart_toStartOf="@id/recycler_videos"
-        app:layout_constraintTop_toTopOf="@id/recycler_videos" />
+        app:layout_constraintTop_toTopOf="@id/recycler_videos">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_list"
+            app:tint="@color/ov_text_tertiary" />
+
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/playlist_detail_empty"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:text="@string/empty_hint_playlist_detail"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

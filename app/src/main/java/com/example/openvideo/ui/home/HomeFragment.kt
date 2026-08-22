@@ -3,6 +3,7 @@ package com.example.openvideo.ui.home
 import android.Manifest
 import android.content.res.ColorStateList
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.text.Editable
@@ -16,8 +17,6 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.IntentSenderRequest
-import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.view.ActionMode
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
 import androidx.fragment.app.Fragment
@@ -34,6 +33,7 @@ import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionSheet
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.AppleOverlayChrome
 import com.example.openvideo.core.ui.AppleOverlayColors
 import com.example.openvideo.core.ui.ScreenBreakpoint
@@ -81,15 +81,20 @@ class HomeFragment : Fragment() {
     private lateinit var btnList: ImageButton
     private lateinit var btnGrid: ImageButton
     private lateinit var btnLibraryFilter: ImageButton
-    private lateinit var chipAll: Chip
-    private lateinit var chipRecent: Chip
-    private lateinit var chipFavorite: Chip
+    private lateinit var chipAll: TextView
+    private lateinit var chipRecent: TextView
+    private lateinit var chipFavorite: TextView
     private lateinit var smartFilterScroll: View
     private lateinit var smartFilterGroup: ChipGroup
     private lateinit var filterScroll: View
     private lateinit var folderGroup: ChipGroup
     private lateinit var folderPinHint: TextView
-    private var actionMode: ActionMode? = null
+    private lateinit var btnSelect: TextView
+    private lateinit var btnOpenUrl: ImageButton
+    private lateinit var btnRefresh: ImageButton
+    private lateinit var editActions: View
+    private lateinit var tvSelectCount: TextView
+    private var editing = false
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
     private var pendingJumpToTopCategory: HomeCategory? = null
     private var latestEmptyState: MediaLibraryEmptyState = MediaLibraryEmptyState.LOADING
@@ -174,11 +179,30 @@ class HomeFragment : Fragment() {
         viewModel.setCategory(initialCategory)
         showCategoryPage(initialCategory)
 
-        view.findViewById<ImageButton>(R.id.btn_refresh).setOnClickListener {
-            checkPermissionAndLoad()
+        btnRefresh = view.findViewById(R.id.btn_refresh)
+        btnOpenUrl = view.findViewById(R.id.btn_open_url)
+        btnSelect = view.findViewById(R.id.btn_select)
+        editActions = view.findViewById(R.id.edit_actions)
+        tvSelectCount = view.findViewById(R.id.tv_select_count)
+        btnRefresh.setOnClickListener { checkPermissionAndLoad() }
+        btnOpenUrl.setOnClickListener { showOpenUrlDialog() }
+        btnSelect.setOnClickListener {
+            if (editing) {
+                exitEditMode()
+            } else {
+                activeAdapter.startMultiSelectMode()
+                startMultiSelectMode(activeCategory)
+            }
         }
-        view.findViewById<ImageButton>(R.id.btn_open_url).setOnClickListener {
-            showOpenUrlDialog()
+        view.findViewById<View>(R.id.btn_select_all).setOnClickListener {
+            activeAdapter.selectAll()
+        }
+        view.findViewById<View>(R.id.btn_favorite_selected).setOnClickListener {
+            activeAdapter.getSelectedItems().forEach { viewModel.toggleFavorite(it) }
+            exitEditMode()
+        }
+        view.findViewById<View>(R.id.btn_delete_selected).setOnClickListener {
+            confirmDeleteSelected()
         }
 
         searchView.addTextChangedListener(object : TextWatcher {
@@ -204,7 +228,7 @@ class HomeFragment : Fragment() {
             onMoreOptions = { video, _ -> showVideoOptions(video) },
             onSelectionChanged = { selected ->
                 if (activeAdapter.isMultiSelectMode) {
-                    actionMode?.title = getString(R.string.multi_select_count, selected.size)
+                    tvSelectCount.text = getString(R.string.multi_select_count, selected.size)
                 }
             },
             onLongClick = { video -> startMultiSelectMode(category) },
@@ -334,13 +358,25 @@ class HomeFragment : Fragment() {
     }
 
     private fun switchCategory(category: HomeCategory) {
-        actionMode?.finish()
+        exitEditMode()
         viewModel.setCategory(category)
     }
 
     private fun changeSortFieldAndScrollToTop() {
-        viewModel.cycleSortField()
-        requestVideoListJumpToTop()
+        AppleActionSheet.show(
+            context = requireContext(),
+            actions = SortField.entries.map { field ->
+                AppleAction(
+                    title = getString(field.labelRes),
+                    selected = field == viewModel.sortField.value,
+                    onClick = {
+                        viewModel.setSortField(field)
+                        requestVideoListJumpToTop()
+                    }
+                )
+            },
+            defaultFocusCancel = false
+        )
     }
 
     private fun toggleSortOrderAndScrollToTop() {
@@ -491,7 +527,7 @@ class HomeFragment : Fragment() {
         activeRecyclerView.visibility = if (isEmpty) View.GONE else View.VISIBLE
         if (!isEmpty) {
             scanLoadingContainer.visibility = View.GONE
-            emptyView.visibility = View.GONE
+            AppleEmptyState.setVisible(emptyView, false)
             return
         }
         bindEmptyUi(latestEmptyState, latestScanProgress)
@@ -549,7 +585,7 @@ class HomeFragment : Fragment() {
     override fun onDestroyView() {
         filterPopover?.dismiss()
         filterPopover = null
-        actionMode?.finish()
+        exitEditMode()
         recyclerViews.values.forEach { recyclerView ->
             recyclerView.adapter = null
         }
@@ -663,27 +699,23 @@ class HomeFragment : Fragment() {
     }
 
     private fun bindCategoryChip(
-        chip: Chip,
+        chip: TextView,
         selected: Boolean,
         labelRes: Int,
         count: Int
     ) {
-        val background = ContextCompat.getColor(
-            requireContext(),
-            if (selected) R.color.ov_accent_blue else R.color.ov_bg_elevated
-        )
-        val stroke = ContextCompat.getColor(
-            requireContext(),
-            if (selected) R.color.ov_accent_blue else R.color.ov_divider
-        )
         val text = ContextCompat.getColor(
             requireContext(),
             if (selected) R.color.ov_text_primary else R.color.ov_text_secondary
         )
-        chip.isChecked = selected
-        chip.chipBackgroundColor = ColorStateList.valueOf(background)
-        chip.chipStrokeColor = ColorStateList.valueOf(stroke)
+        chip.isSelected = selected
+        chip.background = if (selected) {
+            ContextCompat.getDrawable(requireContext(), R.drawable.bg_segment_selected)
+        } else {
+            null
+        }
         chip.setTextColor(text)
+        chip.setTypeface(Typeface.DEFAULT, if (selected) Typeface.BOLD else Typeface.NORMAL)
         chip.text = getString(R.string.home_filter_count, getString(labelRes), count)
     }
 
@@ -876,41 +908,24 @@ class HomeFragment : Fragment() {
     }
 
     private fun startMultiSelectMode(category: HomeCategory) {
-        if (actionMode != null) return
+        if (editing) return
         activeCategory = category
-        actionMode = (requireActivity() as AppCompatActivity).startSupportActionMode(object : ActionMode.Callback {
-            override fun onCreateActionMode(mode: ActionMode, menu: android.view.Menu): Boolean {
-                mode.menuInflater.inflate(R.menu.menu_multi_select, menu)
-                return true
-            }
+        editing = true
+        btnSelect.setText(R.string.action_done)
+        editActions.visibility = View.VISIBLE
+        btnOpenUrl.visibility = View.GONE
+        btnRefresh.visibility = View.GONE
+        tvSelectCount.text = getString(R.string.multi_select_count, activeAdapter.getSelectedCount())
+    }
 
-            override fun onPrepareActionMode(mode: ActionMode, menu: android.view.Menu): Boolean = false
-
-            override fun onActionItemClicked(mode: ActionMode, item: android.view.MenuItem): Boolean {
-                return when (item.itemId) {
-                    R.id.action_select_all -> {
-                        activeAdapter.selectAll()
-                        true
-                    }
-                    R.id.action_delete_selected -> {
-                        confirmDeleteSelected()
-                        true
-                    }
-                    R.id.action_favorite_selected -> {
-                        activeAdapter.getSelectedItems().forEach { viewModel.toggleFavorite(it) }
-                        activeAdapter.exitMultiSelectMode()
-                        mode.finish()
-                        true
-                    }
-                    else -> false
-                }
-            }
-
-            override fun onDestroyActionMode(mode: ActionMode) {
-                activeAdapter.exitMultiSelectMode()
-                actionMode = null
-            }
-        })
+    private fun exitEditMode() {
+        if (!editing) return
+        editing = false
+        adapters.values.forEach { it.exitMultiSelectMode() }
+        btnSelect.setText(R.string.action_select)
+        editActions.visibility = View.GONE
+        btnOpenUrl.visibility = View.VISIBLE
+        btnRefresh.visibility = View.VISIBLE
     }
 
     private fun confirmDeleteSelected() {
@@ -926,8 +941,7 @@ class HomeFragment : Fragment() {
                     style = AppleActionStyle.DESTRUCTIVE,
                     onClick = {
                         deleteVideosWithSystemRequest(selected)
-                        activeAdapter.exitMultiSelectMode()
-                        actionMode?.finish()
+                        exitEditMode()
                     }
                 )
             )

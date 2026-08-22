@@ -6,23 +6,23 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="@drawable/bg_focusable_card"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingStart="@dimen/ov_space_page"
-    android:paddingTop="10dp"
-    android:paddingEnd="@dimen/ov_space_page"
-    android:paddingBottom="10dp">
+    android:orientation="vertical">
 
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="@dimen/ov_video_list_thumb_width"
-        android:layout_height="@dimen/ov_video_list_thumb_height"
-        app:cardBackgroundColor="@color/ov_bg_elevated"
-        app:cardCornerRadius="@dimen/ov_radius_md"
-        app:cardElevation="0dp">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/ov_space_page"
+        android:paddingTop="10dp"
+        android:paddingEnd="@dimen/ov_space_page"
+        android:paddingBottom="10dp">
 
         <FrameLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_width="@dimen/ov_video_list_thumb_width"
+            android:layout_height="@dimen/ov_video_list_thumb_height"
+            android:background="@drawable/bg_thumb_clip"
+            android:clipToOutline="true">
 
             <ImageView
                 android:id="@+id/iv_thumbnail"
@@ -53,66 +53,77 @@
                 android:textSize="11sp"
                 android:textStyle="bold" />
         </FrameLayout>
-    </com.google.android.material.card.MaterialCardView>
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/tv_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="2"
-            android:textColor="@color/ov_text_primary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:orientation="horizontal">
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tv_resolution"
+                android:id="@+id/tv_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/ov_text_tertiary"
-                android:textSize="12sp" />
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
 
-            <TextView
-                android:layout_width="8dp"
-                android:layout_height="wrap_content" />
+                <TextView
+                    android:id="@+id/tv_resolution"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/ov_text_tertiary"
+                    android:textSize="12sp" />
 
-            <TextView
-                android:id="@+id/tv_size"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textColor="@color/ov_text_tertiary"
-                android:textSize="12sp" />
+                <TextView
+                    android:layout_width="8dp"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:id="@+id/tv_size"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/ov_text_tertiary"
+                    android:textSize="12sp" />
+            </LinearLayout>
         </LinearLayout>
+
+        <ImageView
+            android:id="@+id/cb_select"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_select_circle_off"
+            android:clickable="true"
+            android:contentDescription="@string/select_all"
+            android:focusable="false"
+            android:padding="4dp"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/btn_more"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/more_options"
+            android:padding="12dp"
+            android:src="@drawable/ic_more_horiz"
+            app:tint="@color/ov_text_tertiary" />
     </LinearLayout>
 
-    <CheckBox
-        android:id="@+id/cb_select"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:buttonTint="@color/ov_accent_blue" />
-
-    <ImageButton
-        android:id="@+id/btn_more"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/more_options"
-        android:padding="12dp"
-        android:src="@drawable/ic_more_vert"
-        app:tint="@color/ov_text_tertiary" />
-
+    <View
+        android:id="@+id/row_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="160dp"
+        android:background="@color/ov_divider" />
 </LinearLayout>

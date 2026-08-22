@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.app.PendingIntent
 import com.example.openvideo.R
+import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.core.metadata.MediaSmartListType
 import com.example.openvideo.core.prefs.AppPrefs
 import com.example.openvideo.data.local.FavoriteEntity
@@ -168,22 +169,26 @@ class HomeViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val recentContinueWatchingBadges: StateFlow<Map<Long, ContinueWatchingBadge>> = repository.getHistory()
-        .map { history ->
-            HistoryContinueWatchingPolicy.buildItems(
-                history = history,
-                labels = continueWatchingLabels,
-                nowMs = System.currentTimeMillis(),
-                localFileExists = { candidatePath -> File(candidatePath).exists() }
-            ).associate { item ->
-                item.entity.videoId to ContinueWatchingBadge(
-                    watchedTimeLabel = item.watchedTimeLabel,
-                    progressLabel = item.progressLabel,
-                    isAvailable = item.isAvailable
-                )
+    val recentContinueWatchingBadges: StateFlow<Map<Long, ContinueWatchingBadge>> = combine(
+        repository.getHistory(),
+        _videos
+    ) { history, scanned ->
+        val scannedIds = scanned.map { it.id }.toHashSet()
+        HistoryContinueWatchingPolicy.buildItems(
+            history = history,
+            labels = continueWatchingLabels,
+            nowMs = System.currentTimeMillis(),
+            isAvailable = { entity ->
+                entity.videoId in scannedIds || LocalMediaUriPolicy.isPlayable(entity.path)
             }
+        ).associate { item ->
+            item.entity.videoId to ContinueWatchingBadge(
+                watchedTimeLabel = item.watchedTimeLabel,
+                progressLabel = item.progressLabel,
+                isAvailable = item.isAvailable
+            )
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
     val videos: StateFlow<List<VideoItem>> = combine(
         allVideos, recentVideos, favoriteVideos, _category
@@ -342,11 +347,9 @@ class HomeViewModel @Inject constructor(
         _advancedFilters.value = MediaLibraryAdvancedFilters()
     }
 
-    fun cycleSortField() {
-        val fields = SortField.entries
-        val next = (fields.indexOf(_sortField.value) + 1) % fields.size
-        _sortField.value = fields[next]
-        appPrefs.sortField = fields[next].name.lowercase()
+    fun setSortField(field: SortField) {
+        _sortField.value = field
+        appPrefs.sortField = field.name.lowercase()
     }
 
     fun toggleSortOrder() {

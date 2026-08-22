@@ -3,7 +3,6 @@ package com.example.openvideo.ui.player
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import com.example.openvideo.R
@@ -12,6 +11,7 @@ import com.example.openvideo.core.player.PlayerAudioTrackInfo
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.AspectRatio
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.AppleHud
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -105,7 +105,7 @@ class PlayerSettingsInfoController(
         val text = videoInfoRows().joinToString(separator = "\n") { "${it.first}: ${it.second}" }
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         cm.setPrimaryClip(ClipData.newPlainText("openvideo_video_info", text))
-        Toast.makeText(context, context.getString(R.string.player_settings_info_copied), Toast.LENGTH_SHORT).show()
+        AppleHud.show(context, R.string.player_settings_info_copied)
     }
 
     private fun audioDiagnosticRows(diagnostics: PlayerAudioDiagnostics): List<Pair<String, String>> {

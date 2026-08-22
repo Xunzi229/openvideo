@@ -14,7 +14,7 @@ class SourcesInformationArchitectureSourceTest {
 
         assertTrue(menu.contains("""android:id="@+id/nav_sources""""))
         assertTrue(menu.contains("""android:title="@string/nav_sources""""))
-        assertTrue(menu.contains("""android:icon="@drawable/ic_stream""""))
+        assertTrue(menu.contains("""android:icon="@drawable/ic_nav_sources""""))
     }
 
     @Test

@@ -124,7 +124,7 @@ class AppleAlertDialog private constructor(
         return column
     }
 
-    private fun button(action: AppleAction, colors: AppleOverlayColors): TextView =
+    private fun button(action: AppleAction, colors: AppleOverlayColors): View =
         AppleOverlayChrome.actionRow(
             context = context,
             action = action,

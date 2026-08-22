@@ -335,6 +335,13 @@
     <!-- General -->
     <string name="refresh">刷新</string>
     <string name="no_videos">暂无视频</string>
+    <string name="empty_hint_videos">扫描或导入后的视频会出现在这里。</string>
+    <string name="empty_hint_folders">扫描完成后，文件夹会出现在这里。</string>
+    <string name="empty_hint_playlist">创建播放列表来整理视频。</string>
+    <string name="empty_hint_playlist_detail">把视频加入此播放列表。</string>
+    <string name="empty_hint_privacy">加入的文件夹会从媒体库中隐藏。</string>
+    <string name="empty_hint_series">按文件夹整理后的剧集会出现在这里。</string>
+    <string name="empty_hint_episodes">此剧集还没有可播放的分集。</string>
     <string name="media_library_loading">正在扫描视频...</string>
     <string name="media_library_scanning_count">已扫描 %1$d 个视频…</string>
     <string name="media_library_permission_denied">需要视频访问权限才能扫描本地文件</string>
@@ -408,6 +415,8 @@
     <string name="local_folder_title">文件夹</string>
     <string name="local_continue_playback">继续播放</string>
     <string name="action_back">返回</string>
+    <string name="action_select">选择</string>
+    <string name="action_done">完成</string>
     <string name="option_play">播放</string>
     <string name="option_favorite">收藏</string>
     <string name="option_favorited">已收藏</string>

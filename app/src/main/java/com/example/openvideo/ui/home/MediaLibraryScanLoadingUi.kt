@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleEmptyState
 
 object MediaLibraryScanLoadingUi {
 
@@ -20,7 +21,7 @@ object MediaLibraryScanLoadingUi {
     ) {
         if (!isContentEmpty) {
             loadingContainer.visibility = View.GONE
-            emptyLabel.visibility = View.GONE
+            AppleEmptyState.setVisible(emptyLabel, false)
             return
         }
 
@@ -29,7 +30,7 @@ object MediaLibraryScanLoadingUi {
                 loadingContainer.visibility = View.VISIBLE
                 progressBar.visibility = View.VISIBLE
                 progressBar.isIndeterminate = true
-                emptyLabel.visibility = View.GONE
+                AppleEmptyState.setVisible(emptyLabel, false)
                 val count = scanProgress?.scannedCount ?: 0
                 progressLabel.text = if (count > 0) {
                     context.getString(R.string.media_library_scanning_count, count)
@@ -39,7 +40,7 @@ object MediaLibraryScanLoadingUi {
             }
             else -> {
                 loadingContainer.visibility = View.GONE
-                emptyLabel.visibility = View.VISIBLE
+                AppleEmptyState.setVisible(emptyLabel, true)
             }
         }
     }

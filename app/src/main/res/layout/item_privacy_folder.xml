@@ -2,28 +2,40 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="56dp"
-    android:background="?attr/selectableItemBackground"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:paddingHorizontal="16dp">
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tv_path"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:ellipsize="middle"
-        android:maxLines="1"
-        android:textColor="@color/ov_text_primary"
-        android:textSize="14sp" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/ov_row_height"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/ov_space_lg">
 
-    <ImageButton
-        android:id="@+id/btn_remove"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="移除"
-        android:src="@drawable/ic_close"
-        app:tint="@color/ov_text_secondary" />
+        <TextView
+            android:id="@+id/tv_path"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="14sp" />
+
+        <ImageButton
+            android:id="@+id/btn_remove"
+            android:layout_width="@dimen/ov_icon_button_size"
+            android:layout_height="@dimen/ov_icon_button_size"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="移除"
+            android:src="@drawable/ic_close"
+            app:tint="@color/ov_text_secondary" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/row_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="@dimen/ov_space_lg"
+        android:background="@color/ov_divider" />
 </LinearLayout>

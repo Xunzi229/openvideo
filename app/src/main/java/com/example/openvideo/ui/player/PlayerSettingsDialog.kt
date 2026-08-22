@@ -14,7 +14,6 @@ import android.widget.GridLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
@@ -28,6 +27,7 @@ import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.ui.OverlayWindowInsets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -846,19 +846,18 @@ class PlayerSettingsDialog(
         val startMs = playerPrefs.clipStartMs
         val endMs = playerPrefs.clipEndMs
         if (startMs < 0L || endMs <= startMs) {
-            Toast.makeText(context, context.getString(R.string.player_settings_toast_clip_need_points), Toast.LENGTH_SHORT).show()
+            AppleHud.show(context, R.string.player_settings_toast_clip_need_points)
             return
         }
         viewModel.exportClip(startMs, endMs) { success, path ->
-            Toast.makeText(
+            AppleHud.show(
                 context,
                 if (success) {
                     context.getString(R.string.player_settings_toast_clip_exported, path)
                 } else {
                     context.getString(R.string.player_settings_toast_clip_export_failed)
-                },
-                Toast.LENGTH_SHORT
-            ).show()
+                }
+            )
         }
     }
 

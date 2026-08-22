@@ -108,6 +108,12 @@ jobs:
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.agentRulesRequireOfficialReleaseSigningOnCiPackaging"
           --tests "com.example.openvideo.build.FeaturePackagingBuildConfigTest"
           --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"
+          --tests "com.example.openvideo.ui.home.HomeRecentContinueWatchingSourceTest"
+          --tests "com.example.openvideo.ui.history.HistoryContinueWatchingPolicyTest"
+          --tests "com.example.openvideo.ui.player.PlayerSmartCropSourceTest"
+          --tests "com.example.openvideo.ui.settings.SettingsLanguageRowSourceTest"
+          --tests "com.example.openvideo.ui.home.HomeSortControlSourceTest"
+          --tests "com.example.openvideo.ui.player.PlayerPlaybackEndBehaviorSourceTest"
 
       - name: Build preview APKs
         run: .\gradlew.bat :app:assembleRelease -POPENVIDEO_ABI_SPLITS=true

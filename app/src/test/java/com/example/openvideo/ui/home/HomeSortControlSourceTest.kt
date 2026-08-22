@@ -30,8 +30,10 @@ class HomeSortControlSourceTest {
         val submit = source.substringAfter("private fun submitCategoryList(")
             .substringBefore("\n    private fun")
 
-        assertTrue(changeField.contains("viewModel.cycleSortField()"))
+        assertTrue(changeField.contains("AppleActionSheet.show("))
+        assertTrue(changeField.contains("viewModel.setSortField(field)"))
         assertTrue(changeField.contains("requestVideoListJumpToTop()"))
+        assertTrue(!changeField.contains("cycleSortField"))
         assertTrue(toggleOrder.contains("viewModel.toggleSortOrder()"))
         assertTrue(toggleOrder.contains("requestVideoListJumpToTop()"))
         assertTrue(requestScroll.contains("pendingJumpToTopCategory = activeCategory"))

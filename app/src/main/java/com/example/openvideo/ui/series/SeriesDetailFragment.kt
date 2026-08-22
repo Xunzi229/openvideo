@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -15,6 +14,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
 import com.example.openvideo.ui.MainActivity
@@ -65,7 +65,8 @@ class SeriesDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         view.findViewById<TextView>(R.id.tv_title).text = seriesTitle
-        view.findViewById<ImageButton>(R.id.btn_back).setOnClickListener {
+        view.findViewById<TextView>(R.id.tv_back_title).setText(R.string.series_list_title)
+        view.findViewById<View>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
 
@@ -91,7 +92,7 @@ class SeriesDetailFragment : Fragment() {
                     episodeSnapshot = episodes
                     adapter.submitList(episodes) { restoreEpisodeFocusIfNeeded(episodes) }
                     val hasEpisodes = episodes.isNotEmpty()
-                    emptyView.visibility = if (hasEpisodes) View.GONE else View.VISIBLE
+                    AppleEmptyState.setVisible(emptyView, !hasEpisodes)
                     recyclerView.visibility = if (hasEpisodes) View.VISIBLE else View.GONE
                     updateEpisodeFocusOrder(requireView(), hasEpisodes)
                 }

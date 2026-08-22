@@ -22,6 +22,8 @@
         android:layout_height="wrap_content"
         android:minHeight="@dimen/ov_bottom_nav_height"
         android:background="@drawable/bg_tab_bar"
+        android:elevation="0dp"
+        app:elevation="0dp"
         app:itemActiveIndicatorStyle="@style/Widget.OpenVideo.BottomNavigation.ActiveIndicator"
         app:itemHorizontalTranslationEnabled="false"
         app:itemIconSize="24dp"

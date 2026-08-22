@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -21,8 +20,10 @@ import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.OnlineSubtitlePrivacyPolicy
 import com.example.openvideo.core.ui.AppleAction
+import com.example.openvideo.core.ui.AppleActionSheet
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleHud
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -67,7 +68,7 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         ) { decision ->
             val messageRes = PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)
             if (messageRes != null) {
-                Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show()
+                AppleHud.show(requireContext(), messageRes)
             }
         }
     }
@@ -79,36 +80,16 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writeCurrentSubtitleUtf8ExportTo(requireContext(), uri)) {
                 is PlayerViewModel.SubtitleExportResult.Success ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_success)
                 is PlayerViewModel.SubtitleExportResult.NoSubtitles ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_subtitles,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 is PlayerViewModel.SubtitleExportResult.NoDelay ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_delay,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_delay)
                 is PlayerViewModel.SubtitleExportResult.OriginalOverwriteBlocked ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_original_blocked,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_original_blocked)
                 is PlayerViewModel.SubtitleExportResult.OpenStreamFailed,
                 is PlayerViewModel.SubtitleExportResult.WriteFailed ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_failed)
             }
         }
     }
@@ -120,36 +101,16 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writeCurrentSubtitleDelayCorrectionExportTo(requireContext(), uri)) {
                 is PlayerViewModel.SubtitleExportResult.Success ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_success)
                 is PlayerViewModel.SubtitleExportResult.NoSubtitles ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_subtitles,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 is PlayerViewModel.SubtitleExportResult.NoDelay ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_delay,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_delay)
                 is PlayerViewModel.SubtitleExportResult.OriginalOverwriteBlocked ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_original_blocked,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_original_blocked)
                 is PlayerViewModel.SubtitleExportResult.OpenStreamFailed,
                 is PlayerViewModel.SubtitleExportResult.WriteFailed ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_failed)
             }
         }
     }
@@ -164,11 +125,7 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             actions = listOf(
                 AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
                 AppleAction(getString(R.string.action_ok)) {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_online_subtitle_search_pending,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_online_subtitle_search_pending)
                 }
             )
         )
@@ -254,30 +211,18 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         }
         btnExportSubtitle.setOnClickListener {
             if (!viewModel.hasCurrentSubtitles()) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_subtitle_export_no_subtitles,
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 return@setOnClickListener
             }
             exportSubtitleLauncher.launch(viewModel.suggestedSubtitleExportFileName())
         }
         btnExportDelayCorrected.setOnClickListener {
             if (!viewModel.hasCurrentSubtitles()) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_subtitle_export_no_subtitles,
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 return@setOnClickListener
             }
             if (playerPrefs.subtitleDelayMs == 0) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_subtitle_export_no_delay,
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_delay)
                 return@setOnClickListener
             }
             delayCorrectionExportLauncher.launch(viewModel.suggestedSubtitleDelayCorrectionExportFileName())
@@ -303,21 +248,31 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             "korean" -> getString(R.string.player_settings_subtitle_language_korean)
             else -> getString(R.string.player_settings_subtitle_language_any)
         }
-        fun nextLanguageKey(current: String): String {
-            val index = languageKeys.indexOf(current).takeIf { it >= 0 } ?: 0
-            return languageKeys[(index + 1) % languageKeys.size]
-        }
         fun updateSubtitleLanguageText() {
             tvPrimaryLanguage.text = languageLabel(playerPrefs.subtitlePrimaryLanguage)
             tvSecondaryLanguage.text = languageLabel(playerPrefs.subtitleSecondaryLanguage)
         }
         tvPrimaryLanguage.setOnClickListener {
-            playerPrefs.subtitlePrimaryLanguage = nextLanguageKey(playerPrefs.subtitlePrimaryLanguage)
-            updateSubtitleLanguageText()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.player_settings_subtitle_language_title),
+                items = languageKeys.map { it to languageLabel(it) },
+                selected = playerPrefs.subtitlePrimaryLanguage
+            ) { key ->
+                playerPrefs.subtitlePrimaryLanguage = key
+                updateSubtitleLanguageText()
+            }
         }
         tvSecondaryLanguage.setOnClickListener {
-            playerPrefs.subtitleSecondaryLanguage = nextLanguageKey(playerPrefs.subtitleSecondaryLanguage)
-            updateSubtitleLanguageText()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.player_settings_subtitle_language_title),
+                items = languageKeys.map { it to languageLabel(it) },
+                selected = playerPrefs.subtitleSecondaryLanguage
+            ) { key ->
+                playerPrefs.subtitleSecondaryLanguage = key
+                updateSubtitleLanguageText()
+            }
         }
         swPreferBilingual.isChecked = playerPrefs.subtitlePreferBilingual
         swPreferBilingual.setOnCheckedChangeListener { _, checked ->
@@ -357,22 +312,26 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             onColorChanged = { updateSubtitlePreview() }
         )
 
-        val subtitleBgStyles = SubtitleBgStyle.entries.toTypedArray()
         fun subtitleBgLabel(style: SubtitleBgStyle): String = when (style) {
             SubtitleBgStyle.NONE -> getString(R.string.settings_subtitle_bg_none)
             SubtitleBgStyle.SEMI_TRANSPARENT -> getString(R.string.settings_subtitle_bg_semi)
             SubtitleBgStyle.OPAQUE -> getString(R.string.settings_subtitle_bg_opaque)
         }
-        var bgIndex = subtitleBgStyles.indexOf(playerPrefs.subtitleBgStyle).takeIf { it >= 0 } ?: 1
         fun updateBgText() {
-            tvBg.text = subtitleBgLabel(subtitleBgStyles[bgIndex])
+            tvBg.text = subtitleBgLabel(playerPrefs.subtitleBgStyle)
         }
         updateBgText()
         tvBg.setOnClickListener {
-            bgIndex = (bgIndex + 1) % subtitleBgStyles.size
-            playerPrefs.subtitleBgStyle = subtitleBgStyles[bgIndex]
-            updateBgText()
-            updateSubtitlePreview()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.settings_subtitle_bg),
+                items = SubtitleBgStyle.entries.map { it to subtitleBgLabel(it) },
+                selected = playerPrefs.subtitleBgStyle
+            ) { style ->
+                playerPrefs.subtitleBgStyle = style
+                updateBgText()
+                updateSubtitlePreview()
+            }
         }
 
         var pendingSubtitlePosition = playerPrefs.subtitlePosition
@@ -415,16 +374,21 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             onColorChanged = { updateSecondarySubtitlePreview() }
         )
 
-        var secondaryBgIndex = subtitleBgStyles.indexOf(playerPrefs.secondarySubtitleBgStyle).takeIf { it >= 0 } ?: 1
         fun updateSecondaryBgText() {
-            tvSecondaryBg.text = subtitleBgLabel(subtitleBgStyles[secondaryBgIndex])
+            tvSecondaryBg.text = subtitleBgLabel(playerPrefs.secondarySubtitleBgStyle)
         }
         updateSecondaryBgText()
         tvSecondaryBg.setOnClickListener {
-            secondaryBgIndex = (secondaryBgIndex + 1) % subtitleBgStyles.size
-            playerPrefs.secondarySubtitleBgStyle = subtitleBgStyles[secondaryBgIndex]
-            updateSecondaryBgText()
-            updateSecondarySubtitlePreview()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.settings_subtitle_bg),
+                items = SubtitleBgStyle.entries.map { it to subtitleBgLabel(it) },
+                selected = playerPrefs.secondarySubtitleBgStyle
+            ) { style ->
+                playerPrefs.secondarySubtitleBgStyle = style
+                updateSecondaryBgText()
+                updateSecondarySubtitlePreview()
+            }
         }
 
         var pendingSecondarySubtitlePosition = playerPrefs.secondarySubtitlePosition
@@ -444,13 +408,22 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         })
 
         val encodings = arrayOf("auto", "UTF-8", "GBK", "GB2312", "Big5", "Shift_JIS", "EUC-KR")
-        var encIndex = encodings.indexOf(playerPrefs.subtitleEncoding).takeIf { it >= 0 } ?: 0
-        fun updateEncText() { tvEncoding.text = if (encIndex == 0) getString(R.string.settings_encoding_auto) else encodings[encIndex] }
+        fun encodingLabel(encoding: String): String =
+            if (encoding == "auto") getString(R.string.settings_encoding_auto) else encoding
+        fun updateEncText() {
+            tvEncoding.text = encodingLabel(playerPrefs.subtitleEncoding)
+        }
         updateEncText()
         tvEncoding.setOnClickListener {
-            encIndex = (encIndex + 1) % encodings.size
-            playerPrefs.subtitleEncoding = encodings[encIndex]
-            updateEncText()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.settings_subtitle_encoding),
+                items = encodings.map { it to encodingLabel(it) },
+                selected = playerPrefs.subtitleEncoding
+            ) { encoding ->
+                playerPrefs.subtitleEncoding = encoding
+                updateEncText()
+            }
         }
     }
 }

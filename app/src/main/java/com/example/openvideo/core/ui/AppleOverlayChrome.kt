@@ -1,6 +1,7 @@
 package com.example.openvideo.core.ui
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -13,8 +14,10 @@ import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.WindowCompat
 import com.example.openvideo.R
 
 object AppleOverlayChrome {
@@ -144,22 +147,62 @@ object AppleOverlayChrome {
         minHeightDp: Int = 56,
         textSizeSp: Float = ROW_TEXT_SP,
         onClick: () -> Unit
-    ): TextView = TextView(context).apply {
-        text = action.title
-        gravity = Gravity.CENTER
-        setTextColor(colors.colorFor(action.style))
-        textSize = textSizeSp
-        typeface = if (action.bold || action.style == AppleActionStyle.CANCEL) {
-            Typeface.DEFAULT_BOLD
-        } else {
-            Typeface.DEFAULT
+    ): View {
+        val onRowClick = View.OnClickListener {
+            if (action.style == AppleActionStyle.DESTRUCTIVE) {
+                AppleHaptics.light(it)
+            }
+            onClick()
         }
-        includeFontPadding = false
-        minHeight = dp(context, minHeightDp)
-        isClickable = true
-        isFocusable = true
-        foreground = selectableForeground(context)
-        setOnClickListener { onClick() }
+        if (action.selected == null) {
+            return TextView(context).apply {
+                text = action.title
+                gravity = Gravity.CENTER
+                setTextColor(colors.colorFor(action.style))
+                textSize = textSizeSp
+                typeface = if (action.bold || action.style == AppleActionStyle.CANCEL) {
+                    Typeface.DEFAULT_BOLD
+                } else {
+                    Typeface.DEFAULT
+                }
+                includeFontPadding = false
+                minHeight = dp(context, minHeightDp)
+                isClickable = true
+                isFocusable = true
+                foreground = selectableForeground(context)
+                setOnClickListener(onRowClick)
+            }
+        }
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(context, minHeightDp)
+            isClickable = true
+            isFocusable = true
+            descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+            foreground = selectableForeground(context)
+            contentDescription = action.title
+            setPadding(dp(context, 20), 0, dp(context, 16), 0)
+            setOnClickListener(onRowClick)
+            addView(TextView(context).apply {
+                text = action.title
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                setTextColor(
+                    if (action.style == AppleActionStyle.DESTRUCTIVE) colors.danger else colors.title
+                )
+                textSize = textSizeSp
+                includeFontPadding = false
+                maxLines = 1
+            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(ImageView(context).apply {
+                setImageResource(R.drawable.ic_check)
+                imageTintList = ColorStateList.valueOf(colors.accent)
+                visibility = if (action.selected == true) View.VISIBLE else View.GONE
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }, LinearLayout.LayoutParams(dp(context, 22), dp(context, 22)).apply {
+                marginStart = dp(context, 8)
+            })
+        }
     }
 
     fun configureBottomWindow(
@@ -168,14 +211,25 @@ object AppleOverlayChrome {
         colors: AppleOverlayColors,
         blur: Boolean
     ) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window.setGravity(Gravity.BOTTOM)
-        window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
+        window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        window.attributes = window.attributes.apply { dimAmount = colors.dimAmount }
+        window.attributes = window.attributes.apply {
+            gravity = Gravity.BOTTOM
+            width = WindowManager.LayoutParams.MATCH_PARENT
+            height = WindowManager.LayoutParams.MATCH_PARENT
+            dimAmount = colors.dimAmount
+        }
         if (blur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             window.setBackgroundBlurRadius(dp(context, 20))
         }
+    }
+
+    fun bindScrimDismiss(host: View, sheet: View, onDismiss: () -> Unit) {
+        host.setOnClickListener { onDismiss() }
+        sheet.isClickable = true
     }
 
     fun configureCenterWindow(window: Window, colors: AppleOverlayColors) {

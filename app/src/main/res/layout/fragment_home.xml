@@ -87,6 +87,20 @@
             android:layout_weight="1"
             android:text="@string/home_title_video" />
 
+        <TextView
+            android:id="@+id/btn_select"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/ov_icon_button_size"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:minWidth="@dimen/ov_touch_min"
+            android:paddingHorizontal="@dimen/ov_space_sm"
+            android:text="@string/action_select"
+            android:textColor="@color/ov_accent_blue"
+            android:textSize="@dimen/ov_text_body" />
+
         <ImageButton
             android:id="@+id/btn_open_url"
             android:layout_width="@dimen/ov_icon_button_size"
@@ -107,6 +121,64 @@
             android:contentDescription="@string/refresh"
             android:src="@drawable/ic_refresh"
             app:tint="@color/ov_text_secondary" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/edit_actions"
+        android:layout_width="0dp"
+        android:layout_height="44dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/ov_space_page"
+        android:paddingEnd="@dimen/ov_space_page"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header_row">
+
+        <TextView
+            android:id="@+id/tv_select_count"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_caption" />
+
+        <TextView
+            android:id="@+id/btn_select_all"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/ov_space_sm"
+            android:text="@string/select_all"
+            android:textColor="@color/ov_accent_blue"
+            android:textSize="@dimen/ov_text_body" />
+
+        <TextView
+            android:id="@+id/btn_favorite_selected"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/ov_space_sm"
+            android:text="@string/favorite_selected"
+            android:textColor="@color/ov_accent_blue"
+            android:textSize="@dimen/ov_text_body" />
+
+        <TextView
+            android:id="@+id/btn_delete_selected"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/ov_space_sm"
+            android:text="@string/delete_selected"
+            android:textColor="@color/ov_danger"
+            android:textSize="@dimen/ov_text_body" />
     </LinearLayout>
 
     <EditText
@@ -130,64 +202,66 @@
         android:visibility="gone"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header_row" />
+        app:layout_constraintTop_toBottomOf="@id/edit_actions" />
 
-    <HorizontalScrollView
+    <LinearLayout
         android:id="@+id/category_scroll"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="32dp"
+        android:layout_marginStart="@dimen/ov_space_page"
         android:layout_marginTop="12dp"
-        android:scrollbars="none"
+        android:layout_marginEnd="@dimen/ov_space_page"
+        android:background="@drawable/bg_segmented_track"
+        android:orientation="horizontal"
+        android:padding="2dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/search_view">
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/category_group"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            app:selectionRequired="true"
-            app:singleSelection="true">
+        <TextView
+            android:id="@+id/chip_all"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_segment_selected"
+            android:clickable="true"
+            android:ellipsize="end"
+            android:focusable="true"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="@string/home_filter_all"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_all"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="@string/home_filter_all"
-                android:textColor="@color/ov_text_primary"
-                app:checkedIconVisible="false"
-                app:chipBackgroundColor="@color/ov_accent_blue"
-                app:chipStrokeColor="@color/ov_accent_blue"
-                app:chipStrokeWidth="1dp" />
+        <TextView
+            android:id="@+id/chip_recent"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:ellipsize="end"
+            android:focusable="true"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="@string/home_filter_recent"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
 
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_recent"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/home_filter_recent"
-                android:textColor="@color/ov_text_secondary"
-                app:checkedIconVisible="false"
-                app:chipBackgroundColor="@color/ov_bg_elevated"
-                app:chipStrokeColor="@color/ov_divider"
-                app:chipStrokeWidth="1dp" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_favorite"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/home_filter_favorite"
-                android:textColor="@color/ov_text_secondary"
-                app:checkedIconVisible="false"
-                app:chipBackgroundColor="@color/ov_bg_elevated"
-                app:chipStrokeColor="@color/ov_divider"
-                app:chipStrokeWidth="1dp" />
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
+        <TextView
+            android:id="@+id/chip_favorite"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:ellipsize="end"
+            android:focusable="true"
+            android:gravity="center"
+            android:maxLines="1"
+            android:text="@string/home_filter_favorite"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
     <LinearLayout
         android:id="@+id/sort_row"
@@ -313,21 +387,48 @@
         app:layout_constraintStart_toStartOf="@id/video_pages"
         app:layout_constraintTop_toTopOf="@id/video_pages" />
 
-    <TextView
-        android:id="@+id/tv_empty"
+    <LinearLayout
+        android:id="@+id/empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:focusable="true"
-        android:foreground="@drawable/bg_focusable_card"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="10dp"
-        android:text="@string/no_videos"
-        android:textColor="@color/ov_text_secondary"
-        android:textSize="16sp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/video_pages"
         app:layout_constraintEnd_toEndOf="@id/video_pages"
         app:layout_constraintStart_toStartOf="@id/video_pages"
-        app:layout_constraintTop_toTopOf="@id/video_pages" />
+        app:layout_constraintTop_toTopOf="@id/video_pages">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_movie"
+            app:tint="@color/ov_text_tertiary" />
+
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:focusable="true"
+            android:foreground="@drawable/bg_focusable_card"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
+            android:text="@string/no_videos"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_empty_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/empty_hint_videos"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

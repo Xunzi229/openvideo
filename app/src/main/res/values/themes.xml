@@ -17,6 +17,8 @@
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="switchStyle">@style/Widget.OpenVideo.Switch.Legacy</item>
+        <item name="materialSwitchStyle">@style/Widget.OpenVideo.Switch</item>
     </style>
 
     <style name="Theme.OpenVideo.Player" parent="Theme.OpenVideo">
@@ -151,6 +153,17 @@
         <item name="android:orientation">horizontal</item>
         <item name="android:paddingStart">@dimen/ov_space_lg</item>
         <item name="android:paddingEnd">@dimen/ov_space_md</item>
+    </style>
+
+    <style name="Widget.OpenVideo.Switch" parent="Widget.Material3.CompoundButton.MaterialSwitch">
+        <item name="thumbTint">@color/ov_switch_thumb_tint</item>
+        <item name="trackTint">@color/ov_switch_track</item>
+        <item name="trackDecorationTint">@android:color/transparent</item>
+    </style>
+
+    <style name="Widget.OpenVideo.Switch.Legacy" parent="Widget.MaterialComponents.CompoundButton.Switch">
+        <item name="thumbTint">@color/ov_switch_thumb_tint</item>
+        <item name="trackTint">@color/ov_switch_track</item>
     </style>
 
     <style name="Widget.OpenVideo.Chevron" parent="">

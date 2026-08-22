@@ -5,10 +5,10 @@ import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -18,6 +18,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 import com.example.openvideo.data.model.VideoItem
 
 class VideoGridAdapter(
@@ -65,7 +66,8 @@ class VideoGridAdapter(
         val resolution: TextView? = view.findViewById(R.id.tv_resolution)
         val thumbnailLoading: ProgressBar? = view.findViewById(R.id.thumbnail_loading)
         val moreBtn: View? = view.findViewById(R.id.btn_more)
-        val checkBox: CheckBox? = view.findViewById(R.id.cb_select)
+        val checkBox: ImageView? = view.findViewById(R.id.cb_select)
+        val hairline: View? = view.findViewById(R.id.row_hairline)
 
         init {
             view.setOnClickListener {
@@ -85,13 +87,15 @@ class VideoGridAdapter(
             view.setOnLongClickListener {
                 val pos = bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
-                    if (!isMultiSelectMode) {
+                    if (onLongClick != null && !isMultiSelectMode) {
                         startMultiSelectMode()
                         toggleSelection(getItem(pos))
                     }
                     onLongClick?.invoke(getItem(pos))
+                    onLongClick != null
+                } else {
+                    false
                 }
-                true
             }
             moreBtn?.setOnClickListener { btn ->
                 val pos = bindingAdapterPosition
@@ -119,6 +123,7 @@ class VideoGridAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val layout = if (viewType == TYPE_GRID) R.layout.item_video_grid else R.layout.item_video
         val view = LayoutInflater.from(parent.context).inflate(layout, parent, false)
+        (view.findViewById<View>(R.id.iv_thumbnail).parent as View).clipToOutline = true
         return ViewHolder(view)
     }
 
@@ -135,14 +140,20 @@ class VideoGridAdapter(
         holder.size?.text = continueWatchingBadge?.progressLabel ?: formatSize(item.size)
         holder.resolution?.text = continueWatchingBadge?.watchedTimeLabel ?: "${item.width}x${item.height}"
 
-        // Multi-select UI
         val isSelected = selectedItems.contains(item.id)
-        holder.checkBox?.visibility = if (isMultiSelectMode) View.VISIBLE else View.GONE
-        holder.checkBox?.isChecked = isSelected
+        bindSelectMark(holder.checkBox, isSelected)
+        holder.moreBtn?.visibility = if (isMultiSelectMode) View.GONE else View.VISIBLE
         holder.itemView.setBackgroundColor(
-            if (isSelected) Color.argb(40, 33, 150, 243) else Color.TRANSPARENT
+            if (isSelected) {
+                ContextCompat.getColor(holder.itemView.context, R.color.ov_accent_blue_soft)
+            } else {
+                Color.TRANSPARENT
+            }
         )
         holder.itemView.alpha = if (continueWatchingBadge?.isAvailable == false) 0.6f else 1f
+        if (viewMode == ViewMode.LIST) {
+            GroupedListChrome.bindContained(holder.hairline, position, itemCount)
+        }
 
         holder.onLoadStarted()
         Glide.with(holder.thumbnail)
@@ -218,6 +229,23 @@ class VideoGridAdapter(
     }
 
     fun getSelectedCount(): Int = selectedItems.size
+
+    private fun bindSelectMark(mark: ImageView?, selected: Boolean) {
+        if (mark == null) return
+        if (!isMultiSelectMode) {
+            mark.visibility = View.GONE
+            return
+        }
+        mark.visibility = View.VISIBLE
+        if (selected) {
+            mark.setBackgroundResource(R.drawable.bg_select_circle_on)
+            mark.setImageResource(R.drawable.ic_check)
+            mark.imageTintList = ContextCompat.getColorStateList(mark.context, android.R.color.white)
+        } else {
+            mark.setBackgroundResource(R.drawable.bg_select_circle_off)
+            mark.setImageDrawable(null)
+        }
+    }
 
     private fun formatDuration(ms: Long): String {
         val totalSec = ms / 1000

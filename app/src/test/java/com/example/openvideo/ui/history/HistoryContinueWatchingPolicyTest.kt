@@ -15,7 +15,7 @@ class HistoryContinueWatchingPolicyTest {
             history = listOf(history(duration = 120_000, lastPosition = 30_000, timestamp = 3_540_000)),
             labels = labels,
             nowMs = 3_600_000,
-            localFileExists = { true }
+            isAvailable = { true }
         )
 
         assertEquals(1, items.size)
@@ -31,7 +31,7 @@ class HistoryContinueWatchingPolicyTest {
             history = listOf(history(path = "/missing.mp4")),
             labels = labels,
             nowMs = 10_000,
-            localFileExists = { false }
+            isAvailable = { false }
         )
 
         assertEquals(1, items.size)
@@ -46,10 +46,24 @@ class HistoryContinueWatchingPolicyTest {
             history = listOf(history(duration = 90_000, lastPosition = 0)),
             labels = labels,
             nowMs = 10_000,
-            localFileExists = { true }
+            isAvailable = { true }
         )
 
         assertEquals("Completed", items[0].progressLabel)
+    }
+
+    @Test
+    fun buildItemsKeepsLibraryVideosAvailableWhenCheckerUsesVideoId() {
+        val labels = HistoryContinueWatchingLabels.englishDefaults()
+        val items = HistoryContinueWatchingPolicy.buildItems(
+            history = listOf(history(path = "content://media/external/video/media/9")),
+            labels = labels,
+            nowMs = 10_000,
+            isAvailable = { entity -> entity.videoId == 1L }
+        )
+
+        assertTrue(items[0].isAvailable)
+        assertEquals("25%", items[0].progressLabel)
     }
 
     private fun history(

@@ -2,22 +2,22 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_home"
-        android:icon="@drawable/ic_home"
+        android:icon="@drawable/ic_nav_home"
         android:title="@string/nav_home" />
     <item
         android:id="@+id/nav_video"
-        android:icon="@drawable/ic_movie"
+        android:icon="@drawable/ic_nav_video"
         android:title="@string/nav_video" />
     <item
         android:id="@+id/nav_sources"
-        android:icon="@drawable/ic_stream"
+        android:icon="@drawable/ic_nav_sources"
         android:title="@string/nav_sources" />
     <item
         android:id="@+id/nav_playlist"
-        android:icon="@drawable/ic_playlist"
+        android:icon="@drawable/ic_nav_playlist"
         android:title="@string/nav_playlist" />
     <item
         android:id="@+id/nav_mine"
-        android:icon="@drawable/ic_person"
+        android:icon="@drawable/ic_nav_mine"
         android:title="@string/nav_mine" />
 </menu>

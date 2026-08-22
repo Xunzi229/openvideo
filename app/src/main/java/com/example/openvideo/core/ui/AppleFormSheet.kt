@@ -95,6 +95,9 @@ class AppleFormSheet private constructor(
         host.addView(root, FrameLayout.LayoutParams(sheetWidth, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         })
+        AppleOverlayChrome.bindScrimDismiss(host, root) {
+            dismissWithAnimation { super.dismiss() }
+        }
         return host
     }
 

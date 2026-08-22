@@ -3,10 +3,10 @@ package com.example.openvideo.ui.player
 import android.view.View
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.openvideo.R
 import com.example.openvideo.core.player.PlayerManager
+import com.example.openvideo.core.ui.AppleHud
 
 class PlayerControlsBinder(
     private val activity: AppCompatActivity,
@@ -98,7 +98,7 @@ class PlayerControlsBinder(
         }
 
         activity.findViewById<View>(R.id.btn_land_cast)?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {
-            Toast.makeText(activity, R.string.player_land_cast, Toast.LENGTH_SHORT).show()
+            AppleHud.show(activity, R.string.player_land_cast)
         }
 
         activity.findViewById<View>(R.id.portrait_btn_quality)?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {
@@ -158,17 +158,9 @@ class PlayerControlsBinder(
         playerManager.takeScreenshot(videoView) { success, path ->
             activity.runOnUiThread {
                 if (success) {
-                    Toast.makeText(
-                        activity,
-                        activity.getString(R.string.player_screenshot_saved, path),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(activity, activity.getString(R.string.player_screenshot_saved, path))
                 } else {
-                    Toast.makeText(
-                        activity,
-                        activity.getString(R.string.player_screenshot_failed),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(activity, R.string.player_screenshot_failed)
                 }
             }
         }

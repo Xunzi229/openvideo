@@ -15,6 +15,8 @@ class HomeRecentContinueWatchingSourceTest {
         assertTrue(source.contains("val recentContinueWatchingBadges"))
         assertTrue(source.contains("HistoryContinueWatchingPolicy.buildItems("))
         assertTrue(source.contains("ContinueWatchingBadge("))
+        assertTrue(source.contains("entity.videoId in scannedIds"))
+        assertTrue(source.contains("LocalMediaUriPolicy.isPlayable(entity.path)"))
     }
 
     @Test

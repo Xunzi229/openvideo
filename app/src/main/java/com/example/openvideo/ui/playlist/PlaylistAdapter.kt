@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 import com.example.openvideo.data.local.PlaylistEntity
 
 class PlaylistAdapter(
@@ -27,6 +28,7 @@ class PlaylistAdapter(
         val name: TextView = view.findViewById(R.id.tv_playlist_name)
         val count: TextView = view.findViewById(R.id.tv_video_count)
         val moreBtn: ImageButton = view.findViewById(R.id.btn_more)
+        val hairline: View = view.findViewById(R.id.row_hairline)
 
         init {
             view.setOnClickListener {
@@ -50,5 +52,6 @@ class PlaylistAdapter(
         val item = getItem(position)
         holder.name.text = item.name
         holder.count.text = "${item.createdAt}"
+        GroupedListChrome.bind(holder.itemView, holder.hairline, position, itemCount)
     }
 }

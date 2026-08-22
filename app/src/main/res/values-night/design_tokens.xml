@@ -12,6 +12,7 @@
     <color name="ov_dialog_stroke">#33787880</color>
     <color name="ov_search_bg">#3D767680</color>
     <color name="ov_tab_bar_stroke">#33787880</color>
+    <color name="ov_tab_bar_fill">#F21C1C1E</color>
 
     <color name="ov_accent_blue">#FF0A84FF</color>
     <color name="ov_accent_blue_pressed">#FF409CFF</color>
@@ -31,4 +32,10 @@
     <color name="ov_overlay_message">#FFAEAEB2</color>
     <color name="ov_overlay_hairline">#3DFFFFFF</color>
     <color name="ov_overlay_input">#FF2C2C2E</color>
+    <color name="ov_segment_selected">#FF636366</color>
+    <color name="ov_hud_bg">#E61C1C1E</color>
+    <color name="ov_hud_text">#FFFFFFFF</color>
+    <color name="ov_switch_on">#FF30D158</color>
+    <color name="ov_switch_off">#FF39393D</color>
+    <color name="ov_switch_thumb">#FFFFFFFF</color>
 </resources>
