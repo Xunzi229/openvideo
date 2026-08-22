@@ -14,13 +14,13 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.data.local.HistoryEntity
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.putSessionQueue
 import com.example.openvideo.ui.player.toSessionVideoItem
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import java.io.File
 
 @AndroidEntryPoint
 class HistoryFragment : Fragment() {
@@ -72,7 +72,7 @@ class HistoryFragment : Fragment() {
                         history = list,
                         labels = HistoryContinueWatchingLabels.from(requireContext()),
                         nowMs = System.currentTimeMillis(),
-                        localFileExists = { path -> File(path).exists() }
+                        isAvailable = { entity -> LocalMediaUriPolicy.isPlayable(entity.path) }
                     )
                     historySnapshot = items
                     adapter.submitList(items)

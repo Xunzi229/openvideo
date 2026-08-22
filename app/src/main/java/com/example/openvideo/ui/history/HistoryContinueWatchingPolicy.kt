@@ -16,10 +16,10 @@ object HistoryContinueWatchingPolicy {
         history: List<HistoryEntity>,
         labels: HistoryContinueWatchingLabels,
         nowMs: Long,
-        localFileExists: (String) -> Boolean
+        isAvailable: (HistoryEntity) -> Boolean
     ): List<HistoryContinueWatchingItem> {
         return history.map { entity ->
-            val available = localFileExists(entity.path)
+            val available = isAvailable(entity)
             HistoryContinueWatchingItem(
                 entity = entity,
                 watchedTimeLabel = relativeTimeLabel(labels, nowMs, entity.timestamp),
