@@ -4,6 +4,7 @@ import android.widget.TextView
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.ContentFrameMode
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.AppleActionSheet
 
 object PlayerDisplayContentFrameControls {
 
@@ -27,16 +28,24 @@ object PlayerDisplayContentFrameControls {
         }
         updateText()
         tvValue.setOnClickListener {
-            val nextIndex = (getIndex() + 1) % modes.size
-            val selection = PlayerContentFrameSettingsPolicy.onModeSelected(
-                mode = modes[nextIndex],
-                currentAspectRatio = playerPrefs.aspectRatio
-            )
-            setIndex(modes.indexOf(selection.mode).coerceAtLeast(0))
-            playerPrefs.contentFrameMode = selection.mode
-            selection.aspectRatioOverride?.let { playerPrefs.aspectRatio = it }
-            updateText()
-            onApplied?.invoke()
+            AppleActionSheet.showPicker(
+                context = tvValue.context,
+                title = tvValue.resources.getString(R.string.settings_content_frame),
+                items = modes.map { mode ->
+                    mode to tvValue.resources.getString(labelRes(mode))
+                },
+                selected = modes.getOrNull(getIndex())
+            ) { mode ->
+                val selection = PlayerContentFrameSettingsPolicy.onModeSelected(
+                    mode = mode,
+                    currentAspectRatio = playerPrefs.aspectRatio
+                )
+                setIndex(modes.indexOf(selection.mode).coerceAtLeast(0))
+                playerPrefs.contentFrameMode = selection.mode
+                selection.aspectRatioOverride?.let { playerPrefs.aspectRatio = it }
+                updateText()
+                onApplied?.invoke()
+            }
         }
     }
 }

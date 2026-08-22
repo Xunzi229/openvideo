@@ -113,6 +113,7 @@ jobs:
           --tests "com.example.openvideo.ui.player.PlayerSmartCropSourceTest"
           --tests "com.example.openvideo.ui.settings.SettingsLanguageRowSourceTest"
           --tests "com.example.openvideo.ui.home.HomeSortControlSourceTest"
+          --tests "com.example.openvideo.ui.player.PlayerPlaybackEndBehaviorSourceTest"
 
       - name: Build preview APKs
         run: .\gradlew.bat :app:assembleRelease -POPENVIDEO_ABI_SPLITS=true

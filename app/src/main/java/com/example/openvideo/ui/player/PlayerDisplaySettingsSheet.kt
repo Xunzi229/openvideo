@@ -1,17 +1,15 @@
 package com.example.openvideo.ui.player
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.TextView
 import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.AspectRatio
+import com.example.openvideo.core.ui.AppleActionSheet
 
 @AndroidEntryPoint
 class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
@@ -21,11 +19,10 @@ class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
     @Inject lateinit var playerPrefs: PlayerPrefs
 
     private val aspectRatios = AspectRatio.entries.toTypedArray()
-    private val rotations = intArrayOf(0, 90, 180, 270)
+    private val rotations = listOf(0, 90, 180, 270)
     private var aspectIndex = 0
     private var contentFrameIndex = 0
     private var rotationIndex = 0
-
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -42,8 +39,8 @@ class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
         val swMirror = view.findViewById<SwitchMaterial>(R.id.sw_mirror)
         val swAutoOrientation = view.findViewById<SwitchMaterial>(R.id.sw_auto_orientation)
 
-        fun updateAspectText() {
-            val textRes = when (aspectRatios[aspectIndex]) {
+        fun aspectLabel(ratio: AspectRatio): String = getString(
+            when (ratio) {
                 AspectRatio.FIT -> R.string.settings_ratio_fit
                 AspectRatio.FILL -> R.string.settings_ratio_fill
                 AspectRatio.CROP -> R.string.settings_ratio_crop
@@ -51,24 +48,32 @@ class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
                 AspectRatio.RATIO_4_3 -> R.string.settings_ratio_4_3
                 AspectRatio.RATIO_16_9 -> R.string.settings_ratio_16_9
             }
-            tvAspect.setText(textRes)
+        )
+        fun updateAspectText() {
+            tvAspect.text = aspectLabel(aspectRatios[aspectIndex])
         }
         updateAspectText()
-
         tvAspect.setOnClickListener {
-            aspectIndex = (aspectIndex + 1) % aspectRatios.size
-            val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
-                aspectRatio = aspectRatios[aspectIndex],
-                currentContentFrameMode = playerPrefs.contentFrameMode
-            )
-            playerPrefs.aspectRatio = selection.aspectRatio
-            selection.contentFrameOverride?.let {
-                playerPrefs.contentFrameMode = it
-                contentFrameIndex = 0
-                tvContentFrame.setText(PlayerDisplayContentFrameControls.labelRes(it))
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.settings_aspect_ratio),
+                items = aspectRatios.map { it to aspectLabel(it) },
+                selected = aspectRatios[aspectIndex]
+            ) { ratio ->
+                aspectIndex = aspectRatios.indexOf(ratio).coerceAtLeast(0)
+                val selection = PlayerContentFrameSettingsPolicy.onAspectRatioSelected(
+                    aspectRatio = ratio,
+                    currentContentFrameMode = playerPrefs.contentFrameMode
+                )
+                playerPrefs.aspectRatio = selection.aspectRatio
+                selection.contentFrameOverride?.let {
+                    playerPrefs.contentFrameMode = it
+                    contentFrameIndex = 0
+                    tvContentFrame.setText(PlayerDisplayContentFrameControls.labelRes(it))
+                }
+                updateAspectText()
+                (activity as? PlayerActivity)?.refreshPlayerDisplayFromSettings()
             }
-            updateAspectText()
-            (activity as? PlayerActivity)?.refreshPlayerDisplayFromSettings()
         }
 
         PlayerDisplayContentFrameControls.bind(
@@ -86,9 +91,16 @@ class PlayerDisplaySettingsSheet : BaseSettingsSheet() {
         }
         updateRotationText()
         tvRotation.setOnClickListener {
-            rotationIndex = (rotationIndex + 1) % rotations.size
-            playerPrefs.rotation = rotations[rotationIndex]
-            updateRotationText()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.settings_rotation),
+                items = rotations.map { it to "${it}°" },
+                selected = rotations[rotationIndex]
+            ) { rotation ->
+                rotationIndex = rotations.indexOf(rotation).coerceAtLeast(0)
+                playerPrefs.rotation = rotation
+                updateRotationText()
+            }
         }
 
         swMirror.isChecked = playerPrefs.mirror

@@ -328,6 +328,88 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
     }
 
+    @Test
+    fun batchSixSettingsPickersUseThemedActionSheets() {
+        val colors = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleOverlayColors.kt"
+        ).readText()
+        val actionSheet = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleActionSheet.kt"
+        ).readText()
+        val playbackActivity = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerPlaybackSettingsActivity.kt"
+        ).readText()
+        val playbackSheet = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerPlaybackSettingsSheet.kt"
+        ).readText()
+        val playbackLayout = rootFile(
+            "app", "src", "main", "res", "layout", "activity_player_playback_settings.xml"
+        ).readText()
+        val subtitleSheet = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerSubtitleSettingsSheet.kt"
+        ).readText()
+        val displaySheet = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerDisplaySettingsSheet.kt"
+        ).readText()
+        val displayActivity = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerDisplaySettingsActivity.kt"
+        ).readText()
+        val contentFrame = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerDisplayContentFrameControls.kt"
+        ).readText()
+        val audioSheet = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerAudioSettingsSheet.kt"
+        ).readText()
+        val gestureSheet = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerGestureSettingsSheet.kt"
+        ).readText()
+        val speedOptions = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerPlaybackSpeedOptions.kt"
+        ).readText()
+        val dialog = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player",
+            "PlayerQuickDialogController.kt"
+        ).readText()
+
+        assertTrue(colors.contains("createConfigurationContext"))
+        assertTrue(colors.contains("R.color.player_bg"))
+        assertTrue(colors.contains("UI_MODE_NIGHT_YES"))
+        assertTrue(actionSheet.contains("fun <T> showPicker"))
+        assertTrue(actionSheet.contains("defaultFocusCancel = false"))
+        assertTrue(playbackLayout.contains("@+id/tv_speed_value"))
+        assertTrue(!playbackLayout.contains("rg_speed_settings"))
+        assertTrue(playbackActivity.contains("AppleActionSheet.showPicker"))
+        assertTrue(!playbackActivity.contains("AlertDialog.Builder"))
+        assertTrue(playbackSheet.contains("override fun settingsSheetDefaultFocusId(): Int = R.id.tv_speed_value"))
+        assertTrue(playbackSheet.contains("AppleActionSheet.showPicker"))
+        assertTrue(!playbackSheet.contains("AlertDialog.Builder"))
+        assertTrue(subtitleSheet.contains("AppleActionSheet.showPicker"))
+        assertTrue(!subtitleSheet.contains("nextLanguageKey"))
+        assertTrue(!subtitleSheet.contains("% encodings.size"))
+        assertTrue(!subtitleSheet.contains("% subtitleBgStyles.size"))
+        assertTrue(displaySheet.contains("AppleActionSheet.showPicker"))
+        assertTrue(!displaySheet.contains("aspectIndex + 1"))
+        assertTrue(displayActivity.contains("AppleActionSheet.showPicker"))
+        assertTrue(contentFrame.contains("AppleActionSheet.showPicker"))
+        assertTrue(!contentFrame.contains("% modes.size"))
+        assertTrue(audioSheet.contains("AppleActionSheet.showPicker"))
+        assertTrue(!audioSheet.contains("% channels.size"))
+        assertTrue(gestureSheet.contains("AppleActionSheet.showPicker"))
+        assertTrue(!gestureSheet.contains("% gestureActions.size"))
+        assertTrue(speedOptions.contains("0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f"))
+        assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM"))
+        assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
+    }
+
     private fun Path.readText(): String = String(Files.readAllBytes(this))
 
     private fun rootFile(vararg parts: String): Path =

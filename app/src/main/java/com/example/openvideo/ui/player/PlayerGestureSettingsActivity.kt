@@ -1,12 +1,16 @@
 package com.example.openvideo.ui.player
 
 import android.os.Bundle
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.example.openvideo.R
+import com.example.openvideo.core.prefs.DoubleTapAction
+import com.example.openvideo.core.prefs.GestureAction
+import com.example.openvideo.core.prefs.LongPressAction
+import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.AppleActionSheet
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import com.example.openvideo.core.prefs.PlayerPrefs
-import android.widget.TextView
 
 @AndroidEntryPoint
 class PlayerGestureSettingsActivity : ComponentActivity() {
@@ -24,61 +28,85 @@ class PlayerGestureSettingsActivity : ComponentActivity() {
         val tvHorizontal = findViewById<TextView>(R.id.tv_horizontal_action)
         val tvSensitivity = findViewById<TextView>(R.id.tv_sensitivity_value)
 
-        val gestureActions = com.example.openvideo.core.prefs.GestureAction.entries.toTypedArray()
-        val doubleTapActions = com.example.openvideo.core.prefs.DoubleTapAction.entries.toTypedArray()
-        val longPressActions = com.example.openvideo.core.prefs.LongPressAction.entries.toTypedArray()
-
         tvLeft.post {
             tvLeft.requestFocus()
         }
 
+        fun sensitivityLabel(level: Int): String = when (level) {
+            1 -> getString(R.string.settings_sensitivity_low)
+            2 -> getString(R.string.settings_sensitivity_medium)
+            else -> getString(R.string.settings_sensitivity_high)
+        }
         fun updateAllTexts() {
             tvLeft.text = playerPrefs.leftVerticalGesture.key
             tvRight.text = playerPrefs.rightVerticalGesture.key
             tvDoubleTap.text = playerPrefs.doubleTapAction.key
             tvLongPress.text = playerPrefs.longPressAction.key
             tvHorizontal.text = playerPrefs.horizontalSwipeAction.key
-            tvSensitivity.text = when (playerPrefs.gestureSensitivity) {
-                1 -> getString(R.string.settings_sensitivity_low)
-                2 -> getString(R.string.settings_sensitivity_medium)
-                else -> getString(R.string.settings_sensitivity_high)
-            }
+            tvSensitivity.text = sensitivityLabel(playerPrefs.gestureSensitivity)
         }
         updateAllTexts()
 
         tvLeft.setOnClickListener {
-            val idx = gestureActions.indexOf(playerPrefs.leftVerticalGesture)
-            playerPrefs.leftVerticalGesture = gestureActions[(idx + 1) % gestureActions.size]
-            updateAllTexts()
+            AppleActionSheet.showPicker(
+                context = this,
+                items = GestureAction.entries.map { it to it.key },
+                selected = playerPrefs.leftVerticalGesture
+            ) { action ->
+                playerPrefs.leftVerticalGesture = action
+                updateAllTexts()
+            }
         }
-
         tvRight.setOnClickListener {
-            val idx = gestureActions.indexOf(playerPrefs.rightVerticalGesture)
-            playerPrefs.rightVerticalGesture = gestureActions[(idx + 1) % gestureActions.size]
-            updateAllTexts()
+            AppleActionSheet.showPicker(
+                context = this,
+                items = GestureAction.entries.map { it to it.key },
+                selected = playerPrefs.rightVerticalGesture
+            ) { action ->
+                playerPrefs.rightVerticalGesture = action
+                updateAllTexts()
+            }
         }
-
         tvDoubleTap.setOnClickListener {
-            val idx = doubleTapActions.indexOf(playerPrefs.doubleTapAction)
-            playerPrefs.doubleTapAction = doubleTapActions[(idx + 1) % doubleTapActions.size]
-            updateAllTexts()
+            AppleActionSheet.showPicker(
+                context = this,
+                items = DoubleTapAction.entries.map { it to it.key },
+                selected = playerPrefs.doubleTapAction
+            ) { action ->
+                playerPrefs.doubleTapAction = action
+                updateAllTexts()
+            }
         }
-
         tvLongPress.setOnClickListener {
-            val idx = longPressActions.indexOf(playerPrefs.longPressAction)
-            playerPrefs.longPressAction = longPressActions[(idx + 1) % longPressActions.size]
-            updateAllTexts()
+            AppleActionSheet.showPicker(
+                context = this,
+                items = LongPressAction.entries.map { it to it.key },
+                selected = playerPrefs.longPressAction
+            ) { action ->
+                playerPrefs.longPressAction = action
+                updateAllTexts()
+            }
         }
-
         tvHorizontal.setOnClickListener {
-            val idx = gestureActions.indexOf(playerPrefs.horizontalSwipeAction)
-            playerPrefs.horizontalSwipeAction = gestureActions[(idx + 1) % gestureActions.size]
-            updateAllTexts()
+            AppleActionSheet.showPicker(
+                context = this,
+                items = GestureAction.entries.map { it to it.key },
+                selected = playerPrefs.horizontalSwipeAction
+            ) { action ->
+                playerPrefs.horizontalSwipeAction = action
+                updateAllTexts()
+            }
         }
-
         tvSensitivity.setOnClickListener {
-            playerPrefs.gestureSensitivity = (playerPrefs.gestureSensitivity % 3) + 1
-            updateAllTexts()
+            AppleActionSheet.showPicker(
+                context = this,
+                title = getString(R.string.settings_gesture_sensitivity),
+                items = listOf(1, 2, 3).map { it to sensitivityLabel(it) },
+                selected = playerPrefs.gestureSensitivity
+            ) { level ->
+                playerPrefs.gestureSensitivity = level
+                updateAllTexts()
+            }
         }
     }
 }

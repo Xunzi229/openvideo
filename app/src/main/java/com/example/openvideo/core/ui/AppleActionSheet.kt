@@ -219,5 +219,26 @@ class AppleActionSheet private constructor(
             setOnDismissListener { onDismiss() }
             show()
         }
+
+        fun <T> showPicker(
+            context: Context,
+            title: CharSequence? = null,
+            items: List<Pair<T, CharSequence>>,
+            selected: T?,
+            onDismiss: () -> Unit = {},
+            onSelected: (T) -> Unit
+        ): Dialog = show(
+            context = context,
+            title = title,
+            actions = items.map { (value, label) ->
+                AppleAction(
+                    title = label,
+                    selected = value == selected,
+                    onClick = { onSelected(value) }
+                )
+            },
+            defaultFocusCancel = false,
+            onDismiss = onDismiss
+        )
     }
 }

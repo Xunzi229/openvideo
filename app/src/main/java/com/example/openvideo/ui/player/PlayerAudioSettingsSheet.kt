@@ -1,18 +1,16 @@
 package com.example.openvideo.ui.player
 
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.TextView
 import com.google.android.material.switchmaterial.SwitchMaterial
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.AudioChannel
+import com.example.openvideo.core.ui.AppleActionSheet
 
 @AndroidEntryPoint
 class PlayerAudioSettingsSheet : BaseSettingsSheet() {
@@ -21,7 +19,6 @@ class PlayerAudioSettingsSheet : BaseSettingsSheet() {
     override fun settingsSheetDefaultFocusId(): Int = R.id.sw_preserve_pitch
 
     @Inject lateinit var playerPrefs: PlayerPrefs
-
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -37,14 +34,25 @@ class PlayerAudioSettingsSheet : BaseSettingsSheet() {
         swBoost.isChecked = playerPrefs.volumeBoost
         swBoost.setOnCheckedChangeListener { _, isChecked -> playerPrefs.volumeBoost = isChecked }
 
-        val channels = AudioChannel.entries.toTypedArray()
-        var chIndex = channels.indexOf(playerPrefs.audioChannel).takeIf { it >= 0 } ?: 0
-        fun updateChannelText() { tvChannel.text = channels[chIndex].key }
+        fun channelLabel(channel: AudioChannel): String = when (channel) {
+            AudioChannel.LEFT -> getString(R.string.settings_audio_left)
+            AudioChannel.RIGHT -> getString(R.string.settings_audio_right)
+            AudioChannel.STEREO -> getString(R.string.settings_audio_stereo)
+        }
+        fun updateChannelText() {
+            tvChannel.text = channelLabel(playerPrefs.audioChannel)
+        }
         updateChannelText()
         tvChannel.setOnClickListener {
-            chIndex = (chIndex + 1) % channels.size
-            playerPrefs.audioChannel = channels[chIndex]
-            updateChannelText()
+            AppleActionSheet.showPicker(
+                context = requireContext(),
+                title = getString(R.string.settings_audio_channel),
+                items = AudioChannel.entries.map { it to channelLabel(it) },
+                selected = playerPrefs.audioChannel
+            ) { channel ->
+                playerPrefs.audioChannel = channel
+                updateChannelText()
+            }
         }
 
         var pendingAudioDelay = playerPrefs.audioDelay

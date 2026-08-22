@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.player
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -38,9 +39,8 @@ class PlayerPlaybackEndBehaviorSourceTest {
             val pickerBlock = source.substringAfter("tvPlaybackEnd.setOnClickListener")
                 .substringBefore("\n        }\n")
 
-            assertTrue(pickerBlock.contains("val dialog = AlertDialog.Builder"))
-            assertTrue(pickerBlock.contains("dialog.listView?.post"))
-            assertTrue(pickerBlock.contains("dialog.listView?.requestFocus()"))
+            assertTrue(pickerBlock.contains("AppleActionSheet.showPicker"))
+            assertFalse(pickerBlock.contains("AlertDialog.Builder"))
         }
     }
 
