@@ -121,14 +121,18 @@
         <item name="cornerSize">@dimen/ov_radius_sheet</item>
     </style>
 
-    <style name="TextAppearance.OpenVideo.Section">
+    <style name="TextAppearance.OpenVideo" parent="" />
+
+    <style name="Widget.OpenVideo" parent="" />
+
+    <style name="TextAppearance.OpenVideo.Section" parent="">
         <item name="android:textColor">@color/ov_text_secondary</item>
         <item name="android:textSize">@dimen/ov_text_caption</item>
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">0.04</item>
     </style>
 
-    <style name="Widget.OpenVideo.GroupedSection">
+    <style name="Widget.OpenVideo.GroupedSection" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginStart">@dimen/ov_space_page</item>
@@ -138,7 +142,7 @@
         <item name="android:orientation">vertical</item>
     </style>
 
-    <style name="Widget.OpenVideo.SettingsRow">
+    <style name="Widget.OpenVideo.SettingsRow" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">@dimen/ov_row_height</item>
         <item name="android:background">?attr/selectableItemBackground</item>
@@ -148,7 +152,7 @@
         <item name="android:paddingEnd">@dimen/ov_space_md</item>
     </style>
 
-    <style name="Widget.OpenVideo.Chevron">
+    <style name="Widget.OpenVideo.Chevron" parent="">
         <item name="android:layout_width">8dp</item>
         <item name="android:layout_height">14dp</item>
         <item name="android:layout_marginStart">@dimen/ov_space_sm</item>
@@ -157,7 +161,7 @@
         <item name="android:tint">@color/ov_text_tertiary</item>
     </style>
 
-    <style name="TextAppearance.OpenVideo.LargeTitle">
+    <style name="TextAppearance.OpenVideo.LargeTitle" parent="">
         <item name="android:textColor">@color/ov_text_primary</item>
         <item name="android:textSize">@dimen/ov_text_large_title</item>
         <item name="android:textStyle">bold</item>
