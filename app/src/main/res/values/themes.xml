@@ -114,6 +114,7 @@
         <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.OpenVideo.Dialog.Body</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.OpenVideo.Dialog.Button.Positive</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.OpenVideo.Dialog.Button.Negative</item>
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="ShapeAppearance.OpenVideo.Dialog" parent="">

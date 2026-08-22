@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.OverlayWindowInsets
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.max
 import kotlin.math.min
@@ -102,6 +103,7 @@ object PlayerGlassSheetDialog {
         dialog.prepareCenterAnimation(chrome)
         dialog.show()
         dialog.applyChrome(chrome, playerPrefs, content)
+        OverlayWindowInsets.bind(content)
         requestDefaultFocus(selectedFocusRow ?: firstEnabledRow, scroll)
         if (chrome != PlayerGlassSheetChrome.CENTER) {
             scroll.post { capScroll(scroll, null, 0) }

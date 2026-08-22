@@ -6,6 +6,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.os.Build
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.OverlayWindowInsets
 
 object PlayerSettingsSheetChrome {
 
@@ -60,5 +61,6 @@ object PlayerSettingsSheetChrome {
         applyWindowLayout(window, metrics.widthPixels, metrics.heightPixels, metrics.density)
         applyBackdrop(window, playerPrefs, metrics.density)
         panelRoot?.let { applyPanelOpacity(it, playerPrefs) }
+        OverlayWindowInsets.bind(panelRoot ?: dialog.findViewById(android.R.id.content) ?: window.decorView)
     }
 }

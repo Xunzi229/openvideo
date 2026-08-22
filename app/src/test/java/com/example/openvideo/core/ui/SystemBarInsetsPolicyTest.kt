@@ -30,4 +30,27 @@ class SystemBarInsetsPolicyTest {
         assertEquals(0, union.right)
         assertEquals(16, union.bottom)
     }
+
+    @Test
+    fun overlayBottomPaddingKeepsContentAboveSystemBar() {
+        assertEquals(56, SystemBarInsetsPolicy.overlayBottomPadding(baseBottom = 8, insetBottom = 48, extraBottom = 8))
+        assertEquals(16, SystemBarInsetsPolicy.overlayBottomPadding(baseBottom = 16, insetBottom = 0, extraBottom = 8))
+        assertEquals(0, SystemBarInsetsPolicy.overlayBottomPadding(baseBottom = 0, insetBottom = -4, extraBottom = 0))
+    }
+
+    @Test
+    fun overlayMaxHeightKeepsPanelAboveBottomInset() {
+        assertEquals(400, SystemBarInsetsPolicy.overlayMaxHeight(
+            containerHeight = 800,
+            topOffset = 320,
+            bottomInset = 48,
+            extraBottom = 32
+        ))
+        assertEquals(0, SystemBarInsetsPolicy.overlayMaxHeight(
+            containerHeight = 100,
+            topOffset = 80,
+            bottomInset = 40,
+            extraBottom = 8
+        ))
+    }
 }

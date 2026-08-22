@@ -14,4 +14,15 @@ object SystemBarInsetsPolicy {
         right = maxOf(systemBars.right, cutout.right).coerceAtLeast(0),
         bottom = maxOf(systemBars.bottom, cutout.bottom).coerceAtLeast(0)
     )
+
+    fun overlayBottomPadding(baseBottom: Int, insetBottom: Int, extraBottom: Int = 0): Int =
+        maxOf(baseBottom, insetBottom.coerceAtLeast(0) + extraBottom.coerceAtLeast(0))
+
+    fun overlayMaxHeight(
+        containerHeight: Int,
+        topOffset: Int,
+        bottomInset: Int,
+        extraBottom: Int = 0
+    ): Int = (containerHeight - topOffset - bottomInset.coerceAtLeast(0) - extraBottom.coerceAtLeast(0))
+        .coerceAtLeast(0)
 }

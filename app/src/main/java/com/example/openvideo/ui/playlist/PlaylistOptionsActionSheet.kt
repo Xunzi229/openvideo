@@ -14,10 +14,8 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.openvideo.R
-import kotlin.math.max
+import com.example.openvideo.core.ui.OverlayWindowInsets
 
 class PlaylistOptionsActionSheet private constructor(
     context: Context,
@@ -53,11 +51,7 @@ class PlaylistOptionsActionSheet private constructor(
             setPadding(dp(14), 0, dp(14), dp(8))
             clipToPadding = false
         }
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            view.setPadding(dp(14), 0, dp(14), max(dp(8), bottomInset + dp(8)))
-            insets
-        }
+        OverlayWindowInsets.bind(root, extraBottomPx = dp(8))
 
         val actionCard = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL

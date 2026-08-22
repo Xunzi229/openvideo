@@ -16,10 +16,8 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.example.openvideo.R
-import kotlin.math.max
+import com.example.openvideo.core.ui.OverlayWindowInsets
 
 class PlaylistRenameActionSheet private constructor(
     context: Context,
@@ -58,12 +56,7 @@ class PlaylistRenameActionSheet private constructor(
             setPadding(dp(14), 0, dp(14), dp(8))
             clipToPadding = false
         }
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            val imeInset = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            view.setPadding(dp(14), 0, dp(14), max(dp(8), max(bottomInset, imeInset) + dp(8)))
-            insets
-        }
+        OverlayWindowInsets.bind(root, extraBottomPx = dp(8), includeIme = true)
 
         val card = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL

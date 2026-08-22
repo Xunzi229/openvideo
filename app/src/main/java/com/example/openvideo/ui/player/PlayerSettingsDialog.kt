@@ -28,6 +28,7 @@ import com.example.openvideo.core.prefs.LoopMode
 import com.example.openvideo.core.prefs.PlaybackEndBehavior
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
+import com.example.openvideo.core.ui.OverlayWindowInsets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -161,6 +162,7 @@ class PlayerSettingsDialog(
             subdetailContainer = requireView(R.id.settings_subdetail_container)
             settingsPanelRoot = requireView(R.id.settings_panel_root)
             applySettingsSheetOpacity()
+            OverlayWindowInsets.bind(settingsPanelRoot)
 
             requireView<ImageButton>(R.id.settings_detail_back).setOnClickListener {
                 if (detailBackStack.isNotEmpty()) popDetailNested() else showPrimaryPage()

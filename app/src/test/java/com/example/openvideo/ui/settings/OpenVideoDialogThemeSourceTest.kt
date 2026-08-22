@@ -35,6 +35,7 @@ class OpenVideoDialogThemeSourceTest {
         assertTrue(theme.contains("<style name=\"TextAppearance.OpenVideo.Dialog.Body\" parent=\"MaterialAlertDialog.Material3.Body.Text\">"))
         assertTrue(theme.contains("buttonBarPositiveButtonStyle"))
         assertTrue(theme.contains("buttonBarNegativeButtonStyle"))
+        assertTrue(theme.contains("windowOptOutEdgeToEdgeEnforcement"))
         assertTrue(theme.contains("<item name=\"android:layout_width\">wrap_content</item>"))
         assertTrue(theme.contains("<item name=\"android:layout_height\">48dp</item>"))
         assertTrue(theme.contains("ShapeAppearance.OpenVideo.Dialog"))

@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.OverlayWindowInsets
 import com.example.openvideo.data.model.VideoItem
 
 /**
@@ -36,6 +37,7 @@ class PlayerVideoListDialog(
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContentView(R.layout.dialog_player_video_list)
         setCanceledOnTouchOutside(true)
+        OverlayWindowInsets.bindDialog(this)
 
         window?.apply {
             val width = context.resources.displayMetrics.widthPixels

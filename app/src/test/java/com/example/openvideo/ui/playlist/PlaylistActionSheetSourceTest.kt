@@ -56,8 +56,7 @@ class PlaylistActionSheetSourceTest {
             assertTrue(source.contains("Color.parseColor(\"#D91C1C1E\")"))
             assertTrue(source.contains("Color.parseColor(\"#FF453A\")"))
             assertTrue(source.contains("Color.parseColor(\"#0A84FF\")"))
-            assertTrue(source.contains("ViewCompat.setOnApplyWindowInsetsListener"))
-            assertTrue(source.contains("WindowInsetsCompat.Type.systemBars()"))
+            assertTrue(source.contains("OverlayWindowInsets.bind"))
             assertFalse(source.contains("MaterialAlertDialogBuilder"))
         }
     }

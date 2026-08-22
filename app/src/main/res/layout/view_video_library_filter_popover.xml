@@ -66,6 +66,19 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/filter_popover_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="true"
+                android:fillViewport="false"
+                android:overScrollMode="ifContentScrolls">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -132,7 +145,11 @@
                 app:selectionRequired="true"
                 app:singleSelection="true" />
 
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+
             <LinearLayout
+                android:id="@+id/filter_popover_actions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"

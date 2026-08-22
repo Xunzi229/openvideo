@@ -14,9 +14,13 @@ import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
 import androidx.core.view.doOnLayout
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.OverlayWindowInsets
+import com.example.openvideo.core.ui.SystemBarInsetsPolicy
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
@@ -78,7 +82,7 @@ class VideoLibraryFilterPopover(
             ViewGroup.LayoutParams.MATCH_PARENT,
             true
         ).apply {
-            isClippingEnabled = false
+            isClippingEnabled = true
             isOutsideTouchable = true
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
             elevation = context.resources.displayMetrics.density * 12f
@@ -242,6 +246,29 @@ class VideoLibraryFilterPopover(
         }
 
         layoutArrowHorizontal(arrow, anchorCenterX, rootLoc[0] + leftMargin, panelWidth, dm.density)
+        constrainToSafeHeight(host, overlayRoot, y, dm.density)
+    }
+
+    private fun constrainToSafeHeight(host: View, overlayRoot: View, topOffset: Int, density: Float) {
+        val insets = ViewCompat.getRootWindowInsets(overlayRoot)?.let { OverlayWindowInsets.edgesFrom(it) }
+            ?: SystemBarInsetsPolicy.Edges(0, 0, 0, 0)
+        val extraBottom = (8 * density).toInt()
+        val maxHeight = SystemBarInsetsPolicy.overlayMaxHeight(
+            containerHeight = overlayRoot.height,
+            topOffset = topOffset,
+            bottomInset = insets.bottom,
+            extraBottom = extraBottom
+        )
+        val scroll = host.findViewById<NestedScrollView>(R.id.filter_popover_scroll)
+        host.post {
+            val chrome = host.height - scroll.height
+            val scrollMax = (maxHeight - chrome).coerceAtLeast(0)
+            if (scroll.height > scrollMax) {
+                scroll.updateLayoutParams {
+                    height = scrollMax
+                }
+            }
+        }
     }
 
     private fun layoutArrowHorizontal(

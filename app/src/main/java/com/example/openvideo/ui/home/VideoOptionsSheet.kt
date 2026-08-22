@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.OverlayWindowInsets
 import com.example.openvideo.data.model.VideoItem
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
@@ -22,6 +23,7 @@ class VideoOptionsSheet(
     init {
         val view = LayoutInflater.from(context).inflate(R.layout.sheet_video_options, null)
         setContentView(view)
+        OverlayWindowInsets.bind(view, extraBottomPx = view.resources.getDimensionPixelSize(R.dimen.ov_space_sm))
 
         val playOption = view.findViewById<TextView>(R.id.option_play)
         playOption.setOnClickListener {

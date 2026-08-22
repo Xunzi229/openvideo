@@ -6,6 +6,7 @@ import android.widget.EditText
 import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkRecentUrlPolicy
 import com.example.openvideo.core.network.NetworkUrlPolicy
+import com.example.openvideo.core.ui.OverlayWindowInsets
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 object NetworkOpenUrlDialog {
@@ -27,6 +28,7 @@ object NetworkOpenUrlDialog {
             .setPositiveButton(R.string.action_open, null)
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        OverlayWindowInsets.bindDialog(dialog, includeIme = true)
         input.post {
             input.requestFocus()
         }

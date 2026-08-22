@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.view.Window
 import androidx.fragment.app.DialogFragment
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.OverlayWindowInsets
 
 /**
  * Player overlay settings hosted in a plain dialog — same window chrome as [PlayerSettingsDialog].
@@ -44,6 +45,7 @@ abstract class BaseSettingsSheet : DialogFragment() {
             val panelRoot = panelRootId?.let { id -> view?.findViewById<View>(id) }
             dialog?.let { PlayerSettingsSheetChrome.applyDialogChrome(it, prefs, panelRoot) }
         }
+        dialog?.let { OverlayWindowInsets.bindDialog(it) }
         requestSettingsSheetDefaultFocus()
     }
 

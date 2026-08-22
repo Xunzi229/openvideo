@@ -8,6 +8,7 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import com.example.openvideo.R
 import com.example.openvideo.core.network.WebDavConnectionPolicy
+import com.example.openvideo.core.ui.OverlayWindowInsets
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 object WebDavSourceDialog {
@@ -49,6 +50,7 @@ object WebDavSourceDialog {
             .setPositiveButton(R.string.webdav_action_test_save, null)
             .setNegativeButton(R.string.action_cancel, null)
             .show()
+        OverlayWindowInsets.bindDialog(dialog, includeIme = true)
         nameInput.post {
             nameInput.requestFocus()
         }

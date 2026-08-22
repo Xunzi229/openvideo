@@ -95,6 +95,7 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEYSTORE_BASE64"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_CERT_SHA256"))
         assertTrue(workflow.contains("agentRulesRequireOfficialReleaseSigningOnCiPackaging"))
+        assertTrue(workflow.contains("OverlayInsetsSourceTest"))
         assertTrue(appBuild.contains("runningOnCi && !releaseSigningConfigured"))
         assertTrue(workflow.contains(":app:assembleRelease"))
         assertTrue(workflow.contains("actions/upload-artifact@v4"))

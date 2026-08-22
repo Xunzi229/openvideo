@@ -34,6 +34,8 @@ class HomeSearchFilterSourceTest {
         assertTrue(source.contains("toggleAdvancedFilterPopover"))
         assertTrue(popoverLayout.contains("@+id/chip_group_duration"))
         assertTrue(popoverLayout.contains("@+id/btn_filter_apply"))
+        assertTrue(popoverLayout.contains("@+id/filter_popover_scroll"))
+        assertTrue(popoverLayout.contains("@+id/filter_popover_actions"))
     }
 
     private fun moduleResPath(vararg segments: String): Path {
