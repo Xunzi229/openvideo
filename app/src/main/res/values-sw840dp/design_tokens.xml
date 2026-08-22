@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Large tablet / desktop-width window. -->
+    <dimen name="ov_space_page">32dp</dimen>
+    <dimen name="ov_space_xl">32dp</dimen>
+    <dimen name="ov_text_large_title">40sp</dimen>
+    <dimen name="ov_text_title">34sp</dimen>
+    <dimen name="ov_bottom_nav_height">56dp</dimen>
+    <dimen name="ov_video_thumb_height">160dp</dimen>
+    <dimen name="ov_video_list_thumb_width">240dp</dimen>
+    <dimen name="ov_video_list_thumb_height">135dp</dimen>
+    <dimen name="ov_video_grid_thumb_height">148dp</dimen>
+    <dimen name="ov_player_settings_nav_width">220dp</dimen>
+    <dimen name="ov_player_settings_row_value_max_width">320dp</dimen>
+    <dimen name="ov_player_settings_seek_width">240dp</dimen>
+</resources>

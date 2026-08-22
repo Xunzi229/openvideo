@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Typical 360dp+ phones: restore default Apple page scale if a smaller fallback is used. -->
+    <dimen name="ov_space_page">16dp</dimen>
+    <dimen name="ov_space_card">16dp</dimen>
+    <dimen name="ov_space_xl">24dp</dimen>
+    <dimen name="ov_text_large_title">34sp</dimen>
+    <dimen name="ov_text_title">28sp</dimen>
+    <dimen name="ov_video_thumb_height">120dp</dimen>
+    <dimen name="ov_video_list_thumb_width">160dp</dimen>
+    <dimen name="ov_video_list_thumb_height">90dp</dimen>
+    <dimen name="ov_video_grid_thumb_height">100dp</dimen>
+    <dimen name="ov_player_settings_nav_width">172dp</dimen>
+    <dimen name="ov_player_settings_row_value_max_width">220dp</dimen>
+    <dimen name="ov_player_settings_seek_width">170dp</dimen>
+</resources>

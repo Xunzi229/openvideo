@@ -9,10 +9,14 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnBackground">@color/on_background</item>
         <item name="colorOnSurface">@color/on_surface</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
-        <item name="android:statusBarColor">@color/ov_bg_base</item>
-        <item name="android:navigationBarColor">@color/ov_bg_base</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <style name="Theme.OpenVideo.Player" parent="Theme.OpenVideo">
@@ -30,6 +34,7 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
 
     <style name="Widget.OpenVideo.BottomNavigation.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
@@ -113,21 +118,65 @@
 
     <style name="ShapeAppearance.OpenVideo.Dialog" parent="">
         <item name="cornerFamily">rounded</item>
-        <item name="cornerSize">28dp</item>
+        <item name="cornerSize">@dimen/ov_radius_sheet</item>
+    </style>
+
+    <style name="TextAppearance.OpenVideo.Section">
+        <item name="android:textColor">@color/ov_text_secondary</item>
+        <item name="android:textSize">@dimen/ov_text_caption</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <style name="Widget.OpenVideo.GroupedSection">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">@dimen/ov_space_page</item>
+        <item name="android:layout_marginEnd">@dimen/ov_space_page</item>
+        <item name="android:background">@drawable/bg_grouped_section</item>
+        <item name="android:clipToOutline">true</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="Widget.OpenVideo.SettingsRow">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/ov_row_height</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">@dimen/ov_space_lg</item>
+        <item name="android:paddingEnd">@dimen/ov_space_md</item>
+    </style>
+
+    <style name="Widget.OpenVideo.Chevron">
+        <item name="android:layout_width">8dp</item>
+        <item name="android:layout_height">14dp</item>
+        <item name="android:layout_marginStart">@dimen/ov_space_sm</item>
+        <item name="android:contentDescription">@null</item>
+        <item name="android:src">@drawable/ic_chevron_right</item>
+        <item name="android:tint">@color/ov_text_tertiary</item>
+    </style>
+
+    <style name="TextAppearance.OpenVideo.LargeTitle">
+        <item name="android:textColor">@color/ov_text_primary</item>
+        <item name="android:textSize">@dimen/ov_text_large_title</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:fontFamily">sans-serif</item>
     </style>
 
     <style name="TextAppearance.OpenVideo.Dialog.Title" parent="MaterialAlertDialog.Material3.Title.Text">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textColor">@color/ov_text_primary</item>
-        <item name="android:textSize">24sp</item>
+        <item name="android:textSize">@dimen/ov_text_headline</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:letterSpacing">0</item>
+        <item name="android:letterSpacing">-0.01</item>
     </style>
 
     <style name="TextAppearance.OpenVideo.Dialog.Body" parent="MaterialAlertDialog.Material3.Body.Text">
         <item name="android:textColor">@color/ov_text_secondary</item>
-        <item name="android:textSize">16sp</item>
+        <item name="android:textSize">@dimen/ov_text_caption</item>
         <item name="android:lineSpacingExtra">2dp</item>
         <item name="android:letterSpacing">0</item>
     </style>

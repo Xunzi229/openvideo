@@ -15,13 +15,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:text="@string/sources_title"
-            android:textColor="@color/ov_text_primary"
-            android:textSize="28sp"
-            android:textStyle="bold" />
+            style="@style/TextAppearance.OpenVideo.LargeTitle"
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_lg"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/sources_title" />
 
         <TextView
             android:layout_width="match_parent"
@@ -30,8 +28,8 @@
             android:paddingTop="16dp"
             android:paddingBottom="8dp"
             android:text="@string/sources_section_available"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_caption"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -133,8 +131,8 @@
             android:paddingTop="24dp"
             android:paddingBottom="8dp"
             android:text="@string/sources_section_saved"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_caption"
             android:textStyle="bold" />
 
         <TextView
@@ -162,8 +160,8 @@
             android:paddingTop="24dp"
             android:paddingBottom="8dp"
             android:text="@string/sources_section_recent"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_caption"
             android:textStyle="bold" />
 
         <TextView
@@ -202,8 +200,8 @@
             android:paddingTop="24dp"
             android:paddingBottom="8dp"
             android:text="@string/sources_section_planned"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="@dimen/ov_text_caption"
             android:textStyle="bold" />
 
         <LinearLayout

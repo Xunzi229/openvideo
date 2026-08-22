@@ -3,9 +3,14 @@ package com.example.openvideo.ui
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.openvideo.BuildConfig
@@ -16,6 +21,7 @@ import com.example.openvideo.core.player.PlaybackServiceIntents
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.ui.ScreenBreakpoint
+import com.example.openvideo.core.ui.SystemBarInsetsPolicy
 import com.example.openvideo.core.ui.WindowSizeHelper
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.home.HomeFragment
@@ -48,6 +54,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
 
         settingsViewModel.checkForAppUpdateSilently()
@@ -58,6 +65,7 @@ class MainActivity : AppCompatActivity() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
         bottomNav.menu.findItem(R.id.nav_sources).isVisible = BuildConfig.SOURCES_NAV_ENABLED
         bottomNav.isVisible = !isTvMode
+        bindSystemBarInsets()
         if (savedInstanceState == null) {
             if (!isTvMode) bottomNav.selectedItemId = R.id.nav_home
             loadFragment(if (isTvMode) TvHomeFragment() else LocalFolderFragment())
@@ -95,6 +103,30 @@ class MainActivity : AppCompatActivity() {
         super.onConfigurationChanged(newConfig)
         breakpoint = WindowSizeHelper.computeBreakpoint(this)
         isTvMode = computeTvMode()
+        findViewById<View>(R.id.main_root).requestApplyInsets()
+    }
+
+    private fun bindSystemBarInsets() {
+        val root = findViewById<View>(R.id.main_root)
+        val fragmentContainer = findViewById<View>(R.id.fragment_container)
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val edges = SystemBarInsetsPolicy.union(
+                SystemBarInsetsPolicy.Edges(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom),
+                SystemBarInsetsPolicy.Edges(cutout.left, cutout.top, cutout.right, cutout.bottom)
+            )
+            root.updatePadding(left = edges.left, right = edges.right)
+            if (bottomNav.isVisible) {
+                fragmentContainer.updatePadding(top = edges.top, bottom = 0)
+                bottomNav.updatePadding(bottom = edges.bottom)
+            } else {
+                fragmentContainer.updatePadding(top = edges.top, bottom = edges.bottom)
+                bottomNav.updatePadding(bottom = 0)
+            }
+            insets
+        }
     }
 
     private fun computeTvMode(): Boolean =

@@ -36,6 +36,18 @@ keystore. Both workflows verify the APK certificate against the public
 `OPENVIDEO_RELEASE_CERT_SHA256` repository variable before upload. Preview builds do not create a
 tag or GitHub Release; "preview" describes distribution status, not a different signing identity.
 
+`assembleRelease` locally stays a single APK. GitHub Actions Preview and Release pass
+`-POPENVIDEO_ABI_SPLITS=true` so those jobs produce ABI-split APKs plus a universal APK:
+
+- `armeabi-v7a`
+- `arm64-v8a`
+- `x86`
+- `x86_64`
+- `universal`
+
+Preview uploads those files as Actions artifacts. Download them with `gh run download <run-id>`
+and do not use `gh release create` for preview.
+
 When release signing values are present locally, Gradle also signs Debug builds with the release
 keystore so they can update an installed release build. Without those values, Debug builds retain
 Android's development key and must not be distributed as Preview artifacts.

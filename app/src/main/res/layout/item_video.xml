@@ -8,16 +8,16 @@
     android:foreground="@drawable/bg_focusable_card"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
+    android:paddingStart="@dimen/ov_space_page"
     android:paddingTop="10dp"
-    android:paddingEnd="16dp"
+    android:paddingEnd="@dimen/ov_space_page"
     android:paddingBottom="10dp">
 
     <com.google.android.material.card.MaterialCardView
-        android:layout_width="160dp"
-        android:layout_height="90dp"
+        android:layout_width="@dimen/ov_video_list_thumb_width"
+        android:layout_height="@dimen/ov_video_list_thumb_height"
         app:cardBackgroundColor="@color/ov_bg_elevated"
-        app:cardCornerRadius="10dp"
+        app:cardCornerRadius="@dimen/ov_radius_md"
         app:cardElevation="0dp">
 
         <FrameLayout

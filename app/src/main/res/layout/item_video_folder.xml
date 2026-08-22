@@ -8,10 +8,10 @@
     android:foreground="@drawable/bg_focusable_card"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="16dp"
-    android:paddingTop="12dp"
-    android:paddingEnd="16dp"
-    android:paddingBottom="12dp">
+    android:paddingStart="@dimen/ov_space_page"
+    android:paddingTop="@dimen/ov_space_md"
+    android:paddingEnd="@dimen/ov_space_page"
+    android:paddingBottom="@dimen/ov_space_md">
 
     <ImageView
         android:layout_width="72dp"

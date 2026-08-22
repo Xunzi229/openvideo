@@ -98,12 +98,20 @@ object GitHubReleaseChecker {
         val universal = apks.filter { !apkNamesAbiTagged(it.name) }
 
         for (abi in supportedAbis) {
-            val hit = abiTagged.find { asset ->
-                asset.name.contains(abi, ignoreCase = true)
-            }
+            val hit = abiTagged.find { asset -> assetMatchesAbi(asset.name, abi) }
             if (hit != null) return hit
         }
         return universal.firstOrNull() ?: apks.first()
+    }
+
+    internal fun assetMatchesAbi(name: String, abi: String): Boolean {
+        val n = name.lowercase()
+        val a = abi.lowercase()
+        return if (a == "x86") {
+            n.contains("x86") && !n.contains("x86_64")
+        } else {
+            n.contains(a)
+        }
     }
 
     /**

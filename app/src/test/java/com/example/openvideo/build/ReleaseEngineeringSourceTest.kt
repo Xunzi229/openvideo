@@ -96,9 +96,19 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("actions/upload-artifact@v4"))
         assertTrue(workflow.contains("apksigner verify"))
         assertTrue(workflow.contains("preview/*.apk"))
+        assertTrue(workflow.contains("arm64-v8a"))
+        assertTrue(workflow.contains("x86_64"))
+        assertTrue(workflow.contains("gh run download"))
+        assertTrue(workflow.contains("GH_TOKEN"))
+        assertFalse(workflow.contains("gh release create"))
         assertFalse(workflow.contains(":app:assembleDebug"))
         assertFalse(workflow.contains("app-debug.apk"))
         assertTrue(appBuild.contains("baseline = file(\"lint-baseline.xml\")"))
+        assertTrue(appBuild.contains("OPENVIDEO_ABI_SPLITS"))
+        assertTrue(appBuild.contains("isEnable = abiSplitsEnabled"))
+        assertTrue(appBuild.contains("include(\"armeabi-v7a\", \"arm64-v8a\", \"x86\", \"x86_64\")"))
+        assertTrue(appBuild.contains("isUniversalApk = true"))
+        assertTrue(workflow.contains("-POPENVIDEO_ABI_SPLITS=true"))
     }
 
     @Test
@@ -122,6 +132,7 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_KEY_PASSWORD"))
         assertTrue(workflow.contains("OPENVIDEO_RELEASE_CERT_SHA256"))
         assertTrue(workflow.contains(":app:assembleRelease"))
+        assertTrue(workflow.contains("-POPENVIDEO_ABI_SPLITS=true"))
         assertTrue(workflow.contains("apksigner verify"))
         assertTrue(workflow.contains("gh @arguments"))
         assertTrue(workflow.contains("release/*.apk"))

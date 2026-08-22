@@ -19,6 +19,10 @@ class FeaturePackagingBuildConfigTest {
         assertTrue(appBuild.contains("OPENVIDEO_SOURCES_NAV_ENABLED\", \"false\""))
         assertTrue(previewWorkflow.contains("vars.OPENVIDEO_SOURCES_NAV_ENABLED || 'false'"))
         assertTrue(releaseWorkflow.contains("vars.OPENVIDEO_SOURCES_NAV_ENABLED || 'false'"))
+        assertTrue(appBuild.contains("OPENVIDEO_ABI_SPLITS"))
+        assertTrue(appBuild.contains("isEnable = abiSplitsEnabled"))
+        assertTrue(previewWorkflow.contains("-POPENVIDEO_ABI_SPLITS=true"))
+        assertTrue(releaseWorkflow.contains("-POPENVIDEO_ABI_SPLITS=true"))
     }
 
     private fun Path.readText(): String = String(Files.readAllBytes(this))

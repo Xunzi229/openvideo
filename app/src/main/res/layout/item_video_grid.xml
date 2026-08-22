@@ -8,7 +8,7 @@
     android:focusable="true"
     android:foreground="@drawable/bg_focusable_card"
     app:cardBackgroundColor="@color/ov_bg_elevated"
-    app:cardCornerRadius="8dp"
+    app:cardCornerRadius="@dimen/ov_radius_md"
     app:cardElevation="0dp"
     app:strokeWidth="0dp">
 
@@ -19,7 +19,7 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="100dp">
+            android:layout_height="@dimen/ov_video_grid_thumb_height">
 
             <ImageView
                 android:id="@+id/iv_thumbnail"

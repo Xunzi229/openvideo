@@ -18,13 +18,11 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_lg"
+            android:paddingBottom="@dimen/ov_space_sm"
             android:text="@string/settings_page_title"
-            android:textColor="@color/ov_text_primary"
-            android:textSize="28sp"
-            android:textStyle="bold" />
+            style="@style/TextAppearance.OpenVideo.LargeTitle" />
 
         <LinearLayout
             android:id="@+id/settings_columns"
@@ -41,25 +39,26 @@
         <!-- General Section -->
         <TextView
             android:id="@+id/settings_general_section_title"
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:text="@string/settings_section_general"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_lg"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/settings_section_general" />
+
+        <LinearLayout
+            style="@style/Widget.OpenVideo.GroupedSection">
 
         <!-- Theme -->
         <LinearLayout
             android:id="@+id/row_theme"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -67,7 +66,7 @@
                 android:layout_weight="1"
                 android:text="@string/settings_theme"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_theme_value"
@@ -75,25 +74,27 @@
                 android:layout_height="wrap_content"
                 android:text="@string/settings_theme_system"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/ov_text_meta" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_theme"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
         <!-- Language -->
         <LinearLayout
             android:id="@+id/row_language"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -101,7 +102,7 @@
                 android:layout_weight="1"
                 android:text="@string/settings_language"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_language_value"
@@ -109,25 +110,27 @@
                 android:layout_height="wrap_content"
                 android:text="@string/settings_language_system"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/ov_text_meta" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_language"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
         <!-- Notifications -->
         <LinearLayout
             android:id="@+id/row_notifications"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -135,14 +138,19 @@
                 android:layout_weight="1"
                 android:text="@string/settings_notifications"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_notifications"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:background="@color/ov_divider" />
+            android:background="@android:color/transparent"
+            android:visibility="gone" />
+
+        </LinearLayout>
 
         <!-- Backup Section (hidden until Web backup UX; see SettingsBackupUiPolicy) -->
         <LinearLayout
@@ -154,23 +162,24 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
             android:text="@string/settings_section_backup"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            style="@style/TextAppearance.OpenVideo.Section" />
+
+        <LinearLayout
+            style="@style/Widget.OpenVideo.GroupedSection">
 
         <!-- Export Settings -->
         <LinearLayout
             android:id="@+id/row_export_settings"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -178,24 +187,26 @@
                 android:layout_weight="1"
                 android:text="@string/settings_export_settings"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
         <!-- Import Settings -->
         <LinearLayout
             android:id="@+id/row_import_settings"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -203,38 +214,36 @@
                 android:layout_weight="1"
                 android:text="@string/settings_import_settings"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="@color/ov_divider" />
+        </LinearLayout>
 
         </LinearLayout>
 
         <!-- Player Section -->
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/settings_section_player"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/settings_section_player" />
 
-        <!-- Default Aspect Ratio -->
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
+
         <LinearLayout
             android:id="@+id/row_default_ratio"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_default_ratio"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -242,7 +251,7 @@
                 android:layout_weight="1"
                 android:text="@string/settings_default_ratio"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_ratio_value"
@@ -250,25 +259,26 @@
                 android:layout_height="wrap_content"
                 android:text="@string/settings_ratio_default"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/ov_text_meta" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
-        <!-- Default Speed -->
         <LinearLayout
             android:id="@+id/row_default_speed"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_default_speed"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -276,7 +286,7 @@
                 android:layout_weight="1"
                 android:text="@string/settings_default_speed"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_speed_value"
@@ -284,7 +294,9 @@
                 android:layout_height="wrap_content"
                 android:text="1.0x"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/ov_text_meta" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
@@ -292,16 +304,15 @@
             android:layout_height="0.5dp"
             android:background="@color/ov_divider" />
 
-        <!-- TV Subtitle Settings -->
         <LinearLayout
             android:id="@+id/row_tv_subtitle_settings"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_group_subtitle"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/ov_space_lg"
             android:visibility="gone"
             tools:visibility="visible">
 
@@ -311,28 +322,29 @@
                 android:layout_weight="1"
                 android:text="@string/settings_group_subtitle"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_tv_subtitle_settings"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider"
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <!-- TV Audio Settings -->
         <LinearLayout
             android:id="@+id/row_tv_audio_settings"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_group_audio"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/ov_space_lg"
             android:visibility="gone"
             tools:visibility="visible">
 
@@ -342,7 +354,9 @@
                 android:layout_weight="1"
                 android:text="@string/settings_group_audio"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
@@ -353,16 +367,15 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
-        <!-- TV Sources Settings -->
         <LinearLayout
             android:id="@+id/row_tv_sources_settings"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/nav_sources"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/ov_space_lg"
             android:visibility="gone"
             tools:visibility="visible">
 
@@ -372,16 +385,20 @@
                 android:layout_weight="1"
                 android:text="@string/nav_sources"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_tv_sources_settings"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:background="@color/ov_divider"
+            android:background="@android:color/transparent"
             android:visibility="gone"
             tools:visibility="visible" />
+
+        </LinearLayout>
 
             </LinearLayout>
 
@@ -391,28 +408,26 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-        <!-- Storage Section -->
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/settings_section_storage"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/settings_section_storage" />
 
-        <!-- Clear Thumbnail Cache -->
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
+
         <LinearLayout
             android:id="@+id/row_clear_cache"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_clear_cache"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -420,7 +435,7 @@
                 android:layout_weight="1"
                 android:text="@string/settings_clear_cache"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_cache_size"
@@ -428,25 +443,24 @@
                 android:layout_height="wrap_content"
                 android:text="0 MB"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/ov_text_meta" />
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
-        <!-- Clear History -->
         <LinearLayout
             android:id="@+id/row_clear_history"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_clear_history"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -454,7 +468,7 @@
                 android:layout_weight="1"
                 android:text="@string/settings_clear_history"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_history_count"
@@ -462,35 +476,30 @@
                 android:layout_height="wrap_content"
                 android:text="0"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp" />
+                android:textSize="@dimen/ov_text_meta" />
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:background="@color/ov_divider" />
+        </LinearLayout>
 
-        <!-- About Section -->
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/settings_section_about"
-            android:textColor="@color/ov_accent_blue"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/settings_section_about" />
 
-        <!-- Check for updates -->
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
+
         <LinearLayout
             android:id="@+id/row_check_update"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -498,35 +507,36 @@
                 android:layout_weight="1"
                 android:text="@string/settings_check_update"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <View
                 android:id="@+id/update_badge_dot"
                 android:layout_width="8dp"
                 android:layout_height="8dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="@dimen/ov_space_sm"
                 android:background="@drawable/bg_update_badge_dot"
                 android:visibility="gone"
                 android:contentDescription="@null" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_check_update"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
-        <!-- Version -->
         <LinearLayout
             android:id="@+id/row_version"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_version"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -534,32 +544,31 @@
                 android:layout_weight="1"
                 android:text="@string/settings_version"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
 
             <TextView
                 android:id="@+id/tv_version"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/ov_text_secondary"
-                android:textSize="14sp"
+                android:textSize="@dimen/ov_text_meta"
                 tools:text="1.0.0" />
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
-        <!-- Project repository -->
         <LinearLayout
             android:id="@+id/row_project_repo"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -567,26 +576,27 @@
                 android:layout_weight="1"
                 android:text="@string/settings_project_repo"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
         </LinearLayout>
 
         <View
             android:id="@+id/divider_project_repo"
             android:layout_width="match_parent"
             android:layout_height="0.5dp"
-            android:layout_marginStart="16dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
-        <!-- Open Source License -->
         <LinearLayout
             android:id="@+id/row_license"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="@dimen/ov_row_height"
             android:background="?attr/selectableItemBackground"
             android:contentDescription="@string/settings_license"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/ov_space_lg">
 
             <TextView
                 android:layout_width="0dp"
@@ -594,7 +604,11 @@
                 android:layout_weight="1"
                 android:text="@string/settings_license"
                 android:textColor="@color/ov_text_primary"
-                android:textSize="16sp" />
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView style="@style/Widget.OpenVideo.Chevron" />
+        </LinearLayout>
+
         </LinearLayout>
 
             </LinearLayout>

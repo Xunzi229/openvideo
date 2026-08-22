@@ -36,6 +36,11 @@ val sourcesNavigationEnabled = providers.environmentVariable("OPENVIDEO_SOURCES_
     .orElse(localProperties.getProperty("OPENVIDEO_SOURCES_NAV_ENABLED", "false"))
     .get()
     .toBooleanStrictOrNull() ?: false
+val abiSplitsEnabled = providers.environmentVariable("OPENVIDEO_ABI_SPLITS")
+    .orElse(providers.gradleProperty("OPENVIDEO_ABI_SPLITS"))
+    .orElse(localProperties.getProperty("OPENVIDEO_ABI_SPLITS", "false"))
+    .get()
+    .toBooleanStrictOrNull() ?: false
 
 fun String.asBuildConfigString(): String =
     "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
@@ -101,6 +106,15 @@ android {
     packaging {
         jniLibs {
             keepDebugSymbols += "**/libffmpegJNI.so"
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = abiSplitsEnabled
+            reset()
+            include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
+            isUniversalApk = true
         }
     }
 

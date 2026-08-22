@@ -44,7 +44,7 @@ class SettingsAdaptiveLayoutSourceTest {
         val layout = String(Files.readAllBytes(settingsLayoutSource()))
 
         assertFalse(layout.contains("""android:layout_height="52dp""""))
-        assertTrue(layout.contains("""android:layout_height="56dp""""))
+        assertTrue(layout.contains("""android:layout_height="@dimen/ov_row_height""""))
     }
 
     @Test
@@ -138,7 +138,7 @@ class SettingsAdaptiveLayoutSourceTest {
         val versionRow = layout.substringBefore("""android:text="@string/settings_version"""")
             .substringAfterLast("<LinearLayout")
         assertTrue(versionRow.contains("""android:id="@+id/row_version""""))
-        assertTrue(versionRow.contains("""android:layout_height="56dp""""))
+        assertTrue(versionRow.contains("""android:layout_height="@dimen/ov_row_height""""))
         assertTrue(versionRow.contains("""android:background="?attr/selectableItemBackground""""))
         assertTrue(
             layout.indexOf("""android:id="@+id/row_clear_history"""") <

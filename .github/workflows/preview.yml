@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: preview-${{ github.ref }}
@@ -77,6 +78,8 @@ jobs:
           --tests "com.example.openvideo.ui.settings.SettingsCrashReportingSourceTest"
           --tests "com.example.openvideo.core.update.GitHubReleaseCheckerTest"
           --tests "com.example.openvideo.core.update.GitHubAbiSelectionTest"
+          --tests "com.example.openvideo.core.ui.SystemBarInsetsPolicyTest"
+          --tests "com.example.openvideo.core.ui.AppleStyleAndSizeSourceTest"
           --tests "com.example.openvideo.core.update.UpdateUrlPolicyTest"
           --tests "com.example.openvideo.core.network.NetworkUrlPolicyTest"
           --tests "com.example.openvideo.core.network.NetworkSharedUrlPolicyTest"
@@ -102,39 +105,62 @@ jobs:
           --tests "com.example.openvideo.build.FeaturePackagingBuildConfigTest"
           --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"
 
-      - name: Build preview APK
-        run: .\gradlew.bat :app:assembleRelease
+      - name: Build preview APKs
+        run: .\gradlew.bat :app:assembleRelease -POPENVIDEO_ABI_SPLITS=true
 
-      - name: Verify and stage preview APK
+      - name: Verify and stage preview APKs
         shell: pwsh
         run: |
-          $sourceApk = "app/build/outputs/apk/release/app-release.apk"
-          if (-not (Test-Path $sourceApk)) {
-            throw "Signed preview APK was not produced: $sourceApk"
+          $apkDir = "app/build/outputs/apk/release"
+          if (-not (Test-Path $apkDir)) {
+            throw "Signed preview APK directory was not produced: $apkDir"
+          }
+          $apks = @(Get-ChildItem $apkDir -Filter "*.apk")
+          if ($apks.Count -eq 0) {
+            throw "Signed preview APKs were not produced under $apkDir"
+          }
+
+          function Get-AbiLabel([string] $name) {
+            if ($name -match 'arm64-v8a') { return 'arm64-v8a' }
+            if ($name -match 'armeabi-v7a') { return 'armeabi-v7a' }
+            if ($name -match 'x86_64') { return 'x86_64' }
+            if ($name -match 'x86') { return 'x86' }
+            return 'universal'
           }
 
           $buildTools = Get-ChildItem (Join-Path $env:ANDROID_SDK_ROOT "build-tools") -Directory |
             Sort-Object { [version]$_.Name } -Descending |
             Select-Object -First 1
           $apksigner = Join-Path $buildTools.FullName "apksigner.bat"
-          $verifyOutput = & $apksigner verify --verbose --print-certs $sourceApk 2>&1
-          $verifyOutput | Write-Host
-          if ($LASTEXITCODE -ne 0) {
-            throw "Preview APK signature verification failed."
-          }
-
-          $certMatch = [regex]::Match(($verifyOutput -join "`n"), 'certificate SHA-256 digest:\s*([0-9a-fA-F]{64})')
-          if (-not $certMatch.Success) {
-            throw "Could not read the APK signing certificate SHA-256 fingerprint."
-          }
-          $actual = $certMatch.Groups[1].Value.ToLowerInvariant()
-          $expected = $env:EXPECTED_RELEASE_CERT_SHA256.Trim().ToLowerInvariant()
-          if ($actual -ne $expected) {
-            throw "Preview signing certificate mismatch. Expected $expected, got $actual."
-          }
-
           New-Item -ItemType Directory -Path preview -Force | Out-Null
-          Copy-Item $sourceApk "preview/openvideo-preview-$env:GITHUB_SHA-app-release.apk"
+          $labels = @()
+          foreach ($apk in $apks) {
+            $verifyOutput = & $apksigner verify --verbose --print-certs $apk.FullName 2>&1
+            $verifyOutput | Write-Host
+            if ($LASTEXITCODE -ne 0) {
+              throw "Preview APK signature verification failed: $($apk.Name)"
+            }
+
+            $certMatch = [regex]::Match(($verifyOutput -join "`n"), 'certificate SHA-256 digest:\s*([0-9a-fA-F]{64})')
+            if (-not $certMatch.Success) {
+              throw "Could not read the APK signing certificate SHA-256 fingerprint: $($apk.Name)"
+            }
+            $actual = $certMatch.Groups[1].Value.ToLowerInvariant()
+            $expected = $env:EXPECTED_RELEASE_CERT_SHA256.Trim().ToLowerInvariant()
+            if ($actual -ne $expected) {
+              throw "Preview signing certificate mismatch. Expected $expected, got $actual."
+            }
+
+            $label = Get-AbiLabel $apk.Name
+            Copy-Item $apk.FullName "preview/openvideo-preview-$env:GITHUB_SHA-$label.apk"
+            $labels += $label
+          }
+
+          foreach ($need in @('armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64', 'universal')) {
+            if ($labels -notcontains $need) {
+              throw "Missing ABI preview APK: $need"
+            }
+          }
 
       - name: Upload preview APK
         uses: actions/upload-artifact@v4
@@ -143,3 +169,15 @@ jobs:
           path: preview/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Announce preview APKs with gh without publishing a release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            throw "Preview workflow must not run on tags or publish a GitHub Release."
+          }
+          gh run view $env:GITHUB_RUN_ID --repo $env:GITHUB_REPOSITORY
+          Write-Host "Download preview APKs without a GitHub Release:"
+          Write-Host "gh run download $env:GITHUB_RUN_ID -n openvideo-preview-$env:GITHUB_SHA -D ."

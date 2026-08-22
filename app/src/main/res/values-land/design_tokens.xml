@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Landscape phones: reduce vertical chrome so lists keep room. -->
+    <dimen name="ov_space_xl">16dp</dimen>
+    <dimen name="ov_text_large_title">28sp</dimen>
+    <dimen name="ov_bottom_nav_height">44dp</dimen>
+    <dimen name="ov_video_grid_thumb_height">84dp</dimen>
+</resources>

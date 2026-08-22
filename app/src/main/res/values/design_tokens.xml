@@ -1,52 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- OpenVideo light design tokens. Prefer these over hardcoded UI values. -->
+    <!-- OpenVideo light tokens. Apple HIG grouped surfaces, system blue, SF-like type scale. -->
 
-    <color name="ov_bg_base">#FFF7F9FC</color>
-    <color name="ov_bg_gradient_mid">#FFEAF0F8</color>
-    <color name="ov_bg_elevated">#F2FFFFFF</color>
-    <color name="ov_bg_elevated_strong">#FFFFFFFF</color>
-    <color name="ov_bg_overlay">#CCFFFFFF</color>
+    <color name="ov_bg_base">#FFF2F2F7</color>
+    <color name="ov_bg_gradient_mid">#FFF2F2F7</color>
+    <color name="ov_bg_elevated">#FFFFFFFF</color>
+    <color name="ov_bg_elevated_strong">#F7FFFFFF</color>
+    <color name="ov_bg_overlay">#CCF2F2F7</color>
     <color name="ov_dialog_surface">#FFFFFFFF</color>
-    <color name="ov_dialog_scrim">#73030A14</color>
-    <color name="ov_dialog_stroke">#14111827</color>
+    <color name="ov_dialog_scrim">#73000000</color>
+    <color name="ov_dialog_stroke">#14787880</color>
+    <color name="ov_search_bg">#1F767680</color>
+    <color name="ov_tab_bar_stroke">#33787880</color>
 
-    <color name="ov_accent_blue">#FF2F6FE4</color>
-    <color name="ov_accent_blue_pressed">#FF2458B7</color>
-    <color name="ov_accent_blue_soft">#332F6FE4</color>
-    <color name="ov_nav_active_indicator">#667EA7E8</color>
+    <color name="ov_accent_blue">#FF007AFF</color>
+    <color name="ov_accent_blue_pressed">#FF0063D1</color>
+    <color name="ov_accent_blue_soft">#1F007AFF</color>
+    <color name="ov_nav_active_indicator">#1A007AFF</color>
 
-    <color name="ov_text_primary">#FF111827</color>
-    <color name="ov_text_secondary">#FF526071</color>
-    <color name="ov_text_tertiary">#FF7B8796</color>
-    <color name="ov_divider">#1F111827</color>
-    <color name="ov_icon_default">#FF28364A</color>
+    <color name="ov_text_primary">#FF1C1C1E</color>
+    <color name="ov_text_secondary">#993C3C43</color>
+    <color name="ov_text_tertiary">#4D3C3C43</color>
+    <color name="ov_divider">#FFC6C6C8</color>
+    <color name="ov_icon_default">#FF3C3C43</color>
 
     <dimen name="ov_space_xs">4dp</dimen>
     <dimen name="ov_space_sm">8dp</dimen>
     <dimen name="ov_space_md">12dp</dimen>
     <dimen name="ov_space_lg">16dp</dimen>
-    <dimen name="ov_space_xl">24dp</dimen>
-    <dimen name="ov_space_page">16dp</dimen>
-    <dimen name="ov_space_card">16dp</dimen>
-    <dimen name="ov_space_row_vertical">14dp</dimen>
+    <dimen name="ov_space_xl">16dp</dimen>
+    <dimen name="ov_space_page">12dp</dimen>
+    <dimen name="ov_space_card">12dp</dimen>
+    <dimen name="ov_space_row_vertical">12dp</dimen>
 
     <dimen name="ov_radius_sm">8dp</dimen>
-    <dimen name="ov_radius_md">12dp</dimen>
-    <dimen name="ov_radius_lg">18dp</dimen>
+    <dimen name="ov_radius_md">10dp</dimen>
+    <dimen name="ov_radius_lg">14dp</dimen>
+    <dimen name="ov_radius_sheet">14dp</dimen>
     <dimen name="ov_radius_pill">999dp</dimen>
 
-    <dimen name="ov_text_title">20sp</dimen>
-    <dimen name="ov_text_body">16sp</dimen>
-    <dimen name="ov_text_meta">13sp</dimen>
-    <dimen name="ov_text_caption">12sp</dimen>
+    <dimen name="ov_text_large_title">28sp</dimen>
+    <dimen name="ov_text_title">24sp</dimen>
+    <dimen name="ov_text_headline">17sp</dimen>
+    <dimen name="ov_text_body">17sp</dimen>
+    <dimen name="ov_text_meta">15sp</dimen>
+    <dimen name="ov_text_caption">13sp</dimen>
 
+    <dimen name="ov_touch_min">48dp</dimen>
+    <dimen name="ov_row_height">56dp</dimen>
+    <dimen name="ov_icon_button_size">44dp</dimen>
+    <dimen name="ov_search_height">44dp</dimen>
     <dimen name="ov_control_bar_height">56dp</dimen>
-    <dimen name="ov_bottom_nav_height">64dp</dimen>
-    <dimen name="ov_video_thumb_height">120dp</dimen>
-    <dimen name="ov_player_settings_nav_width">172dp</dimen>
+    <dimen name="ov_bottom_nav_height">49dp</dimen>
+    <dimen name="ov_video_thumb_height">96dp</dimen>
+    <dimen name="ov_video_list_thumb_width">136dp</dimen>
+    <dimen name="ov_video_list_thumb_height">76dp</dimen>
+    <dimen name="ov_video_grid_thumb_height">88dp</dimen>
+    <dimen name="ov_player_settings_nav_width">148dp</dimen>
     <dimen name="ov_player_settings_padding">14dp</dimen>
-    <dimen name="ov_player_settings_row_value_max_width">220dp</dimen>
-    <dimen name="ov_player_settings_seek_width">170dp</dimen>
+    <dimen name="ov_player_settings_row_value_max_width">168dp</dimen>
+    <dimen name="ov_player_settings_seek_width">132dp</dimen>
     <dimen name="ov_player_settings_value_width">48dp</dimen>
 </resources>

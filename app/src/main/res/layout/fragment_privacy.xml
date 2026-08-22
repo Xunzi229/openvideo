@@ -7,15 +7,13 @@
 
     <TextView
         android:id="@+id/tv_title"
+        style="@style/TextAppearance.OpenVideo.LargeTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="8dp"
+        android:paddingHorizontal="@dimen/ov_space_page"
+        android:paddingTop="@dimen/ov_space_lg"
+        android:paddingBottom="@dimen/ov_space_sm"
         android:text="@string/privacy_title"
-        android:textColor="@color/ov_text_primary"
-        android:textSize="28sp"
-        android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -49,7 +47,7 @@
         android:id="@+id/fab_add"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_margin="@dimen/ov_space_page"
         android:contentDescription="@string/privacy_add"
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/ov_accent_blue"
