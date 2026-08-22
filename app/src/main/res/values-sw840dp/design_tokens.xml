@@ -5,7 +5,7 @@
     <dimen name="ov_space_xl">32dp</dimen>
     <dimen name="ov_text_large_title">40sp</dimen>
     <dimen name="ov_text_title">34sp</dimen>
-    <dimen name="ov_bottom_nav_height">56dp</dimen>
+    <dimen name="ov_bottom_nav_height">64dp</dimen>
     <dimen name="ov_video_thumb_height">160dp</dimen>
     <dimen name="ov_video_list_thumb_width">240dp</dimen>
     <dimen name="ov_video_list_thumb_height">135dp</dimen>

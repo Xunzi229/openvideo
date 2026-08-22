@@ -3,6 +3,6 @@
     <!-- Landscape phones at typical 360dp+ width: reduce vertical chrome. -->
     <dimen name="ov_space_xl">16dp</dimen>
     <dimen name="ov_text_large_title">28sp</dimen>
-    <dimen name="ov_bottom_nav_height">44dp</dimen>
+    <dimen name="ov_bottom_nav_height">64dp</dimen>
     <dimen name="ov_video_grid_thumb_height">84dp</dimen>
 </resources>

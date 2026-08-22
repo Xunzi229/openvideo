@@ -32,8 +32,8 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(sw360.contains("ov_space_page"))
         assertTrue(sw600.contains("ov_space_page"))
         assertTrue(sw840.contains("ov_space_page"))
-        assertTrue(land.contains("ov_bottom_nav_height"))
-        assertTrue(sw360Land.contains("ov_bottom_nav_height"))
+        assertTrue(land.contains("<dimen name=\"ov_bottom_nav_height\">64dp</dimen>"))
+        assertTrue(sw360Land.contains("<dimen name=\"ov_bottom_nav_height\">64dp</dimen>"))
     }
 
     @Test
@@ -56,6 +56,12 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(source.contains("WindowInsetsCompat.Type.displayCutout()"))
         assertTrue(layout.contains("""android:id="@+id/main_root""""))
         assertTrue(layout.contains("@drawable/bg_tab_bar"))
+        assertTrue(layout.contains("app:itemPaddingTop"))
+        assertTrue(layout.contains("app:itemPaddingBottom"))
+        assertTrue(layout.contains("@dimen/ov_bottom_nav_height"))
+        val tokens = rootFile("app", "src", "main", "res", "values", "design_tokens.xml").readText()
+        assertTrue(tokens.contains("<dimen name=\"ov_bottom_nav_height\">64dp</dimen>"))
+        assertFalse(tokens.contains("<dimen name=\"ov_bottom_nav_height\">49dp</dimen>"))
         assertFalse(source.contains("gh release create"))
     }
 
