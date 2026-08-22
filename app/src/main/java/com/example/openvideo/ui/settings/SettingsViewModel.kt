@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
@@ -20,6 +19,7 @@ import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupImporter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.example.openvideo.core.prefs.ThemeMode
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.update.GitHubReleaseChecker
 import com.example.openvideo.core.update.UpdateApkInstaller
 import com.example.openvideo.data.repository.VideoRepository
@@ -84,7 +84,7 @@ class SettingsViewModel @Inject constructor(
             val release = fetchLatestReleaseOrNull()
             if (release == null) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activityContext, R.string.settings_update_check_failed, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(activityContext, R.string.settings_update_check_failed)
                 }
                 return@launch
             }
@@ -94,7 +94,7 @@ class SettingsViewModel @Inject constructor(
 
             if (!GitHubReleaseChecker.isRemoteNewer(release.tagName, installedVersionName())) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activityContext, R.string.settings_already_latest, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(activityContext, R.string.settings_already_latest)
                 }
                 return@launch
             }
@@ -102,7 +102,7 @@ class SettingsViewModel @Inject constructor(
             val apk = GitHubReleaseChecker.selectApkForAbi(release.assets, Build.SUPPORTED_ABIS)
             if (apk == null) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activityContext, R.string.settings_update_no_apk_asset, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(activityContext, R.string.settings_update_no_apk_asset)
                 }
                 return@launch
             }
@@ -114,7 +114,7 @@ class SettingsViewModel @Inject constructor(
 
             if (expectedHex == null) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activityContext, R.string.settings_update_no_checksum_browser, Toast.LENGTH_LONG).show()
+                    AppleHud.show(activityContext, R.string.settings_update_no_checksum_browser, long = true)
                     activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
                 }
                 return@launch
@@ -123,7 +123,7 @@ class SettingsViewModel @Inject constructor(
             val dest = UpdateApkInstaller.cacheApkFile(app)
             if (!UpdateApkInstaller.downloadApk(apk.browserDownloadUrl, dest, ua)) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activityContext, R.string.settings_update_download_failed, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(activityContext, R.string.settings_update_download_failed)
                     activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
                 }
                 return@launch
@@ -132,7 +132,7 @@ class SettingsViewModel @Inject constructor(
             if (!UpdateApkInstaller.shaMatches(dest, expectedHex)) {
                 dest.delete()
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(activityContext, R.string.settings_update_sha_mismatch, Toast.LENGTH_LONG).show()
+                    AppleHud.show(activityContext, R.string.settings_update_sha_mismatch, long = true)
                 }
                 return@launch
             }
@@ -141,16 +141,14 @@ class SettingsViewModel @Inject constructor(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
                     !activityContext.packageManager.canRequestPackageInstalls()
                 ) {
-                    Toast.makeText(activityContext, R.string.settings_update_allow_install_or_browser, Toast.LENGTH_LONG)
-                        .show()
+                    AppleHud.show(activityContext, R.string.settings_update_allow_install_or_browser, long = true)
                     activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
                     return@withContext
                 }
                 try {
                     activityContext.startActivity(UpdateApkInstaller.buildInstallIntent(activityContext, dest))
                 } catch (_: Exception) {
-                    Toast.makeText(activityContext, R.string.settings_update_install_failed_browser, Toast.LENGTH_SHORT)
-                        .show()
+                    AppleHud.show(activityContext, R.string.settings_update_install_failed_browser)
                     activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))
                 }
             }

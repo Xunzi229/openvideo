@@ -29,9 +29,9 @@ class SeriesListLayoutSourceTest {
         assertTrue(layout.contains("@+id/tv_series_title"))
         assertTrue(layout.contains("@+id/tv_series_folder"))
         assertTrue(layout.contains("@+id/iv_chevron"))
-        assertTrue(layout.contains("@drawable/bg_elevated_card_strong"))
+        assertTrue(layout.contains("@drawable/bg_grouped_row_single"))
         assertTrue(layout.contains("@drawable/ic_movie"))
-        assertTrue(layout.contains("@drawable/ic_arrow_up"))
+        assertTrue(layout.contains("@drawable/ic_chevron_right"))
     }
 
     private fun layoutText(name: String): String =

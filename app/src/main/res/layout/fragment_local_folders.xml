@@ -46,17 +46,75 @@
             app:tint="@color/ov_text_secondary" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/row_continue_playback"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/ov_space_page"
+        android:layout_marginTop="@dimen/ov_space_sm"
+        android:layout_marginEnd="@dimen/ov_space_page"
+        android:background="@drawable/bg_grouped_section"
+        android:clickable="true"
+        android:contentDescription="@string/local_continue_playback"
+        android:focusable="true"
+        android:foreground="@drawable/bg_focusable_card"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/ov_space_lg"
+        android:paddingVertical="@dimen/ov_space_md"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/header_row">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_play"
+            app:tint="@color/ov_accent_blue" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ov_space_md"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/local_continue_playback"
+                android:textColor="@color/ov_accent_blue"
+                android:textSize="@dimen/ov_text_caption" />
+
+            <TextView
+                android:id="@+id/tv_continue_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="@dimen/ov_text_body" />
+        </LinearLayout>
+
+        <ImageView
+            style="@style/Widget.OpenVideo.Chevron"
+            android:contentDescription="@null" />
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_folders"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:clipToPadding="false"
+        android:paddingHorizontal="@dimen/ov_space_page"
         android:paddingTop="16dp"
         android:paddingBottom="80dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/header_row" />
+        app:layout_constraintTop_toBottomOf="@id/row_continue_playback" />
 
     <include
         layout="@layout/include_media_library_scan_loading"
@@ -67,33 +125,46 @@
         app:layout_constraintStart_toStartOf="@id/recycler_folders"
         app:layout_constraintTop_toTopOf="@id/recycler_folders" />
 
-    <TextView
-        android:id="@+id/tv_empty"
+    <LinearLayout
+        android:id="@+id/empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:focusable="true"
-        android:foreground="@drawable/bg_focusable_card"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="10dp"
-        android:text="@string/no_videos"
-        android:textColor="@color/ov_text_secondary"
-        android:textSize="16sp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/recycler_folders"
         app:layout_constraintEnd_toEndOf="@id/recycler_folders"
         app:layout_constraintStart_toStartOf="@id/recycler_folders"
-        app:layout_constraintTop_toTopOf="@id/recycler_folders" />
+        app:layout_constraintTop_toTopOf="@id/recycler_folders">
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_continue_playback"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="@string/local_continue_playback"
-        android:src="@drawable/ic_play"
-        android:visibility="gone"
-        app:backgroundTint="@color/ov_accent_blue"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:tint="@android:color/white" />
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_folder"
+            app:tint="@color/ov_text_tertiary" />
+
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:focusable="true"
+            android:foreground="@drawable/bg_focusable_card"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
+            android:text="@string/no_videos"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/empty_hint_folders"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

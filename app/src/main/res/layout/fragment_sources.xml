@@ -13,133 +13,136 @@
         android:paddingBottom="80dp">
 
         <TextView
+            style="@style/TextAppearance.OpenVideo.LargeTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            style="@style/TextAppearance.OpenVideo.LargeTitle"
             android:paddingHorizontal="@dimen/ov_space_page"
             android:paddingTop="@dimen/ov_space_lg"
             android:paddingBottom="@dimen/ov_space_sm"
             android:text="@string/sources_title" />
 
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="8dp"
-            android:text="@string/sources_section_available"
-            android:textColor="@color/ov_text_secondary"
-            android:textSize="@dimen/ov_text_caption"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_lg"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/sources_section_available" />
 
-        <LinearLayout
-            android:id="@+id/row_source_local"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="@drawable/bg_focusable_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_folder"
-                app:tint="@color/ov_text_secondary" />
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:id="@+id/row_source_local"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/bg_focusable_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/ov_space_lg">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/sources_local_title"
-                    android:textColor="@color/ov_text_primary"
-                    android:textSize="16sp" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_folder"
+                    app:tint="@color/ov_text_secondary" />
 
-                <TextView
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/sources_local_subtitle"
-                    android:textColor="@color/ov_text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sources_local_title"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/sources_local_subtitle"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView style="@style/Widget.OpenVideo.Chevron" />
             </LinearLayout>
-        </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:layout_marginStart="56dp"
-            android:background="@color/ov_divider" />
-
-        <LinearLayout
-            android:id="@+id/row_source_open_url"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="@drawable/bg_focusable_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_stream"
-                app:tint="@color/ov_text_secondary" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginStart="@dimen/ov_space_lg"
+                android:background="@color/ov_divider" />
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:id="@+id/row_source_open_url"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/bg_focusable_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/ov_space_lg">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/sources_open_url_title"
-                    android:textColor="@color/ov_text_primary"
-                    android:textSize="16sp" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_stream"
+                    app:tint="@color/ov_text_secondary" />
 
-                <TextView
-                    android:layout_width="match_parent"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/sources_open_url_subtitle"
-                    android:textColor="@color/ov_text_secondary"
-                android:textSize="13sp" />
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sources_open_url_title"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/sources_open_url_subtitle"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageView style="@style/Widget.OpenVideo.Chevron" />
             </LinearLayout>
         </LinearLayout>
 
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/sources_section_saved"
-            android:textColor="@color/ov_text_secondary"
-            android:textSize="@dimen/ov_text_caption"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/sources_section_saved" />
 
         <TextView
             android:id="@+id/tv_saved_sources_empty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/ov_space_page"
             android:paddingTop="8dp"
             android:paddingBottom="12dp"
             android:text="@string/sources_saved_empty"
@@ -150,25 +153,27 @@
             android:id="@+id/recycler_saved_sources"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ov_space_page"
+            android:layout_marginEnd="@dimen/ov_space_page"
+            android:background="@drawable/bg_grouped_section"
+            android:clipToOutline="true"
             android:overScrollMode="never"
             android:visibility="gone" />
 
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/sources_section_recent"
-            android:textColor="@color/ov_text_secondary"
-            android:textSize="@dimen/ov_text_caption"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/sources_section_recent" />
 
         <TextView
             android:id="@+id/tv_source_recent_empty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/ov_space_page"
             android:paddingTop="8dp"
             android:paddingBottom="12dp"
             android:text="@string/sources_recent_empty"
@@ -179,6 +184,10 @@
             android:id="@+id/recycler_source_recent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/ov_space_page"
+            android:layout_marginEnd="@dimen/ov_space_page"
+            android:background="@drawable/bg_grouped_section"
+            android:clipToOutline="true"
             android:overScrollMode="never"
             android:visibility="gone" />
 
@@ -187,129 +196,130 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:lineSpacingExtra="2dp"
-            android:paddingHorizontal="16dp"
+            android:paddingHorizontal="@dimen/ov_space_page"
             android:paddingTop="20dp"
             android:paddingBottom="4dp"
             android:textColor="@color/ov_text_secondary"
             android:textSize="13sp" />
 
         <TextView
+            style="@style/TextAppearance.OpenVideo.Section"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:paddingTop="24dp"
-            android:paddingBottom="8dp"
-            android:text="@string/sources_section_planned"
-            android:textColor="@color/ov_text_secondary"
-            android:textSize="@dimen/ov_text_caption"
-            android:textStyle="bold" />
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingTop="@dimen/ov_space_xl"
+            android:paddingBottom="@dimen/ov_space_sm"
+            android:text="@string/sources_section_planned" />
 
-        <LinearLayout
-            android:id="@+id/row_source_webdav"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="@drawable/bg_focusable_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_file_upload"
-                app:tint="@color/ov_text_secondary" />
+        <LinearLayout style="@style/Widget.OpenVideo.GroupedSection">
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:id="@+id/row_source_webdav"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/bg_focusable_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/ov_space_lg">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_file_upload"
+                    app:tint="@color/ov_text_secondary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sources_webdav_title"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/sources_webdav_subtitle"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/sources_webdav_title"
-                    android:textColor="@color/ov_text_primary"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/sources_webdav_subtitle"
-                    android:textColor="@color/ov_text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginStart="12dp"
+                    android:text="@string/sources_webdav_status_planned"
+                    android:textColor="@color/ov_text_tertiary"
+                    android:textSize="12sp" />
             </LinearLayout>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/sources_webdav_status_planned"
-                android:textColor="@color/ov_text_tertiary"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0.5dp"
-            android:layout_marginStart="56dp"
-            android:background="@color/ov_divider" />
-
-        <LinearLayout
-            android:id="@+id/row_source_future"
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="@drawable/bg_focusable_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_info"
-                app:tint="@color/ov_text_secondary" />
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginStart="@dimen/ov_space_lg"
+                android:background="@color/ov_divider" />
 
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:id="@+id/row_source_future"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/bg_focusable_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/ov_space_lg">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_info"
+                    app:tint="@color/ov_text_secondary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/sources_future_title"
+                        android:textColor="@color/ov_text_primary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/sources_future_subtitle"
+                        android:textColor="@color/ov_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/sources_future_title"
-                    android:textColor="@color/ov_text_primary"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="@string/sources_future_subtitle"
-                    android:textColor="@color/ov_text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginStart="12dp"
+                    android:text="@string/sources_future_status_planned"
+                    android:textColor="@color/ov_text_tertiary"
+                    android:textSize="12sp" />
             </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/sources_future_status_planned"
-                android:textColor="@color/ov_text_tertiary"
-                android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

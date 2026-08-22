@@ -19,6 +19,8 @@ class AppleOverlaySourceTest {
         assertTrue(light.contains("ov_danger"))
         assertTrue(light.contains("<dimen name=\"ov_alert_width\">270dp</dimen>"))
         assertTrue(light.contains("ov_overlay_sheet_max_width"))
+        assertTrue(light.contains("ov_hud_bg"))
+        assertTrue(light.contains("ov_segment_selected"))
         assertTrue(light.contains("#FFFF3B30"))
         assertTrue(dark.contains("#FFFF453A"))
         assertTrue(dark.contains("#FF0A84FF"))
@@ -113,6 +115,20 @@ class AppleOverlaySourceTest {
         assertFalse(glass.contains("MaterialAlertDialogBuilder"))
         assertTrue(glass.contains("R.color.ov_accent_blue"))
         assertTrue(glass.contains("applyBottomRowVisual("))
+    }
+
+    @Test
+    fun libraryFeedbackUsesAppleHudInsteadOfToastOrSnackbar() {
+        val hud = source("AppleHud.kt")
+        val playlistDetail = uiSource("playlist", "PlaylistDetailFragment.kt")
+        val settings = uiSource("settings", "SettingsFragment.kt")
+
+        assertTrue(hud.contains("SHORT_MS"))
+        assertTrue(hud.contains("Gravity.CENTER"))
+        assertTrue(playlistDetail.contains("AppleHud.show"))
+        assertTrue(!playlistDetail.contains("Snackbar"))
+        assertTrue(settings.contains("AppleHud.show"))
+        assertTrue(!settings.contains("Toast.makeText"))
     }
 
     private fun source(name: String): String = String(

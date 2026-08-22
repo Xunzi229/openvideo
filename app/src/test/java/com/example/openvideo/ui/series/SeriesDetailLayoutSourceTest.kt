@@ -29,7 +29,7 @@ class SeriesDetailLayoutSourceTest {
         assertTrue(layout.contains("@+id/tv_episode_number"))
         assertTrue(layout.contains("@+id/tv_episode_title"))
         assertTrue(layout.contains("@+id/tv_episode_meta"))
-        assertTrue(layout.contains("@drawable/bg_elevated_card_strong"))
+        assertTrue(layout.contains("@drawable/bg_grouped_row_single"))
         assertTrue(layout.contains("@color/ov_text_primary"))
         assertTrue(layout.contains("@color/ov_text_secondary"))
     }

@@ -13,7 +13,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
@@ -25,6 +24,7 @@ import com.example.openvideo.R
 import com.example.openvideo.core.prefs.SettingsBackupFileWriter
 import com.example.openvideo.core.prefs.SettingsBackupSchema
 import com.example.openvideo.core.ui.ScreenBreakpoint
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
@@ -51,17 +51,9 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writeSettingsExportTo(requireContext(), uri)) {
                 is SettingsBackupFileWriter.Result.Success ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_export_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_export_success)
                 is SettingsBackupFileWriter.Result.Failure ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_export_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_export_failed)
             }
         }
     }
@@ -73,27 +65,15 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (val result = viewModel.readAndImportSettings(requireContext(), uri)) {
                 is SettingsViewModel.ImportResult.Success -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_import_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_import_success)
                     // Recreate activity so theme / language changes take effect immediately
                     activity?.recreate()
                 }
                 is SettingsViewModel.ImportResult.ParseFailure -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_import_parse_error,
-                        Toast.LENGTH_LONG
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_import_parse_error, long = true)
                 }
                 is SettingsViewModel.ImportResult.ReadFailure -> {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.settings_toast_import_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.settings_toast_import_failed)
                 }
             }
         }

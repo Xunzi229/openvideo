@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 
 class VideoFolderAdapter(
     private val onClick: (VideoFolder) -> Unit,
@@ -61,6 +62,7 @@ class VideoFolderAdapter(
                 folder.videoCount,
                 folder.videoCount
             )
+            GroupedListChrome.bindStandalone(itemView)
         }
     }
 

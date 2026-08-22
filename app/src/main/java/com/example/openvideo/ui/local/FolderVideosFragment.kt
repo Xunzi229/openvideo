@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -22,6 +21,7 @@ import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionSheet
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.AppleOverlayChrome
 import com.example.openvideo.core.ui.AppleOverlayColors
 import com.example.openvideo.core.ui.ScreenBreakpoint
@@ -80,7 +80,8 @@ class FolderVideosFragment : Fragment() {
         emptyView.isFocusable = true
         emptyView.nextFocusUpId = R.id.btn_back
         view.findViewById<TextView>(R.id.tv_title).text = folderName
-        view.findViewById<ImageButton>(R.id.btn_back).setOnClickListener {
+        view.findViewById<TextView>(R.id.tv_back_title).setText(R.string.local_folder_title)
+        view.findViewById<View>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
         updateFolderVideoFocusOrder(view, hasVideos = false)
@@ -109,7 +110,7 @@ class FolderVideosFragment : Fragment() {
                     folderVideosSnapshot = folderVideos
                     adapter.submitList(folderVideos) { restoreVideoFocusIfNeeded(folderVideos) }
                     val hasVideos = folderVideos.isNotEmpty()
-                    emptyView.visibility = if (hasVideos) View.GONE else View.VISIBLE
+                    AppleEmptyState.setVisible(emptyView, !hasVideos)
                     recyclerView.visibility = if (hasVideos) View.VISIBLE else View.GONE
                     updateFolderVideoFocusOrder(requireView(), hasVideos)
                 }

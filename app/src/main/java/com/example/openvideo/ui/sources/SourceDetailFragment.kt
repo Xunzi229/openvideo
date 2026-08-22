@@ -7,11 +7,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkUrlPolicy
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.data.local.MediaSourceEntity
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.settings.SettingsConfirmationActionSheet
@@ -44,6 +44,7 @@ class SourceDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val backButton = view.findViewById<View>(R.id.btn_back)
+        view.findViewById<TextView>(R.id.tv_back_title).setText(R.string.sources_title)
         backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
@@ -142,7 +143,7 @@ class SourceDetailFragment : Fragment() {
         } else {
             R.string.source_detail_test_invalid
         }
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        AppleHud.show(requireContext(), message)
     }
 
     private fun browseCurrentSource() {

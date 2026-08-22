@@ -75,6 +75,79 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(theme.contains("@drawable/ic_chevron_right"))
         assertTrue(settings.contains("@style/Widget.OpenVideo.GroupedSection"))
         assertTrue(settings.contains("@style/Widget.OpenVideo.Chevron"))
+        val sources = rootFile("app", "src", "main", "res", "layout", "fragment_sources.xml").readText()
+        assertTrue(sources.contains("@style/Widget.OpenVideo.GroupedSection"))
+        assertTrue(sources.contains("@style/Widget.OpenVideo.Chevron"))
+    }
+
+    @Test
+    fun batchTwoUsesGroupedListsAndHeaderEditMode() {
+        val home = rootFile("app", "src", "main", "res", "layout", "fragment_home.xml").readText()
+        val playlistItem = rootFile("app", "src", "main", "res", "layout", "item_playlist.xml").readText()
+        val video = rootFile("app", "src", "main", "res", "layout", "item_video.xml").readText()
+        val grid = rootFile("app", "src", "main", "res", "layout", "item_video_grid.xml").readText()
+        val series = rootFile("app", "src", "main", "res", "layout", "item_series.xml").readText()
+        val adapter = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "home", "VideoGridAdapter.kt"
+        ).readText()
+        val homeSource = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "home", "HomeFragment.kt"
+        ).readText()
+        val chrome = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "GroupedListChrome.kt"
+        ).readText()
+
+        assertTrue(chrome.contains("fun bind("))
+        assertTrue(chrome.contains("bg_grouped_row_top"))
+        assertTrue(home.contains("""android:id="@+id/btn_select""""))
+        assertTrue(home.contains("""android:id="@+id/edit_actions""""))
+        assertTrue(home.contains("@string/action_select"))
+        assertTrue(home.contains("@string/action_done"))
+        assertTrue(home.contains("@+id/empty_state"))
+        assertTrue(!homeSource.contains("startSupportActionMode"))
+        assertTrue(homeSource.contains("private fun startMultiSelectMode(category: HomeCategory)"))
+        assertTrue(!playlistItem.contains("MaterialCardView"))
+        assertTrue(playlistItem.contains("@+id/row_hairline"))
+        assertTrue(!video.contains("MaterialCardView"))
+        assertTrue(!video.contains("CheckBox"))
+        assertTrue(video.contains("@drawable/bg_thumb_clip"))
+        assertTrue(video.contains("@+id/cb_select"))
+        assertTrue(!grid.contains("MaterialCardView"))
+        assertTrue(grid.contains("@drawable/bg_thumb_clip"))
+        assertTrue(series.contains("@drawable/ic_chevron_right"))
+        assertTrue(!series.contains("@drawable/ic_arrow_up"))
+        assertTrue(adapter.contains("ImageView?"))
+        assertTrue(adapter.contains("bindSelectMark"))
+    }
+
+    @Test
+    fun batchOneReplacesMaterialChromeWithAppleControls() {
+        val home = rootFile("app", "src", "main", "res", "layout", "fragment_home.xml").readText()
+        val playlist = rootFile("app", "src", "main", "res", "layout", "fragment_playlist.xml").readText()
+        val privacy = rootFile("app", "src", "main", "res", "layout", "fragment_privacy.xml").readText()
+        val local = rootFile("app", "src", "main", "res", "layout", "fragment_local_folders.xml").readText()
+        val video = rootFile("app", "src", "main", "res", "layout", "item_video.xml").readText()
+        val folder = rootFile("app", "src", "main", "res", "layout", "fragment_folder_videos.xml").readText()
+        val hud = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleHud.kt"
+        ).readText()
+
+        assertTrue(home.contains("bg_segmented_track"))
+        assertTrue(home.contains("""android:id="@+id/chip_all""""))
+        assertTrue(!home.contains("Widget.Material3.Chip.Filter"))
+        assertTrue(playlist.contains("""android:id="@+id/btn_add""""))
+        assertTrue(!playlist.contains("FloatingActionButton"))
+        assertTrue(privacy.contains("""android:id="@+id/btn_add""""))
+        assertTrue(!privacy.contains("FloatingActionButton"))
+        assertTrue(local.contains("""android:id="@+id/row_continue_playback""""))
+        assertTrue(!local.contains("FloatingActionButton"))
+        assertTrue(video.contains("@drawable/ic_more_horiz"))
+        assertTrue(!video.contains("@drawable/ic_more_vert"))
+        assertTrue(folder.contains("include_apple_nav_back"))
+        assertTrue(folder.contains("@drawable/ic_chevron_left") || folder.contains("include_apple_nav_back"))
+        assertTrue(hud.contains("fun show("))
+        assertTrue(hud.contains("PopupWindow"))
+        assertTrue(!hud.contains("Snackbar"))
     }
 
     private fun Path.readText(): String = String(Files.readAllBytes(this))

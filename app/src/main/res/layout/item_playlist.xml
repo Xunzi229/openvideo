@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="@dimen/ov_space_page"
-    android:layout_marginVertical="@dimen/ov_space_xs"
-    app:cardBackgroundColor="@color/ov_bg_elevated"
-    app:cardCornerRadius="@dimen/ov_radius_md"
-    app:cardElevation="0dp"
-    app:strokeWidth="0dp">
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="@drawable/bg_focusable_card"
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:minHeight="@dimen/ov_row_height"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:paddingHorizontal="@dimen/ov_space_lg"
+        android:paddingVertical="@dimen/ov_space_md">
 
         <LinearLayout
             android:layout_width="0dp"
@@ -46,7 +46,16 @@
             android:layout_height="@dimen/ov_icon_button_size"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/more_options"
-            android:src="@drawable/ic_more_vert"
+            android:src="@drawable/ic_more_horiz"
             app:tint="@color/ov_text_secondary" />
+
+        <ImageView style="@style/Widget.OpenVideo.Chevron" />
     </LinearLayout>
-</com.google.android.material.card.MaterialCardView>
+
+    <View
+        android:id="@+id/row_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="@dimen/ov_space_lg"
+        android:background="@color/ov_divider" />
+</LinearLayout>

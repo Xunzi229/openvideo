@@ -17,10 +17,10 @@ import com.example.openvideo.R
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.AppleOverlayChrome
 import com.example.openvideo.core.ui.AppleOverlayColors
 import com.example.openvideo.ui.settings.SettingsConfirmationActionSheet
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -61,7 +61,7 @@ class PlaylistFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
-        view.findViewById<FloatingActionButton>(R.id.fab_add).setOnClickListener {
+        view.findViewById<View>(R.id.btn_add).setOnClickListener {
             showCreateDialog()
         }
 
@@ -69,7 +69,7 @@ class PlaylistFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.playlists.collect { list ->
                     adapter.submitList(list)
-                    emptyView.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
+                    AppleEmptyState.setVisible(emptyView, list.isEmpty())
                     recyclerView.visibility = if (list.isEmpty()) View.GONE else View.VISIBLE
                 }
             }

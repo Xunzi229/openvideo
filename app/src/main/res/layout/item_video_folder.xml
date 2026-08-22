@@ -3,27 +3,29 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_margin="4dp"
+    android:background="@drawable/bg_grouped_row_single"
     android:clickable="true"
     android:focusable="true"
     android:foreground="@drawable/bg_focusable_card"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="@dimen/ov_space_page"
+    android:paddingStart="@dimen/ov_space_lg"
     android:paddingTop="@dimen/ov_space_md"
-    android:paddingEnd="@dimen/ov_space_page"
+    android:paddingEnd="@dimen/ov_space_md"
     android:paddingBottom="@dimen/ov_space_md">
 
     <ImageView
-        android:layout_width="72dp"
-        android:layout_height="56dp"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:contentDescription="@string/local_folder_title"
         android:src="@drawable/ic_folder"
-        app:tint="@color/ov_text_secondary" />
+        app:tint="@color/ov_accent_blue" />
 
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="12dp"
         android:layout_weight="1"
         android:orientation="vertical">
 
@@ -34,7 +36,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/ov_text_primary"
-            android:textSize="18sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
 
         <TextView
@@ -43,6 +45,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:textColor="@color/ov_text_tertiary"
-            android:textSize="14sp" />
+            android:textSize="13sp" />
     </LinearLayout>
+
+    <ImageView style="@style/Widget.OpenVideo.Chevron" />
 </LinearLayout>

@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -21,12 +20,13 @@ import com.example.openvideo.R
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleEmptyState
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
 import com.example.openvideo.ui.player.toSessionVideoItem
-import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 
@@ -50,10 +50,10 @@ class PlaylistDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writePlaylistExportTo(requireContext(), uri, playlistId, playlistName)) {
                 is PlaylistViewModel.TransferResult.Success ->
-                    Toast.makeText(requireContext(), R.string.playlist_export_success, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(requireContext(), R.string.playlist_export_success)
                 is PlaylistViewModel.TransferResult.ReadWriteFailure,
                 is PlaylistViewModel.TransferResult.ParseFailure ->
-                    Toast.makeText(requireContext(), R.string.playlist_export_failed, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(requireContext(), R.string.playlist_export_failed)
             }
         }
     }
@@ -65,11 +65,11 @@ class PlaylistDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.readAndImportPlaylist(requireContext(), uri, playlistId)) {
                 is PlaylistViewModel.TransferResult.Success ->
-                    Toast.makeText(requireContext(), R.string.playlist_import_success, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(requireContext(), R.string.playlist_import_success)
                 is PlaylistViewModel.TransferResult.ParseFailure ->
-                    Toast.makeText(requireContext(), R.string.playlist_import_parse_error, Toast.LENGTH_LONG).show()
+                    AppleHud.show(requireContext(), R.string.playlist_import_parse_error, long = true)
                 is PlaylistViewModel.TransferResult.ReadWriteFailure ->
-                    Toast.makeText(requireContext(), R.string.playlist_import_failed, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(requireContext(), R.string.playlist_import_failed)
             }
         }
     }
@@ -101,7 +101,8 @@ class PlaylistDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         view.findViewById<TextView>(R.id.tv_title).text = playlistName
-        view.findViewById<ImageButton>(R.id.btn_back).setOnClickListener {
+        view.findViewById<TextView>(R.id.tv_back_title).setText(R.string.nav_playlist)
+        view.findViewById<View>(R.id.btn_back).setOnClickListener {
             parentFragmentManager.popBackStack()
         }
         view.findViewById<ImageButton>(R.id.btn_clear).setOnClickListener {
@@ -123,7 +124,7 @@ class PlaylistDetailFragment : Fragment() {
         adapter = PlaylistVideoAdapter(
             onClick = click@{ video ->
                 if (!PlaylistVideoAvailabilityPolicy.isAvailable(video.videoPath)) {
-                    Toast.makeText(requireContext(), R.string.playlist_video_missing, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(requireContext(), R.string.playlist_video_missing)
                     viewModel.removeStalePlaylistVideos(playlistId, listOf(video.videoId))
                     return@click
                 }
@@ -158,7 +159,7 @@ class PlaylistDetailFragment : Fragment() {
                     val visible = PlaylistVideoAvailabilityPolicy.filterPlayable(sorted)
                     playlistVideosSnapshot = visible
                     adapter.submitList(visible)
-                    emptyView.visibility = if (visible.isEmpty()) View.VISIBLE else View.GONE
+                    AppleEmptyState.setVisible(emptyView, visible.isEmpty())
                     recyclerView.visibility = if (visible.isEmpty()) View.GONE else View.VISIBLE
                 }
             }
@@ -243,10 +244,12 @@ class PlaylistDetailFragment : Fragment() {
 
     private fun showCleanupUndo(removedVideos: List<PlaylistVideoEntity>) {
         if (removedVideos.isEmpty()) return
-        Snackbar.make(requireView(), R.string.playlist_cleanup_complete, Snackbar.LENGTH_LONG)
-            .setAction(R.string.action_undo) {
-                viewModel.restorePlaylistVideos(removedVideos)
-            }
-            .show()
+        AppleHud.show(
+            context = requireContext(),
+            text = getString(R.string.playlist_cleanup_complete),
+            long = true,
+            actionTitle = getString(R.string.action_undo),
+            onAction = { viewModel.restorePlaylistVideos(removedVideos) }
+        )
     }
 }

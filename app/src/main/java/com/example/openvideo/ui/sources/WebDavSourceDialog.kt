@@ -6,11 +6,11 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.widget.NestedScrollView
 import com.example.openvideo.R
 import com.example.openvideo.core.network.WebDavConnectionPolicy
 import com.example.openvideo.core.ui.AppleFormSheet
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.ui.AppleOverlayChrome
 import com.example.openvideo.core.ui.AppleOverlayColors
 
@@ -89,7 +89,7 @@ object WebDavSourceDialog {
                             true
                         }
                         is WebDavConnectionPolicy.CredentialValidation.Invalid -> {
-                            Toast.makeText(context, R.string.webdav_credentials_invalid, Toast.LENGTH_SHORT).show()
+                            AppleHud.show(context, R.string.webdav_credentials_invalid)
                             false
                         }
                     }

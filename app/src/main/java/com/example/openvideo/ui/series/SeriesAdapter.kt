@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 import java.io.File
 
 class SeriesAdapter(
@@ -62,6 +63,7 @@ class SeriesAdapter(
             .into(holder.poster)
         holder.title.text = item.title
         holder.folder.text = item.folderPath
+        GroupedListChrome.bindStandalone(holder.itemView)
     }
 
     override fun onViewRecycled(holder: ViewHolder) {

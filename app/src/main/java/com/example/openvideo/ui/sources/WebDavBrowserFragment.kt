@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DiffUtil
@@ -22,6 +21,7 @@ import com.example.openvideo.core.network.WebDavConnectionPolicy
 import com.example.openvideo.core.network.WebDavDirectoryParser
 import com.example.openvideo.core.network.WebDavSubtitleMatcher
 import com.example.openvideo.core.prefs.WebDavCredentialStore
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.player.PlayerActivityIntents
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,6 +55,7 @@ class WebDavBrowserFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val backButton = view.findViewById<View>(R.id.btn_webdav_back)
+        view.findViewById<TextView>(R.id.tv_back_title).setText(R.string.sources_title)
         backButton.setOnClickListener {
             parentFragmentManager.popBackStack()
         }
@@ -123,7 +124,7 @@ class WebDavBrowserFragment : Fragment() {
             }
             entry.isPlayableVideo -> {
                 val credentials = credentials ?: run {
-                    Toast.makeText(requireContext(), R.string.webdav_credentials_missing, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(requireContext(), R.string.webdav_credentials_missing)
                     return
                 }
                 startActivity(
@@ -141,7 +142,7 @@ class WebDavBrowserFragment : Fragment() {
                 )
             }
             else -> {
-                Toast.makeText(requireContext(), R.string.webdav_entry_not_playable, Toast.LENGTH_SHORT).show()
+                AppleHud.show(requireContext(), R.string.webdav_entry_not_playable)
             }
         }
     }

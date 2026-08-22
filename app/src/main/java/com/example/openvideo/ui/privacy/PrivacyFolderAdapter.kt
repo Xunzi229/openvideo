@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 
 class PrivacyFolderAdapter(
     private val onRemove: (String) -> Unit
@@ -24,6 +25,7 @@ class PrivacyFolderAdapter(
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val path: TextView = view.findViewById(R.id.tv_path)
         val removeBtn: ImageButton = view.findViewById(R.id.btn_remove)
+        val hairline: View = view.findViewById(R.id.row_hairline)
 
         init {
             removeBtn.setOnClickListener {
@@ -41,5 +43,6 @@ class PrivacyFolderAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.path.text = getItem(position)
+        GroupedListChrome.bind(holder.itemView, holder.hairline, position, itemCount)
     }
 }

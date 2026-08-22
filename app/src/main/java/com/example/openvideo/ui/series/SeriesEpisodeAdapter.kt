@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 
 class SeriesEpisodeAdapter(
     private val onClick: (SeriesEpisodeUiState) -> Unit,
@@ -66,5 +67,6 @@ class SeriesEpisodeAdapter(
             item.confidence,
             item.rule
         )
+        GroupedListChrome.bindStandalone(holder.itemView)
     }
 }

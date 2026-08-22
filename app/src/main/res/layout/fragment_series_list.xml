@@ -11,19 +11,28 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingHorizontal="@dimen/ov_space_page"
-        android:paddingTop="@dimen/ov_space_lg"
+        android:paddingStart="4dp"
+        android:paddingTop="@dimen/ov_space_sm"
+        android:paddingEnd="@dimen/ov_space_page"
         android:paddingBottom="@dimen/ov_space_sm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
+
+        <include
+            android:id="@+id/btn_back"
+            layout="@layout/include_apple_nav_back"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp" />
 
         <TextView
             android:id="@+id/tv_title"
             style="@style/TextAppearance.OpenVideo.LargeTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -39,21 +48,47 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/header" />
 
-    <TextView
-        android:id="@+id/tv_empty"
+    <LinearLayout
+        android:id="@+id/empty_state"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:focusable="true"
-        android:foreground="@drawable/bg_focusable_card"
-        android:paddingHorizontal="@dimen/ov_space_page"
-        android:paddingVertical="10dp"
-        android:text="@string/series_list_empty"
-        android:textColor="@color/ov_text_secondary"
-        android:textSize="16sp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="24dp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/recycler_series"
         app:layout_constraintEnd_toEndOf="@id/recycler_series"
         app:layout_constraintStart_toStartOf="@id/recycler_series"
-        app:layout_constraintTop_toTopOf="@id/recycler_series" />
+        app:layout_constraintTop_toTopOf="@id/recycler_series">
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_movie"
+            app:tint="@color/ov_text_tertiary" />
+
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:focusable="true"
+            android:foreground="@drawable/bg_focusable_card"
+            android:paddingHorizontal="@dimen/ov_space_page"
+            android:paddingVertical="10dp"
+            android:text="@string/series_list_empty"
+            android:textColor="@color/ov_text_primary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/empty_hint_series"
+            android:textColor="@color/ov_text_secondary"
+            android:textSize="13sp" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

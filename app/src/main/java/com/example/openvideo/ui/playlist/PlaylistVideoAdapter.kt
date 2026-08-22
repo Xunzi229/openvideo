@@ -18,6 +18,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.GroupedListChrome
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import java.io.File
 
@@ -44,6 +45,7 @@ class PlaylistVideoAdapter(
         val metaSpacer: TextView = view.findViewById(R.id.tv_meta_spacer)
         val size: TextView = view.findViewById(R.id.tv_size)
         val removeBtn: ImageButton = view.findViewById(R.id.btn_remove)
+        val hairline: View = view.findViewById(R.id.row_hairline)
 
         init {
             view.setOnClickListener {
@@ -60,6 +62,7 @@ class PlaylistVideoAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_playlist_video, parent, false)
+        (view.findViewById<View>(R.id.iv_thumbnail).parent as View).clipToOutline = true
         return ViewHolder(view)
     }
 
@@ -124,6 +127,7 @@ class PlaylistVideoAdapter(
                 }
             })
             .into(holder.thumbnail)
+        GroupedListChrome.bindContained(holder.hairline, position, itemCount)
     }
 
     override fun onViewRecycled(holder: ViewHolder) {

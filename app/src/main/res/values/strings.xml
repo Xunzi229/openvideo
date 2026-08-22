@@ -357,6 +357,13 @@
     <!-- General -->
     <string name="refresh">Refresh</string>
     <string name="no_videos">No videos</string>
+    <string name="empty_hint_videos">Videos you scan or import will appear here.</string>
+    <string name="empty_hint_folders">Folders appear here after the library is scanned.</string>
+    <string name="empty_hint_playlist">Create a playlist to organize videos.</string>
+    <string name="empty_hint_playlist_detail">Add videos to this playlist.</string>
+    <string name="empty_hint_privacy">Added folders stay hidden from the library.</string>
+    <string name="empty_hint_series">Series grouped by folder will appear here.</string>
+    <string name="empty_hint_episodes">This series has no playable episodes yet.</string>
     <string name="media_library_loading">Scanning videos...</string>
     <string name="media_library_scanning_count">Scanned %1$d videos…</string>
     <string name="media_library_permission_denied">Video access permission is required to scan local files</string>
@@ -495,6 +502,8 @@
     <string name="local_folder_title">Folders</string>
     <string name="local_continue_playback">Continue playback</string>
     <string name="action_back">Back</string>
+    <string name="action_select">Select</string>
+    <string name="action_done">Done</string>
     <string name="option_play">Play</string>
     <string name="option_favorite">Favorite</string>
     <string name="option_favorited">Favorited</string>
