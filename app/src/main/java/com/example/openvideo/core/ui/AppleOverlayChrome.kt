@@ -175,7 +175,7 @@ object AppleOverlayChrome {
         return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            minHeight = dp(context, minHeightDp)
+            minimumHeight = dp(context, minHeightDp)
             isClickable = true
             isFocusable = true
             descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
