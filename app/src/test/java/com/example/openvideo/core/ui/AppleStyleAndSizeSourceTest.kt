@@ -102,7 +102,7 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(home.contains("""android:id="@+id/btn_select""""))
         assertTrue(home.contains("""android:id="@+id/edit_actions""""))
         assertTrue(home.contains("@string/action_select"))
-        assertTrue(home.contains("@string/action_done"))
+        assertTrue(homeSource.contains("R.string.action_done"))
         assertTrue(home.contains("@+id/empty_state"))
         assertTrue(!homeSource.contains("startSupportActionMode"))
         assertTrue(homeSource.contains("private fun startMultiSelectMode(category: HomeCategory)"))
