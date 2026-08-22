@@ -31,9 +31,18 @@ class AppleOverlaySourceTest {
         val actionSheet = source("AppleActionSheet.kt")
         val alert = source("AppleAlertDialog.kt")
         val formSheet = source("AppleFormSheet.kt")
+        val chrome = source("AppleOverlayChrome.kt")
+        val bottomWindow = chrome.substringAfter("fun configureBottomWindow")
+            .substringBefore("fun bindScrimDismiss")
+
+        assertTrue(bottomWindow.contains("WindowCompat.setDecorFitsSystemWindows(window, false)"))
+        assertTrue(bottomWindow.contains("WindowManager.LayoutParams.MATCH_PARENT"))
+        assertTrue(!bottomWindow.contains("WRAP_CONTENT"))
+        assertTrue(chrome.contains("fun bindScrimDismiss"))
 
         assertTrue(actionSheet.contains("Gravity.BOTTOM"))
         assertTrue(actionSheet.contains("AppleOverlayChrome.configureBottomWindow"))
+        assertTrue(actionSheet.contains("AppleOverlayChrome.bindScrimDismiss"))
         assertTrue(actionSheet.contains("OverlayWindowInsets.bind"))
         assertTrue(actionSheet.contains("defaultFocusCancel"))
         assertTrue(actionSheet.contains("action.selected == true"))
@@ -53,6 +62,7 @@ class AppleOverlaySourceTest {
         assertTrue(formSheet.contains("Gravity.BOTTOM"))
         assertTrue(formSheet.contains("overlayMaxHeight"))
         assertTrue(formSheet.contains("OverlayWindowInsets.bind"))
+        assertTrue(formSheet.contains("AppleOverlayChrome.bindScrimDismiss"))
         assertFalse(formSheet.contains("MaterialAlertDialogBuilder"))
     }
 

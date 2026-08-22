@@ -17,6 +17,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.WindowCompat
 import com.example.openvideo.R
 
 object AppleOverlayChrome {
@@ -210,14 +211,25 @@ object AppleOverlayChrome {
         colors: AppleOverlayColors,
         blur: Boolean
     ) {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window.setGravity(Gravity.BOTTOM)
-        window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
+        window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        window.attributes = window.attributes.apply { dimAmount = colors.dimAmount }
+        window.attributes = window.attributes.apply {
+            gravity = Gravity.BOTTOM
+            width = WindowManager.LayoutParams.MATCH_PARENT
+            height = WindowManager.LayoutParams.MATCH_PARENT
+            dimAmount = colors.dimAmount
+        }
         if (blur && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             window.setBackgroundBlurRadius(dp(context, 20))
         }
+    }
+
+    fun bindScrimDismiss(host: View, sheet: View, onDismiss: () -> Unit) {
+        host.setOnClickListener { onDismiss() }
+        sheet.isClickable = true
     }
 
     fun configureCenterWindow(window: Window, colors: AppleOverlayColors) {
