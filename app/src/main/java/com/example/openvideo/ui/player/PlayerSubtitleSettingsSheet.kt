@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +22,7 @@ import com.example.openvideo.core.subtitle.OnlineSubtitlePrivacyPolicy
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
+import com.example.openvideo.core.ui.AppleHud
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -67,7 +67,7 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         ) { decision ->
             val messageRes = PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)
             if (messageRes != null) {
-                Toast.makeText(requireContext(), messageRes, Toast.LENGTH_SHORT).show()
+                AppleHud.show(requireContext(), messageRes)
             }
         }
     }
@@ -79,36 +79,16 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writeCurrentSubtitleUtf8ExportTo(requireContext(), uri)) {
                 is PlayerViewModel.SubtitleExportResult.Success ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_success)
                 is PlayerViewModel.SubtitleExportResult.NoSubtitles ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_subtitles,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 is PlayerViewModel.SubtitleExportResult.NoDelay ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_delay,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_delay)
                 is PlayerViewModel.SubtitleExportResult.OriginalOverwriteBlocked ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_original_blocked,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_original_blocked)
                 is PlayerViewModel.SubtitleExportResult.OpenStreamFailed,
                 is PlayerViewModel.SubtitleExportResult.WriteFailed ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_failed)
             }
         }
     }
@@ -120,36 +100,16 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         viewLifecycleOwner.lifecycleScope.launch {
             when (viewModel.writeCurrentSubtitleDelayCorrectionExportTo(requireContext(), uri)) {
                 is PlayerViewModel.SubtitleExportResult.Success ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_success,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_success)
                 is PlayerViewModel.SubtitleExportResult.NoSubtitles ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_subtitles,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 is PlayerViewModel.SubtitleExportResult.NoDelay ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_no_delay,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_delay)
                 is PlayerViewModel.SubtitleExportResult.OriginalOverwriteBlocked ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_original_blocked,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_original_blocked)
                 is PlayerViewModel.SubtitleExportResult.OpenStreamFailed,
                 is PlayerViewModel.SubtitleExportResult.WriteFailed ->
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_subtitle_export_failed,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_failed)
             }
         }
     }
@@ -164,11 +124,7 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
             actions = listOf(
                 AppleAction(getString(R.string.action_cancel), AppleActionStyle.CANCEL),
                 AppleAction(getString(R.string.action_ok)) {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.player_settings_online_subtitle_search_pending,
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    AppleHud.show(requireContext(), R.string.player_settings_online_subtitle_search_pending)
                 }
             )
         )
@@ -254,30 +210,18 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         }
         btnExportSubtitle.setOnClickListener {
             if (!viewModel.hasCurrentSubtitles()) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_subtitle_export_no_subtitles,
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 return@setOnClickListener
             }
             exportSubtitleLauncher.launch(viewModel.suggestedSubtitleExportFileName())
         }
         btnExportDelayCorrected.setOnClickListener {
             if (!viewModel.hasCurrentSubtitles()) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_subtitle_export_no_subtitles,
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_subtitles)
                 return@setOnClickListener
             }
             if (playerPrefs.subtitleDelayMs == 0) {
-                Toast.makeText(
-                    requireContext(),
-                    R.string.player_settings_subtitle_export_no_delay,
-                    Toast.LENGTH_SHORT
-                ).show()
+                AppleHud.show(requireContext(), R.string.player_settings_subtitle_export_no_delay)
                 return@setOnClickListener
             }
             delayCorrectionExportLauncher.launch(viewModel.suggestedSubtitleDelayCorrectionExportFileName())

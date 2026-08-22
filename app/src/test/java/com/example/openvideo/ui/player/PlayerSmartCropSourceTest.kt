@@ -79,13 +79,14 @@ class PlayerSmartCropSourceTest {
         val helper = source.substringAfter("private fun showSmartCropToast(messageRes: Int) {")
             .substringBefore("\n    private fun")
 
-        assertTrue(source.contains("private var smartCropToast: Toast? = null"))
         assertTrue(cancelIndex >= 0)
         assertTrue(hideIndex >= 0)
         assertTrue(cancelIndex < hideIndex)
         assertTrue(helper.contains("cancelSmartCropToast()"))
-        assertTrue(helper.contains("smartCropToast = Toast.makeText"))
-        assertTrue(helper.contains("smartCropToast?.show()"))
+        assertTrue(helper.contains("AppleHud.show(activity, messageRes)"))
+        assertTrue(source.contains("AppleHud.dismiss()"))
+        assertTrue(!source.contains("Toast.makeText"))
+        assertTrue(!source.contains("private var smartCropToast"))
     }
 
     @Test

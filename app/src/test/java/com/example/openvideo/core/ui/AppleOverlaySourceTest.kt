@@ -134,6 +134,21 @@ class AppleOverlaySourceTest {
         assertTrue(!settings.contains("Toast.makeText"))
     }
 
+    @Test
+    fun playerFeedbackUsesAppleHudInsteadOfToast() {
+        val subtitle = uiSource("player", "PlayerSubtitleSettingsSheet.kt")
+        val smartCrop = uiSource("player", "PlayerSmartCropController.kt")
+        val chrome = uiSource("player", "PlayerChromeController.kt")
+        val controls = uiSource("player", "PlayerControlsBinder.kt")
+
+        assertTrue(subtitle.contains("AppleHud.show"))
+        assertTrue(!subtitle.contains("Toast.makeText"))
+        assertTrue(smartCrop.contains("AppleHud.show"))
+        assertTrue(!smartCrop.contains("Toast.makeText"))
+        assertTrue(chrome.contains("AppleHud.show"))
+        assertTrue(controls.contains("AppleHud.show"))
+    }
+
     private fun source(name: String): String = String(
         Files.readAllBytes(rootFile("app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", name))
     )

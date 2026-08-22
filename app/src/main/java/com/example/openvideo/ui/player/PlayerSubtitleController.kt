@@ -3,7 +3,6 @@ package com.example.openvideo.ui.player
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +12,7 @@ import com.example.openvideo.core.subtitle.SubtitleCandidate
 import com.example.openvideo.core.subtitle.SubtitleLoader
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionSheet
+import com.example.openvideo.core.ui.AppleHud
 import java.io.File
 
 class PlayerSubtitleController(
@@ -50,7 +50,7 @@ class PlayerSubtitleController(
             showToast = showToast,
             onFinished = { decision ->
                 PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)?.let { messageRes ->
-                    Toast.makeText(activity, messageRes, Toast.LENGTH_SHORT).show()
+                    AppleHud.show(activity, messageRes)
                 }
                 startupTrace.record(PlayerStartupTrace.Events.SUBTITLE_SCAN_FINISHED)
             },
@@ -110,9 +110,9 @@ class PlayerSubtitleController(
         val subtitles = subtitleLoader.loadFromUri(uri)
         if (subtitles.isNotEmpty()) {
             viewModel.setSubtitles(subtitles)
-            Toast.makeText(activity, R.string.player_subtitle_loaded, Toast.LENGTH_SHORT).show()
+            AppleHud.show(activity, R.string.player_subtitle_loaded)
         } else {
-            Toast.makeText(activity, R.string.player_subtitle_load_failed, Toast.LENGTH_SHORT).show()
+            AppleHud.show(activity, R.string.player_subtitle_load_failed)
         }
     }
 }

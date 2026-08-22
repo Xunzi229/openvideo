@@ -2,7 +2,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="@color/ov_bg_elevated_strong" />
+            <solid android:color="@color/ov_tab_bar_fill" />
         </shape>
     </item>
     <item android:bottom="-1dp" android:left="-1dp" android:right="-1dp">

@@ -6,12 +6,12 @@ import android.content.Context
 import android.view.View
 import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.media3.common.PlaybackException
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
 import com.example.openvideo.core.player.DecodeMode
+import com.example.openvideo.core.ui.AppleHud
 
 class PlayerErrorHudController(
     private val activity: PlayerActivity,
@@ -62,11 +62,11 @@ class PlayerErrorHudController(
         copyDiagnosticsButtonProvider()?.setOnClickListener {
             val diagText = CrashLogger.readLatestPlayerErrorLog(activity)
             if (diagText.isNullOrBlank()) {
-                Toast.makeText(activity, R.string.player_error_diag_unavailable, Toast.LENGTH_SHORT).show()
+                AppleHud.show(activity, R.string.player_error_diag_unavailable)
             } else {
                 val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText("OpenVideo Diagnostics", diagText))
-                Toast.makeText(activity, R.string.player_error_diag_copied, Toast.LENGTH_SHORT).show()
+                AppleHud.show(activity, R.string.player_error_diag_copied)
             }
         }
         backButtonProvider()?.setOnClickListener {

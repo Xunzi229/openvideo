@@ -225,6 +225,69 @@ class AppleStyleAndSizeSourceTest {
         assertFalse(subtitleActivity.contains("% encodings.size"))
     }
 
+    @Test
+    fun batchFourTabBarUsesOutlineFilledIconsBlurAndPlayerHud() {
+        val menu = rootFile("app", "src", "main", "res", "menu", "bottom_nav_menu.xml").readText()
+        val homeSelector = rootFile("app", "src", "main", "res", "drawable", "ic_nav_home.xml").readText()
+        val homeOutline = rootFile("app", "src", "main", "res", "drawable", "ic_nav_home_outline.xml").readText()
+        val tabBar = rootFile("app", "src", "main", "res", "drawable", "bg_tab_bar.xml").readText()
+        val v31 = rootFile("app", "src", "main", "res", "values-v31", "design_tokens.xml").readText()
+        val nightV31 = rootFile("app", "src", "main", "res", "values-night-v31", "design_tokens.xml").readText()
+        val blur = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "TabBarBlur.kt"
+        ).readText()
+        val haptics = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleHaptics.kt"
+        ).readText()
+        val main = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "MainActivity.kt"
+        ).readText()
+        val overlay = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "AppleOverlayChrome.kt"
+        ).readText()
+        val subtitle = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player", "PlayerSubtitleSettingsSheet.kt"
+        ).readText()
+        val smartCrop = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player", "PlayerSmartCropController.kt"
+        ).readText()
+        val playerControls = rootFile("app", "src", "main", "res", "layout", "player_controls.xml").readText()
+        val theme = rootFile("app", "src", "main", "res", "values", "themes.xml").readText()
+        val dialog = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "ui", "player", "PlayerQuickDialogController.kt"
+        ).readText()
+
+        assertTrue(menu.contains("@drawable/ic_nav_home"))
+        assertTrue(menu.contains("@drawable/ic_nav_video"))
+        assertTrue(menu.contains("@drawable/ic_nav_sources"))
+        assertTrue(menu.contains("@drawable/ic_nav_playlist"))
+        assertTrue(menu.contains("@drawable/ic_nav_mine"))
+        assertTrue(homeSelector.contains("@drawable/ic_nav_home_filled"))
+        assertTrue(homeSelector.contains("@drawable/ic_nav_home_outline"))
+        assertTrue(homeOutline.contains("android:strokeWidth=\"2\""))
+        assertTrue(tabBar.contains("android:width=\"0.5dp\""))
+        assertTrue(tabBar.contains("@color/ov_tab_bar_stroke"))
+        assertTrue(v31.contains("#B3FFFFFF"))
+        assertTrue(nightV31.contains("#B31C1C1E"))
+        assertTrue(blur.contains("setBackgroundBlurRadius"))
+        assertTrue(blur.contains("VERSION_CODES.S"))
+        assertTrue(haptics.contains("HapticFeedbackConstants.CONTEXT_CLICK"))
+        assertTrue(main.contains("TabBarBlur.bind(bottomNav)"))
+        assertTrue(main.contains("AppleHaptics.light(bottomNav)"))
+        assertTrue(overlay.contains("AppleActionStyle.DESTRUCTIVE"))
+        assertTrue(overlay.contains("AppleHaptics.light(this)"))
+        assertTrue(subtitle.contains("AppleHud.show("))
+        assertTrue(!subtitle.contains("Toast.makeText"))
+        assertTrue(smartCrop.contains("AppleHud.show(activity, messageRes)"))
+        assertTrue(smartCrop.contains("AppleHud.dismiss()"))
+        assertTrue(!smartCrop.contains("Toast.makeText"))
+        assertTrue(theme.contains("materialSwitchStyle\">@style/Widget.OpenVideo.Switch"))
+        assertTrue(playerControls.contains("@drawable/ic_arrow_back"))
+        assertTrue(playerControls.contains("@drawable/ic_more_vert"))
+        assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_BOTTOM"))
+        assertTrue(dialog.contains("PlayerGlassSheetChrome.PLAYER_SETTINGS_PANEL"))
+    }
+
     private fun Path.readText(): String = String(Files.readAllBytes(this))
 
     private fun rootFile(vararg parts: String): Path =

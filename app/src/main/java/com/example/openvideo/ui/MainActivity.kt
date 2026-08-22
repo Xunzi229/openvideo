@@ -20,8 +20,10 @@ import com.example.openvideo.core.network.NetworkSharedUrlPolicy
 import com.example.openvideo.core.player.PlaybackServiceIntents
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.prefs.PlayerPrefs
+import com.example.openvideo.core.ui.AppleHaptics
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.core.ui.SystemBarInsetsPolicy
+import com.example.openvideo.core.ui.TabBarBlur
 import com.example.openvideo.core.ui.WindowSizeHelper
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.home.HomeFragment
@@ -63,6 +65,7 @@ class MainActivity : AppCompatActivity() {
         isTvMode = computeTvMode()
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav)
+        TabBarBlur.bind(bottomNav)
         bottomNav.menu.findItem(R.id.nav_sources).isVisible = BuildConfig.SOURCES_NAV_ENABLED
         bottomNav.isVisible = !isTvMode
         bindSystemBarInsets()
@@ -72,6 +75,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         bottomNav.setOnItemSelectedListener { item ->
+            AppleHaptics.light(bottomNav)
             val fragment: Fragment = when (item.itemId) {
                 R.id.nav_home -> LocalFolderFragment()
                 R.id.nav_video -> HomeFragment()

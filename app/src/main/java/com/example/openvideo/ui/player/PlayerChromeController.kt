@@ -3,10 +3,10 @@ package com.example.openvideo.ui.player
 import android.os.Handler
 import android.view.View
 import android.widget.ImageButton
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.AppleHud
 
 class PlayerChromeController(
     private val activity: AppCompatActivity,
@@ -163,12 +163,12 @@ class PlayerChromeController(
         if (nextLocked) {
             onSetLockedGestureOverlay()
             applyScreenLockChromeReveal()
-            Toast.makeText(activity, activity.getString(R.string.player_locked), Toast.LENGTH_SHORT).show()
+            AppleHud.show(activity, R.string.player_locked)
         } else {
             onInitGestures()
             applyScreenLockChromeReveal()
             scheduleHideControls()
-            Toast.makeText(activity, activity.getString(R.string.player_unlocked), Toast.LENGTH_SHORT).show()
+            AppleHud.show(activity, R.string.player_unlocked)
         }
     }
 

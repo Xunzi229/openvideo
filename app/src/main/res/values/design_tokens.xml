@@ -12,6 +12,7 @@
     <color name="ov_dialog_stroke">#14787880</color>
     <color name="ov_search_bg">#1F767680</color>
     <color name="ov_tab_bar_stroke">#33787880</color>
+    <color name="ov_tab_bar_fill">#F7FFFFFF</color>
 
     <color name="ov_accent_blue">#FF007AFF</color>
     <color name="ov_accent_blue_pressed">#FF0063D1</color>

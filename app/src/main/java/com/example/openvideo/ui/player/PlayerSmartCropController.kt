@@ -9,7 +9,6 @@ import android.view.PixelCopy
 import android.view.SurfaceView
 import android.view.TextureView
 import android.view.View
-import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
 import androidx.media3.common.util.UnstableApi
@@ -18,6 +17,7 @@ import androidx.media3.ui.PlayerView
 import androidx.media3.ui.R as Media3UiR
 import com.example.openvideo.R
 import com.example.openvideo.core.prefs.ContentFrameMode
+import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.prefs.PlayerPrefs
 
 @OptIn(UnstableApi::class)
@@ -47,8 +47,6 @@ class PlayerSmartCropController(
         private set
     var cropExpansionFraction: Float = 0f
         private set
-
-    private var smartCropToast: Toast? = null
 
     fun handleQuickToggle() {
         val playerView = playerViewProvider()
@@ -105,13 +103,11 @@ class PlayerSmartCropController(
 
     private fun showSmartCropToast(messageRes: Int) {
         cancelSmartCropToast()
-        smartCropToast = Toast.makeText(activity, messageRes, Toast.LENGTH_SHORT)
-        smartCropToast?.show()
+        AppleHud.show(activity, messageRes)
     }
 
     private fun cancelSmartCropToast() {
-        smartCropToast?.cancel()
-        smartCropToast = null
+        AppleHud.dismiss()
     }
 
     private fun hideControlsForCapture() {

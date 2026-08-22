@@ -159,7 +159,12 @@ object AppleOverlayChrome {
         isClickable = true
         isFocusable = true
         foreground = selectableForeground(context)
-        setOnClickListener { onClick() }
+        setOnClickListener {
+            if (action.style == AppleActionStyle.DESTRUCTIVE) {
+                AppleHaptics.light(this)
+            }
+            onClick()
+        }
     }
 
     fun configureBottomWindow(
