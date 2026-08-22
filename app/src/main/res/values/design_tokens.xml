@@ -26,7 +26,7 @@
     <color name="ov_icon_default">#FF3C3C43</color>
     <color name="ov_danger">#FFFF3B30</color>
 
-    <color name="ov_overlay_card">#FFFFFFFF</color>
+    <color name="ov_overlay_card">#EBFFFFFF</color>
     <color name="ov_overlay_alert">#F2FFFFFF</color>
     <color name="ov_overlay_title">#FF1C1C1E</color>
     <color name="ov_overlay_message">#FF6E6E73</color>

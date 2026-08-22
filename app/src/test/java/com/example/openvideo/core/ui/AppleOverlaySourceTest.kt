@@ -172,9 +172,9 @@ class AppleOverlaySourceTest {
         val dark = rootFile("app", "src", "main", "res", "values-night", "design_tokens.xml").readText()
 
         assertTrue(light.contains("ov_overlay_card"))
-        assertTrue(light.contains("<color name=\"ov_overlay_card\">#FFFFFFFF</color>"))
+        assertTrue(light.contains("<color name=\"ov_overlay_card\">#EBFFFFFF</color>"))
         assertTrue(light.contains("ov_overlay_title"))
-        assertTrue(dark.contains("<color name=\"ov_overlay_card\">#FF2C2C2E</color>"))
+        assertTrue(dark.contains("<color name=\"ov_overlay_card\">#D91C1C1E</color>"))
         assertTrue(dark.contains("#FFF2F2F7"))
         assertTrue(colors.contains("createConfigurationContext"))
         assertTrue(colors.contains("R.color.player_bg"))
