@@ -27,7 +27,7 @@ class DeferredFeaturePolicySourceTest {
             "app", "src", "main", "java", "com", "example", "openvideo", "ui", "sources",
             "SourcesFragment.kt"
         ).readText()
-        val doc = rootFile("docs", "roadmap", "deferred-features.md").readText()
+        val doc = rootFile("design", "rules", "deferred-features.md").readText()
 
         assertTrue(policy.contains("const val ONLINE_SUBTITLE_SEARCH_VISIBLE = false"))
         assertTrue(policy.contains("const val SOURCE_FUTURE_ADAPTERS_VISIBLE = false"))
