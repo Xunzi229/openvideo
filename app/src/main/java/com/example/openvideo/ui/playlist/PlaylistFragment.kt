@@ -18,6 +18,7 @@ import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
 import com.example.openvideo.core.ui.AppleEmptyState
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.core.ui.AppleOverlayChrome
 import com.example.openvideo.core.ui.AppleOverlayColors
 import com.example.openvideo.ui.settings.SettingsConfirmationActionSheet
@@ -48,10 +49,10 @@ class PlaylistFragment : Fragment() {
         adapter = PlaylistAdapter(
             onClick = { playlist ->
                 // Navigate to playlist detail
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, PlaylistDetailFragment.newInstance(playlist.id, playlist.name))
-                    .addToBackStack(null)
-                    .commit()
+                LibraryNavigator.push(
+                    this,
+                    PlaylistDetailFragment.newInstance(playlist.id, playlist.name)
+                )
             },
             onMoreOptions = { playlist, anchor ->
                 showPlaylistOptions(playlist)

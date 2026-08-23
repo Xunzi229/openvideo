@@ -94,15 +94,12 @@
                 android:textColor="@color/ov_filter_group_title"
                 android:textSize="13sp" />
 
-            <com.google.android.material.chip.ChipGroup
+            <LinearLayout
                 android:id="@+id/chip_group_duration"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                app:chipSpacingHorizontal="8dp"
-                app:chipSpacingVertical="8dp"
-                app:selectionRequired="true"
-                app:singleSelection="true" />
+                android:orientation="vertical" />
 
             <View
                 android:layout_width="match_parent"
@@ -118,15 +115,12 @@
                 android:textColor="@color/ov_filter_group_title"
                 android:textSize="13sp" />
 
-            <com.google.android.material.chip.ChipGroup
+            <LinearLayout
                 android:id="@+id/chip_group_format"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                app:chipSpacingHorizontal="8dp"
-                app:chipSpacingVertical="8dp"
-                app:selectionRequired="true"
-                app:singleSelection="true" />
+                android:orientation="vertical" />
 
             <View
                 android:layout_width="match_parent"
@@ -142,15 +136,12 @@
                 android:textColor="@color/ov_filter_group_title"
                 android:textSize="13sp" />
 
-            <com.google.android.material.chip.ChipGroup
+            <LinearLayout
                 android:id="@+id/chip_group_date"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                app:chipSpacingHorizontal="8dp"
-                app:chipSpacingVertical="8dp"
-                app:selectionRequired="true"
-                app:singleSelection="true" />
+                android:orientation="vertical" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

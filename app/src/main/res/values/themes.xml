@@ -11,6 +11,10 @@
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
+        <item name="android:selectableItemBackground">@drawable/bg_ov_pressed</item>
+        <item name="selectableItemBackground">@drawable/bg_ov_pressed</item>
+        <item name="android:selectableItemBackgroundBorderless">@drawable/bg_ov_pressed</item>
+        <item name="selectableItemBackgroundBorderless">@drawable/bg_ov_pressed</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
@@ -37,6 +41,10 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:selectableItemBackground">@drawable/bg_player_ripple</item>
+        <item name="selectableItemBackground">@drawable/bg_player_ripple</item>
+        <item name="android:selectableItemBackgroundBorderless">@drawable/bg_player_ripple</item>
+        <item name="selectableItemBackgroundBorderless">@drawable/bg_player_ripple</item>
     </style>
 
     <style name="Widget.OpenVideo.BottomNavigation.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
@@ -181,6 +189,16 @@
         <item name="android:textStyle">bold</item>
         <item name="android:letterSpacing">-0.02</item>
         <item name="android:fontFamily">sans-serif</item>
+    </style>
+
+    <style name="TextAppearance.OpenVideo.NavTitle" parent="">
+        <item name="android:textColor">@color/ov_text_primary</item>
+        <item name="android:textSize">@dimen/ov_text_headline</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:gravity">center_vertical</item>
     </style>
 
     <style name="TextAppearance.OpenVideo.Dialog.Title" parent="MaterialAlertDialog.Material3.Title.Text">

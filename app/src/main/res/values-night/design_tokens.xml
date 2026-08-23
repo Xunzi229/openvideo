@@ -25,6 +25,7 @@
     <color name="ov_divider">#FF38383A</color>
     <color name="ov_icon_default">#FFEBEBF5</color>
     <color name="ov_danger">#FFFF453A</color>
+    <color name="ov_row_pressed">#33FFFFFF</color>
 
     <color name="ov_overlay_card">#D91C1C1E</color>
     <color name="ov_overlay_alert">#FF2C2C2E</color>

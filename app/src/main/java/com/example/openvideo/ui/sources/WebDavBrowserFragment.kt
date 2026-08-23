@@ -22,6 +22,7 @@ import com.example.openvideo.core.network.WebDavDirectoryParser
 import com.example.openvideo.core.network.WebDavSubtitleMatcher
 import com.example.openvideo.core.prefs.WebDavCredentialStore
 import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.player.PlayerActivityIntents
 import dagger.hilt.android.AndroidEntryPoint
@@ -117,10 +118,11 @@ class WebDavBrowserFragment : Fragment() {
     private fun openEntry(entry: WebDavDirectoryParser.Entry) {
         when {
             entry.isDirectory -> {
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container, newInstance(sourceId, entry.url))
-                    .addToBackStack("webdav:$sourceId:${entry.url}")
-                    .commit()
+                LibraryNavigator.push(
+                    this,
+                    newInstance(sourceId, entry.url),
+                    "webdav:$sourceId:${entry.url}"
+                )
             }
             entry.isPlayableVideo -> {
                 val credentials = credentials ?: run {

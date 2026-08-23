@@ -30,6 +30,7 @@ import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.MainActivity
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity
 import com.example.openvideo.core.prefs.ThemeMode
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.ui.player.PlayerAspectRatioOptions
 import com.example.openvideo.ui.player.PlayerAudioSettingsActivity
 import com.example.openvideo.ui.player.PlayerSubtitleSettingsActivity
@@ -116,7 +117,7 @@ class SettingsFragment : Fragment() {
         }
 
         view.findViewById<View>(R.id.row_notifications).setOnClickListener {
-            startActivity(Intent(requireContext(), NotificationSettingsActivity::class.java))
+            LibraryNavigator.push(this, NotificationSettingsFragment())
         }
 
         view.findViewById<View>(R.id.row_default_ratio).setOnClickListener {
@@ -330,10 +331,7 @@ class SettingsFragment : Fragment() {
     }
 
     private fun openTvSourcesSettings() {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, SourcesFragment())
-            .addToBackStack("tv_settings_sources")
-            .commit()
+        LibraryNavigator.push(this, SourcesFragment(), "tv_settings_sources")
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).roundToInt()

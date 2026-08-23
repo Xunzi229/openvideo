@@ -22,6 +22,7 @@ import com.example.openvideo.core.network.WebDavConnectionPolicy
 import com.example.openvideo.data.local.MediaSourceEntity
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.core.ui.GroupedListChrome
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerActivityIntents
@@ -178,10 +179,11 @@ class SourcesFragment : Fragment() {
     }
 
     private fun openSourceDetail(source: MediaSourceEntity) {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, SourceDetailFragment.newInstance(source.sourceId))
-            .addToBackStack("source:${source.sourceId}")
-            .commit()
+        LibraryNavigator.push(
+            this,
+            SourceDetailFragment.newInstance(source.sourceId),
+            "source:${source.sourceId}"
+        )
     }
 
     private fun openRecentPlayback(item: SourceRecentPlaybackItem) {

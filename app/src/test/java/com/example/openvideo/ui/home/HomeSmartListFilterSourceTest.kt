@@ -40,7 +40,7 @@ class HomeSmartListFilterSourceTest {
         assertTrue(layout.contains("@+id/smart_filter_scroll"))
         assertTrue(layout.contains("@+id/smart_filter_group"))
         assertTrue(source.contains("private lateinit var smartFilterScroll: View"))
-        assertTrue(source.contains("private lateinit var smartFilterGroup: ChipGroup"))
+        assertTrue(source.contains("private lateinit var smartFilterGroup: LinearLayout"))
         assertTrue(source.contains("viewModel.smartLists.collect { sections ->"))
         assertTrue(source.contains("viewModel.selectedSmartListType.collect { type ->"))
         assertTrue(source.contains("bindSmartListChips()"))

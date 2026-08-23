@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import com.example.openvideo.R
@@ -20,6 +21,8 @@ class PlayerAudioSettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player_audio_settings)
+        findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
+        findViewById<TextView>(R.id.tv_back_title).setText(R.string.settings_page_title)
 
         val swPitch = findViewById<SwitchMaterial>(R.id.sw_preserve_pitch)
         val swBoost = findViewById<SwitchMaterial>(R.id.sw_volume_boost)

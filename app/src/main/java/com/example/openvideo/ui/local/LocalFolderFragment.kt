@@ -29,6 +29,7 @@ import com.example.openvideo.ui.home.MediaLibraryEmptyState
 import com.example.openvideo.ui.home.MediaLibraryPermissionPolicy
 import com.example.openvideo.ui.home.MediaLibraryScanLoadingUi
 import com.example.openvideo.ui.home.MediaLibraryScanProgress
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerEpisodeOrderingPolicy
 import com.example.openvideo.ui.player.putSessionQueue
@@ -224,13 +225,11 @@ class LocalFolderFragment : Fragment() {
     private fun openFolder(folder: VideoFolder) {
         lastFocusedFolderKey = folder.key
         pendingFolderFocusRestoreKey = lastFocusedFolderKey
-        parentFragmentManager.beginTransaction()
-            .replace(
-                R.id.fragment_container,
-                FolderVideosFragment.newInstance(folder.key, folder.name)
-            )
-            .addToBackStack("folder:${folder.key}")
-            .commit()
+        LibraryNavigator.push(
+            this,
+            FolderVideosFragment.newInstance(folder.key, folder.name),
+            "folder:${folder.key}"
+        )
     }
 
     private fun restoreFolderFocusIfNeeded(folders: List<VideoFolder>) {
@@ -247,10 +246,7 @@ class LocalFolderFragment : Fragment() {
     }
 
     private fun openSeriesList() {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, SeriesListFragment())
-            .addToBackStack("series:list")
-            .commit()
+        LibraryNavigator.push(this, SeriesListFragment(), "series:list")
     }
 
     private fun openPlayer(video: VideoItem) {

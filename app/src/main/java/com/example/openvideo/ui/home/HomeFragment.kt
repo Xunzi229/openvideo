@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,8 +47,6 @@ import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerActivityIntents
 import com.example.openvideo.ui.player.NetworkOpenUrlDialog
 import com.example.openvideo.ui.player.putSessionQueue
-import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -85,9 +84,9 @@ class HomeFragment : Fragment() {
     private lateinit var chipRecent: TextView
     private lateinit var chipFavorite: TextView
     private lateinit var smartFilterScroll: View
-    private lateinit var smartFilterGroup: ChipGroup
+    private lateinit var smartFilterGroup: LinearLayout
     private lateinit var filterScroll: View
-    private lateinit var folderGroup: ChipGroup
+    private lateinit var folderGroup: LinearLayout
     private lateinit var folderPinHint: TextView
     private lateinit var btnSelect: TextView
     private lateinit var btnOpenUrl: ImageButton
@@ -792,15 +791,15 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun dynamicChipChildren(group: ChipGroup): List<Chip> {
+    private fun dynamicChipChildren(group: LinearLayout): List<TextView> {
         return (0 until group.childCount).mapNotNull { index ->
-            group.getChildAt(index) as? Chip
+            group.getChildAt(index) as? TextView
         }.onEach { chip ->
             if (chip.id == View.NO_ID) chip.id = View.generateViewId()
         }
     }
 
-    private fun wireDynamicChipRow(chips: List<Chip>, nextUpId: Int, nextDownId: Int) {
+    private fun wireDynamicChipRow(chips: List<TextView>, nextUpId: Int, nextDownId: Int) {
         chips.forEachIndexed { index, chip ->
             chip.nextFocusLeftId = chips.getOrNull(index - 1)?.id ?: chip.id
             chip.nextFocusRightId = chips.getOrNull(index + 1)?.id ?: chip.id
@@ -843,53 +842,23 @@ class HomeFragment : Fragment() {
         checked: Boolean,
         onClick: () -> Unit,
         onLongClick: (() -> Unit)? = null
-    ): Chip {
-        return Chip(requireContext()).apply {
-            this.text = text
-            isCheckable = true
-            isChecked = checked
-            isSingleLine = true
-            checkedIcon = null
-            isCheckedIconVisible = false
-            setOnClickListener { onClick() }
-            onLongClick?.let { handler ->
-                setOnLongClickListener {
-                    handler()
-                    true
-                }
-            }
-            chipStrokeWidth = resources.displayMetrics.density
-            bindFolderChipStyle(this, checked)
-        }
-    }
+    ): TextView = AppleFilterChrome.pill(
+        context = requireContext(),
+        text = text,
+        selected = checked,
+        onClick = onClick,
+        onLongClick = onLongClick
+    )
 
     private fun createSmartListChip(
         text: String,
         checked: Boolean,
         onClick: () -> Unit
-    ): Chip = createFolderChip(
+    ): TextView = createFolderChip(
         text = text,
         checked = checked,
         onClick = onClick
     )
-
-    private fun bindFolderChipStyle(chip: Chip, selected: Boolean) {
-        val background = ContextCompat.getColor(
-            requireContext(),
-            if (selected) R.color.ov_accent_blue else R.color.ov_bg_elevated
-        )
-        val stroke = ContextCompat.getColor(
-            requireContext(),
-            if (selected) R.color.ov_accent_blue else R.color.ov_divider
-        )
-        val text = ContextCompat.getColor(
-            requireContext(),
-            if (selected) R.color.ov_text_primary else R.color.ov_text_secondary
-        )
-        chip.chipBackgroundColor = ColorStateList.valueOf(background)
-        chip.chipStrokeColor = ColorStateList.valueOf(stroke)
-        chip.setTextColor(text)
-    }
 
     private fun confirmDelete(video: VideoItem) {
         AppleAlertDialog.show(

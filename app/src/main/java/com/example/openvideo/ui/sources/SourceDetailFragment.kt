@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkUrlPolicy
 import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.data.local.MediaSourceEntity
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.ui.settings.SettingsConfirmationActionSheet
@@ -149,13 +150,11 @@ class SourceDetailFragment : Fragment() {
     private fun browseCurrentSource() {
         val source = currentSource ?: return
         if (!source.type.equals("webdav", ignoreCase = true)) return
-        parentFragmentManager.beginTransaction()
-            .replace(
-                R.id.fragment_container,
-                WebDavBrowserFragment.newInstance(source.sourceId, source.normalizedUrl)
-            )
-            .addToBackStack("webdav:${source.sourceId}")
-            .commit()
+        LibraryNavigator.push(
+            this,
+            WebDavBrowserFragment.newInstance(source.sourceId, source.normalizedUrl),
+            "webdav:${source.sourceId}"
+        )
     }
 
     private fun confirmDeleteCurrentSource() {

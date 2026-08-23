@@ -18,7 +18,7 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(tokens.contains("ov_text_large_title"))
         assertTrue(tokens.contains("ov_row_height"))
         assertTrue(tokens.contains("ov_icon_button_size"))
-        assertTrue(tokens.contains("<dimen name=\"ov_row_height\">56dp</dimen>"))
+        assertTrue(tokens.contains("<dimen name=\"ov_row_height\">48dp</dimen>"))
     }
 
     @Test
@@ -161,7 +161,7 @@ class AppleStyleAndSizeSourceTest {
         val notification = rootFile(
             "app", "src", "main", "res", "layout", "activity_notification_settings.xml"
         ).readText()
-        val notificationActivity = rootFile(
+        val notificationBinder = rootFile(
             "app",
             "src",
             "main",
@@ -171,7 +171,7 @@ class AppleStyleAndSizeSourceTest {
             "openvideo",
             "ui",
             "settings",
-            "NotificationSettingsActivity.kt"
+            "NotificationSettingsBinder.kt"
         ).readText()
         val audioActivity = rootFile(
             "app",
@@ -210,8 +210,8 @@ class AppleStyleAndSizeSourceTest {
         assertTrue(notification.contains("""android:id="@+id/sw_bg_notification""""))
         assertFalse(notification.contains("MaterialToolbar"))
         assertFalse(notification.contains("ov_accent_blue"))
-        assertTrue(notificationActivity.contains("R.id.btn_back"))
-        assertFalse(notificationActivity.contains("MaterialToolbar"))
+        assertTrue(notificationBinder.contains("R.id.btn_back"))
+        assertFalse(notificationBinder.contains("MaterialToolbar"))
         assertFalse(settings.contains("modes[next]"))
         assertFalse(settings.contains("langs[next]"))
         assertTrue(settings.contains("showThemeSheet(tvTheme)"))

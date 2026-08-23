@@ -20,11 +20,15 @@ class SourcesInformationArchitectureSourceTest {
     @Test
     fun mainActivityRoutesSourcesTabToSourcesFragment() {
         val source = sourceText("MainActivity.kt")
+        val tabHost = String(Files.readAllBytes(sequenceOf(
+            Paths.get("src", "main", "java", "com", "example", "openvideo", "core", "ui", "LibraryTabHostFragment.kt"),
+            Paths.get("app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "LibraryTabHostFragment.kt")
+        ).first(Files::exists)))
 
         assertTrue(source.contains("BuildConfig.SOURCES_NAV_ENABLED"))
         assertTrue(source.contains("bottomNav.menu.findItem(R.id.nav_sources).isVisible"))
-        assertTrue(source.contains("import com.example.openvideo.ui.sources.SourcesFragment"))
-        assertTrue(source.contains("R.id.nav_sources -> SourcesFragment()"))
+        assertTrue(tabHost.contains("import com.example.openvideo.ui.sources.SourcesFragment"))
+        assertTrue(tabHost.contains("R.id.nav_sources -> SourcesFragment()"))
     }
 
     @Test

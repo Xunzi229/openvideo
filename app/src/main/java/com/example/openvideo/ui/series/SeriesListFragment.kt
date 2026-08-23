@@ -13,6 +13,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.openvideo.R
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.core.ui.AppleEmptyState
 import com.example.openvideo.core.ui.ScreenBreakpoint
 import com.example.openvideo.ui.BrowseAdaptiveLayoutPolicy
@@ -54,12 +55,11 @@ class SeriesListFragment : Fragment() {
             onClick = { series ->
                 lastFocusedSeriesId = series.seriesId
                 pendingSeriesFocusRestoreId = lastFocusedSeriesId
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.fragment_container,
-                        SeriesDetailFragment.newInstance(series.seriesId, series.title)
-                    )
-                    .addToBackStack("series:${series.seriesId}")
-                    .commit()
+                LibraryNavigator.push(
+                    this,
+                    SeriesDetailFragment.newInstance(series.seriesId, series.title),
+                    "series:${series.seriesId}"
+                )
             },
             onFocusChanged = { series -> lastFocusedSeriesId = series.seriesId }
         )
