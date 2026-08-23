@@ -1,6 +1,7 @@
 package com.example.openvideo.ui.player
 
 import android.os.Bundle
+import android.view.View
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,6 +10,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
+import com.example.openvideo.core.ui.DeferredFeaturePolicy
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionSheet
 import com.google.android.material.button.MaterialButton
@@ -35,6 +37,8 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player_subtitle_settings)
+        findViewById<View>(R.id.btn_online_subtitle_search).visibility =
+            if (DeferredFeaturePolicy.ONLINE_SUBTITLE_SEARCH_VISIBLE) View.VISIBLE else View.GONE
 
         val btnLoad = findViewById<MaterialButton>(R.id.btn_load_subtitle)
         val tvSize = findViewById<TextView>(R.id.tv_subtitle_size_value)

@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.openvideo.R
 import com.example.openvideo.core.player.PlayerManager
 import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.DeferredFeaturePolicy
 
 class PlayerControlsBinder(
     private val activity: AppCompatActivity,
@@ -97,8 +98,13 @@ class PlayerControlsBinder(
             onEnterPipModeIfSupported()
         }
 
-        activity.findViewById<View>(R.id.btn_land_cast)?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {
-            AppleHud.show(activity, R.string.player_land_cast)
+        val castButton = activity.findViewById<View>(R.id.btn_land_cast)
+        castButton?.visibility =
+            if (DeferredFeaturePolicy.PLAYER_CAST_VISIBLE) View.VISIBLE else View.GONE
+        if (DeferredFeaturePolicy.PLAYER_CAST_VISIBLE) {
+            castButton?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {
+                AppleHud.show(activity, R.string.player_land_cast)
+            }
         }
 
         activity.findViewById<View>(R.id.portrait_btn_quality)?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {

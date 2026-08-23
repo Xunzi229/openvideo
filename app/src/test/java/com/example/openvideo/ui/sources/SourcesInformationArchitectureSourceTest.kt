@@ -1,5 +1,6 @@
 package com.example.openvideo.ui.sources
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.nio.file.Files
@@ -40,7 +41,11 @@ class SourcesInformationArchitectureSourceTest {
         assertTrue(layout.contains("""android:id="@+id/row_source_open_url""""))
         assertTrue(layout.contains("""android:id="@+id/row_source_webdav""""))
         assertTrue(layout.contains("""android:id="@+id/row_source_future""""))
-        assertTrue(layout.contains("""android:text="@string/sources_webdav_status_planned""""))
+        assertTrue(layout.contains("""android:id="@+id/sources_planned_section""""))
+        val plannedSection = layout.substringAfter("""android:id="@+id/sources_planned_section"""")
+            .substringBefore("""android:id="@+id/row_source_future"""")
+        assertTrue(plannedSection.contains("""android:visibility="gone""""))
+        assertFalse(layout.contains("@string/sources_webdav_status_planned"))
     }
 
     @Test
@@ -90,15 +95,16 @@ class SourcesInformationArchitectureSourceTest {
         assertTrue(source.contains("recentRecycler.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS"))
         assertTrue(source.contains("savedSourcesRecycler.descendantFocusability = ViewGroup.FOCUS_AFTER_DESCENDANTS"))
         assertTrue(source.contains("private fun updateSourcesContentFocusTargets("))
-        assertTrue(source.contains("val contentAfterOpenUrlId = when"))
+        assertTrue(source.contains("val afterWebDavId = when"))
         assertTrue(source.contains("R.id.recycler_saved_sources"))
         assertTrue(source.contains("R.id.recycler_source_recent"))
         assertTrue(source.contains("R.id.row_source_webdav"))
         assertTrue(source.contains("view.findViewById<View>(R.id.row_source_local).nextFocusDownId = R.id.row_source_open_url"))
         assertTrue(source.contains("view.findViewById<View>(R.id.row_source_open_url).nextFocusUpId = R.id.row_source_local"))
-        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_open_url).nextFocusDownId = contentAfterOpenUrlId"))
-        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_webdav).nextFocusDownId = R.id.row_source_future"))
-        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_future).nextFocusUpId = R.id.row_source_webdav"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_open_url).nextFocusDownId = R.id.row_source_webdav"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_webdav).nextFocusUpId = R.id.row_source_open_url"))
+        assertTrue(source.contains("view.findViewById<View>(R.id.row_source_webdav).nextFocusDownId = afterWebDavId"))
+        assertTrue(source.contains("DeferredFeaturePolicy.SOURCE_FUTURE_ADAPTERS_VISIBLE"))
         assertTrue(source.contains("updateSourcesContentFocusTargets(view, hasSavedSources, hasRecentPlayback)"))
     }
 
