@@ -26,8 +26,7 @@ class LocalSeriesEntrySourceTest {
         assertTrue(source.contains("view.findViewById<View>(R.id.btn_series).setOnClickListener {"))
         assertTrue(source.contains("openSeriesList()"))
         assertTrue(source.contains("private fun openSeriesList()"))
-        assertTrue(source.contains(".replace(R.id.fragment_container, SeriesListFragment())"))
-        assertTrue(source.contains(".addToBackStack(\"series:list\")"))
+        assertTrue(source.contains("LibraryNavigator.push(this, SeriesListFragment(), \"series:list\")"))
         assertFalse(source.contains("SeriesListFragment.newInstance"))
         assertFalse(source.substringAfter("private fun openSeriesList()").substringBefore("\n    private fun").contains("PlayerActivity"))
     }

@@ -8,9 +8,8 @@
     <LinearLayout
         android:id="@+id/header_row"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
         android:layout_marginStart="4dp"
-        android:layout_marginTop="@dimen/ov_space_sm"
         android:layout_marginEnd="@dimen/ov_space_page"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -26,15 +25,11 @@
 
         <TextView
             android:id="@+id/tv_title"
+            style="@style/TextAppearance.OpenVideo.NavTitle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="@color/ov_text_primary"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:layout_weight="1" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

@@ -11,6 +11,10 @@
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
+        <item name="android:selectableItemBackground">@drawable/bg_ov_pressed</item>
+        <item name="selectableItemBackground">@drawable/bg_ov_pressed</item>
+        <item name="android:selectableItemBackgroundBorderless">@drawable/bg_ov_pressed</item>
+        <item name="selectableItemBackgroundBorderless">@drawable/bg_ov_pressed</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenVideo.MaterialAlertDialog</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

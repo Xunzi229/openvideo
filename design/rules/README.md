@@ -7,5 +7,6 @@
 |------|------|
 | [player-video-orientation.md](./player-video-orientation.md) | 播放器进入时的横/竖屏判定与切换（禁止「先横后竖」闪屏） |
 | [settings-backup-deferred.md](./settings-backup-deferred.md) | 设置备份：底层已实现，UI 暂隐藏，后续 webdev Web 备份 |
+| [deferred-features.md](./deferred-features.md) | 未实现功能入口隐藏与后续开发预留 |
 
 Cursor 侧镜像：`.cursor/rules/*.mdc`（带 `globs`，编辑相关文件时自动加载）。

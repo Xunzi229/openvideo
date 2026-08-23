@@ -39,7 +39,6 @@ class HistoryFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Hide category/filter tabs for history
-        view.findViewById<View>(R.id.tab_layout)?.visibility = View.GONE
         view.findViewById<View>(R.id.category_scroll)?.visibility = View.GONE
         view.findViewById<View>(R.id.filter_scroll)?.visibility = View.GONE
         view.findViewById<View>(R.id.sort_row)?.visibility = View.GONE

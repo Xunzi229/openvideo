@@ -25,6 +25,7 @@
     <color name="ov_divider">#FFC6C6C8</color>
     <color name="ov_icon_default">#FF3C3C43</color>
     <color name="ov_danger">#FFFF3B30</color>
+    <color name="ov_row_pressed">#1A3C3C43</color>
 
     <color name="ov_overlay_card">#EBFFFFFF</color>
     <color name="ov_overlay_alert">#F2FFFFFF</color>
@@ -65,7 +66,7 @@
     <dimen name="ov_text_caption">13sp</dimen>
 
     <dimen name="ov_touch_min">48dp</dimen>
-    <dimen name="ov_row_height">56dp</dimen>
+    <dimen name="ov_row_height">48dp</dimen>
     <dimen name="ov_icon_button_size">44dp</dimen>
     <dimen name="ov_search_height">44dp</dimen>
     <dimen name="ov_control_bar_height">56dp</dimen>

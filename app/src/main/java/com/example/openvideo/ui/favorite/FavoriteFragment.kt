@@ -31,7 +31,6 @@ class FavoriteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        view.findViewById<View>(R.id.tab_layout)?.visibility = View.GONE
         view.findViewById<View>(R.id.category_scroll)?.visibility = View.GONE
         view.findViewById<View>(R.id.filter_scroll)?.visibility = View.GONE
         view.findViewById<View>(R.id.btn_refresh)?.visibility = View.GONE

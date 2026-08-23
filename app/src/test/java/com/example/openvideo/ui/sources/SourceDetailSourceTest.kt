@@ -34,8 +34,9 @@ class SourceDetailSourceTest {
         assertTrue(row.contains("""android:id="@+id/tv_media_source_name""""))
         assertTrue(row.contains("""android:id="@+id/tv_media_source_address""""))
         assertTrue(source.contains("repository.getMediaSources()"))
+        assertTrue(source.contains("LibraryNavigator.push("))
         assertTrue(source.contains("SourceDetailFragment.newInstance(source.sourceId)"))
-        assertTrue(source.contains("addToBackStack(\"source:\${source.sourceId}\")"))
+        assertTrue(source.contains("\"source:\${source.sourceId}\""))
     }
 
     @Test

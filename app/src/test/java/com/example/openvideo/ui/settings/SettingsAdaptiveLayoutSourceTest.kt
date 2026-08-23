@@ -182,9 +182,7 @@ class SettingsAdaptiveLayoutSourceTest {
         assertTrue(fragment.contains("import com.example.openvideo.ui.sources.SourcesFragment"))
         assertTrue(fragment.contains("R.id.row_tv_sources_settings"))
         assertTrue(fragment.contains("R.id.divider_tv_sources_settings"))
-        assertTrue(fragment.contains("parentFragmentManager.beginTransaction()"))
-        assertTrue(fragment.contains(".replace(R.id.fragment_container, SourcesFragment())"))
-        assertTrue(fragment.contains(".addToBackStack(\"tv_settings_sources\")"))
+        assertTrue(fragment.contains("LibraryNavigator.push(this, SourcesFragment(), \"tv_settings_sources\")"))
 
         assertTrue(layout.contains("""android:id="@+id/row_tv_sources_settings""""))
         assertTrue(layout.contains("""android:id="@+id/divider_tv_sources_settings""""))

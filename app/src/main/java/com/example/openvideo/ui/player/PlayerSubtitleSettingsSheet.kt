@@ -19,6 +19,7 @@ import com.example.openvideo.R
 import com.example.openvideo.core.prefs.PlayerPrefs
 import com.example.openvideo.core.prefs.SubtitleBgStyle
 import com.example.openvideo.core.subtitle.OnlineSubtitlePrivacyPolicy
+import com.example.openvideo.core.ui.DeferredFeaturePolicy
 import com.example.openvideo.core.ui.AppleAction
 import com.example.openvideo.core.ui.AppleActionSheet
 import com.example.openvideo.core.ui.AppleActionStyle
@@ -137,6 +138,8 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         val btnLoad = view.findViewById<MaterialButton>(R.id.btn_load_subtitle)
         val btnLoadSecondary = view.findViewById<MaterialButton>(R.id.btn_load_secondary_subtitle)
         val btnOnlineSubtitleSearch = view.findViewById<MaterialButton>(R.id.btn_online_subtitle_search)
+        btnOnlineSubtitleSearch.visibility =
+            if (DeferredFeaturePolicy.ONLINE_SUBTITLE_SEARCH_VISIBLE) View.VISIBLE else View.GONE
         val btnExportSubtitle = view.findViewById<MaterialButton>(R.id.btn_export_subtitle_utf8)
         val btnExportDelayCorrected = view.findViewById<MaterialButton>(R.id.btn_export_subtitle_delay_corrected)
         val tvSize = view.findViewById<TextView>(R.id.tv_subtitle_size_value)

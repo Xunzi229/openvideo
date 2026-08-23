@@ -8,13 +8,11 @@
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="44dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="4dp"
-        android:paddingTop="@dimen/ov_space_sm"
         android:paddingEnd="@dimen/ov_space_page"
-        android:paddingBottom="@dimen/ov_space_sm"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -27,13 +25,11 @@
 
         <TextView
             android:id="@+id/tv_title"
+            style="@style/TextAppearance.OpenVideo.NavTitle"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:paddingHorizontal="8dp"
-            android:textColor="@color/ov_text_primary"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:paddingHorizontal="8dp" />
 
         <ImageButton
             android:id="@+id/btn_import_playlist"

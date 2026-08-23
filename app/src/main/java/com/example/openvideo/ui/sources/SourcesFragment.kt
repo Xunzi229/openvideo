@@ -19,9 +19,11 @@ import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkPlaybackHeaderPolicy
 import com.example.openvideo.core.network.WebDavConnectionClient
 import com.example.openvideo.core.network.WebDavConnectionPolicy
+import com.example.openvideo.core.ui.DeferredFeaturePolicy
 import com.example.openvideo.data.local.MediaSourceEntity
 import com.example.openvideo.data.repository.VideoRepository
 import com.example.openvideo.core.ui.AppleHud
+import com.example.openvideo.core.ui.LibraryNavigator
 import com.example.openvideo.core.ui.GroupedListChrome
 import com.example.openvideo.ui.player.PlayerActivity
 import com.example.openvideo.ui.player.PlayerActivityIntents
@@ -110,9 +112,15 @@ class SourcesFragment : Fragment() {
                 }
             }
         }
-        view.findViewById<View>(R.id.row_source_future).setOnClickListener {
-            AppleHud.show(requireContext(), R.string.sources_future_status_planned)
+        view.findViewById<View>(R.id.row_source_future).apply {
+            visibility =
+                if (DeferredFeaturePolicy.SOURCE_FUTURE_ADAPTERS_VISIBLE) View.VISIBLE else View.GONE
+            setOnClickListener {
+                AppleHud.show(requireContext(), R.string.sources_future_status_planned)
+            }
         }
+        view.findViewById<View>(R.id.sources_planned_section).visibility =
+            if (DeferredFeaturePolicy.SOURCE_FUTURE_ADAPTERS_VISIBLE) View.VISIBLE else View.GONE
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -152,36 +160,45 @@ class SourcesFragment : Fragment() {
         hasSavedSources: Boolean,
         hasRecentPlayback: Boolean
     ) {
-        val contentAfterOpenUrlId = when {
+        val futureVisible = DeferredFeaturePolicy.SOURCE_FUTURE_ADAPTERS_VISIBLE
+        val afterWebDavId = when {
             hasSavedSources -> R.id.recycler_saved_sources
             hasRecentPlayback -> R.id.recycler_source_recent
+            futureVisible -> R.id.row_source_future
             else -> R.id.row_source_webdav
         }
-        val contentAfterSavedId = if (hasRecentPlayback) R.id.recycler_source_recent else R.id.row_source_webdav
-        val webDavUpId = when {
+        val afterSavedId = when {
+            hasRecentPlayback -> R.id.recycler_source_recent
+            futureVisible -> R.id.row_source_future
+            else -> R.id.recycler_saved_sources
+        }
+        val recentUpId = if (hasSavedSources) R.id.recycler_saved_sources else R.id.row_source_webdav
+        val afterRecentId =
+            if (futureVisible) R.id.row_source_future else R.id.recycler_source_recent
+        val futureUpId = when {
             hasRecentPlayback -> R.id.recycler_source_recent
             hasSavedSources -> R.id.recycler_saved_sources
-            else -> R.id.row_source_open_url
+            else -> R.id.row_source_webdav
         }
 
         view.findViewById<View>(R.id.row_source_local).nextFocusDownId = R.id.row_source_open_url
         view.findViewById<View>(R.id.row_source_open_url).nextFocusUpId = R.id.row_source_local
-        view.findViewById<View>(R.id.row_source_open_url).nextFocusDownId = contentAfterOpenUrlId
-        view.findViewById<View>(R.id.recycler_saved_sources).nextFocusUpId = R.id.row_source_open_url
-        view.findViewById<View>(R.id.recycler_saved_sources).nextFocusDownId = contentAfterSavedId
-        view.findViewById<View>(R.id.recycler_source_recent).nextFocusUpId =
-            if (hasSavedSources) R.id.recycler_saved_sources else R.id.row_source_open_url
-        view.findViewById<View>(R.id.recycler_source_recent).nextFocusDownId = R.id.row_source_webdav
-        view.findViewById<View>(R.id.row_source_webdav).nextFocusUpId = webDavUpId
-        view.findViewById<View>(R.id.row_source_webdav).nextFocusDownId = R.id.row_source_future
-        view.findViewById<View>(R.id.row_source_future).nextFocusUpId = R.id.row_source_webdav
+        view.findViewById<View>(R.id.row_source_open_url).nextFocusDownId = R.id.row_source_webdav
+        view.findViewById<View>(R.id.recycler_saved_sources).nextFocusUpId = R.id.row_source_webdav
+        view.findViewById<View>(R.id.recycler_saved_sources).nextFocusDownId = afterSavedId
+        view.findViewById<View>(R.id.recycler_source_recent).nextFocusUpId = recentUpId
+        view.findViewById<View>(R.id.recycler_source_recent).nextFocusDownId = afterRecentId
+        view.findViewById<View>(R.id.row_source_webdav).nextFocusUpId = R.id.row_source_open_url
+        view.findViewById<View>(R.id.row_source_webdav).nextFocusDownId = afterWebDavId
+        view.findViewById<View>(R.id.row_source_future).nextFocusUpId = futureUpId
     }
 
     private fun openSourceDetail(source: MediaSourceEntity) {
-        parentFragmentManager.beginTransaction()
-            .replace(R.id.fragment_container, SourceDetailFragment.newInstance(source.sourceId))
-            .addToBackStack("source:${source.sourceId}")
-            .commit()
+        LibraryNavigator.push(
+            this,
+            SourceDetailFragment.newInstance(source.sourceId),
+            "source:${source.sourceId}"
+        )
     }
 
     private fun openRecentPlayback(item: SourceRecentPlaybackItem) {
