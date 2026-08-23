@@ -42,8 +42,29 @@ class AppleLibraryChromeSourceTest {
         assertTrue(activity.contains("breakpoint.isAtLeastMedium"))
         assertTrue(navigator.contains("fun push(from: Fragment, target: Fragment, name: String? = null)"))
         assertTrue(navigator.contains("R.id.tab_child_container"))
+        assertTrue(navigator.contains("setReorderingAllowed(true)"))
+        assertTrue(navigator.contains(".hide(from)"))
+        assertTrue(navigator.contains(".add(from.libraryContainerId(), target)"))
+        assertFalse(navigator.contains(".replace(from.libraryContainerId(), target)"))
         assertTrue(activity.contains("setOnItemReselectedListener"))
         assertTrue(activity.contains("while (host.canPop())"))
+    }
+
+    @Test
+    fun libraryPushUsesCoveringSlideInsteadOfShortParallax() {
+        val enter = rootFile("app", "src", "main", "res", "anim", "ov_slide_in_right.xml").readText()
+        val exit = rootFile("app", "src", "main", "res", "anim", "ov_slide_out_left.xml").readText()
+        val popEnter = rootFile("app", "src", "main", "res", "anim", "ov_slide_in_left.xml").readText()
+        val popExit = rootFile("app", "src", "main", "res", "anim", "ov_slide_out_right.xml").readText()
+
+        assertTrue(enter.contains("android:fromXDelta=\"100%p\""))
+        assertTrue(enter.contains("android:zAdjustment=\"top\""))
+        assertTrue(exit.contains("android:toXDelta=\"-30%p\""))
+        assertTrue(popEnter.contains("android:fromXDelta=\"-30%p\""))
+        assertTrue(popExit.contains("android:toXDelta=\"100%p\""))
+        assertTrue(popExit.contains("android:zAdjustment=\"top\""))
+        assertFalse(enter.contains("24%"))
+        assertFalse(exit.contains("-12%"))
     }
 
     @Test

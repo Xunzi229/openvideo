@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <translate xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="200"
-    android:fromXDelta="0%"
-    android:interpolator="@android:interpolator/decelerate_quad"
-    android:toXDelta="24%" />
+    android:duration="280"
+    android:fromXDelta="0"
+    android:interpolator="@android:interpolator/decelerate_cubic"
+    android:toXDelta="100%p"
+    android:zAdjustment="top" />

@@ -7,13 +7,15 @@ import com.example.openvideo.R
 object LibraryNavigator {
     fun push(from: Fragment, target: Fragment, name: String? = null) {
         from.libraryFragmentManager().beginTransaction()
+            .setReorderingAllowed(true)
             .setCustomAnimations(
                 R.anim.ov_slide_in_right,
                 R.anim.ov_slide_out_left,
                 R.anim.ov_slide_in_left,
                 R.anim.ov_slide_out_right
             )
-            .replace(from.libraryContainerId(), target)
+            .hide(from)
+            .add(from.libraryContainerId(), target)
             .addToBackStack(name)
             .commit()
     }
