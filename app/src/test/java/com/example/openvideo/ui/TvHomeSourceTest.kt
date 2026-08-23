@@ -16,7 +16,8 @@ class TvHomeSourceTest {
 
         assertTrue(source.contains("import androidx.core.view.isVisible"))
         assertTrue(source.contains("import com.example.openvideo.ui.tv.TvHomeFragment"))
-        assertTrue(source.contains("bottomNav.isVisible = !isTvMode"))
+        assertTrue(source.contains("findViewById<View>(R.id.phone_tab_host).isVisible = !isTvMode"))
+        assertTrue(source.contains("findViewById<View>(R.id.bottom_nav).isVisible = !isTvMode && !tablet"))
         assertTrue(source.contains("if (isTvMode) {"))
         assertTrue(source.contains("loadFragment(TvHomeFragment())"))
         assertTrue(source.contains("showTab(R.id.nav_home)"))

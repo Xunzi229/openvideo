@@ -199,6 +199,8 @@ class MainActivity : AppCompatActivity() {
     fun onLibraryBackStackChanged() {
         refreshTabBackCallback()
     }
+
+    private fun refreshTabBackCallback() {
         tabBackCallback.isEnabled = !isTvMode && currentTabHost()?.canPop() == true
     }
 
