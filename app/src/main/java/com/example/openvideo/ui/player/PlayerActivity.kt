@@ -92,7 +92,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var playerErrorHud: View
     private lateinit var tvErrorTitle: TextView
     private lateinit var tvErrorDesc: TextView
-    private var btnErrorSoftDecode: Button? = null
+    private var btnErrorCompatibility: Button? = null
     private var btnErrorRetry: Button? = null
     private var btnErrorCopyDiag: Button? = null
     private var btnErrorBack: Button? = null
@@ -321,13 +321,14 @@ class PlayerActivity : AppCompatActivity() {
             playerErrorHudProvider = { playerErrorHud },
             titleProvider = { tvErrorTitle },
             descProvider = { tvErrorDesc },
-            softDecodeButtonProvider = { btnErrorSoftDecode },
+            compatibilityButtonProvider = { btnErrorCompatibility },
             retryButtonProvider = { btnErrorRetry },
             copyDiagnosticsButtonProvider = { btnErrorCopyDiag },
             backButtonProvider = { btnErrorBack },
             controlsContainerProvider = { controlsContainer },
             firstFrameScrimProvider = { firstFrameScrim },
             onShowControls = ::showControls,
+            onOpenCompatibilityMode = ::openCompatibilityMode,
             onReattachPlayerAfterRetry = ::reattachPlayerAfterRetry,
             onFinishPlayer = ::finishPlayer
         )
@@ -721,7 +722,7 @@ class PlayerActivity : AppCompatActivity() {
         playerErrorHud = findViewById(R.id.player_error_hud)
         tvErrorTitle = findViewById(R.id.tv_error_title)
         tvErrorDesc = findViewById(R.id.tv_error_desc)
-        btnErrorSoftDecode = findViewById(R.id.btn_error_soft_decode)
+        btnErrorCompatibility = findViewById(R.id.btn_error_compatibility)
         btnErrorRetry = findViewById(R.id.btn_error_retry)
         btnErrorCopyDiag = findViewById(R.id.btn_error_copy_diag)
         btnErrorBack = findViewById(R.id.btn_error_back)
@@ -984,6 +985,32 @@ class PlayerActivity : AppCompatActivity() {
     private fun unlockPlayerForPause() = playerChrome.unlockPlayerForPause()
 
     private fun finishPlayer() = playerExit.finishPlayer()
+
+    private fun openCompatibilityMode() {
+        val uri = viewModel.currentVideoUri ?: return
+        val player = viewModel.player
+        val positionMs = player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        val durationMs = player?.duration?.takeIf { it > 0L } ?: 0L
+        viewModel.saveHistory()
+        player?.pause()
+        startActivity(
+            CompatibilityPlayerContract.createIntent(
+                this,
+                CompatibilityPlaybackRequest(
+                    uri = uri,
+                    title = viewModel.uiState.value.title,
+                    videoId = viewModel.playingVideoId,
+                    videoPath = viewModel.currentVideoSource(),
+                    startPositionMs = positionMs,
+                    durationMs = durationMs,
+                    requestHeaders = viewModel.currentRequestHeaders,
+                    speed = viewModel.uiState.value.speed,
+                    audioMuted = playerPrefs.audioMuted
+                )
+            )
+        )
+        finish()
+    }
 
     private fun preparePlayerExitFrame() = playerExit.preparePlayerExitFrame()
 

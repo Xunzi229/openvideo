@@ -83,12 +83,12 @@
             android:layout_gravity="center_horizontal">
 
             <Button
-                android:id="@+id/btn_error_soft_decode"
+                android:id="@+id/btn_error_compatibility"
                 style="@style/Widget.AppCompat.Button.Borderless"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/player_icon"
-                android:text="@string/player_error_action_soft_decode"
+                android:text="@string/player_error_action_compatibility"
                 android:visibility="gone" />
 
             <Button

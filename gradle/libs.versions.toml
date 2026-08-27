@@ -6,6 +6,7 @@ hilt = "2.59.1"
 room = "2.8.3"
 media3 = "1.9.0"
 media3FfmpegDecoder = "1.9.0+1"
+libvlc = "3.7.5"
 material = "1.12.0"
 appcompat = "1.7.0"
 coreKtx = "1.15.0"
@@ -49,6 +50,7 @@ media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "medi
 media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 media3-effect = { group = "androidx.media3", name = "media3-effect", version.ref = "media3" }
 media3-ffmpeg-decoder = { group = "org.jellyfin.media3", name = "media3-ffmpeg-decoder", version.ref = "media3FfmpegDecoder" }
+libvlc = { group = "org.videolan.android", name = "libvlc-all", version.ref = "libvlc" }
 androidx-media = { group = "androidx.media", name = "media", version.ref = "androidxMedia" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }

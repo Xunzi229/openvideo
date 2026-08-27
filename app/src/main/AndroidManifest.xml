@@ -70,6 +70,12 @@
             android:theme="@style/Theme.OpenVideo.Player" />
 
         <activity
+            android:name=".ui.player.CompatibilityPlayerActivity"
+            android:exported="false"
+            android:screenOrientation="unspecified"
+            android:theme="@style/Theme.OpenVideo.Player" />
+
+        <activity
             android:name=".ui.player.PlayerDisplaySettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.OpenVideo" />

@@ -10,7 +10,6 @@ import androidx.core.view.isVisible
 import androidx.media3.common.PlaybackException
 import com.example.openvideo.R
 import com.example.openvideo.core.diagnostics.CrashLogger
-import com.example.openvideo.core.player.DecodeMode
 import com.example.openvideo.core.ui.AppleHud
 
 class PlayerErrorHudController(
@@ -19,13 +18,14 @@ class PlayerErrorHudController(
     private val playerErrorHudProvider: () -> View,
     private val titleProvider: () -> TextView,
     private val descProvider: () -> TextView,
-    private val softDecodeButtonProvider: () -> Button?,
+    private val compatibilityButtonProvider: () -> Button?,
     private val retryButtonProvider: () -> Button?,
     private val copyDiagnosticsButtonProvider: () -> Button?,
     private val backButtonProvider: () -> Button?,
     private val controlsContainerProvider: () -> View,
     private val firstFrameScrimProvider: () -> View,
     private val onShowControls: () -> Unit,
+    private val onOpenCompatibilityMode: () -> Unit,
     private val onReattachPlayerAfterRetry: () -> Unit,
     private val onFinishPlayer: () -> Unit
 ) {
@@ -36,8 +36,8 @@ class PlayerErrorHudController(
         descProvider().text = activity.getString(presentation.descRes)
 
         val actions = presentation.actions
-        softDecodeButtonProvider()?.visibility =
-            if (PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in actions) {
+        compatibilityButtonProvider()?.visibility =
+            if (PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in actions) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -49,15 +49,11 @@ class PlayerErrorHudController(
         backButtonProvider()?.visibility =
             if (PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in actions) View.VISIBLE else View.GONE
 
-        softDecodeButtonProvider()?.setOnClickListener {
-            viewModel.setDecodeMode(DecodeMode.SOFT)
-            hide()
-            viewModel.retryPlayback()
-            onReattachPlayerAfterRetry()
-        }
+        compatibilityButtonProvider()?.setOnClickListener { onOpenCompatibilityMode() }
         retryButtonProvider()?.setOnClickListener {
             hide()
             viewModel.retryPlayback()
+            onReattachPlayerAfterRetry()
         }
         copyDiagnosticsButtonProvider()?.setOnClickListener {
             val diagText = CrashLogger.readLatestPlayerErrorLog(activity)
@@ -83,7 +79,7 @@ class PlayerErrorHudController(
     private fun focusDefaultAction() {
         listOfNotNull(
             retryButtonProvider()?.takeIf { it.isVisible },
-            softDecodeButtonProvider()?.takeIf { it.isVisible },
+            compatibilityButtonProvider()?.takeIf { it.isVisible },
             copyDiagnosticsButtonProvider()?.takeIf { it.isVisible },
             backButtonProvider()?.takeIf { it.isVisible }
         ).firstOrNull()?.requestFocus()

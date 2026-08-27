@@ -86,10 +86,10 @@ class PlayerErrorPresentationPolicyTest {
     // --- present() action sets ---
 
     @Test
-    fun decoderErrorIncludesSwitchSoftwareDecode() {
+    fun decoderErrorIncludesCompatibilityMode() {
         val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_DECODER_INIT_FAILED)
         assertTrue(
-            PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in presentation.actions
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions
         )
     }
 
@@ -102,10 +102,10 @@ class PlayerErrorPresentationPolicyTest {
     }
 
     @Test
-    fun ioErrorDoesNotIncludeSwitchSoftwareDecode() {
+    fun ioErrorDoesNotIncludeCompatibilityMode() {
         val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND)
         assertFalse(
-            PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in presentation.actions
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions
         )
     }
 
@@ -139,15 +139,15 @@ class PlayerErrorPresentationPolicyTest {
         assertEquals(R.string.player_error_desc_network_http, badHttp.descRes)
         assertEquals(R.string.player_error_desc_network_cleartext, cleartext.descRes)
         assertTrue(PlayerErrorPresentationPolicy.ErrorAction.RETRY in connection.actions)
-        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in connection.actions)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in connection.actions)
     }
 
     @Test
-    fun generalErrorActionsDoNotIncludeSoftDecode() {
+    fun generalErrorActionsDoNotIncludeCompatibilityMode() {
         // ERROR_CODE_UNSPECIFIED is a generic non-decoder, non-IO error
         val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_UNSPECIFIED)
         assertFalse(
-            PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in presentation.actions
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions
         )
     }
 
@@ -160,7 +160,7 @@ class PlayerErrorPresentationPolicyTest {
         assertEquals(R.string.player_error_title_format, presentation.titleRes)
         assertEquals(R.string.player_error_desc_format, presentation.descRes)
         assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
-        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.SWITCH_SOFTWARE_DECODER in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions)
         assertTrue(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in presentation.actions)
         assertTrue(PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in presentation.actions)
     }
@@ -229,7 +229,7 @@ class PlayerErrorPresentationPolicyTest {
             assertTrue(source.contains("@+id/player_error_hud"))
             assertTrue(source.contains("@+id/tv_error_title"))
             assertTrue(source.contains("@+id/tv_error_desc"))
-            assertTrue(source.contains("@+id/btn_error_soft_decode"))
+            assertTrue(source.contains("@+id/btn_error_compatibility"))
             assertTrue(source.contains("@+id/btn_error_retry"))
             assertTrue(source.contains("@+id/btn_error_copy_diag"))
             assertTrue(source.contains("@+id/btn_error_back"))
@@ -237,16 +237,14 @@ class PlayerErrorPresentationPolicyTest {
     }
 
     @Test
-    fun softwareDecodeRetryDoesNotPersistGlobalDecodePreference() {
+    fun compatibilityActionDoesNotMutateMedia3DecodePreference() {
         val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
-        val block = source.substringAfter("softDecodeButtonProvider()?.setOnClickListener {")
+        val block = source.substringAfter("compatibilityButtonProvider()?.setOnClickListener {")
             .substringBefore("\n        }")
 
-        assertTrue(block.contains("viewModel.setDecodeMode(DecodeMode.SOFT)"))
-        assertTrue(block.contains("viewModel.retryPlayback()"))
-        assertTrue(block.contains("onReattachPlayerAfterRetry()"))
-        assertFalse(block.contains("playerPrefs.hwAcceleration"))
-        assertFalse(block.contains("playerPrefs.softwareAudioDecoder"))
+        assertTrue(block.contains("onOpenCompatibilityMode()"))
+        assertFalse(block.contains("setDecodeMode"))
+        assertFalse(block.contains("retryPlayback"))
     }
 
     @Test
@@ -263,7 +261,7 @@ class PlayerErrorPresentationPolicyTest {
         assertTrue(source.contains("playerErrorHud.post { focusDefaultAction() }"))
         assertTrue(source.contains("private fun focusDefaultAction()"))
         assertTrue(source.contains("retryButtonProvider()?.takeIf { it.isVisible }"))
-        assertTrue(source.contains("softDecodeButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("compatibilityButtonProvider()?.takeIf { it.isVisible }"))
         assertTrue(source.contains("copyDiagnosticsButtonProvider()?.takeIf { it.isVisible }"))
         assertTrue(source.contains("backButtonProvider()?.takeIf { it.isVisible }"))
         assertTrue(source.contains("?.requestFocus()"))
