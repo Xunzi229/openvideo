@@ -239,12 +239,12 @@ class PlayerErrorPresentationPolicyTest {
     @Test
     fun compatibilityActionDoesNotMutateMedia3DecodePreference() {
         val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
-        val block = source.substringAfter("compatibilityButtonProvider()?.setOnClickListener {")
-            .substringBefore("\n        }")
+        val actionLine = source.lineSequence()
+            .first { it.contains("compatibilityButtonProvider()?.setOnClickListener") }
 
-        assertTrue(block.contains("onOpenCompatibilityMode()"))
-        assertFalse(block.contains("setDecodeMode"))
-        assertFalse(block.contains("retryPlayback"))
+        assertTrue(actionLine.contains("onOpenCompatibilityMode()"))
+        assertFalse(actionLine.contains("setDecodeMode"))
+        assertFalse(actionLine.contains("retryPlayback"))
     }
 
     @Test
