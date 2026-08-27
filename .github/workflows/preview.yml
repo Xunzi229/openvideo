@@ -152,6 +152,7 @@ jobs:
             Select-Object -First 1
           $apksigner = Join-Path $buildTools.FullName "apksigner.bat"
           New-Item -ItemType Directory -Path preview -Force | Out-Null
+          $shortSha = $env:GITHUB_SHA.Substring(0, 7)
           $labels = @()
           foreach ($apk in $apks) {
             $verifyOutput = & $apksigner verify --verbose --print-certs $apk.FullName 2>&1
@@ -171,7 +172,7 @@ jobs:
             }
 
             $label = Get-AbiLabel $apk.Name
-            Copy-Item $apk.FullName "preview/openvideo-preview-$env:GITHUB_SHA-$label.apk"
+            Copy-Item $apk.FullName "preview/openvideo-preview-$shortSha-$label.apk"
             $labels += $label
           }
 

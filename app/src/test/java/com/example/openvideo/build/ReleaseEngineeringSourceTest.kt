@@ -109,6 +109,8 @@ class ReleaseEngineeringSourceTest {
         assertTrue(workflow.contains("github.event_name == 'workflow_dispatch' && inputs.publish_release"))
         assertTrue(workflow.contains("\"--prerelease\""))
         assertTrue(workflow.contains("gh @arguments"))
+        assertTrue(workflow.contains("openvideo-preview-${'$'}shortSha-${'$'}label.apk"))
+        assertFalse(workflow.contains("openvideo-preview-${'$'}env:GITHUB_SHA-${'$'}label.apk"))
         assertFalse(workflow.contains(":app:assembleDebug"))
         assertFalse(workflow.contains("app-debug.apk"))
         assertTrue(appBuild.contains("baseline = file(\"lint-baseline.xml\")"))
