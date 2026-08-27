@@ -17,6 +17,7 @@ class CompatibilityPlayerSourceTest {
         assertTrue(catalog.contains("libvlc = \"3.7.5\""))
         assertTrue(catalog.contains("group = \"org.videolan.android\", name = \"libvlc-all\""))
         assertTrue(build.contains("implementation(libs.libvlc)"))
+        assertTrue(build.contains("compileSdk = 36"))
         assertFalse(catalog.contains("libvlc = \"4.0.0-eap"))
     }
 

@@ -58,7 +58,7 @@ fun String.asBuildConfigString(): String =
 
 android {
     namespace = "com.example.openvideo"
-    compileSdk = 35
+    compileSdk = 36
 
     buildFeatures {
         buildConfig = true
