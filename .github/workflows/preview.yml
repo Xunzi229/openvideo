@@ -70,6 +70,7 @@ jobs:
         run: >-
           .\gradlew.bat :app:testDebugUnitTest
           --tests "com.example.openvideo.ui.player.PlayerErrorPresentationPolicyTest"
+          --tests "com.example.openvideo.ui.player.CompatibilityPlayerSourceTest"
           --tests "com.example.openvideo.ui.player.PlayerLifecyclePolicyTest"
           --tests "com.example.openvideo.ui.player.PlayerErrorDiagnosticsSourceTest"
           --tests "com.example.openvideo.core.diagnostics.CrashRedactionPolicyTest"

@@ -70,6 +70,7 @@ class PlayerViewModel @Inject constructor(
     val currentVideoUri: Uri? get() = videoUri
     private var videoPath: String = ""
     private var requestHeaders: Map<String, String> = emptyMap()
+    val currentRequestHeaders: Map<String, String> get() = requestHeaders.toMap()
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
     private var pendingAudioSelection: PendingAudioSelection? = null

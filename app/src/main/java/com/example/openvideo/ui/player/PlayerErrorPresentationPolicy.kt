@@ -28,8 +28,8 @@ object PlayerErrorPresentationPolicy {
     enum class ErrorAction {
         /** 重新 prepare 当前视频。 */
         RETRY,
-        /** 关闭硬解，切软件解码后重试。 */
-        SWITCH_SOFTWARE_DECODER,
+        /** 由用户主动改用独立的 LibVLC 兼容播放器。 */
+        OPEN_COMPATIBILITY_MODE,
         /** 把最新诊断日志内容复制到剪贴板。 */
         COPY_DIAGNOSTICS,
         /** 退出播放器回到列表。 */
@@ -42,6 +42,7 @@ object PlayerErrorPresentationPolicy {
                 titleRes = R.string.player_error_title_format,
                 descRes  = R.string.player_error_desc_format,
                 actions  = listOf(
+                    ErrorAction.OPEN_COMPATIBILITY_MODE,
                     ErrorAction.COPY_DIAGNOSTICS,
                     ErrorAction.GO_BACK
                 )
@@ -53,7 +54,7 @@ object PlayerErrorPresentationPolicy {
                 titleRes = R.string.player_error_title_decode,
                 descRes  = R.string.player_error_desc_decode,
                 actions  = listOf(
-                    ErrorAction.SWITCH_SOFTWARE_DECODER,
+                    ErrorAction.OPEN_COMPATIBILITY_MODE,
                     ErrorAction.RETRY,
                     ErrorAction.COPY_DIAGNOSTICS,
                     ErrorAction.GO_BACK

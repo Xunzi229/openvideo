@@ -22,3 +22,5 @@
 -keep class dagger.hilt.** { *; }
 -keep class javax.inject.** { *; }
 -keep class * extends dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
+# LibVLC resolves JNI entry points from native code and must keep its API names.
+-keep class org.videolan.libvlc.** { *; }

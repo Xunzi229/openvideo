@@ -58,7 +58,7 @@ fun String.asBuildConfigString(): String =
 
 android {
     namespace = "com.example.openvideo"
-    compileSdk = 35
+    compileSdk = 36
 
     buildFeatures {
         buildConfig = true
@@ -162,6 +162,7 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.media3.effect)
     implementation(libs.media3.ffmpeg.decoder)
+    implementation(libs.libvlc)
     implementation(libs.androidx.media)
 
     // Hilt
