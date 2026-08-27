@@ -2,12 +2,18 @@ name: Preview APK
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: "Publish the signed APKs as a GitHub prerelease"
+        required: true
+        default: false
+        type: boolean
   push:
     branches:
       - "codex/**"
 
 permissions:
-  contents: read
+  contents: write
   actions: read
 
 concurrency:
@@ -183,13 +189,51 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Announce preview APKs with gh without publishing a release
+      - name: Publish GitHub prerelease when explicitly requested
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           if ($env:GITHUB_REF_TYPE -eq 'tag') {
-            throw "Preview workflow must not run on tags or publish a GitHub Release."
+            throw "Preview workflow must run from a branch commit."
+          }
+
+          $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+          $releaseTag = "preview-$shortSha"
+          $apkFiles = @(Get-ChildItem preview -Filter "*.apk" | ForEach-Object { $_.FullName })
+          if ($apkFiles.Count -eq 0) {
+            throw "No preview APKs were staged."
+          }
+
+          $notes = @"
+          Preview build from main commit $shortSha.
+
+          The APKs use the same official OpenVideo signing certificate as production releases. This is a prerelease build intended for compatibility testing and may be less stable than the latest production release.
+          "@
+          $arguments = @(
+            "release", "create", $releaseTag
+          ) + $apkFiles + @(
+            "--target", $env:GITHUB_SHA,
+            "--title", "Open Video Preview $shortSha",
+            "--notes", $notes,
+            "--prerelease"
+          )
+          & gh @arguments
+
+      - name: Announce preview outputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_RELEASE: ${{ inputs.publish_release || 'false' }}
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            throw "Preview workflow must not run on tags."
+          }
+          if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -and $env:PUBLISH_RELEASE -eq 'true') {
+            $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+            gh release view "preview-$shortSha" --repo $env:GITHUB_REPOSITORY
+            exit 0
           }
           gh run view $env:GITHUB_RUN_ID --repo $env:GITHUB_REPOSITORY
           Write-Host "Download preview APKs without a GitHub Release:"

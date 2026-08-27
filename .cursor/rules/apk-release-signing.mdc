@@ -30,5 +30,5 @@ GitHub Actions 产出的所有可安装包（Preview、Release、手动 `workflo
 ```
 
 - 不要新增使用 debug 签名的 workflow。
-- Preview 不要 `gh release create`；但签名必须与 Release 相同。
+- 自动触发的 Preview 不要创建 GitHub Release；手动 `workflow_dispatch` 仅在显式启用 `publish_release` 时允许创建 GitHub Prerelease。所有 Preview 签名必须与 Release 相同。
 - 不要提交 `.jks` / 密码；只走 GitHub secrets。
