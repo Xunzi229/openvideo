@@ -86,6 +86,8 @@ class PlayerViewModel @Inject constructor(
 
     private val _sessionQueue = MutableStateFlow<List<VideoItem>>(emptyList())
     val sessionQueue: StateFlow<List<VideoItem>> = _sessionQueue
+    var sessionQueueToken: String? = null
+        private set
 
     /** 当前正在播放的条目 id（与会话列表高亮一致）。 */
     val playingVideoId: Long get() = videoId
@@ -139,8 +141,13 @@ class PlayerViewModel @Inject constructor(
         return true
     }
 
-    fun setSessionQueue(videos: List<VideoItem>) {
+    fun setSessionQueue(videos: List<VideoItem>, token: String?) {
         _sessionQueue.value = videos
+        sessionQueueToken = token
+    }
+
+    fun setSessionQueueToken(token: String) {
+        sessionQueueToken = token
     }
 
     fun initialize(uri: Uri, title: String, id: Long, path: String = "", requestHeaders: Map<String, String> = emptyMap()) {

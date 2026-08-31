@@ -570,7 +570,7 @@ class HomeFragment : Fragment() {
         lastFocusedHomeVideoIds[category]?.let { pendingHomeVideoFocusRestoreIds[category] = it }
         val queue = categoryLists[activeCategory].orEmpty().ifEmpty { listOf(video) }
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(queue)
+            putSessionQueue(requireContext(), queue)
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)

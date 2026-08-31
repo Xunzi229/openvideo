@@ -256,7 +256,7 @@ class LocalFolderFragment : Fragment() {
         }
         val orderedQueue = PlayerEpisodeOrderingPolicy.orderSameFolderQueue(sameFolderQueue)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(orderedQueue.ifEmpty { listOf(video) })
+            putSessionQueue(requireContext(), orderedQueue.ifEmpty { listOf(video) })
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)

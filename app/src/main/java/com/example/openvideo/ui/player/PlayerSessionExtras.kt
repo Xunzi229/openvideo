@@ -1,74 +1,28 @@
 package com.example.openvideo.ui.player
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
 import com.example.openvideo.core.media.LocalMediaUriPolicy
 import com.example.openvideo.data.local.HistoryEntity
 import com.example.openvideo.data.local.PlaylistVideoEntity
 import com.example.openvideo.data.model.VideoItem
 
-/** 播放页会话队列在 Intent 中的 key（同列表 / 同目录）。 */
-const val EXTRA_SESSION_QUEUE = "player_session_queue"
+/** Intent 只携带 token，避免大播放队列触发 Binder TransactionTooLargeException。 */
+private const val EXTRA_SESSION_QUEUE_TOKEN = "player_session_queue_token"
 
-fun VideoItem.toSessionBundle(): Bundle =
-    Bundle().apply {
-        putLong("id", id)
-        putString("title", title)
-        putString("path", path)
-        putString("uri", uri.toString())
-        putLong("duration", duration)
-        putLong("size", size)
-        putInt("width", width)
-        putInt("height", height)
-        putLong("dateAdded", dateAdded)
-        putString("thumb", thumbnailUri?.toString())
-        putString("libraryPath", libraryPath)
-        putLong("dateModified", dateModified)
-        putInt("orientationDegrees", orientationDegrees)
-    }
-
-fun Bundle.toVideoItemOrNull(): VideoItem? {
-    val uriStr = getString("uri") ?: return null
-    return try {
-        VideoItem(
-            id = getLong("id"),
-            title = getString("title").orEmpty(),
-            path = getString("path").orEmpty(),
-            uri = LocalMediaUriPolicy.playbackUri(uriStr),
-            duration = getLong("duration"),
-            size = getLong("size"),
-            width = getInt("width"),
-            height = getInt("height"),
-            dateAdded = getLong("dateAdded"),
-            thumbnailUri = getString("thumb")?.takeIf { it.isNotBlank() }?.let(Uri::parse),
-            libraryPath = getString("libraryPath").orEmpty().ifBlank { getString("path").orEmpty() },
-            dateModified = getLong("dateModified").takeIf { it > 0L } ?: getLong("dateAdded"),
-            orientationDegrees = getInt("orientationDegrees")
-        )
-    } catch (_: Exception) {
-        null
-    }
+fun Intent.putSessionQueue(context: Context, videos: List<VideoItem>) {
+    putSessionQueueToken(PlayerSessionQueueStore.register(context, videos))
 }
 
-fun Intent.putSessionQueue(videos: List<VideoItem>) {
-    putParcelableArrayListExtra(
-        EXTRA_SESSION_QUEUE,
-        ArrayList(videos.map { it.toSessionBundle() })
-    )
+fun Intent.putSessionQueueToken(token: String) {
+    putExtra(EXTRA_SESSION_QUEUE_TOKEN, token)
 }
 
-fun Intent.sessionVideoQueue(): List<VideoItem> {
-    val bundles =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getParcelableArrayListExtra(EXTRA_SESSION_QUEUE, Bundle::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            getParcelableArrayListExtra(EXTRA_SESSION_QUEUE)
-        } ?: return emptyList()
-    return bundles.mapNotNull { it.toVideoItemOrNull() }
-}
+fun Intent.sessionQueueToken(): String? = getStringExtra(EXTRA_SESSION_QUEUE_TOKEN)
+
+fun Intent.sessionVideoQueue(context: Context): List<VideoItem> =
+    PlayerSessionQueueStore.resolve(context, sessionQueueToken())
 
 fun HistoryEntity.toSessionVideoItem(): VideoItem {
     val uri = LocalMediaUriPolicy.playbackUri(path)

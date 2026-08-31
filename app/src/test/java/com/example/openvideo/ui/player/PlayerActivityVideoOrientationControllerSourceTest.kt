@@ -22,7 +22,7 @@ class PlayerActivityVideoOrientationControllerSourceTest {
         assertTrue(controller.contains("PlayerVideoOrientationApplyPolicy.shouldApply("))
         assertTrue(controller.contains("PlayerVideoLayoutPolicy.orientationForVideo("))
         assertTrue(controller.contains("PlayerOrientationPolicy.initialOrientationForVideo("))
-        assertTrue(controller.contains("intent.sessionVideoQueue()"))
+        assertTrue(controller.contains("intent.sessionVideoQueue(activity)"))
 
         assertFalse(activity.contains("private fun resolveInitialVideoDimensions()"))
         assertFalse(activity.contains("PlayerVideoLayoutPolicy.orientationForVideo("))

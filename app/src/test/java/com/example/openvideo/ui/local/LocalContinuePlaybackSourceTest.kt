@@ -34,7 +34,7 @@ class LocalContinuePlaybackSourceTest {
         assertTrue(source.contains("VideoFolderGrouper.folderKey(it.libraryPath)"))
         assertTrue(source.contains("VideoFolderGrouper.folderKey(video.libraryPath)"))
         assertTrue(source.contains("PlayerEpisodeOrderingPolicy.orderSameFolderQueue("))
-        assertTrue(source.contains("putSessionQueue(orderedQueue.ifEmpty { listOf(video) })"))
+        assertTrue(source.contains("putSessionQueue(requireContext(), orderedQueue.ifEmpty { listOf(video) })"))
         assertTrue(source.contains("putExtra(PlayerActivity.EXTRA_START_POSITION_MS, continuePlaybackPositionMs)"))
     }
 

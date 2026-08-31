@@ -114,7 +114,7 @@ class SeriesDetailFragment : Fragment() {
         val selectedVideo = episode.toVideoItem()
         val queue = episodeSnapshot.filter { it.isAvailable }.map { it.toVideoItem() }
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(queue.ifEmpty { listOf(selectedVideo) })
+            putSessionQueue(requireContext(), queue.ifEmpty { listOf(selectedVideo) })
             putExtra("video_uri", selectedVideo.uri.toString())
             putExtra("video_title", selectedVideo.title)
             putExtra("video_id", selectedVideo.id)

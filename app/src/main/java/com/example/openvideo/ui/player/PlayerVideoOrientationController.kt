@@ -58,7 +58,7 @@ class PlayerVideoOrientationController(
 
         val videoId = intent.getLongExtra("video_id", 0L)
         if (videoId != 0L) {
-            intent.sessionVideoQueue().firstOrNull { it.id == videoId }?.let { item ->
+            intent.sessionVideoQueue(activity).firstOrNull { it.id == videoId }?.let { item ->
                 if (item.width > 0 && item.height > 0) {
                     return item.width to item.height
                 }

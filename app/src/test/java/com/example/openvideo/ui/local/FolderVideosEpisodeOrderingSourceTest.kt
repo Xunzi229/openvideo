@@ -15,7 +15,7 @@ class FolderVideosEpisodeOrderingSourceTest {
             .substringBefore("\n    private fun showVideoOptions")
 
         assertTrue(openPlayer.contains("PlayerEpisodeOrderingPolicy.orderSameFolderQueue(folderVideosSnapshot)"))
-        assertTrue(openPlayer.contains("putSessionQueue(orderedQueue)"))
+        assertTrue(openPlayer.contains("putSessionQueue(requireContext(), orderedQueue)"))
     }
 
     private fun folderVideosFragmentSource(): Path {

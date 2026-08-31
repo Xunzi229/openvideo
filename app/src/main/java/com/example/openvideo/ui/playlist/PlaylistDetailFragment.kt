@@ -131,7 +131,7 @@ class PlaylistDetailFragment : Fragment() {
                 val queue = playlistVideosSnapshot.map { it.toSessionVideoItem() }
                 val orderedQueue = PlayerEpisodeOrderingPolicy.orderQueueIfEligible(queue)
                 val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-                    putSessionQueue(orderedQueue)
+                    putSessionQueue(requireContext(), orderedQueue)
                     putExtra("video_uri", video.videoPath)
                     putExtra("video_title", video.videoTitle)
                     putExtra("video_id", video.videoId)

@@ -16,7 +16,7 @@ class PlaylistDetailEpisodeOrderingSourceTest {
             .substringBefore("onRemove = { video ->")
 
         assertTrue(onClick.contains("PlayerEpisodeOrderingPolicy.orderQueueIfEligible(queue)"))
-        assertTrue(onClick.contains("putSessionQueue(orderedQueue)"))
+        assertTrue(onClick.contains("putSessionQueue(requireContext(), orderedQueue)"))
     }
 
     @Test

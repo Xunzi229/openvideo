@@ -20,6 +20,7 @@ class PlaybackNotificationCoordinator @Inject constructor() {
         val videoWidth: Int,
         val videoHeight: Int,
         val queue: List<VideoItem>,
+        val sessionQueueToken: String,
         val loopMode: LoopMode,
         val isPlaying: Boolean,
         val positionMs: Long,

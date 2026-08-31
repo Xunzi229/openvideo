@@ -89,6 +89,9 @@ internal class PlayerPlaybackNotificationController(
         val title = titleProvider() ?: return
         val player = viewModel.player
         val intent = intentProvider()
+        val queue = viewModel.sessionQueue.value
+        val sessionQueueToken = viewModel.sessionQueueToken
+            ?: PlayerSessionQueueStore.register(activity, queue).also(viewModel::setSessionQueueToken)
         playbackCoordinator.updateSnapshot(
             PlaybackNotificationCoordinator.Snapshot(
                 videoUri = currentVideoUriStringProvider(),
@@ -97,7 +100,8 @@ internal class PlayerPlaybackNotificationController(
                 videoPath = currentVideoPathProvider(),
                 videoWidth = intent.getIntExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, 0),
                 videoHeight = intent.getIntExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, 0),
-                queue = viewModel.sessionQueue.value,
+                queue = queue,
+                sessionQueueToken = sessionQueueToken,
                 loopMode = playerPrefs.loopMode,
                 isPlaying = player?.isPlaying == true,
                 positionMs = player?.currentPosition ?: 0L,

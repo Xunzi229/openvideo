@@ -589,12 +589,40 @@ class PlayerActivity : AppCompatActivity() {
         val externalSubtitleUri = PlayerActivityIntents.externalSubtitleUri(intent)
 
         startupTrace.record(PlayerStartupTrace.Events.ACTIVITY_CREATED)
-        val sessionQueue = intent.sessionVideoQueue().ifEmpty {
-            playbackCoordinator.snapshot?.queue.orEmpty()
-        }
-        viewModel.setSessionQueue(sessionQueue)
-
         val playbackUri = LocalMediaUriPolicy.playbackUri(uriString)
+        val intentSessionQueue = intent.sessionVideoQueue(this)
+        val snapshotSessionQueue = playbackCoordinator.snapshot?.queue.orEmpty()
+        val sessionQueue: List<VideoItem>
+        val sessionQueueToken: String?
+        when {
+            intentSessionQueue.isNotEmpty() -> {
+                sessionQueue = intentSessionQueue
+                sessionQueueToken = intent.sessionQueueToken()
+            }
+            snapshotSessionQueue.isNotEmpty() -> {
+                sessionQueue = snapshotSessionQueue
+                sessionQueueToken = playbackCoordinator.snapshot?.sessionQueueToken
+            }
+            else -> {
+                sessionQueue = listOf(
+                    VideoItem(
+                        id = id,
+                        title = title,
+                        path = videoPath,
+                        uri = playbackUri,
+                        duration = 0L,
+                        size = 0L,
+                        width = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0),
+                        height = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0),
+                        dateAdded = 0L,
+                        thumbnailUri = null
+                    )
+                )
+                sessionQueueToken = null
+            }
+        }
+        viewModel.setSessionQueue(sessionQueue, sessionQueueToken)
+
         val warmResume = viewModel.isActiveSessionFor(id) || viewModel.adoptActiveSession(
             playbackUri,
             title,

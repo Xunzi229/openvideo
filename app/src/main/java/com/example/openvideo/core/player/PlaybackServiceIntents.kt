@@ -3,7 +3,7 @@ package com.example.openvideo.core.player
 import android.content.Context
 import android.content.Intent
 import com.example.openvideo.ui.player.PlayerActivity
-import com.example.openvideo.ui.player.putSessionQueue
+import com.example.openvideo.ui.player.putSessionQueueToken
 
 /**
  * 集中构造 [PlaybackService] 与从通知回到 [PlayerActivity] 的 Intent。
@@ -48,7 +48,7 @@ object PlaybackServiceIntents {
             putExtra("video_path", snapshot.videoPath)
             putExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, snapshot.videoWidth)
             putExtra(PlayerActivity.EXTRA_VIDEO_HEIGHT, snapshot.videoHeight)
-            putSessionQueue(snapshot.queue)
+            putSessionQueueToken(snapshot.sessionQueueToken)
         }
 
     private fun serviceAction(context: Context, action: String): Intent =

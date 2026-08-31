@@ -55,7 +55,7 @@ class HistoryFragment : Fragment() {
                 .filter { it.isAvailable }
                 .map { it.entity.toSessionVideoItem() }
             val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-                putSessionQueue(queue)
+                putSessionQueue(requireContext(), queue)
                 putExtra("video_uri", entity.path)
                 putExtra("video_title", entity.title)
                 putExtra("video_id", entity.videoId)

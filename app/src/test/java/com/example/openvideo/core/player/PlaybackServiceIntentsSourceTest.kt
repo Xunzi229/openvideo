@@ -63,7 +63,8 @@ class PlaybackServiceIntentsSourceTest {
         assertTrue(openBlock.contains("FLAG_ACTIVITY_NO_ANIMATION"))
         assertTrue(openBlock.contains("PlayerActivity.EXTRA_FROM_PLAYBACK_NOTIFICATION"))
         assertTrue(openBlock.contains("putExtra(PlayerActivity.EXTRA_FROM_PLAYBACK_NOTIFICATION, true)"))
-        assertTrue(openBlock.contains("putSessionQueue(snapshot.queue)"))
+        assertTrue(openBlock.contains("putSessionQueueToken(snapshot.sessionQueueToken)"))
+        assertFalse(openBlock.contains("putSessionQueue(snapshot.queue)"))
     }
 
     @Test

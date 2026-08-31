@@ -131,7 +131,7 @@ class FolderVideosFragment : Fragment() {
         pendingVideoFocusRestoreId = lastFocusedVideoId
         val orderedQueue = PlayerEpisodeOrderingPolicy.orderSameFolderQueue(folderVideosSnapshot)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putSessionQueue(orderedQueue)
+            putSessionQueue(requireContext(), orderedQueue)
             putExtra("video_uri", video.uri.toString())
             putExtra("video_title", video.title)
             putExtra("video_id", video.id)
