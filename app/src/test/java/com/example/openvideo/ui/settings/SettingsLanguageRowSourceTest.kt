@@ -102,7 +102,7 @@ class SettingsLanguageRowSourceTest {
     }
 
     @Test
-    fun checkUpdateClickShowsHudThenAlertBeforeDownload() {
+    fun checkUpdateClickShowsAlertThenOpensReleasePageInSystemBrowser() {
         val fragment = settingsFragmentSource()
         val viewModel = rootFile(
             "app",
@@ -121,9 +121,11 @@ class SettingsLanguageRowSourceTest {
         assertTrue(viewModel.contains("AppleHud.show(activityContext, R.string.settings_update_checking)"))
         assertTrue(viewModel.contains("promptAvailableUpdate"))
         assertTrue(viewModel.contains("AppleAlertDialog.show"))
-        assertTrue(viewModel.contains("R.string.settings_update_now"))
-        assertTrue(viewModel.contains("downloadAndInstallUpdate"))
-        assertTrue(viewModel.contains("settings_update_downloading"))
+        assertTrue(viewModel.contains("R.string.settings_update_view_release"))
+        assertTrue(viewModel.contains("ReleasePageLauncher.open(activityContext, release.releaseHtmlUrl)"))
+        assertFalse(viewModel.contains("downloadAndInstallUpdate"))
+        assertFalse(viewModel.contains("UpdateApkInstaller"))
+        assertFalse(viewModel.contains("browserDownloadUrl"))
     }
 
     private fun assertLabelRefreshesAfterSave(source: String, saveCall: String, labelUpdateCall: String) {

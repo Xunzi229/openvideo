@@ -69,7 +69,7 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_GITHUB_UPDATE_BADGE, false)
         set(value) = putBoolean(KEY_GITHUB_UPDATE_BADGE, value)
 
-    /** Preferred APK or release page URL from last successful newer-than-local check. */
+    /** Trusted release page URL from the last successful newer-than-local check. */
     var githubPendingDownloadUrl: String
         get() = getString(KEY_GITHUB_PENDING_DOWNLOAD_URL, "")
         set(value) = putString(KEY_GITHUB_PENDING_DOWNLOAD_URL, value)

@@ -106,6 +106,9 @@ jobs:
           --tests "com.example.openvideo.build.AppNameLocalizationSourceTest"
           --tests "com.example.openvideo.build.ReleaseEngineeringSourceTest.githubReleaseWorkflowRestoresSigningKeyAndPublishesSignedApk"
           --tests "com.example.openvideo.build.FeaturePackagingBuildConfigTest"
+          --tests "com.example.openvideo.core.update.GitHubReleaseCheckerTest"
+          --tests "com.example.openvideo.core.update.ReleasePageLauncherSourceTest"
+          --tests "com.example.openvideo.core.update.UpdateUrlPolicyTest"
           --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"
 
       - name: Build signed release APKs

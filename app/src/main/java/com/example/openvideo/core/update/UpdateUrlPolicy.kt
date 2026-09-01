@@ -2,31 +2,18 @@ package com.example.openvideo.core.update
 
 import java.net.URI
 
-/** Limits self-update traffic to the project's GitHub release infrastructure. */
+/** Limits update navigation to the project's HTTPS GitHub Release pages. */
 object UpdateUrlPolicy {
     private const val GITHUB_HOST = "github.com"
-    private const val RELEASE_PATH_PREFIX = "/Xunzi229/openvideo/releases/download/"
-    private val redirectHosts = setOf(
-        GITHUB_HOST,
-        "objects.githubusercontent.com",
-        "release-assets.githubusercontent.com"
-    )
+    private const val RELEASE_PATH_PREFIX = "/Xunzi229/openvideo/releases/tag/"
 
     fun isTrustedReleasePage(url: String): Boolean {
         val uri = parseHttps(url) ?: return false
-        return uri.host.equals(GITHUB_HOST, ignoreCase = true) &&
-            uri.rawPath.orEmpty().startsWith("/Xunzi229/openvideo/releases/")
-    }
-
-    fun isTrustedReleaseAsset(url: String): Boolean {
-        val uri = parseHttps(url) ?: return false
-        return uri.host.equals(GITHUB_HOST, ignoreCase = true) &&
-            uri.rawPath.orEmpty().startsWith(RELEASE_PATH_PREFIX)
-    }
-
-    fun isTrustedRedirect(url: String): Boolean {
-        val uri = parseHttps(url) ?: return false
-        return uri.host.lowercase() in redirectHosts
+        if (!uri.host.equals(GITHUB_HOST, ignoreCase = true)) return false
+        val path = uri.rawPath.orEmpty()
+        if (!path.startsWith(RELEASE_PATH_PREFIX)) return false
+        val tag = path.removePrefix(RELEASE_PATH_PREFIX)
+        return tag.isNotBlank() && '/' !in tag
     }
 
     private fun parseHttps(url: String): URI? {

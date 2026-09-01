@@ -84,7 +84,7 @@ jobs:
           --tests "com.example.openvideo.core.diagnostics.CrashReportOutboxSourceTest"
           --tests "com.example.openvideo.ui.settings.SettingsCrashReportingSourceTest"
           --tests "com.example.openvideo.core.update.GitHubReleaseCheckerTest"
-          --tests "com.example.openvideo.core.update.GitHubAbiSelectionTest"
+          --tests "com.example.openvideo.core.update.ReleasePageLauncherSourceTest"
           --tests "com.example.openvideo.core.ui.SystemBarInsetsPolicyTest"
           --tests "com.example.openvideo.core.ui.OverlayInsetsSourceTest"
           --tests "com.example.openvideo.core.ui.AppleStyleAndSizeSourceTest"

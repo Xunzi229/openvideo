@@ -3884,50 +3884,6 @@
     <issue
         id="UseKtx"
         message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))"
-        errorLine2="                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsViewModel.kt"
-            line="115"
-            column="78"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))"
-        errorLine2="                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsViewModel.kt"
-            line="124"
-            column="78"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))"
-        errorLine2="                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsViewModel.kt"
-            line="143"
-            column="78"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="                    activityContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(apk.browserDownloadUrl)))"
-        errorLine2="                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsViewModel.kt"
-            line="151"
-            column="78"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
         errorLine1="                data = Uri.parse(&quot;package:${activity.packageName}&quot;)"
         errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location

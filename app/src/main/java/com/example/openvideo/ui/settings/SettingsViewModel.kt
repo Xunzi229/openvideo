@@ -2,7 +2,6 @@ package com.example.openvideo.ui.settings
 
 import android.app.Application
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -24,7 +23,7 @@ import com.example.openvideo.core.ui.AppleActionStyle
 import com.example.openvideo.core.ui.AppleAlertDialog
 import com.example.openvideo.core.ui.AppleHud
 import com.example.openvideo.core.update.GitHubReleaseChecker
-import com.example.openvideo.core.update.UpdateApkInstaller
+import com.example.openvideo.core.update.ReleasePageLauncher
 import com.example.openvideo.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -79,9 +78,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Checks GitHub latest release. Shows HUD immediately, then an alert if a newer APK exists.
-     */
+    /** Checks GitHub latest release and offers to open its release page in the default browser. */
     fun onCheckUpdateClick(activityContext: Context) {
         if (!updateCheckRunning.compareAndSet(false, true)) return
         AppleHud.show(activityContext, R.string.settings_update_checking)
@@ -103,10 +100,9 @@ class SettingsViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                val apk = GitHubReleaseChecker.selectApkForAbi(release.assets, Build.SUPPORTED_ABIS)
                 withContext(Dispatchers.Main) {
                     AppleHud.dismiss()
-                    promptAvailableUpdate(activityContext, release, apk)
+                    promptAvailableUpdate(activityContext, release)
                 }
             } finally {
                 updateCheckRunning.set(false)
@@ -116,8 +112,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun promptAvailableUpdate(
         activityContext: Context,
-        release: GitHubReleaseChecker.LatestRelease,
-        apk: GitHubReleaseChecker.ReleaseAsset?
+        release: GitHubReleaseChecker.LatestRelease
     ) {
         val app = getApplication<Application>()
         AppleAlertDialog.show(
@@ -126,76 +121,12 @@ class SettingsViewModel @Inject constructor(
             message = app.getString(R.string.settings_update_available_message, release.tagName),
             actions = listOf(
                 AppleAction(app.getString(R.string.action_cancel), AppleActionStyle.CANCEL),
-                AppleAction(app.getString(R.string.settings_update_now)) {
-                    downloadAndInstallUpdate(activityContext, release, apk)
+                AppleAction(app.getString(R.string.settings_update_view_release)) {
+                    if (!ReleasePageLauncher.open(activityContext, release.releaseHtmlUrl)) {
+                        AppleHud.show(activityContext, R.string.settings_update_browser_unavailable)
+                    }
                 }
             )
-        )
-    }
-
-    private fun downloadAndInstallUpdate(
-        activityContext: Context,
-        release: GitHubReleaseChecker.LatestRelease,
-        apk: GitHubReleaseChecker.ReleaseAsset?
-    ) {
-        val fallbackUrl = apk?.browserDownloadUrl ?: release.releaseHtmlUrl
-        if (apk == null) {
-            AppleHud.show(activityContext, R.string.settings_update_no_apk_asset)
-            openInBrowser(activityContext, fallbackUrl)
-            return
-        }
-        val app = getApplication<Application>()
-        AppleHud.show(activityContext, R.string.settings_update_downloading, long = true)
-        viewModelScope.launch(Dispatchers.IO) {
-            val ua = "OpenVideo/${installedVersionName()} (Android)"
-            val expectedHex = GitHubReleaseChecker.resolveExpectedSha256Hex(release.assets, apk) { url ->
-                GitHubReleaseChecker.fetchUrlText(url, ua)
-            }
-            if (expectedHex == null) {
-                withContext(Dispatchers.Main) {
-                    AppleHud.show(activityContext, R.string.settings_update_no_checksum_browser, long = true)
-                    openInBrowser(activityContext, apk.browserDownloadUrl)
-                }
-                return@launch
-            }
-            val dest = UpdateApkInstaller.cacheApkFile(app)
-            if (!UpdateApkInstaller.downloadApk(apk.browserDownloadUrl, dest, ua)) {
-                withContext(Dispatchers.Main) {
-                    AppleHud.show(activityContext, R.string.settings_update_download_failed)
-                    openInBrowser(activityContext, apk.browserDownloadUrl)
-                }
-                return@launch
-            }
-            if (!UpdateApkInstaller.shaMatches(dest, expectedHex)) {
-                dest.delete()
-                withContext(Dispatchers.Main) {
-                    AppleHud.show(activityContext, R.string.settings_update_sha_mismatch, long = true)
-                }
-                return@launch
-            }
-            withContext(Dispatchers.Main) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                    !activityContext.packageManager.canRequestPackageInstalls()
-                ) {
-                    AppleHud.show(activityContext, R.string.settings_update_allow_install_or_browser, long = true)
-                    openInBrowser(activityContext, apk.browserDownloadUrl)
-                    return@withContext
-                }
-                try {
-                    AppleHud.dismiss()
-                    activityContext.startActivity(UpdateApkInstaller.buildInstallIntent(activityContext, dest))
-                } catch (_: Exception) {
-                    AppleHud.show(activityContext, R.string.settings_update_install_failed_browser)
-                    openInBrowser(activityContext, apk.browserDownloadUrl)
-                }
-            }
-        }
-    }
-
-    private fun openInBrowser(context: Context, url: String) {
-        if (url.isBlank()) return
-        context.startActivity(
-            Intent(Intent.ACTION_VIEW, Uri.parse(url)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         )
     }
 
@@ -206,7 +137,7 @@ class SettingsViewModel @Inject constructor(
 
     private fun applyGitHubReleaseCheckResult(release: GitHubReleaseChecker.LatestRelease) {
         val newer = GitHubReleaseChecker.isRemoteNewer(release.tagName, installedVersionName())
-        val url = if (newer) GitHubReleaseChecker.preferredDownloadUrl(release, Build.SUPPORTED_ABIS) else ""
+        val url = if (newer) release.releaseHtmlUrl else ""
         appPrefs.lastGitHubReleaseCheckMs = System.currentTimeMillis()
         appPrefs.githubUpdateBadgeVisible = newer
         appPrefs.githubPendingDownloadUrl = url

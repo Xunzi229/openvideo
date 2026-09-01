@@ -546,17 +546,11 @@
     <string name="settings_check_update">Check for updates</string>
     <string name="settings_already_latest">You\'re on the latest version</string>
     <string name="settings_update_checking">Checking for updates…</string>
-    <string name="settings_update_downloading">Downloading update…</string>
     <string name="settings_update_available_title">Update available</string>
-    <string name="settings_update_available_message">Version %1$s is ready to install.</string>
-    <string name="settings_update_now">Update now</string>
+    <string name="settings_update_available_message">Version %1$s is available. Open its GitHub Release page to choose a download.</string>
+    <string name="settings_update_view_release">Go to download</string>
     <string name="settings_update_check_failed">Could not check for updates</string>
-    <string name="settings_update_no_apk_asset">No APK found in the latest release</string>
-    <string name="settings_update_no_checksum_browser">No checksum file in release; opening browser for your ABI APK.</string>
-    <string name="settings_update_download_failed">Download failed; opening browser instead.</string>
-    <string name="settings_update_sha_mismatch">SHA-256 mismatch; download cancelled.</string>
-    <string name="settings_update_allow_install_or_browser">Install permission required; opening browser instead.</string>
-    <string name="settings_update_install_failed_browser">Could not start installer; opening browser instead.</string>
+    <string name="settings_update_browser_unavailable">No system browser is available</string>
     <string name="settings_license">Open source licenses</string>
 
     <!-- Playlist -->
