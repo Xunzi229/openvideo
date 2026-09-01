@@ -519,11 +519,11 @@
     <string name="player_error_title_decode">解码失败</string>
     <string name="player_error_title_io">文件不可用</string>
     <string name="player_error_title_network">网络播放出错</string>
-    <string name="player_error_title_format">不支持的视频格式</string>
+    <string name="player_error_title_format">无法识别视频文件</string>
     <string name="player_error_title_general">播放出错</string>
     <string name="player_error_desc_decode">默认播放器无法解码该视频。兼容模式可能支持，但文件损坏或超出设备能力时仍可能失败。</string>
     <string name="player_error_desc_io">文件读取失败，文件可能已移动或被删除。</string>
-    <string name="player_error_desc_format">文件可以读取，但播放器无法识别其封装格式。</string>
+    <string name="player_error_desc_format">文件头缺失或无法识别，文件可能未下载完整、已经损坏，或扩展名与实际内容不符。仍可尝试兼容模式。</string>
     <string name="player_error_desc_network_connection">网络连接失败，请检查地址或网络后重试。</string>
     <string name="player_error_desc_network_dns">无法解析服务器名称，请检查 URL 主机和 DNS。</string>
     <string name="player_error_desc_network_timeout">网络请求超时，请在连接稳定后重试。</string>

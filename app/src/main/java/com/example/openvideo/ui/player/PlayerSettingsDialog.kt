@@ -174,7 +174,7 @@ class PlayerSettingsDialog(
             setupPrimarySwitches()
             showPrimaryPage()
         }.onFailure { error ->
-            CrashLogger.logPlayerError(context, error)
+            CrashLogger.logPlayerErrorAsync(context, error)
         }
     }
 

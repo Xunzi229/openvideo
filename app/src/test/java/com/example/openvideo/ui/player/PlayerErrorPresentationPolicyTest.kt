@@ -166,6 +166,18 @@ class PlayerErrorPresentationPolicyTest {
     }
 
     @Test
+    fun malformedContainerUsesTheSameNonRetryingFileError() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
+        )
+
+        assertEquals(R.string.player_error_title_format, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_format, presentation.descRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in presentation.actions)
+    }
+
+    @Test
     fun nestedUnrecognizedInputFormatOverridesGenericIoError() {
         val extractorFailure = UnrecognizedInputFormatException(
             "None of the available extractors could read the stream",

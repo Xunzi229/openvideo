@@ -76,11 +76,13 @@ jobs:
         run: >-
           .\gradlew.bat :app:testDebugUnitTest
           --tests "com.example.openvideo.ui.player.PlayerErrorPresentationPolicyTest"
+          --tests "com.example.openvideo.ui.player.PlayerFailureClassificationPolicyTest"
           --tests "com.example.openvideo.ui.player.CompatibilityPlayerSourceTest"
           --tests "com.example.openvideo.ui.player.PlayerLifecyclePolicyTest"
           --tests "com.example.openvideo.ui.player.PlayerErrorDiagnosticsSourceTest"
           --tests "com.example.openvideo.core.diagnostics.CrashRedactionPolicyTest"
           --tests "com.example.openvideo.core.diagnostics.CrashLoggerSourceTest"
+          --tests "com.example.openvideo.core.diagnostics.CrashCategoryPolicyTest"
           --tests "com.example.openvideo.core.diagnostics.CrashReportOutboxSourceTest"
           --tests "com.example.openvideo.ui.settings.SettingsCrashReportingSourceTest"
           --tests "com.example.openvideo.core.update.GitHubReleaseCheckerTest"
@@ -120,6 +122,7 @@ jobs:
           --tests "com.example.openvideo.ui.home.HomeRecentContinueWatchingSourceTest"
           --tests "com.example.openvideo.ui.history.HistoryContinueWatchingPolicyTest"
           --tests "com.example.openvideo.ui.player.PlayerSmartCropSourceTest"
+          --tests "com.example.openvideo.ui.settings.AppSettingsApplierTest"
           --tests "com.example.openvideo.ui.settings.SettingsLanguageRowSourceTest"
           --tests "com.example.openvideo.ui.home.HomeSortControlSourceTest"
           --tests "com.example.openvideo.ui.player.PlayerPlaybackEndBehaviorSourceTest"
@@ -202,13 +205,18 @@ jobs:
 
           $shortSha = $env:GITHUB_SHA.Substring(0, 7)
           $releaseTag = "preview-$shortSha"
+          $versionLine = Get-Content gradle.properties | Where-Object { $_ -match '^VERSION_NAME=' } | Select-Object -First 1
+          $versionName = ($versionLine -split '=', 2)[1].Trim()
+          if ([string]::IsNullOrWhiteSpace($versionName)) {
+            throw "VERSION_NAME is missing from gradle.properties."
+          }
           $apkFiles = @(Get-ChildItem preview -Filter "*.apk" | ForEach-Object { $_.FullName })
           if ($apkFiles.Count -eq 0) {
             throw "No preview APKs were staged."
           }
 
           $notes = @"
-          Preview build from main commit $shortSha.
+          Preview v$versionName from main commit $shortSha.
 
           The APKs use the same official OpenVideo signing certificate as production releases. This is a prerelease build intended for compatibility testing and may be less stable than the latest production release.
           "@
@@ -216,7 +224,7 @@ jobs:
             "release", "create", $releaseTag
           ) + $apkFiles + @(
             "--target", $env:GITHUB_SHA,
-            "--title", "Open Video Preview $shortSha",
+            "--title", "Open Video v$versionName Preview",
             "--notes", $notes,
             "--prerelease"
           )

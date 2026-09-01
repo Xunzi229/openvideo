@@ -8,11 +8,26 @@ import com.example.openvideo.core.prefs.ThemeMode
 object AppSettingsApplier {
 
     fun apply(appPrefs: AppPrefs) {
-        AppCompatDelegate.setDefaultNightMode(nightModeFor(appPrefs.themeMode))
-        when (appPrefs.language) {
-            "zh" -> AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("zh-CN"))
-            "en" -> AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en"))
-            else -> AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+        applyTheme(appPrefs.themeMode)
+        applyLanguage(appPrefs.language)
+    }
+
+    fun applyTheme(themeMode: ThemeMode) {
+        val targetMode = nightModeFor(themeMode)
+        if (AppCompatDelegate.getDefaultNightMode() != targetMode) {
+            AppCompatDelegate.setDefaultNightMode(targetMode)
+        }
+    }
+
+    fun applyLanguage(language: String) {
+        val targetTags = languageTagsFor(language)
+        if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != targetTags) {
+            val locales = if (targetTags.isBlank()) {
+                LocaleListCompat.getEmptyLocaleList()
+            } else {
+                LocaleListCompat.forLanguageTags(targetTags)
+            }
+            AppCompatDelegate.setApplicationLocales(locales)
         }
     }
 

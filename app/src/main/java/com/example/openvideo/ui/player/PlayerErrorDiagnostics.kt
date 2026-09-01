@@ -12,26 +12,60 @@ import java.io.File
 
 object PlayerErrorDiagnostics {
 
-    fun build(
-        context: Context,
+    data class Snapshot(
+        val videoId: Long,
+        val title: String,
+        val uri: Uri?,
+        val path: String,
+        val durationMs: Long,
+        val sizeBytes: Long,
+        val width: Int,
+        val height: Int,
+        val dateAdded: Long,
+        val playerCurrentPositionMs: Long,
+        val playerDurationMs: Long,
+        val playerBufferedPositionMs: Long,
+        val playerCurrentMediaUri: Uri?
+    )
+
+    /** Capture Player state on its application thread before any diagnostic IO is dispatched. */
+    fun capture(
         video: VideoItem?,
         player: Player?
-    ): String {
+    ): Snapshot {
         val uri = video?.uri ?: currentMediaUri(player)
-        val path = video?.path.orEmpty()
+        return Snapshot(
+            videoId = video?.id ?: 0L,
+            title = video?.title.orEmpty(),
+            uri = uri,
+            path = video?.path.orEmpty(),
+            durationMs = video?.duration ?: 0L,
+            sizeBytes = video?.size ?: 0L,
+            width = video?.width ?: 0,
+            height = video?.height ?: 0,
+            dateAdded = video?.dateAdded ?: 0L,
+            playerCurrentPositionMs = player?.currentPosition ?: 0L,
+            playerDurationMs = player?.duration?.takeIf { it != C.TIME_UNSET } ?: 0L,
+            playerBufferedPositionMs = player?.bufferedPosition ?: 0L,
+            playerCurrentMediaUri = currentMediaUri(player)
+        )
+    }
+
+    /** Resolver and filesystem metadata must be built off the main thread. */
+    fun build(context: Context, snapshot: Snapshot): String {
         return buildString {
-            appendLine("source_media.video_id=${video?.id ?: 0L}")
-            appendLine("source_media.title=${video?.title.orEmpty()}")
-            appendLine("source_media.uri=${redactedUri(uri)}")
-            appendLine("source_media.path=$path")
-            appendLine("source_media.duration_ms=${video?.duration ?: 0L}")
-            appendLine("source_media.size_bytes=${video?.size ?: 0L}")
-            appendLine("source_media.width=${video?.width ?: 0}")
-            appendLine("source_media.height=${video?.height ?: 0}")
-            appendLine("source_media.date_added=${video?.dateAdded ?: 0L}")
-            appendContentResolverMetadata(context, uri)
-            appendFileMetadata(path, uri)
-            appendPlayerMetadata(player)
+            appendLine("source_media.video_id=${snapshot.videoId}")
+            appendLine("source_media.title=${snapshot.title}")
+            appendLine("source_media.uri=${redactedUri(snapshot.uri)}")
+            appendLine("source_media.path=${snapshot.path}")
+            appendLine("source_media.duration_ms=${snapshot.durationMs}")
+            appendLine("source_media.size_bytes=${snapshot.sizeBytes}")
+            appendLine("source_media.width=${snapshot.width}")
+            appendLine("source_media.height=${snapshot.height}")
+            appendLine("source_media.date_added=${snapshot.dateAdded}")
+            appendContentResolverMetadata(context, snapshot.uri)
+            appendFileMetadata(snapshot.path, snapshot.uri)
+            appendPlayerMetadata(snapshot)
         }
     }
 
@@ -87,11 +121,11 @@ object PlayerErrorDiagnostics {
         appendLine("file.last_modified_ms=${runCatching { file.lastModified() }.getOrDefault(0L)}")
     }
 
-    private fun StringBuilder.appendPlayerMetadata(player: Player?) {
-        appendLine("player.current_position_ms=${player?.currentPosition ?: 0L}")
-        appendLine("player.duration_ms=${player?.duration?.takeIf { it != C.TIME_UNSET } ?: 0L}")
-        appendLine("player.buffered_position_ms=${player?.bufferedPosition ?: 0L}")
-        appendLine("player.current_media_uri=${redactedUri(currentMediaUri(player))}")
+    private fun StringBuilder.appendPlayerMetadata(snapshot: Snapshot) {
+        appendLine("player.current_position_ms=${snapshot.playerCurrentPositionMs}")
+        appendLine("player.duration_ms=${snapshot.playerDurationMs}")
+        appendLine("player.buffered_position_ms=${snapshot.playerBufferedPositionMs}")
+        appendLine("player.current_media_uri=${redactedUri(snapshot.playerCurrentMediaUri)}")
     }
 
     private fun fileFor(path: String, uri: Uri?): File? =

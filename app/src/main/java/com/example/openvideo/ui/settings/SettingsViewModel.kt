@@ -146,13 +146,15 @@ class SettingsViewModel @Inject constructor(
 
     fun setThemeMode(mode: ThemeMode) {
         appPrefs.themeMode = mode
-        AppSettingsApplier.apply(appPrefs)
+        AppSettingsApplier.applyTheme(mode)
     }
 
     fun setLanguage(lang: String) {
         appPrefs.language = lang
-        AppSettingsApplier.apply(appPrefs)
+        AppSettingsApplier.applyLanguage(appPrefs.language)
     }
+
+    fun applyImportedAppSettings() = AppSettingsApplier.apply(appPrefs)
 
     fun setDefaultSpeed(speed: Float) {
         playerPrefs.speed = DefaultPlayerSettings.supportedSpeedOrDefault(speed)

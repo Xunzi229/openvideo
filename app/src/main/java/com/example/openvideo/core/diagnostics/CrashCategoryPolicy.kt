@@ -10,7 +10,7 @@ package com.example.openvideo.core.diagnostics
  */
 object CrashCategoryPolicy {
 
-    /** 来自 [CrashLogger.logPlayerError] 的标签。 */
+    /** 来自 [CrashLogger.logPlayerErrorAsync] 的标签。 */
     const val SOURCE_PLAYER = "player"
 
     /** 来自 [CrashLogger.install] 默认未捕获异常处理。 */
@@ -21,6 +21,22 @@ object CrashCategoryPolicy {
         val classNames = chain.map { it.javaClass.name }
         val messages = chain.mapNotNull { it.message }.map { it.lowercase() }
         val stack = chain.flatMap { it.stackTrace.asSequence().map(StackTraceElement::toString) }
+
+        if (chain.any { error ->
+                error is IllegalStateException &&
+                    error.message?.lowercase()?.let { message ->
+                        message.contains("fragment") && message.contains("not attached")
+                    } == true
+            }
+        ) {
+            return CrashCategory.LIFECYCLE
+        }
+
+        if (classNames.any { it.contains("UnrecognizedInputFormatException") } ||
+            messages.any { it.contains("none of the available extractors") }
+        ) {
+            return CrashCategory.MEDIA_INPUT
+        }
 
         if (source.equals(SOURCE_PLAYER, ignoreCase = true)) return CrashCategory.PLAYBACK
         if (classNames.any { it.contains("PlaybackException") || it.contains("ExoPlaybackException") }) {
@@ -75,6 +91,8 @@ object CrashCategoryPolicy {
 
 enum class CrashCategory(val token: String) {
     PLAYBACK("playback"),
+    MEDIA_INPUT("media_input"),
+    LIFECYCLE("lifecycle"),
     PERMISSION("permission"),
     MEDIA_STORE("mediastore"),
     RESOURCE_INFLATE("resource_inflate"),

@@ -1,10 +1,7 @@
 package com.example.openvideo.ui.player
 
-import androidx.annotation.OptIn
 import androidx.annotation.StringRes
 import androidx.media3.common.PlaybackException
-import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 import com.example.openvideo.R
 import com.example.openvideo.core.network.NetworkErrorClassifier
 
@@ -14,7 +11,6 @@ import com.example.openvideo.core.network.NetworkErrorClassifier
  * 不做 IO，不持有 Context，便于在 JVM 单测里全量覆盖。
  * 文案 StringRes 由调用方（PlayerActivity）通过 [getString] 解析。
  */
-@OptIn(UnstableApi::class)
 object PlayerErrorPresentationPolicy {
 
     /** 错误展示模型。 */
@@ -37,7 +33,7 @@ object PlayerErrorPresentationPolicy {
     }
 
     fun present(errorCode: Int, cause: Throwable? = null): Presentation {
-        if (isUnsupportedContainerError(errorCode, cause)) {
+        if (PlayerFailureClassificationPolicy.isMediaInputFailure(errorCode, cause)) {
             return Presentation(
                 titleRes = R.string.player_error_title_format,
                 descRes  = R.string.player_error_desc_format,
@@ -80,11 +76,6 @@ object PlayerErrorPresentationPolicy {
             )
         }
     }
-
-    private fun isUnsupportedContainerError(errorCode: Int, cause: Throwable?): Boolean =
-        errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
-            generateSequence(cause) { it.cause }
-                .any { it is UnrecognizedInputFormatException }
 
     private fun networkPresentation(errorCode: Int, cause: Throwable?): Presentation? {
         val classification = NetworkErrorClassifier.classifyPlaybackError(errorCode, cause)

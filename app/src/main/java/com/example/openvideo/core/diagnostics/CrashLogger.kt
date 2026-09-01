@@ -9,9 +9,17 @@ import java.io.StringWriter
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicLong
 
 object CrashLogger {
     private const val DIR_NAME = "crash_logs"
+    private val playerLogExecutor = Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "openvideo-player-diagnostics")
+    }
+    private val playerLogSequence = AtomicLong(0L)
+    @Volatile
+    private var latestPlayerErrorLog: String? = null
 
     fun install(context: Context) {
         val appContext = context.applicationContext
@@ -28,15 +36,30 @@ object CrashLogger {
         }
     }
 
-    fun logPlayerError(context: Context, throwable: Throwable, diagnostics: String? = null) {
-        write(
-            context = context.applicationContext,
-            source = CrashCategoryPolicy.SOURCE_PLAYER,
-            threadName = Thread.currentThread().name,
-            throwable = throwable,
-            diagnostics = diagnostics,
-            flushAfterWrite = true
-        )
+    fun logPlayerErrorAsync(
+        context: Context,
+        throwable: Throwable,
+        category: CrashCategory? = null,
+        diagnosticsProvider: () -> String? = { null }
+    ) {
+        val appContext = context.applicationContext
+        val source = CrashCategoryPolicy.SOURCE_PLAYER
+        val threadName = Thread.currentThread().name
+        val resolvedCategory = category ?: CrashCategoryPolicy.categorize(throwable, source)
+        val sequence = playerLogSequence.incrementAndGet()
+        latestPlayerErrorLog = buildLog(threadName, throwable, resolvedCategory, source)
+        playerLogExecutor.execute {
+            write(
+                context = appContext,
+                source = source,
+                threadName = threadName,
+                throwable = throwable,
+                diagnostics = runCatching(diagnosticsProvider).getOrNull(),
+                flushAfterWrite = true,
+                categoryOverride = resolvedCategory,
+                playerSequence = sequence
+            )
+        }
     }
 
     fun flushPendingReports(context: Context) {
@@ -48,7 +71,7 @@ object CrashLogger {
      * 读取最新的播放器错误日志文本（source=player），用于「复制诊断信息」功能。
      * 若无日志文件则返回 null。
      */
-    fun readLatestPlayerErrorLog(context: Context): String? = runCatching {
+    fun readLatestPlayerErrorLog(context: Context): String? = latestPlayerErrorLog ?: runCatching {
         val dir = File(context.applicationContext.filesDir, DIR_NAME)
         if (!dir.exists()) return null
         dir.listFiles { file ->
@@ -71,16 +94,21 @@ object CrashLogger {
         threadName: String,
         throwable: Throwable,
         diagnostics: String? = null,
-        flushAfterWrite: Boolean
+        flushAfterWrite: Boolean,
+        categoryOverride: CrashCategory? = null,
+        playerSequence: Long? = null
     ) {
         runCatching {
             val dir = File(context.filesDir, DIR_NAME).apply { mkdirs() }
-            val category = CrashCategoryPolicy.categorize(throwable, source)
+            val category = categoryOverride ?: CrashCategoryPolicy.categorize(throwable, source)
             val fileName = "${source}_${category.token}_${timestamp()}.txt"
             val log = buildLog(threadName, throwable, category, source, diagnostics)
+            if (playerSequence != null && playerSequence == playerLogSequence.get()) {
+                latestPlayerErrorLog = log
+            }
             File(dir, fileName).writeText(log)
             if (isRemoteReportingAllowed()) {
-                CrashReportOutbox.enqueue(context, fileName, buildRemotePayload(fileName, log))
+                CrashReportOutbox.enqueue(context, fileName, buildRemotePayload(fileName, log, source))
                 if (flushAfterWrite) flushPendingReports(context)
             }
         }
@@ -119,6 +147,7 @@ object CrashLogger {
             appendLine("time=${Date()}")
             appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             appendLine("source=$source")
+            appendLine("event=${if (source == CrashCategoryPolicy.SOURCE_PLAYER) "playback_failure" else "uncaught_crash"}")
             appendLine("category=${category.token}")
             appendLine("thread=$threadName")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
@@ -132,9 +161,14 @@ object CrashLogger {
         }
     }
 
-    private fun buildRemotePayload(title: String, log: String): String {
+    private fun buildRemotePayload(title: String, log: String, source: String): String {
+        val reportTitle = if (source == CrashCategoryPolicy.SOURCE_PLAYER) {
+            "openvideo playback failure report"
+        } else {
+            "openvideo crash report"
+        }
         val text = buildString {
-            appendLine("openvideo crash report")
+            appendLine(reportTitle)
             appendLine("title=$title")
             append(trimForRemote(log))
         }

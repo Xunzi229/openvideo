@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -64,17 +63,18 @@ class SettingsFragment : Fragment() {
     ) { uri ->
         if (uri == null) return@registerForActivityResult
         viewLifecycleOwner.lifecycleScope.launch {
-            when (val result = viewModel.readAndImportSettings(requireContext(), uri)) {
+            val appContext = requireContext().applicationContext
+            when (val result = viewModel.readAndImportSettings(appContext, uri)) {
                 is SettingsViewModel.ImportResult.Success -> {
-                    AppleHud.show(requireContext(), R.string.settings_toast_import_success)
-                    // Recreate activity so theme / language changes take effect immediately
-                    activity?.recreate()
+                    // A process-level Toast survives the configuration change triggered below.
+                    AppleHud.show(appContext, R.string.settings_toast_import_success)
+                    viewModel.applyImportedAppSettings()
                 }
                 is SettingsViewModel.ImportResult.ParseFailure -> {
-                    AppleHud.show(requireContext(), R.string.settings_toast_import_parse_error, long = true)
+                    AppleHud.show(appContext, R.string.settings_toast_import_parse_error, long = true)
                 }
                 is SettingsViewModel.ImportResult.ReadFailure -> {
-                    AppleHud.show(requireContext(), R.string.settings_toast_import_failed)
+                    AppleHud.show(appContext, R.string.settings_toast_import_failed)
                 }
             }
         }
@@ -112,8 +112,8 @@ class SettingsFragment : Fragment() {
             showThemeSheet(tvTheme)
         }
 
-        view.findViewById<View>(R.id.row_language).setOnClickListener { row ->
-            showLanguageSheet(tvLanguage, row)
+        view.findViewById<View>(R.id.row_language).setOnClickListener {
+            showLanguageSheet(tvLanguage)
         }
 
         view.findViewById<View>(R.id.row_notifications).setOnClickListener {
@@ -336,8 +336,9 @@ class SettingsFragment : Fragment() {
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).roundToInt()
 
-    private fun updateThemeLabel(tv: TextView) {
-        tv.text = themeLabel(viewModel.themeMode)
+    private fun updateThemeLabel(tv: TextView, mode: ThemeMode = viewModel.themeMode) {
+        tv.text = themeLabel(mode)
+        updateSettingsRowDescription(tv, R.string.settings_theme)
     }
 
     private fun themeLabel(mode: ThemeMode): String = when (mode) {
@@ -346,8 +347,9 @@ class SettingsFragment : Fragment() {
         ThemeMode.LIGHT -> getString(R.string.settings_theme_light)
     }
 
-    private fun updateLanguageLabel(tv: TextView) {
-        tv.text = languageLabel(viewModel.language)
+    private fun updateLanguageLabel(tv: TextView, language: String = viewModel.language) {
+        tv.text = languageLabel(language)
+        updateSettingsRowDescription(tv, R.string.settings_language)
     }
 
     private fun languageLabel(lang: String): String = when (lang) {
@@ -382,8 +384,9 @@ class SettingsFragment : Fragment() {
                         title = themeLabel(mode),
                         selected = mode == viewModel.themeMode,
                         onClick = {
+                            // AppCompat may recreate the host immediately, so update the old view first.
+                            updateThemeLabel(tvTheme, mode)
                             viewModel.setThemeMode(mode)
-                            updateThemeLabel(tvTheme)
                         }
                     )
                 },
@@ -393,7 +396,7 @@ class SettingsFragment : Fragment() {
         }
     }
 
-    private fun showLanguageSheet(tvLanguage: TextView, row: View) {
+    private fun showLanguageSheet(tvLanguage: TextView) {
         val langs = listOf("system", "zh", "en")
         val current = langs.firstOrNull { it == viewModel.language } ?: "system"
         showExclusiveSettingsDialog { onDismiss ->
@@ -405,12 +408,9 @@ class SettingsFragment : Fragment() {
                         title = languageLabel(lang),
                         selected = lang == current,
                         onClick = {
+                            // setApplicationLocales() owns Activity recreation on all supported API levels.
+                            updateLanguageLabel(tvLanguage, lang)
                             viewModel.setLanguage(lang)
-                            updateLanguageLabel(tvLanguage)
-                            // API 33+: per-app locales trigger recreation; immediate recreate() races and can ignore zh-CN.
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                                row.post { requireActivity().recreate() }
-                            }
                         }
                     )
                 },

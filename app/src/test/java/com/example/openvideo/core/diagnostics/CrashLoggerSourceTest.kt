@@ -34,6 +34,7 @@ class CrashLoggerSourceTest {
         assertFalse(writeMethod.contains("remoteCrashReportingEnabled"))
         assertTrue(writeMethod.contains("CrashReportOutbox.enqueue("))
         assertTrue(writeMethod.contains("flushAfterWrite"))
+        assertFalse("Player input failures must not be silently dropped.", writeMethod.contains("reportRemotely"))
 
         assertTrue(
             "write() must classify the crash via CrashCategoryPolicy.",
@@ -49,7 +50,7 @@ class CrashLoggerSourceTest {
     fun crashLogBodyEmitsCategoryAndRedactsPaths() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val buildLog = source.substringAfter("private fun buildLog(")
-            .substringBefore("\n    private fun reportRemotely")
+            .substringBefore("\n    private fun buildRemotePayload")
 
         assertTrue("category= line must be present.", buildLog.contains("appendLine(\"category=\${category.token}\")"))
         assertTrue("source= line must be present.", buildLog.contains("appendLine(\"source=\$source\")"))
@@ -72,7 +73,7 @@ class CrashLoggerSourceTest {
         val diagnosticBuilder = source.substringAfter("private fun buildDiagnosticLog(")
             .substringBefore("\n    private fun buildLog")
         val buildLog = source.substringAfter("private fun buildLog(")
-            .substringBefore("\n    private fun reportRemotely")
+            .substringBefore("\n    private fun buildRemotePayload")
 
         assertTrue("Crash logs must include the app version name.", buildLog.contains("BuildConfig.VERSION_NAME"))
         assertTrue("Crash logs must include the app version code.", buildLog.contains("BuildConfig.VERSION_CODE"))
@@ -87,21 +88,24 @@ class CrashLoggerSourceTest {
     }
 
     @Test
-    fun playerErrorLogsCanIncludeRedactedDiagnostics() {
+    fun playerErrorLogsAreBuiltOffMainAndKeepImmediateLatestSummary() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
-        val logPlayerError = source.substringAfter("fun logPlayerError(")
-            .substringBefore("\n    /**")
+        val logPlayerError = source.substringAfter("fun logPlayerErrorAsync(")
+            .substringBefore("\n    fun flushPendingReports")
         val buildLog = source.substringAfter("private fun buildLog(")
-            .substringBefore("\n    private fun reportRemotely")
+            .substringBefore("\n    private fun buildRemotePayload")
 
-        assertTrue(
-            "Player errors should accept optional diagnostic context.",
-            logPlayerError.contains("diagnostics: String? = null")
-        )
-        assertTrue(
-            "Player error diagnostics must be passed into the crash writer.",
-            logPlayerError.contains("diagnostics = diagnostics")
-        )
+        assertTrue(source.contains("Executors.newSingleThreadExecutor"))
+        assertTrue(source.contains("openvideo-player-diagnostics"))
+        assertTrue(logPlayerError.contains("diagnosticsProvider: () -> String?"))
+        assertTrue(logPlayerError.contains("playerLogExecutor.execute"))
+        assertTrue(logPlayerError.contains("runCatching(diagnosticsProvider).getOrNull()"))
+        assertTrue(logPlayerError.contains("category: CrashCategory? = null"))
+        assertTrue(logPlayerError.contains("categoryOverride = resolvedCategory"))
+        assertTrue(logPlayerError.contains("latestPlayerErrorLog = buildLog("))
+        assertTrue(source.contains("playerLogSequence.incrementAndGet()"))
+        assertTrue(source.contains("playerSequence == playerLogSequence.get()"))
+        assertTrue(source.contains("latestPlayerErrorLog ?: runCatching"))
         assertTrue(
             "Crash log diagnostics must be redacted before being written.",
             buildLog.contains("CrashRedactionPolicy.redact(diagnostics)")
@@ -112,7 +116,7 @@ class CrashLoggerSourceTest {
     fun uncaughtCrashesArePersistedWithoutStartingNetworkWorkDuringShutdown() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val installMethod = source.substringAfter("fun install(")
-            .substringBefore("\n    fun logPlayerError")
+            .substringBefore("\n    fun logPlayerErrorAsync")
 
         assertTrue(installMethod.contains("flushAfterWrite = false"))
         assertTrue(source.contains("CrashReportOutbox.enqueue("))
@@ -130,6 +134,15 @@ class CrashLoggerSourceTest {
             "Startup diagnostics are not errors and should not notify Feishu.",
             diagnosticMethod.contains("reportToFeishu(")
         )
+    }
+
+    @Test
+    fun remotePayloadDistinguishesPlaybackFailuresFromUncaughtCrashes() {
+        val source = String(Files.readAllBytes(crashLoggerSource()))
+
+        assertTrue(source.contains("event=\${if (source == CrashCategoryPolicy.SOURCE_PLAYER) \"playback_failure\" else \"uncaught_crash\"}"))
+        assertTrue(source.contains("openvideo playback failure report"))
+        assertTrue(source.contains("openvideo crash report"))
     }
 
     private fun crashLoggerSource(): Path {

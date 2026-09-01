@@ -106,12 +106,23 @@ class PlayerEventController(
             }
 
             override fun onPlayerError(error: PlaybackException) {
-                val diagnostics = PlayerErrorDiagnostics.build(
-                    context = activity,
+                val category = PlayerFailureClassificationPolicy.category(error.errorCode, error.cause)
+                val diagnosticsContext = activity.applicationContext
+                val diagnosticsSnapshot = PlayerErrorDiagnostics.capture(
                     video = viewModel.currentVideoItemForDiagnostics(),
                     player = viewModel.player
                 )
-                CrashLogger.logPlayerError(activity, error, diagnostics)
+                CrashLogger.logPlayerErrorAsync(
+                    context = diagnosticsContext,
+                    throwable = error,
+                    category = category
+                ) {
+                    buildString {
+                        append(PlayerErrorDiagnostics.build(diagnosticsContext, diagnosticsSnapshot))
+                        appendLine("player_error.code=${error.errorCode}")
+                        appendLine("player_error.category=${category.token}")
+                    }
+                }
                 val autoRetryScheduled = viewModel.handleNetworkAutoRetry(error)
                 if (!autoRetryScheduled) {
                     onShowPlayerError(error)

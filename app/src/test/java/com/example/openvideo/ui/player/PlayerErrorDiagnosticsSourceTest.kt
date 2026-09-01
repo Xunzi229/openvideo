@@ -13,19 +13,34 @@ class PlayerErrorDiagnosticsSourceTest {
         val eventSource = kotlinSource("PlayerEventController.kt")
 
         assertTrue(
-            "Player errors must build media diagnostics before writing the crash log.",
+            "Player errors must build media diagnostics for the background logger.",
             eventSource.contains("PlayerErrorDiagnostics.build(")
         )
         assertTrue(
-            "Player errors must pass media diagnostics into CrashLogger.",
-            eventSource.contains("CrashLogger.logPlayerError(activity, error, diagnostics)")
+            "Player errors must use the non-blocking logger.",
+            eventSource.contains("CrashLogger.logPlayerErrorAsync(")
         )
+        val captureIndex = eventSource.indexOf("PlayerErrorDiagnostics.capture(")
+        val asyncLogIndex = eventSource.indexOf("CrashLogger.logPlayerErrorAsync(", captureIndex)
+        val resolverBuildIndex = eventSource.indexOf("PlayerErrorDiagnostics.build(", asyncLogIndex)
+        assertTrue("Player state must be captured before dispatch.", captureIndex >= 0)
+        assertTrue("The async logger must receive the captured state.", asyncLogIndex > captureIndex)
+        assertTrue("Resolver metadata must be built inside the async provider.", resolverBuildIndex > asyncLogIndex)
+        assertTrue(eventSource.contains("val diagnosticsContext = activity.applicationContext"))
+        assertTrue(eventSource.contains("PlayerFailureClassificationPolicy.category("))
+        assertTrue(eventSource.contains("player_error.code="))
+        assertTrue(eventSource.contains("player_error.category="))
+        assertTrue(eventSource.contains("category = category"))
+        assertTrue("Player input failures must remain observable.", !eventSource.contains("reportRemotely"))
     }
 
     @Test
     fun mediaDiagnosticsIncludeStoredResolverFileAndPlayerMetadata() {
         val source = kotlinSource("PlayerErrorDiagnostics.kt")
 
+        assertTrue(source.contains("data class Snapshot("))
+        assertTrue(source.contains("fun capture("))
+        assertTrue(source.contains("fun build(context: Context, snapshot: Snapshot)"))
         assertTrue(source.contains("video_id="))
         assertTrue(source.contains("title="))
         assertTrue(source.contains("uri="))

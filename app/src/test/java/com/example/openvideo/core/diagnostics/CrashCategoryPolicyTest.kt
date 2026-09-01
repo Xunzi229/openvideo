@@ -6,12 +6,39 @@ import org.junit.Test
 class CrashCategoryPolicyTest {
 
     @Test
-    fun playerSourceAlwaysMapsToPlayback() {
+    fun genericPlayerSourceFailureMapsToPlayback() {
         val category = CrashCategoryPolicy.categorize(
             throwable = RuntimeException("anything"),
             source = CrashCategoryPolicy.SOURCE_PLAYER
         )
         assertEquals(CrashCategory.PLAYBACK, category)
+    }
+
+    @Test
+    fun detachedFragmentMapsToLifecycleBeforeUnknownFallback() {
+        val category = CrashCategoryPolicy.categorize(
+            IllegalStateException("Fragment SettingsFragment{abc} not attached to an activity.")
+        )
+        assertEquals(CrashCategory.LIFECYCLE, category)
+    }
+
+    @Test
+    fun lifecycleClassificationRequiresTheSameExceptionToCarryTheDetachedFragmentMessage() {
+        val throwable = IllegalStateException(
+            "outer state failure",
+            RuntimeException("Fragment SettingsFragment{abc} not attached to an activity.")
+        )
+
+        assertEquals(CrashCategory.UNKNOWN, CrashCategoryPolicy.categorize(throwable))
+    }
+
+    @Test
+    fun unrecognizedMediaInputIsNotMisclassifiedAsPlayerCrash() {
+        val category = CrashCategoryPolicy.categorize(
+            RuntimeException("None of the available extractors could read the stream"),
+            source = CrashCategoryPolicy.SOURCE_PLAYER
+        )
+        assertEquals(CrashCategory.MEDIA_INPUT, category)
     }
 
     @Test

@@ -13,10 +13,16 @@ class SettingsLanguageRowSourceTest {
     fun preferenceBackedValueRowsRefreshVisibleLabelsImmediatelyAfterSavingPreference() {
         val source = settingsFragmentSource()
 
-        assertLabelRefreshesAfterSave(source, "viewModel.setThemeMode(mode)", "updateThemeLabel(tvTheme)")
-        assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(lang)", "updateLanguageLabel(tvLanguage)")
         assertLabelRefreshesAfterSave(source, "viewModel.setDefaultRatio(option.ratio)", "updateRatioLabel(tvRatio)")
         assertLabelRefreshesAfterSave(source, "viewModel.setDefaultSpeed(speed)", "updateSpeedLabel(tvSpeed)")
+    }
+
+    @Test
+    fun configurationRowsUpdateOldViewsBeforeAppCompatCanRecreateTheHost() {
+        val source = settingsFragmentSource()
+
+        assertUpdatePrecedesApply(source, "updateThemeLabel(tvTheme, mode)", "viewModel.setThemeMode(mode)")
+        assertUpdatePrecedesApply(source, "updateLanguageLabel(tvLanguage, lang)", "viewModel.setLanguage(lang)")
     }
 
     @Test
@@ -36,7 +42,7 @@ class SettingsLanguageRowSourceTest {
         assertFalse(source.contains("modes[next]"))
         assertFalse(source.contains("langs[next]"))
         assertTrue(source.contains("showThemeSheet(tvTheme)"))
-        assertTrue(source.contains("showLanguageSheet(tvLanguage, row)"))
+        assertTrue(source.contains("showLanguageSheet(tvLanguage)"))
     }
 
     @Test
@@ -62,7 +68,7 @@ class SettingsLanguageRowSourceTest {
             .substringBefore("\n    private fun bindBackupSection")
         val themeBlock = source.substringAfter("private fun showThemeSheet(tvTheme: TextView)")
             .substringBefore("\n    private fun showLanguageSheet")
-        val languageBlock = source.substringAfter("private fun showLanguageSheet(tvLanguage: TextView, row: View)")
+        val languageBlock = source.substringAfter("private fun showLanguageSheet(tvLanguage: TextView)")
             .substringBefore("\n    private fun showDefaultRatioDialog")
 
         assertTrue(source.contains("private var activeSettingsDialog: Dialog? = null"))
@@ -98,7 +104,26 @@ class SettingsLanguageRowSourceTest {
     fun languageRowRefreshesVisibleLabelImmediatelyAfterSavingPreference() {
         val source = settingsFragmentSource()
 
-        assertLabelRefreshesAfterSave(source, "viewModel.setLanguage(lang)", "updateLanguageLabel(tvLanguage)")
+        val updateIndex = source.indexOf("updateLanguageLabel(tvLanguage, lang)")
+        val saveIndex = source.indexOf("viewModel.setLanguage(lang)", updateIndex)
+        assertTrue("language label must update before AppCompat may recreate the host", updateIndex >= 0)
+        assertTrue("language preference must be applied after the old view is updated", saveIndex > updateIndex)
+        assertFalse(source.contains("requireActivity().recreate()"))
+        assertFalse(source.contains("activity?.recreate()"))
+        assertFalse(source.contains("row.post"))
+        assertTrue(source.contains("setApplicationLocales() owns Activity recreation"))
+    }
+
+    @Test
+    fun importedConfigurationFeedbackDoesNotAttachAWindowToTheActivityBeingRecreated() {
+        val source = settingsFragmentSource()
+        val importBlock = source.substringAfter("private val importSettingsLauncher")
+            .substringBefore("\n\n    companion object")
+
+        assertTrue(importBlock.contains("val appContext = requireContext().applicationContext"))
+        assertTrue(importBlock.contains("AppleHud.show(appContext, R.string.settings_toast_import_success)"))
+        assertTrue(importBlock.indexOf("AppleHud.show(appContext") < importBlock.indexOf("applyImportedAppSettings()"))
+        assertFalse(importBlock.contains("AppleHud.show(requireContext()"))
     }
 
     @Test
@@ -134,6 +159,14 @@ class SettingsLanguageRowSourceTest {
 
         assertTrue("settings row should save via $saveCall", saveIndex >= 0)
         assertTrue("settings row should refresh the displayed value via $labelUpdateCall", labelIndex > saveIndex)
+    }
+
+    private fun assertUpdatePrecedesApply(source: String, updateCall: String, applyCall: String) {
+        val updateIndex = source.indexOf(updateCall)
+        val applyIndex = source.indexOf(applyCall, updateIndex)
+
+        assertTrue("settings row should update via $updateCall", updateIndex >= 0)
+        assertTrue("$updateCall must run before $applyCall", applyIndex > updateIndex)
     }
 
     private fun settingsFragmentSource(): String =
