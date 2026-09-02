@@ -2,11 +2,14 @@
 
 **[中文](README.zh-CN.md)**
 
-OpenVideo is an Android video player built with Kotlin. It targets modern Android versions and uses Media3 (ExoPlayer) for playback, with a customizable player UI, playlists, history, and local settings.
+OpenVideo is a lightweight and easy-to-use Android video player built with Kotlin. It targets modern Android versions and uses Media3 (ExoPlayer) for playback, with a customizable player UI, playlists, history, and local settings.
 
 Problems this project aims to solve:
-1. Many players on the market are usable but ugly; polished ones are often paid.
-2. So I used AI to hand-build a player I personally like.
+1. Many video players on the market are bloated or contain too many advertisements.
+2. OpenVideo aims to provide a lightweight, clean, and practical alternative.
+
+> [!NOTE]
+> This project was developed primarily with the assistance of AI. Code quality, stability, and compatibility are not guaranteed. Please evaluate it carefully before relying on it in important scenarios. If you encounter a bug, please open an issue; I will do my best to investigate and fix it as my personal time allows, but response times cannot be guaranteed.
 
 ## Requirements
 
@@ -56,6 +59,8 @@ Static mockups in `design/` illustrate the intended player chrome (overlay bars,
 ## Contributing
 
 Issues and pull requests are welcome. Please keep changes focused and match existing code style.
+
+Experienced developers who are interested in jointly maintaining OpenVideo are especially welcome. Please get in touch by opening an issue in this repository.
 
 ## License
 
