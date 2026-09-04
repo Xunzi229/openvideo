@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 object CrashLogger {
     private const val DIR_NAME = "crash_logs"
+    private const val MAX_OOM_STACK_FRAMES = 64
     private val playerLogExecutor = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "openvideo-player-diagnostics")
     }
@@ -25,14 +26,26 @@ object CrashLogger {
         val appContext = context.applicationContext
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            val isolateVendorThread = UncaughtExceptionPolicy.shouldIsolateFromProcessTermination(
+                threadName = thread.name,
+                throwable = throwable
+            )
+            val source = if (isolateVendorThread) {
+                CrashCategoryPolicy.SOURCE_OEM_THREAD
+            } else {
+                CrashCategoryPolicy.SOURCE_UNCAUGHT
+            }
             write(
                 context = appContext,
-                source = CrashCategoryPolicy.SOURCE_UNCAUGHT,
+                source = source,
                 threadName = thread.name,
                 throwable = throwable,
-                flushAfterWrite = false
+                diagnostics = if (isolateVendorThread) "uncaught.delegate_to_system=false" else null,
+                flushAfterWrite = isolateVendorThread
             )
-            previous?.uncaughtException(thread, throwable)
+            if (!isolateVendorThread) {
+                previous?.uncaughtException(thread, throwable)
+            }
         }
     }
 
@@ -142,12 +155,12 @@ object CrashLogger {
         source: String,
         diagnostics: String? = null
     ): String {
-        val stack = StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }.toString()
+        val stack = stackTraceForLog(throwable, category)
         return buildString {
             appendLine("time=${Date()}")
             appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             appendLine("source=$source")
-            appendLine("event=${if (source == CrashCategoryPolicy.SOURCE_PLAYER) "playback_failure" else "uncaught_crash"}")
+            appendLine("event=${eventName(source)}")
             appendLine("category=${category.token}")
             appendLine("thread=$threadName")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
@@ -162,11 +175,7 @@ object CrashLogger {
     }
 
     private fun buildRemotePayload(title: String, log: String, source: String): String {
-        val reportTitle = if (source == CrashCategoryPolicy.SOURCE_PLAYER) {
-            "openvideo playback failure report"
-        } else {
-            "openvideo crash report"
-        }
+        val reportTitle = remoteReportTitle(source)
         val text = buildString {
             appendLine(reportTitle)
             appendLine("title=$title")
@@ -177,6 +186,34 @@ object CrashLogger {
 
     private fun trimForRemote(value: String): String =
         if (value.length <= 3_500) value else value.take(3_500) + "\n...truncated"
+
+    private fun stackTraceForLog(throwable: Throwable, category: CrashCategory): String {
+        if (category != CrashCategory.MEMORY) {
+            return StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }.toString()
+        }
+        return buildString {
+            appendLine(throwable.toString())
+            throwable.stackTrace.take(MAX_OOM_STACK_FRAMES).forEach { frame ->
+                append("\tat ")
+                appendLine(frame.toString())
+            }
+            if (throwable.stackTrace.size > MAX_OOM_STACK_FRAMES) {
+                appendLine("\t... stack trace truncated after $MAX_OOM_STACK_FRAMES frames")
+            }
+        }
+    }
+
+    private fun eventName(source: String): String = when (source) {
+        CrashCategoryPolicy.SOURCE_PLAYER -> "playback_failure"
+        CrashCategoryPolicy.SOURCE_OEM_THREAD -> "oem_thread_failure"
+        else -> "uncaught_crash"
+    }
+
+    private fun remoteReportTitle(source: String): String = when (source) {
+        CrashCategoryPolicy.SOURCE_PLAYER -> "openvideo playback failure report"
+        CrashCategoryPolicy.SOURCE_OEM_THREAD -> "openvideo oem integration failure report"
+        else -> "openvideo crash report"
+    }
 
     private fun escapeJson(value: String): String {
         return buildString {

@@ -33,6 +33,9 @@ class AppleLibraryChromeSourceTest {
         val navigator = rootFile(
             "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "LibraryNavigator.kt"
         ).readText()
+        val tabHost = rootFile(
+            "app", "src", "main", "java", "com", "example", "openvideo", "core", "ui", "LibraryTabHostFragment.kt"
+        ).readText()
 
         assertTrue(layout.contains("phone_tab_host"))
         assertTrue(layout.contains("LibrarySwipeFrameLayout"))
@@ -46,8 +49,16 @@ class AppleLibraryChromeSourceTest {
         assertTrue(navigator.contains(".hide(from)"))
         assertTrue(navigator.contains(".add(from.libraryContainerId(), target)"))
         assertFalse(navigator.contains(".replace(from.libraryContainerId(), target)"))
+        assertTrue(navigator.contains("pendingPushManagers"))
+        assertTrue(navigator.contains("addOnBackStackChangedListener"))
+        assertTrue(navigator.contains("removeOnBackStackChangedListener"))
+        assertFalse(navigator.contains("runOnCommit"))
         assertTrue(activity.contains("setOnItemReselectedListener"))
-        assertTrue(activity.contains("while (host.canPop())"))
+        assertTrue(activity.contains("currentTabHost()?.popToRoot()"))
+        assertFalse(activity.contains("while (host.canPop())"))
+        assertTrue(tabHost.contains("fun popToRoot(): Boolean"))
+        assertTrue(tabHost.contains("popBackStackImmediate("))
+        assertTrue(tabHost.contains("FragmentManager.POP_BACK_STACK_INCLUSIVE"))
     }
 
     @Test

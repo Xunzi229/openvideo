@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import com.example.openvideo.R
 import com.example.openvideo.ui.home.HomeFragment
 import com.example.openvideo.ui.local.LocalFolderFragment
@@ -40,6 +41,14 @@ class LibraryTabHostFragment : Fragment() {
         if (!canPop()) return false
         childFragmentManager.popBackStack()
         return true
+    }
+
+    fun popToRoot(): Boolean {
+        if (!canPop() || childFragmentManager.isStateSaved) return false
+        return childFragmentManager.popBackStackImmediate(
+            null,
+            FragmentManager.POP_BACK_STACK_INCLUSIVE
+        )
     }
 
     private fun createRootFragment(): Fragment = when (requireArguments().getInt(ARG_TAB_ID)) {

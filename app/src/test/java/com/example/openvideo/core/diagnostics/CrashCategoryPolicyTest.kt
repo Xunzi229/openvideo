@@ -42,6 +42,30 @@ class CrashCategoryPolicyTest {
     }
 
     @Test
+    fun outOfMemoryErrorMapsToMemoryBeforeInspectingLargeStackCollections() {
+        assertEquals(
+            CrashCategory.MEMORY,
+            CrashCategoryPolicy.categorize(OutOfMemoryError("allocation failed"))
+        )
+    }
+
+    @Test
+    fun zteGameAssistStackMapsToOemIntegration() {
+        val throwable = NullPointerException("KeyMapObserver.stop failed").apply {
+            stackTrace = arrayOf(
+                StackTraceElement(
+                    "com.zte.gameassist.app.GameActivityStub",
+                    "unregisterObserver",
+                    "GameActivityStub.java",
+                    137
+                )
+            )
+        }
+
+        assertEquals(CrashCategory.OEM_INTEGRATION, CrashCategoryPolicy.categorize(throwable))
+    }
+
+    @Test
     fun securityExceptionMapsToPermission() {
         val category = CrashCategoryPolicy.categorize(SecurityException("Permission denied"))
         assertEquals(CrashCategory.PERMISSION, category)

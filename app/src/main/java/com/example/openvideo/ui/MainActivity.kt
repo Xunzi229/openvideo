@@ -111,10 +111,7 @@ class MainActivity : AppCompatActivity() {
         }
         bottomNav.setOnItemReselectedListener {
             if (isTvMode) return@setOnItemReselectedListener
-            val host = currentTabHost() ?: return@setOnItemReselectedListener
-            while (host.canPop()) {
-                host.pop()
-            }
+            currentTabHost()?.popToRoot()
             refreshTabBackCallback()
         }
 

@@ -114,6 +114,8 @@ jobs:
           --tests "com.example.openvideo.ui.player.PlayerErrorDiagnosticsSourceTest"
           --tests "com.example.openvideo.core.diagnostics.CrashCategoryPolicyTest"
           --tests "com.example.openvideo.core.diagnostics.CrashLoggerSourceTest"
+          --tests "com.example.openvideo.core.diagnostics.UncaughtExceptionPolicyTest"
+          --tests "com.example.openvideo.core.ui.AppleLibraryChromeSourceTest"
           --tests "com.example.openvideo.ui.settings.AppSettingsApplierTest"
           --tests "com.example.openvideo.ui.settings.SettingsLanguageRowSourceTest"
           --tests "com.example.openvideo.ui.sources.SourcesInformationArchitectureSourceTest"

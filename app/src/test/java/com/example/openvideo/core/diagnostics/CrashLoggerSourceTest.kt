@@ -113,12 +113,16 @@ class CrashLoggerSourceTest {
     }
 
     @Test
-    fun uncaughtCrashesArePersistedWithoutStartingNetworkWorkDuringShutdown() {
+    fun uncaughtCrashesDelegateToAndroidWhileExactVendorThreadFailureIsIsolated() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val installMethod = source.substringAfter("fun install(")
             .substringBefore("\n    fun logPlayerErrorAsync")
 
-        assertTrue(installMethod.contains("flushAfterWrite = false"))
+        assertTrue(installMethod.contains("UncaughtExceptionPolicy.shouldIsolateFromProcessTermination("))
+        assertTrue(installMethod.contains("source = source"))
+        assertTrue(installMethod.contains("flushAfterWrite = isolateVendorThread"))
+        assertTrue(installMethod.contains("if (!isolateVendorThread)"))
+        assertTrue(installMethod.contains("previous?.uncaughtException(thread, throwable)"))
         assertTrue(source.contains("CrashReportOutbox.enqueue("))
         assertTrue(source.contains("fun flushPendingReports("))
     }
@@ -140,9 +144,19 @@ class CrashLoggerSourceTest {
     fun remotePayloadDistinguishesPlaybackFailuresFromUncaughtCrashes() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
 
-        assertTrue(source.contains("event=\${if (source == CrashCategoryPolicy.SOURCE_PLAYER) \"playback_failure\" else \"uncaught_crash\"}"))
+        assertTrue(source.contains("event=\${eventName(source)}"))
         assertTrue(source.contains("openvideo playback failure report"))
+        assertTrue(source.contains("openvideo oem integration failure report"))
         assertTrue(source.contains("openvideo crash report"))
+    }
+
+    @Test
+    fun outOfMemoryLogsUseABoundedStackTracePath() {
+        val source = String(Files.readAllBytes(crashLoggerSource()))
+
+        assertTrue(source.contains("category != CrashCategory.MEMORY"))
+        assertTrue(source.contains("take(MAX_OOM_STACK_FRAMES)"))
+        assertTrue(source.contains("MAX_OOM_STACK_FRAMES = 64"))
     }
 
     private fun crashLoggerSource(): Path {

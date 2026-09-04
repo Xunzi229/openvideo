@@ -16,11 +16,22 @@ object CrashCategoryPolicy {
     /** 来自 [CrashLogger.install] 默认未捕获异常处理。 */
     const val SOURCE_UNCAUGHT = "uncaught"
 
+    /** 来自 [UncaughtExceptionPolicy] 隔离的已知厂商辅助线程异常。 */
+    const val SOURCE_OEM_THREAD = "oem_thread"
+
     fun categorize(throwable: Throwable, source: String? = null): CrashCategory {
         val chain = throwableChain(throwable)
+        if (chain.any { it is OutOfMemoryError }) return CrashCategory.MEMORY
+
         val classNames = chain.map { it.javaClass.name }
         val messages = chain.mapNotNull { it.message }.map { it.lowercase() }
         val stack = chain.flatMap { it.stackTrace.asSequence().map(StackTraceElement::toString) }
+        if (source.equals(SOURCE_OEM_THREAD, ignoreCase = true) ||
+            stack.any { it.contains("com.zte.gameassist.app.GameActivityStub") }
+        ) {
+            return CrashCategory.OEM_INTEGRATION
+        }
+
 
         if (chain.any { error ->
                 error is IllegalStateException &&
@@ -93,6 +104,8 @@ enum class CrashCategory(val token: String) {
     PLAYBACK("playback"),
     MEDIA_INPUT("media_input"),
     LIFECYCLE("lifecycle"),
+    MEMORY("memory"),
+    OEM_INTEGRATION("oem_integration"),
     PERMISSION("permission"),
     MEDIA_STORE("mediastore"),
     RESOURCE_INFLATE("resource_inflate"),
