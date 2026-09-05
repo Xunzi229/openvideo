@@ -2,6 +2,7 @@ package com.example.openvideo.core.diagnostics
 
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
 import com.example.openvideo.BuildConfig
 import java.io.File
 import java.io.PrintWriter
@@ -19,6 +20,7 @@ object CrashLogger {
         Thread(runnable, "openvideo-player-diagnostics")
     }
     private val playerLogSequence = AtomicLong(0L)
+    private val reportThrottle = CrashReportThrottle()
     @Volatile
     private var latestPlayerErrorLog: String? = null
 
@@ -58,7 +60,11 @@ object CrashLogger {
         val appContext = context.applicationContext
         val source = CrashCategoryPolicy.SOURCE_PLAYER
         val threadName = Thread.currentThread().name
-        val resolvedCategory = category ?: CrashCategoryPolicy.categorize(throwable, source)
+        val detectedCategory = CrashCategoryPolicy.categorize(throwable, source)
+        val resolvedCategory = when (detectedCategory) {
+            CrashCategory.MEMORY, CrashCategory.LIFECYCLE, CrashCategory.OEM_INTEGRATION -> detectedCategory
+            else -> category ?: detectedCategory
+        }
         val sequence = playerLogSequence.incrementAndGet()
         latestPlayerErrorLog = buildLog(threadName, throwable, resolvedCategory, source)
         playerLogExecutor.execute {
@@ -120,7 +126,10 @@ object CrashLogger {
                 latestPlayerErrorLog = log
             }
             File(dir, fileName).writeText(log)
-            if (isRemoteReportingAllowed()) {
+            if (isRemoteReportingAllowed() &&
+                CrashReportingPolicy.shouldReport(source, throwable) &&
+                reportThrottle.shouldEnqueue(source, throwable, SystemClock.elapsedRealtime())
+            ) {
                 CrashReportOutbox.enqueue(context, fileName, buildRemotePayload(fileName, log, source))
                 if (flushAfterWrite) flushPendingReports(context)
             }

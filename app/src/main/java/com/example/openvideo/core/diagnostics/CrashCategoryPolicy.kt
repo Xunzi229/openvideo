@@ -88,7 +88,7 @@ object CrashCategoryPolicy {
         return CrashCategory.UNKNOWN
     }
 
-    private fun throwableChain(throwable: Throwable): List<Throwable> {
+    internal fun throwableChain(throwable: Throwable): List<Throwable> {
         val list = mutableListOf<Throwable>()
         var current: Throwable? = throwable
         val seen = HashSet<Throwable>()

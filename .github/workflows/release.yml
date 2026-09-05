@@ -113,6 +113,8 @@ jobs:
           --tests "com.example.openvideo.ui.player.PlayerFailureClassificationPolicyTest"
           --tests "com.example.openvideo.ui.player.PlayerErrorDiagnosticsSourceTest"
           --tests "com.example.openvideo.core.diagnostics.CrashCategoryPolicyTest"
+          --tests "com.example.openvideo.core.diagnostics.CrashReportingPolicyTest"
+          --tests "com.example.openvideo.core.diagnostics.CrashReportThrottleTest"
           --tests "com.example.openvideo.core.diagnostics.CrashLoggerSourceTest"
           --tests "com.example.openvideo.core.diagnostics.UncaughtExceptionPolicyTest"
           --tests "com.example.openvideo.core.ui.AppleLibraryChromeSourceTest"

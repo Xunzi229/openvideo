@@ -22,7 +22,7 @@ class CrashLoggerSourceTest {
     }
 
     @Test
-    fun crashWritePathQueuesReportsAutomaticallyWhenBuildEndpointIsConfigured() {
+    fun crashWritePathKeepsLocalLogsBeforeFilteringRemoteReports() {
         val source = String(Files.readAllBytes(crashLoggerSource()))
         val writeMethod = source.substringAfter("private fun write(")
             .substringBefore("\n    private fun buildDiagnosticLog")
@@ -34,7 +34,12 @@ class CrashLoggerSourceTest {
         assertFalse(writeMethod.contains("remoteCrashReportingEnabled"))
         assertTrue(writeMethod.contains("CrashReportOutbox.enqueue("))
         assertTrue(writeMethod.contains("flushAfterWrite"))
-        assertFalse("Player input failures must not be silently dropped.", writeMethod.contains("reportRemotely"))
+        val localWriteIndex = writeMethod.indexOf("writeText(log)")
+        val policyIndex = writeMethod.indexOf("CrashReportingPolicy.shouldReport(source, throwable)")
+        val enqueueIndex = writeMethod.indexOf("CrashReportOutbox.enqueue(")
+        assertTrue("Expected failures must still be saved locally.", policyIndex > localWriteIndex)
+        assertTrue("Remote eligibility must be checked before enqueue.", enqueueIndex > policyIndex)
+        assertTrue(writeMethod.contains("reportThrottle.shouldEnqueue(source, throwable, SystemClock.elapsedRealtime())"))
 
         assertTrue(
             "write() must classify the crash via CrashCategoryPolicy.",
