@@ -40,6 +40,8 @@ class MediaIdentityDatabaseSourceTest {
         assertTrue(daoSource.contains("@Transaction"))
         assertTrue(daoSource.contains("OnConflictStrategy.ABORT"))
         assertTrue(daoSource.contains("suspend fun insertIdentity"))
+        assertTrue(daoSource.contains("@Insert(onConflict = OnConflictStrategy.IGNORE)"))
+        assertTrue(daoSource.contains("suspend fun insertIdentityIgnoringConflicts"))
         assertTrue(daoSource.contains("suspend fun updateIdentity"))
         assertFalse(
             daoSource.contains("@Insert(onConflict = OnConflictStrategy.REPLACE)\r\n    suspend fun upsertIdentity") ||

@@ -11,16 +11,43 @@ import androidx.room.Update
 interface MediaIdentityDao {
 
     @Transaction
-    suspend fun upsertIdentity(identity: MediaIdentityEntity): Long =
-        if (identity.identityId == 0L) {
-            insertIdentity(identity)
-        } else {
+    suspend fun upsertIdentity(identity: MediaIdentityEntity): Long {
+        if (identity.identityId != 0L) {
+            val pathOwner = getByNormalizedPathKey(identity.normalizedPathKey)
+            if (pathOwner != null && pathOwner.identityId != identity.identityId) {
+                return pathOwner.identityId
+            }
+
+            val videoOwner = getByCurrentVideoId(identity.currentVideoId)
+            if (videoOwner != null && videoOwner.identityId != identity.identityId) {
+                return videoOwner.identityId
+            }
+
             updateIdentity(identity)
-            identity.identityId
+            return identity.identityId
         }
+
+        val insertedId = insertIdentityIgnoringConflicts(identity)
+        if (insertedId > 0L) return insertedId
+
+        // A scan can race with another scan, or a path can be reused with changed metadata.
+        // Resolve the row that won either unique constraint instead of retrying an ABORT insert.
+        val existing = getByNormalizedPathKey(identity.normalizedPathKey)
+            ?: getByCurrentVideoId(identity.currentVideoId)
+            ?: return insertIdentityIgnoringConflicts(identity)
+        val existingIdentity = identity.copy(identityId = existing.identityId)
+        val existingVideoOwner = getByCurrentVideoId(identity.currentVideoId)
+        if (existingVideoOwner == null || existingVideoOwner.identityId == existing.identityId) {
+            updateIdentity(existingIdentity)
+        }
+        return existing.identityId
+    }
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertIdentity(identity: MediaIdentityEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIdentityIgnoringConflicts(identity: MediaIdentityEntity): Long
 
     @Update
     suspend fun updateIdentity(identity: MediaIdentityEntity)
