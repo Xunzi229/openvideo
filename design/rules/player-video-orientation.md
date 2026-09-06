@@ -89,7 +89,7 @@ MediaStore 原始 WIDTH/HEIGHT + ORIENTATION
 ## 6. 必跑测试（改上述任一文件后）
 
 ```bash
-.\gradlew.bat :app:testDebugUnitTest --tests "com.example.openvideo.data.scanner.MediaStoreVideoDimensionsPolicyTest" --tests "com.example.openvideo.ui.player.PlayerOrientationPolicyTest" --tests "com.example.openvideo.ui.player.PlayerVideoLayoutPolicyTest" --tests "com.example.openvideo.ui.player.PlayerVideoOrientationApplyPolicyTest"
+.\gradlew.bat :app:testDebugUnitTest --tests "com.openvideo.app.data.scanner.MediaStoreVideoDimensionsPolicyTest" --tests "com.openvideo.app.ui.player.PlayerOrientationPolicyTest" --tests "com.openvideo.app.ui.player.PlayerVideoLayoutPolicyTest" --tests "com.openvideo.app.ui.player.PlayerVideoOrientationApplyPolicyTest"
 ```
 
 真机：竖拍一条 + 横屏一条，确认无「先横后竖」；队列切歌各测一次。

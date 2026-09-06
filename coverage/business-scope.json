@@ -1,5 +1,5 @@
 {
-  "description": "Foundation business logic: policies, parsing, matching, preferences, file/network data loading, codecs and state models. Paths are relative to app/src/main/java/com/example/openvideo. UI rendering, lifecycle controllers, repository orchestration, database implementations and generated code are outside this scope.",
+  "description": "Foundation business logic: policies, parsing, matching, preferences, file/network data loading, codecs and state models. Paths are relative to app/src/main/java/com/openvideo/app. UI rendering, lifecycle controllers, repository orchestration, database implementations and generated code are outside this scope.",
   "minimumPercent": 90,
   "includes": [
     "*/*Policy.kt",

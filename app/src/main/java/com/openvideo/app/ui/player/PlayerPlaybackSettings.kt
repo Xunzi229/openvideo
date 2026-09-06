@@ -1,0 +1,19 @@
+package com.openvideo.app.ui.player
+
+import androidx.media3.common.Player
+import com.openvideo.app.core.prefs.LoopMode
+
+object PlayerPlaybackSettings {
+
+    fun repeatModeFor(loopMode: LoopMode): Int {
+        return when (loopMode) {
+            LoopMode.OFF -> Player.REPEAT_MODE_OFF
+            LoopMode.SINGLE -> Player.REPEAT_MODE_ONE
+            LoopMode.LIST -> Player.REPEAT_MODE_OFF
+        }
+    }
+
+    fun pitchFor(speed: Float, preservePitch: Boolean): Float {
+        return if (preservePitch) 1.0f else speed
+    }
+}

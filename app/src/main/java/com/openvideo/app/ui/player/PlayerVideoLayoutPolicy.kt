@@ -1,0 +1,90 @@
+package com.openvideo.app.ui.player
+
+import android.content.pm.ActivityInfo
+import com.openvideo.app.core.prefs.AspectRatio
+
+/** Display-oriented frame size in pixels (after rotation / pixel aspect). */
+data class DisplayFrameSize(val width: Int, val height: Int)
+
+object PlayerVideoLayoutPolicy {
+
+    fun displayFrameSize(
+        width: Int,
+        height: Int,
+        pixelWidthHeightRatio: Float = 1f,
+        unappliedRotationDegrees: Int = 0
+    ): DisplayFrameSize {
+        if (width <= 0 || height <= 0) return DisplayFrameSize(width = 0, height = 0)
+
+        val normalizedPixelRatio = pixelWidthHeightRatio
+            .takeIf { it.isFinite() && it > 0f }
+            ?: 1f
+        val isQuarterTurn = normalizedRotation(unappliedRotationDegrees) % 180 != 0
+        val displayWidth = if (isQuarterTurn) height.toFloat() else width * normalizedPixelRatio
+        val displayHeight = if (isQuarterTurn) width * normalizedPixelRatio else height.toFloat()
+        return DisplayFrameSize(
+            width = displayWidth.toInt().coerceAtLeast(1),
+            height = displayHeight.toInt().coerceAtLeast(1)
+        )
+    }
+
+    fun orientationForVideo(
+        width: Int,
+        height: Int,
+        pixelWidthHeightRatio: Float = 1f,
+        unappliedRotationDegrees: Int = 0
+    ): Int {
+        val ratio = displayAspectRatio(
+            width = width,
+            height = height,
+            pixelWidthHeightRatio = pixelWidthHeightRatio,
+            unappliedRotationDegrees = unappliedRotationDegrees
+        )
+        if (ratio <= 0f) return ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+        return when {
+            ratio >= 1.2f -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            ratio <= 0.8f -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            else -> ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        }
+    }
+
+    fun contentAspectRatio(
+        preferredAspectRatio: AspectRatio,
+        width: Int,
+        height: Int,
+        pixelWidthHeightRatio: Float = 1f,
+        unappliedRotationDegrees: Int = 0
+    ): Float {
+        val forcedAspectRatio = PlayerViewSettings.forcedContentAspectRatio(preferredAspectRatio)
+        if (forcedAspectRatio != null) return forcedAspectRatio
+
+        return displayAspectRatio(
+            width = width,
+            height = height,
+            pixelWidthHeightRatio = pixelWidthHeightRatio,
+            unappliedRotationDegrees = unappliedRotationDegrees
+        )
+    }
+
+    fun displayAspectRatio(
+        width: Int,
+        height: Int,
+        pixelWidthHeightRatio: Float = 1f,
+        unappliedRotationDegrees: Int = 0
+    ): Float {
+        if (width <= 0 || height <= 0) return 0f
+
+        val normalizedPixelRatio = pixelWidthHeightRatio
+            .takeIf { it.isFinite() && it > 0f }
+            ?: 1f
+        val isQuarterTurn = normalizedRotation(unappliedRotationDegrees) % 180 != 0
+        val displayWidth = if (isQuarterTurn) height.toFloat() else width * normalizedPixelRatio
+        val displayHeight = if (isQuarterTurn) width * normalizedPixelRatio else height.toFloat()
+        if (displayWidth <= 0f || displayHeight <= 0f) return 0f
+        return displayWidth / displayHeight
+    }
+
+    private fun normalizedRotation(unappliedRotationDegrees: Int): Int =
+        ((unappliedRotationDegrees % 360) + 360) % 360
+}

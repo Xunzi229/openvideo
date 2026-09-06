@@ -33,7 +33,15 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:launchMode="singleTop">
+            android:launchMode="singleTop" />
+
+        <!-- Preserve the published launcher and external-intent component name. -->
+        <activity-alias
+            android:name="com.example.openvideo.ui.MainActivity"
+            android:targetActivity=".ui.MainActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -57,7 +65,7 @@
                 <data android:scheme="https" />
                 <data android:scheme="rtsp" />
             </intent-filter>
-        </activity>
+        </activity-alias>
 
         <activity
             android:name=".ui.player.PlayerActivity"
@@ -103,6 +111,40 @@
             android:name=".ui.settings.NotificationSettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.OpenVideo" />
+
+        <!-- Existing task and notification intents can still target the previous names. -->
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.PlayerActivity"
+            android:targetActivity=".ui.player.PlayerActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.CompatibilityPlayerActivity"
+            android:targetActivity=".ui.player.CompatibilityPlayerActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.PlayerDisplaySettingsActivity"
+            android:targetActivity=".ui.player.PlayerDisplaySettingsActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.PlayerPlaybackSettingsActivity"
+            android:targetActivity=".ui.player.PlayerPlaybackSettingsActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.PlayerAudioSettingsActivity"
+            android:targetActivity=".ui.player.PlayerAudioSettingsActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.PlayerSubtitleSettingsActivity"
+            android:targetActivity=".ui.player.PlayerSubtitleSettingsActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.player.PlayerGestureSettingsActivity"
+            android:targetActivity=".ui.player.PlayerGestureSettingsActivity"
+            android:exported="false" />
+        <activity-alias
+            android:name="com.example.openvideo.ui.settings.NotificationSettingsActivity"
+            android:targetActivity=".ui.settings.NotificationSettingsActivity"
+            android:exported="false" />
 
         <service
             android:name=".core.player.PlaybackService"

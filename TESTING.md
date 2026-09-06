@@ -1,5 +1,18 @@
 # Tests and Coverage
 
+## Application Identity
+
+The code package and Gradle namespace are `com.openvideo.app`; the published
+application ID remains `com.example.openvideo`. Keep this explicit application
+ID, the official signing certificate, database names, preference keys and
+playback action strings stable when reorganizing source code.
+
+Manifest activity aliases retain the old launcher and activity component names.
+The existing `adb shell am start -n com.example.openvideo/.ui.MainActivity`
+command still targets the launcher alias. `PackageIdentityCompatibilityTest`
+checks the compiled identity, intent resolution, aliases and XML view inflation.
+An in-place upgrade still needs verification on a device before distribution.
+
 ## Run Locally
 
 Use JDK 17 and Android SDK Platform 36 / Build Tools 36.0.0. Set `JAVA_HOME`
@@ -64,8 +77,9 @@ September 6, 2026 baseline and verified results for this unchanged scope:
 | Branch | 74.59% | 90.37% |
 | Line | 86.39% | 94.98% |
 
-The full suite has 1,542 passing tests, including 65 additional tests in this
-coverage pass. This gate measures foundation business logic, not all app code.
+The full suite has 1,548 passing tests, including 65 additional tests in the
+coverage pass and six package identity compatibility tests. This gate measures
+foundation business logic, not all app code.
 
 ## Full App Report
 

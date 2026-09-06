@@ -1,7 +1,7 @@
 ---
 description: Player responsive single-choice dialogs — bottom portrait chrome and landscape settings-panel chrome
 globs:
-  - app/src/main/java/com/example/openvideo/ui/player/**/*.kt
+  - app/src/main/java/com/openvideo/app/ui/player/**/*.kt
   - app/src/main/res/layout/dialog_player_glass_sheet.xml
   - app/src/main/res/layout/item_player_glass_sheet_row.xml
   - app/src/main/res/layout/dialog_player_quick_bottom_sheet.xml

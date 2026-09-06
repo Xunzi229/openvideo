@@ -1,0 +1,115 @@
+package com.openvideo.app.ui.home
+
+import com.openvideo.app.data.model.VideoItem
+import com.openvideo.app.ui.local.VideoFolderGrouper
+import com.openvideo.app.ui.privacy.PrivacyPathPolicy
+
+enum class MediaLibraryEmptyState {
+    LOADING,
+    PERMISSION_DENIED,
+    SCAN_ERROR,
+    NONE,
+    NO_MEDIA,
+    NO_FAVORITES,
+    FILTERED_BY_PRIVACY,
+    FILTERED_BY_QUERY_OR_FOLDER
+}
+
+data class MediaScanSignature(
+    val entries: List<Pair<String, Long>>
+) {
+    companion object {
+        fun fromVideos(videos: List<VideoItem>): MediaScanSignature =
+            fromPaths(videos.map { it.libraryPath to it.dateModified })
+
+        fun fromPaths(paths: List<Pair<String, Long>>): MediaScanSignature =
+            MediaScanSignature(
+                paths
+                    .map { (path, dateAdded) -> normalizePath(path) to dateAdded }
+                    .sortedBy { it.first }
+            )
+    }
+}
+
+object MediaLibraryPolicy {
+
+    fun visibleVideos(
+        videos: List<VideoItem>,
+        hiddenFolders: List<String>,
+        folderKey: String? = null
+    ): List<VideoItem> =
+        videos.filter { video ->
+            !isHiddenPath(video.libraryPath, hiddenFolders) &&
+                (folderKey == null || VideoFolderGrouper.folderKey(video.libraryPath) == folderKey)
+        }
+
+    fun visiblePaths(
+        paths: List<String>,
+        hiddenFolders: List<String>,
+        folderKey: String? = null
+    ): List<String> =
+        paths.filter { path ->
+            !isHiddenPath(path, hiddenFolders) &&
+                (folderKey == null || VideoFolderGrouper.folderKey(path) == folderKey)
+        }
+
+    fun hiddenFilteredCount(paths: List<String>, hiddenFolders: List<String>): Int =
+        paths.count { isHiddenPath(it, hiddenFolders) }
+
+    fun isHiddenPath(path: String, hiddenFolders: List<String>): Boolean {
+        return hiddenFolders.any { hidden -> PrivacyPathPolicy.isWithin(path, hidden) }
+    }
+
+    fun shouldPublishScan(previous: MediaScanSignature?, next: MediaScanSignature): Boolean =
+        previous != next
+
+    fun validFolderKey(selectedFolderKey: String?, folderKeys: List<String>): String? {
+        if (selectedFolderKey == null) return null
+        return selectedFolderKey.takeIf { it in folderKeys }
+    }
+
+    fun shouldExposeStoredFallback(
+        path: String,
+        hiddenFolders: List<String>,
+        permissionDenied: Boolean = false,
+        localFileExists: (String) -> Boolean
+    ): Boolean {
+        if (permissionDenied) return false
+        if (isHiddenPath(path, hiddenFolders)) return false
+        if (path.startsWith("content://")) return true
+
+        val candidatePath = when {
+            path.startsWith("file://") -> path.removePrefix("file://")
+            else -> path
+        }
+        return candidatePath.isNotBlank() && localFileExists(candidatePath)
+    }
+
+    fun emptyState(
+        isLoading: Boolean,
+        scannedCount: Int,
+        visibleCount: Int,
+        hiddenFilteredCount: Int = 0,
+        permissionDenied: Boolean = false,
+        scanError: Boolean = false,
+        category: HomeCategory = HomeCategory.ALL,
+        hasActiveUserFilter: Boolean = false
+    ): MediaLibraryEmptyState {
+        if (permissionDenied) return MediaLibraryEmptyState.PERMISSION_DENIED
+        if (scanError) return MediaLibraryEmptyState.SCAN_ERROR
+        if (isLoading) return MediaLibraryEmptyState.LOADING
+        if (visibleCount > 0) return MediaLibraryEmptyState.NONE
+        if (scannedCount == 0) return MediaLibraryEmptyState.NO_MEDIA
+        if (category == HomeCategory.FAVORITES && !hasActiveUserFilter) {
+            return MediaLibraryEmptyState.NO_FAVORITES
+        }
+        return if (hiddenFilteredCount >= scannedCount) {
+            MediaLibraryEmptyState.FILTERED_BY_PRIVACY
+        } else {
+            MediaLibraryEmptyState.FILTERED_BY_QUERY_OR_FOLDER
+        }
+    }
+}
+
+private fun normalizePath(path: String): String =
+    PrivacyPathPolicy.canonical(path)

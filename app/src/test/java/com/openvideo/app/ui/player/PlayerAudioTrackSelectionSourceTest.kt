@@ -1,0 +1,97 @@
+package com.openvideo.app.ui.player
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+class PlayerAudioTrackSelectionSourceTest {
+
+    @Test
+    fun playerManagerExposesAndSelectsMedia3AudioTracks() {
+        val managerSource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val source = String(Files.readAllBytes(sourceFile("core", "player", "PlayerAudioTrackController.kt")))
+
+        assertTrue(managerSource.contains("fun currentAudioTracks()"))
+        assertTrue(managerSource.contains("audioTracks.currentAudioTracks()"))
+        assertTrue(source.contains("currentTracks.groups"))
+        assertTrue(source.contains("C.TRACK_TYPE_AUDIO"))
+        assertTrue(managerSource.contains("fun selectAudioTrack("))
+        assertTrue(managerSource.contains("audioTracks.selectAudioTrack(groupIndex, trackIndex)"))
+        assertTrue(source.contains("TrackSelectionOverride"))
+        assertTrue(source.contains("clearOverridesOfType(C.TRACK_TYPE_AUDIO)"))
+        assertTrue(source.contains("setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false)"))
+        assertTrue(managerSource.contains("fun disableAudioTrack()"))
+        assertTrue(managerSource.contains("audioTracks.disableAudioTrack()"))
+        assertTrue(source.contains("setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true)"))
+    }
+
+    @Test
+    fun playerSettingsAudioPageUsesRealTracksInsteadOfHardcodedEnglishTrack() {
+        val source = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsDialog.kt")))
+        val audioPage = source
+            .substringAfter("private fun buildAudioPage()")
+            .substringBefore("\n    private fun buildSubtitlePage()")
+
+        assertTrue(audioPage.contains("viewModel.audioTracks()"))
+        assertTrue(audioPage.contains("infoController.audioTrackLabel("))
+        assertTrue(audioPage.contains("viewModel.selectAudioTrack("))
+        assertTrue(audioPage.contains("viewModel.disableAudioTrack()"))
+        assertFalse(audioPage.contains("player_sheet_audio_track_english"))
+    }
+
+    @Test
+    fun infoPageIncludesCurrentAudioTrackDiagnostics() {
+        val source = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsInfoController.kt")))
+        val infoRows = source
+            .substringAfter("fun videoInfoRows()")
+            .substringBefore("\n    fun audioTrackLabel(")
+
+        assertTrue(infoRows.contains("viewModel.selectedAudioTrack()"))
+        assertTrue(infoRows.contains("player_settings_info_current_audio_track"))
+        assertTrue(infoRows.contains("player_settings_info_audio_decoder"))
+        assertTrue(infoRows.contains("PlayerAudioDiagnosticsPolicy.trackSummary("))
+    }
+
+    @Test
+    fun phaseTwoRecordsRuntimeAudioDecoderDiagnostics() {
+        val managerSource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerManager.kt")))
+        val availabilitySource = String(Files.readAllBytes(sourceFile("core", "player", "PlayerAudioExtensionAvailability.kt")))
+        val dialogSource = String(Files.readAllBytes(sourceFile("ui", "player", "PlayerSettingsInfoController.kt")))
+        val strings = String(Files.readAllBytes(resFile("values", "strings.xml")))
+
+        assertTrue(managerSource.contains("addAnalyticsListener(audioDiagnosticsListener())"))
+        assertTrue(managerSource.contains("onAudioDecoderInitialized"))
+        assertTrue(managerSource.contains("onAudioInputFormatChanged"))
+        assertTrue(managerSource.contains("onPlayerError"))
+        assertTrue(managerSource.contains("PlayerAudioExtensionAvailability.isFfmpegExtensionAvailable()"))
+        assertTrue(availabilitySource.contains("fun isFfmpegExtensionAvailable"))
+        assertTrue(dialogSource.contains("viewModel.audioDiagnostics()"))
+        assertTrue(dialogSource.contains("player_settings_info_ffmpeg_extension"))
+        assertTrue(dialogSource.contains("player_settings_info_audio_input_format"))
+        assertTrue(dialogSource.contains("player_settings_info_playback_error"))
+        assertTrue(dialogSource.contains("PlayerAudioDiagnosticsPolicy.runtimeInputSummary("))
+        assertTrue(dialogSource.contains("PlayerAudioDiagnosticsPolicy.compatibilityMessage("))
+        assertTrue(strings.contains("player_settings_info_ffmpeg_available"))
+    }
+
+    private fun sourceFile(vararg parts: String): Path {
+        val relativePath = parts.fold(Paths.get("src", "main", "java", "com", "openvideo", "app")) { path, part ->
+            path.resolve(part)
+        }
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun resFile(vararg parts: String): Path {
+        val relativePath = parts.fold(Paths.get("src", "main", "res")) { path, part -> path.resolve(part) }
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+}

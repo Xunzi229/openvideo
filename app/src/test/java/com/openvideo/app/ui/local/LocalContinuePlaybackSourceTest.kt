@@ -1,0 +1,76 @@
+package com.openvideo.app.ui.local
+
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+class LocalContinuePlaybackSourceTest {
+
+    @Test
+    fun localFolderPageHasContinuePlaybackRow() {
+        val layout = String(Files.readAllBytes(layoutFile()))
+
+        assertTrue(layout.contains("""android:id="@+id/row_continue_playback""""))
+        assertTrue(layout.contains("""android:id="@+id/tv_continue_title""""))
+        assertTrue(layout.contains("""android:text="@string/local_continue_playback""""))
+        assertTrue(!layout.contains("FloatingActionButton"))
+        assertTrue(!layout.contains("fab_continue_playback"))
+    }
+
+    @Test
+    fun localFolderFragmentObservesContinuePlaybackVideoAndOpensPlayer() {
+        val source = String(Files.readAllBytes(sourceFile("LocalFolderFragment.kt")))
+
+        assertTrue(source.contains("private var continuePlaybackVideo: VideoItem? = null"))
+        assertTrue(source.contains("private var continuePlaybackPositionMs: Long = 0L"))
+        assertTrue(source.contains("viewModel.continuePlaybackVideo.collect { video ->"))
+        assertTrue(source.contains("viewModel.continuePlaybackPositionMs.collect { positionMs ->"))
+        assertTrue(source.contains("continuePlaybackRow.visibility = if (video == null) View.GONE else View.VISIBLE"))
+        assertTrue(source.contains("continuePlaybackTitle.text = video?.title.orEmpty()"))
+        assertTrue(source.contains("continuePlaybackRow.setOnClickListener"))
+        assertTrue(source.contains("openPlayer(video)"))
+        assertTrue(source.contains("VideoFolderGrouper.folderKey(it.libraryPath)"))
+        assertTrue(source.contains("VideoFolderGrouper.folderKey(video.libraryPath)"))
+        assertTrue(source.contains("PlayerEpisodeOrderingPolicy.orderSameFolderQueue("))
+        assertTrue(source.contains("putSessionQueue(requireContext(), orderedQueue.ifEmpty { listOf(video) })"))
+        assertTrue(source.contains("putExtra(PlayerActivity.EXTRA_START_POSITION_MS, continuePlaybackPositionMs)"))
+    }
+
+    @Test
+    fun localFolderViewModelExposesOnlyValidContinuePlaybackCandidate() {
+        val source = String(Files.readAllBytes(sourceFile("LocalFolderViewModel.kt")))
+
+        assertTrue(source.contains("val continuePlaybackVideo"))
+        assertTrue(source.contains("repository.getHistory()"))
+        assertTrue(source.contains("LocalContinuePlaybackPolicy.latestPlayableVideoId"))
+        assertTrue(source.contains("visibleVideos.firstOrNull"))
+        assertTrue(source.contains("val continuePlaybackPositionMs"))
+        assertTrue(source.contains("selectedHistory?.lastPosition ?: 0L"))
+    }
+
+    @Test
+    fun playerActivityHonorsExplicitContinuePlaybackPosition() {
+        val source = String(Files.readAllBytes(playerSourceFile("PlayerActivity.kt")))
+
+        assertTrue(source.contains("const val EXTRA_START_POSITION_MS"))
+        assertTrue(source.contains("getLongExtra(EXTRA_START_POSITION_MS, 0L)"))
+        assertTrue(source.contains("viewModel.restorePosition(id, explicitStartPositionMs)"))
+    }
+
+    private fun layoutFile(): Path {
+        val relativePath = Paths.get("src", "main", "res", "layout", "fragment_local_folders.xml")
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+
+    private fun sourceFile(name: String): Path {
+        val relativePath = Paths.get("src", "main", "java", "com", "openvideo", "app", "ui", "local", name)
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+
+    private fun playerSourceFile(name: String): Path {
+        val relativePath = Paths.get("src", "main", "java", "com", "openvideo", "app", "ui", "player", name)
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+}

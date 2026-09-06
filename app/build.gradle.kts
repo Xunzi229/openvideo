@@ -59,7 +59,7 @@ fun String.asBuildConfigString(): String =
     "\"" + replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 android {
-    namespace = "com.example.openvideo"
+    namespace = "com.openvideo.app"
     compileSdk = 36
 
     buildFeatures {
@@ -67,6 +67,7 @@ android {
     }
 
     defaultConfig {
+        // Published application identity must stay stable across code package renames.
         applicationId = "com.example.openvideo"
         minSdk = 23
         targetSdk = 35

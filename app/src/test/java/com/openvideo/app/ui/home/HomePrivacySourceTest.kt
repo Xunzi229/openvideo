@@ -1,0 +1,79 @@
+package com.openvideo.app.ui.home
+
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+class HomePrivacySourceTest {
+
+    @Test
+    fun recentAndFavoriteFallbackItemsRespectHiddenFolders() {
+        val source = String(Files.readAllBytes(homeViewModelSource()))
+
+        assertTrue(source.contains("_hiddenFolders"))
+        assertTrue(source.contains("videosFromHistory(scanned, history, hiddenFolders, permissionDenied)"))
+        assertTrue(source.contains("videosFromFavorites(scanned, favorites, hiddenFolders, permissionDenied)"))
+        assertTrue(source.contains("MediaLibraryPolicy.shouldExposeStoredFallback("))
+        assertTrue(source.contains("hiddenFolders = hiddenFolders"))
+    }
+
+    @Test
+    fun privacyAddDialogRequestsPathInputDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(privacyFragmentSource()))
+        val addBlock = source.substringAfter("private fun showAddDialog()")
+            .substringBefore("\n    private fun confirmRemove(")
+
+        assertTrue(addBlock.contains("AppleAlertDialog.show"))
+        assertTrue(addBlock.contains("input.post"))
+        assertTrue(addBlock.contains("input.requestFocus()"))
+    }
+
+    @Test
+    fun privacyRemoveDialogRequestsCancelDefaultFocusForRemoteUse() {
+        val source = String(Files.readAllBytes(privacyFragmentSource()))
+        val removeBlock = source.substringAfter("private fun confirmRemove(path: String)")
+            .substringBefore("\n}")
+
+        assertTrue(removeBlock.contains("AppleAlertDialog.show"))
+        assertTrue(removeBlock.contains("AppleActionStyle.CANCEL"))
+        assertTrue(removeBlock.contains("AppleActionStyle.DESTRUCTIVE"))
+    }
+
+    private fun homeViewModelSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "openvideo",
+            "app",
+            "ui",
+            "home",
+            "HomeViewModel.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+
+    private fun privacyFragmentSource(): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "openvideo",
+            "app",
+            "ui",
+            "privacy",
+            "PrivacyFragment.kt"
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+}

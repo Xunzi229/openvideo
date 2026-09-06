@@ -1,0 +1,339 @@
+package com.openvideo.app.ui.player
+
+import android.net.Uri
+import androidx.media3.common.PlaybackException
+import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
+import com.openvideo.app.R
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+class PlayerErrorPresentationPolicyTest {
+
+    // --- isDecoderError ---
+
+    @Test
+    fun decoderInitFailedIsDecoderError() {
+        assertTrue(
+            PlayerErrorPresentationPolicy.isDecoderError(
+                PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
+            )
+        )
+    }
+
+    @Test
+    fun decodingFailedIsDecoderError() {
+        assertTrue(
+            PlayerErrorPresentationPolicy.isDecoderError(
+                PlaybackException.ERROR_CODE_DECODING_FAILED
+            )
+        )
+    }
+
+    @Test
+    fun audioTrackInitFailedIsDecoderError() {
+        assertTrue(
+            PlayerErrorPresentationPolicy.isDecoderError(
+                PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED
+            )
+        )
+    }
+
+    @Test
+    fun ioErrorIsNotDecoderError() {
+        assertFalse(
+            PlayerErrorPresentationPolicy.isDecoderError(
+                PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND
+            )
+        )
+    }
+
+    // --- isIoError ---
+
+    @Test
+    fun fileNotFoundIsIoError() {
+        assertTrue(
+            PlayerErrorPresentationPolicy.isIoError(
+                PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND
+            )
+        )
+    }
+
+    @Test
+    fun networkConnectionFailedIsIoError() {
+        assertTrue(
+            PlayerErrorPresentationPolicy.isIoError(
+                PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+            )
+        )
+    }
+
+    @Test
+    fun decoderErrorIsNotIoError() {
+        assertFalse(
+            PlayerErrorPresentationPolicy.isIoError(
+                PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
+            )
+        )
+    }
+
+    // --- present() action sets ---
+
+    @Test
+    fun decoderErrorIncludesCompatibilityMode() {
+        val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_DECODER_INIT_FAILED)
+        assertTrue(
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions
+        )
+    }
+
+    @Test
+    fun decoderErrorIncludesRetry() {
+        val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_DECODING_FAILED)
+        assertTrue(
+            PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions
+        )
+    }
+
+    @Test
+    fun ioErrorDoesNotIncludeCompatibilityMode() {
+        val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND)
+        assertFalse(
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions
+        )
+    }
+
+    @Test
+    fun ioErrorIncludesRetryAndGoBack() {
+        val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in presentation.actions)
+    }
+
+    @Test
+    fun networkErrorsUseNetworkTitleAndSpecificDescriptions() {
+        val connection = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED
+        )
+        val dns = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+            UnknownHostException("example.test")
+        )
+        val timeout = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+            SocketTimeoutException("timeout")
+        )
+        val badHttp = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS)
+        val cleartext = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED)
+
+        assertEquals(R.string.player_error_title_network, connection.titleRes)
+        assertEquals(R.string.player_error_desc_network_connection, connection.descRes)
+        assertEquals(R.string.player_error_desc_network_dns, dns.descRes)
+        assertEquals(R.string.player_error_desc_network_timeout, timeout.descRes)
+        assertEquals(R.string.player_error_desc_network_http, badHttp.descRes)
+        assertEquals(R.string.player_error_desc_network_cleartext, cleartext.descRes)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.RETRY in connection.actions)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in connection.actions)
+    }
+
+    @Test
+    fun generalErrorActionsDoNotIncludeCompatibilityMode() {
+        // ERROR_CODE_UNSPECIFIED is a generic non-decoder, non-IO error
+        val presentation = PlayerErrorPresentationPolicy.present(PlaybackException.ERROR_CODE_UNSPECIFIED)
+        assertFalse(
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions
+        )
+    }
+
+    @Test
+    fun unrecognizedInputFormatShowsUnsupportedContainerWithoutRetry() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED
+        )
+
+        assertEquals(R.string.player_error_title_format, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_format, presentation.descRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in presentation.actions)
+    }
+
+    @Test
+    fun malformedContainerUsesTheSameNonRetryingFileError() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED
+        )
+
+        assertEquals(R.string.player_error_title_format, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_format, presentation.descRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in presentation.actions)
+    }
+
+    @Test
+    fun nestedUnrecognizedInputFormatOverridesGenericIoError() {
+        val extractorFailure = UnrecognizedInputFormatException(
+            "None of the available extractors could read the stream",
+            Uri.EMPTY,
+            emptyList()
+        )
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            IllegalStateException("source error", extractorFailure)
+        )
+
+        assertEquals(R.string.player_error_title_format, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_format, presentation.descRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.RETRY in presentation.actions)
+    }
+
+    @Test
+    fun allPresentationActionsIncludeCopyDiagnosticsAndGoBack() {
+        val codes = listOf(
+            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+            PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+            PlaybackException.ERROR_CODE_UNSPECIFIED
+        )
+        for (code in codes) {
+            val presentation = PlayerErrorPresentationPolicy.present(code)
+            val actions = presentation.actions
+            assertTrue(
+                "COPY_DIAGNOSTICS missing for code $code",
+                PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS in actions
+            )
+            assertTrue(
+                "GO_BACK missing for code $code",
+                PlayerErrorPresentationPolicy.ErrorAction.GO_BACK in actions
+            )
+        }
+    }
+
+    // --- title / desc StringRes sanity check ---
+
+    @Test
+    fun decoderAndIoAndGeneralHaveDifferentTitles() {
+        val decoderTitle = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
+        ).titleRes
+        val ioTitle = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND
+        ).titleRes
+        val generalTitle = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_UNSPECIFIED
+        ).titleRes
+
+        assertEquals(3, setOf(decoderTitle, ioTitle, generalTitle).size)
+    }
+
+    @Test
+    fun portraitAndLandscapePlayerLayoutsBothExposeErrorHudViews() {
+        val portrait = readResource("layout", "activity_player.xml")
+        val landscape = readResource("layout-land", "activity_player.xml")
+
+        listOf(portrait, landscape).forEach { source ->
+            assertTrue(source.contains("@+id/player_error_hud"))
+            assertTrue(source.contains("@+id/tv_error_title"))
+            assertTrue(source.contains("@+id/tv_error_desc"))
+            assertTrue(source.contains("@+id/btn_error_compatibility"))
+            assertTrue(source.contains("@+id/btn_error_retry"))
+            assertTrue(source.contains("@+id/btn_error_copy_diag"))
+            assertTrue(source.contains("@+id/btn_error_back"))
+        }
+    }
+
+    @Test
+    fun compatibilityActionDoesNotMutateMedia3DecodePreference() {
+        val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
+        val actionLine = source.lineSequence()
+            .first { it.contains("compatibilityButtonProvider()?.setOnClickListener") }
+
+        assertTrue(actionLine.contains("onOpenCompatibilityMode()"))
+        assertFalse(actionLine.contains("setDecodeMode"))
+        assertFalse(actionLine.contains("retryPlayback"))
+    }
+
+    @Test
+    fun errorHudPassesExceptionCauseToPresentationPolicyForNetworkClassification() {
+        val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
+
+        assertTrue(source.contains("PlayerErrorPresentationPolicy.present(error.errorCode, error.cause)"))
+    }
+
+    @Test
+    fun errorHudRequestsDefaultFocusOnVisibleActionAfterShowing() {
+        val source = String(Files.readAllBytes(playerErrorHudControllerSource()))
+
+        assertTrue(source.contains("playerErrorHud.post { focusDefaultAction() }"))
+        assertTrue(source.contains("private fun focusDefaultAction()"))
+        assertTrue(source.contains("retryButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("compatibilityButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("copyDiagnosticsButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("backButtonProvider()?.takeIf { it.isVisible }"))
+        assertTrue(source.contains("?.requestFocus()"))
+    }
+
+    @Test
+    fun softwareDecodeRetryReinitializesPlayerWithSoftCodecSelection() {
+        val source = String(Files.readAllBytes(playerViewModelSource()))
+        val retry = source.substringAfter("fun retryPlayback(")
+            .substringBefore("\n    fun seekForward")
+
+        assertTrue(retry.contains("playerManager.initialize(uri)"))
+        assertTrue(retry.contains("playerManager.addListener(it)"))
+        assertTrue(retry.contains("playerManager.setMediaUri(uri, requestHeaders)"))
+    }
+
+    @Test
+    fun playerActivityReattachesSurfaceAndEventsAfterSoftwareRetry() {
+        val source = String(Files.readAllBytes(playerActivitySource()))
+        val helper = source.substringAfter("private fun reattachPlayerAfterRetry() {")
+            .substringBefore("\n    }")
+
+        assertTrue(source.contains("onReattachPlayerAfterRetry = ::reattachPlayerAfterRetry"))
+        assertTrue(helper.contains("playerEvents.detach()"))
+        assertTrue(helper.contains("playbackNotifications.reattachPlayerSurfaceFromBackground()"))
+        assertTrue(helper.contains("playerEvents.attach()"))
+    }
+
+    private fun readResource(dir: String, file: String): String =
+        String(Files.readAllBytes(resource(dir, file)))
+
+    private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun playerErrorHudControllerSource(): Path {
+        return kotlinSource("PlayerErrorHudController.kt")
+    }
+
+    private fun playerViewModelSource(): Path {
+        return kotlinSource("PlayerViewModel.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "openvideo",
+            "app",
+            "ui",
+            "player",
+            name
+        )
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+
+    private fun resource(dir: String, file: String): Path {
+        val relativePath = Paths.get("src", "main", "res", dir, file)
+        return sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
+    }
+}

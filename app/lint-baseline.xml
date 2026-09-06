@@ -7,7 +7,7 @@
         errorLine1="            prefs.edit().putString(KEY_LANGUAGE, v).commit()"
         errorLine2="                                                    ~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/AppPrefs.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/AppPrefs.kt"
             line="16"
             column="53"/>
     </issue>
@@ -18,7 +18,7 @@
         errorLine1="        prefs.edit().clear().commit()"
         errorLine2="                             ~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PlayerPrefs.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PlayerPrefs.kt"
             line="289"
             column="30"/>
     </issue>
@@ -29,7 +29,7 @@
         errorLine1="        return String.format(&quot;%02d:%02d:%02d&quot;, h, m, s)"
         errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/history/HistoryFragment.kt"
+            file="src/main/java/com/openvideo/app/ui/history/HistoryFragment.kt"
             line="133"
             column="16"/>
     </issue>
@@ -40,7 +40,7 @@
         errorLine1="        return if (h > 0) String.format(&quot;%d:%02d:%02d&quot;, h, m, s)"
         errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="1230"
             column="27"/>
     </issue>
@@ -51,7 +51,7 @@
         errorLine1="        else String.format(&quot;%02d:%02d&quot;, m, s)"
         errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="1231"
             column="14"/>
     </issue>
@@ -62,7 +62,7 @@
         errorLine1="        return String.format(&quot;%02d:%02d:%02d&quot;, h, m, s)"
         errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistVideoAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistVideoAdapter.kt"
             line="160"
             column="16"/>
     </issue>
@@ -73,7 +73,7 @@
         errorLine1="        return String.format(&quot;%.1f MB&quot;, mb)"
         errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsViewModel.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsViewModel.kt"
             line="233"
             column="16"/>
     </issue>
@@ -84,7 +84,7 @@
         errorLine1="        return String.format(&quot;%02d:%02d:%02d&quot;, h, m, s)"
         errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="222"
             column="16"/>
     </issue>
@@ -95,7 +95,7 @@
         errorLine1="        return String.format(&quot;%.1f MB&quot;, mb)"
         errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="227"
             column="16"/>
     </issue>
@@ -346,7 +346,7 @@
         errorLine1="            Manifest.permission.READ_MEDIA_VIDEO,"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/MediaLibraryPermissionPolicy.kt"
+            file="src/main/java/com/openvideo/app/ui/home/MediaLibraryPermissionPolicy.kt"
             line="15"
             column="13"/>
     </issue>
@@ -357,7 +357,7 @@
         errorLine1="            Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/MediaLibraryPermissionPolicy.kt"
+            file="src/main/java/com/openvideo/app/ui/home/MediaLibraryPermissionPolicy.kt"
             line="16"
             column="13"/>
     </issue>
@@ -368,7 +368,7 @@
         errorLine1="        sdkInt >= Build.VERSION_CODES.TIRAMISU -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO)"
         errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/MediaLibraryPermissionPolicy.kt"
+            file="src/main/java/com/openvideo/app/ui/home/MediaLibraryPermissionPolicy.kt"
             line="18"
             column="59"/>
     </issue>
@@ -379,7 +379,7 @@
         errorLine1="            supportsPictureInPicture = packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE),"
         errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2861"
             column="72"/>
     </issue>
@@ -390,7 +390,7 @@
         errorLine1="            android.Manifest.permission.POST_NOTIFICATIONS"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2886"
             column="13"/>
     </issue>
@@ -401,7 +401,7 @@
         errorLine1="                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)"
         errorLine2="                                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2899"
             column="55"/>
     </issue>
@@ -412,7 +412,7 @@
         errorLine1="                                    bufferFlags = bufferFlags or MediaCodec.BUFFER_FLAG_PARTIAL_FRAME"
         errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/player/PlayerManager.kt"
+            file="src/main/java/com/openvideo/app/core/player/PlayerManager.kt"
             line="524"
             column="66"/>
     </issue>
@@ -423,7 +423,7 @@
         errorLine1="            w.setBackgroundBlurRadius(style.backdropBlurRadiusPx)"
         errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="1020"
             column="15"/>
     </issue>
@@ -434,7 +434,7 @@
         errorLine1="            enterPictureInPictureMode("
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2870"
             column="13"/>
     </issue>
@@ -445,7 +445,7 @@
         errorLine1="                PictureInPictureParams.Builder()"
         errorLine2="                                       ~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2871"
             column="40"/>
     </issue>
@@ -456,7 +456,7 @@
         errorLine1="                    .setAspectRatio("
         errorLine2="                     ~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2872"
             column="22"/>
     </issue>
@@ -467,7 +467,7 @@
         errorLine1="                    .build()"
         errorLine2="                     ~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2875"
             column="22"/>
     </issue>
@@ -478,7 +478,7 @@
         errorLine1="            isInPictureInPictureMode = isInPictureInPictureMode"
         errorLine2="                                       ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="3041"
             column="40"/>
     </issue>
@@ -489,7 +489,7 @@
         errorLine1="            window.setBackgroundBlurRadius(max(1, (18f * dm.density).toInt()))"
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerGlassSheetDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerGlassSheetDialog.kt"
             line="99"
             column="20"/>
     </issue>
@@ -500,7 +500,7 @@
         errorLine1="            window.setBackgroundBlurRadius(style.backdropBlurRadiusPx)"
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsSheetChrome.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsSheetChrome.kt"
             line="45"
             column="20"/>
     </issue>
@@ -522,7 +522,7 @@
         errorLine1="    private val sdcardPathRegex = Regex(&quot;&quot;&quot;/sdcard/[^\s)>\]&quot;&apos;]*&quot;&quot;&quot;)"
         errorLine2="                                           ~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/diagnostics/CrashRedactionPolicy.kt"
+            file="src/main/java/com/openvideo/app/core/diagnostics/CrashRedactionPolicy.kt"
             line="14"
             column="44"/>
     </issue>
@@ -566,7 +566,7 @@
         errorLine1="            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {"
         errorLine2="                                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/compat/VendorCompat.kt"
+            file="src/main/java/com/openvideo/app/core/compat/VendorCompat.kt"
             line="98"
             column="42"/>
     </issue>
@@ -577,7 +577,7 @@
         errorLine1="        val content = layoutInflater.inflate(R.layout.dialog_player_glass_sheet, null, false)"
         errorLine2="                                                                                 ~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerGlassSheetDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerGlassSheetDialog.kt"
             line="128"
             column="82"/>
     </issue>
@@ -588,7 +588,7 @@
         errorLine1="        val root = inflater.inflate(R.layout.overlay_video_library_filter, null, false)"
         errorLine2="                                                                           ~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoLibraryFilterPopover.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoLibraryFilterPopover.kt"
             line="63"
             column="76"/>
     </issue>
@@ -599,7 +599,7 @@
         errorLine1="        val view = LayoutInflater.from(context).inflate(R.layout.sheet_video_options, null)"
         errorLine2="                                                                                      ~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoOptionsSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoOptionsSheet.kt"
             line="23"
             column="87"/>
     </issue>
@@ -973,7 +973,7 @@
         errorLine1="        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2433"
             column="9"/>
     </issue>
@@ -982,7 +982,7 @@
         id="UnsafeOptInUsageError"
         message="This declaration is opt-in and its usage should be marked with `@androidx.media3.common.util.UnstableApi` or `@OptIn(markerClass = androidx.media3.common.util.UnstableApi.class)`">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"/>
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"/>
     </issue>
 
     <issue
@@ -991,7 +991,7 @@
         errorLine1="        val contentFrame = playerView.findViewById&lt;AspectRatioFrameLayout>(Media3UiR.id.exo_content_frame)"
         errorLine2="            ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="672"
             column="13"/>
     </issue>
@@ -1002,7 +1002,7 @@
         errorLine1="    private fun resetContentFrameTransform(contentFrame: AspectRatioFrameLayout) {"
         errorLine2="                                                         ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2816"
             column="58"/>
     </issue>
@@ -1013,7 +1013,7 @@
         errorLine1="        contentFrame: AspectRatioFrameLayout,"
         errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2826"
             column="23"/>
     </issue>
@@ -1068,7 +1068,7 @@
         errorLine1="            background = context.getDrawable("
         errorLine2="                         ^">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="245"
             column="26"/>
     </issue>
@@ -1079,7 +1079,7 @@
         errorLine1="            background = context.getDrawable("
         errorLine2="                         ^">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="245"
             column="26"/>
     </issue>
@@ -1090,7 +1090,7 @@
         errorLine1="                background = context.getDrawable(R.drawable.bg_player_settings_value)"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="1414"
             column="30"/>
     </issue>
@@ -1101,7 +1101,7 @@
         errorLine1="                background = context.getDrawable(R.drawable.bg_player_settings_value)"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="1414"
             column="30"/>
     </issue>
@@ -1112,7 +1112,7 @@
         errorLine1="            background = context.getDrawable(R.drawable.bg_player_settings_divider)"
         errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="1567"
             column="26"/>
     </issue>
@@ -1123,7 +1123,7 @@
         errorLine1="            background = context.getDrawable(R.drawable.bg_player_settings_divider)"
         errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="1567"
             column="26"/>
     </issue>
@@ -1178,7 +1178,7 @@
         errorLine1="                notifyDataSetChanged()"
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="34"
             column="17"/>
     </issue>
@@ -1189,7 +1189,7 @@
         errorLine1="                notifyDataSetChanged()"
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="42"
             column="17"/>
     </issue>
@@ -1200,7 +1200,7 @@
         errorLine1="        notifyDataSetChanged()"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="183"
             column="9"/>
     </issue>
@@ -1211,7 +1211,7 @@
         errorLine1="        notifyDataSetChanged()"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="189"
             column="9"/>
     </issue>
@@ -1222,7 +1222,7 @@
         errorLine1="        notifyDataSetChanged()"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoGridAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoGridAdapter.kt"
             line="207"
             column="9"/>
     </issue>
@@ -3062,7 +3062,7 @@
         errorLine1="            prefs.edit().putString(KEY_LANGUAGE, v).commit()"
         errorLine2="            ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/AppPrefs.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/AppPrefs.kt"
             line="16"
             column="13"/>
     </issue>
@@ -3073,7 +3073,7 @@
         errorLine1="        set(value) = prefs.edit().putStringSet(KEY_PINNED_FOLDER_KEYS, value.toSet()).apply()"
         errorLine2="                     ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/AppPrefs.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/AppPrefs.kt"
             line="57"
             column="22"/>
     </issue>
@@ -3084,7 +3084,7 @@
         errorLine1="            path.startsWith(&quot;content://&quot;) || path.startsWith(&quot;file://&quot;) -> Uri.parse(path)"
         errorLine2="                                                                           ~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/HomeViewModel.kt"
+            file="src/main/java/com/openvideo/app/ui/home/HomeViewModel.kt"
             line="573"
             column="76"/>
     </issue>
@@ -3095,7 +3095,7 @@
         errorLine1="                val path = runCatching { Uri.parse(t).path }.getOrNull() ?: return false"
         errorLine2="                                         ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/media/LocalMediaUriPolicy.kt"
+            file="src/main/java/com/openvideo/app/core/media/LocalMediaUriPolicy.kt"
             line="20"
             column="42"/>
     </issue>
@@ -3106,7 +3106,7 @@
         errorLine1="            l.startsWith(&quot;content://&quot;) -> Uri.parse(t)"
         errorLine2="                                          ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/media/LocalMediaUriPolicy.kt"
+            file="src/main/java/com/openvideo/app/core/media/LocalMediaUriPolicy.kt"
             line="35"
             column="43"/>
     </issue>
@@ -3117,7 +3117,7 @@
         errorLine1="                val path = Uri.parse(t).path"
         errorLine2="                           ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/media/LocalMediaUriPolicy.kt"
+            file="src/main/java/com/openvideo/app/core/media/LocalMediaUriPolicy.kt"
             line="37"
             column="28"/>
     </issue>
@@ -3128,7 +3128,7 @@
         errorLine1="                if (!path.isNullOrEmpty()) Uri.fromFile(File(path)) else Uri.parse(t)"
         errorLine2="                                                                         ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/media/LocalMediaUriPolicy.kt"
+            file="src/main/java/com/openvideo/app/core/media/LocalMediaUriPolicy.kt"
             line="38"
             column="74"/>
     </issue>
@@ -3139,7 +3139,7 @@
         errorLine1="            l.startsWith(&quot;http://&quot;) || l.startsWith(&quot;https://&quot;) -> Uri.parse(t)"
         errorLine2="                                                                   ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/media/LocalMediaUriPolicy.kt"
+            file="src/main/java/com/openvideo/app/core/media/LocalMediaUriPolicy.kt"
             line="40"
             column="68"/>
     </issue>
@@ -3150,7 +3150,7 @@
         errorLine1="        val bitmap = Bitmap.createBitmap(playerView.width, playerView.height, Bitmap.Config.ARGB_8888)"
         errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="793"
             column="22"/>
     </issue>
@@ -3161,7 +3161,7 @@
         errorLine1="                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="832"
             column="30"/>
     </issue>
@@ -3172,7 +3172,7 @@
         errorLine1="                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="894"
             column="30"/>
     </issue>
@@ -3183,7 +3183,7 @@
         errorLine1="            permissionPrefs.edit().putBoolean(KEY_NOTIFICATION_PERMISSION_REQUESTED, true).apply()"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2897"
             column="13"/>
     </issue>
@@ -3194,7 +3194,7 @@
         errorLine1="        window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerGlassSheetDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerGlassSheetDialog.kt"
             line="83"
             column="38"/>
     </issue>
@@ -3205,7 +3205,7 @@
         errorLine1="                val bitmap = Bitmap.createBitmap(videoView.width, videoView.height, Bitmap.Config.ARGB_8888)"
         errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/player/PlayerManager.kt"
+            file="src/main/java/com/openvideo/app/core/player/PlayerManager.kt"
             line="449"
             column="30"/>
     </issue>
@@ -3216,7 +3216,7 @@
         errorLine1="        val uri = Uri.parse(source)"
         errorLine2="                  ~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerMediaInfo.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerMediaInfo.kt"
             line="111"
             column="19"/>
     </issue>
@@ -3227,7 +3227,7 @@
         errorLine1="        val uri = Uri.parse(source)"
         errorLine2="                  ~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerMediaInfo.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerMediaInfo.kt"
             line="121"
             column="19"/>
     </issue>
@@ -3238,7 +3238,7 @@
         errorLine1="    val uri = Uri.parse(source)"
         errorLine2="              ~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerMediaInfo.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerMediaInfo.kt"
             line="169"
             column="15"/>
     </issue>
@@ -3249,7 +3249,7 @@
         errorLine1="            prefs.edit()"
         errorLine2="            ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PlayerPrefs.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PlayerPrefs.kt"
             line="137"
             column="13"/>
     </issue>
@@ -3260,7 +3260,7 @@
         errorLine1="        prefs.edit().clear().commit()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PlayerPrefs.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PlayerPrefs.kt"
             line="289"
             column="9"/>
     </issue>
@@ -3271,7 +3271,7 @@
         errorLine1="                if (::subdetailPage.isInitialized &amp;&amp; subdetailPage.visibility == View.VISIBLE) {"
         errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="159"
             column="54"/>
     </issue>
@@ -3282,7 +3282,7 @@
         errorLine1="                if (::detailPage.isInitialized &amp;&amp; detailPage.visibility == View.VISIBLE &amp;&amp; detailBackStack.isNotEmpty()) {"
         errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="163"
             column="51"/>
     </issue>
@@ -3293,7 +3293,7 @@
         errorLine1="                detailPage.visibility == View.VISIBLE"
         errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSettingsDialog.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSettingsDialog.kt"
             line="776"
             column="17"/>
     </issue>
@@ -3304,7 +3304,7 @@
         errorLine1="                loader.loadFromUri(Uri.parse(request.uriString))"
         errorLine2="                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleLoadCoordinator.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleLoadCoordinator.kt"
             line="27"
             column="36"/>
     </issue>
@@ -3315,7 +3315,7 @@
         errorLine1="        val uri = Uri.parse(streamUrl)"
         errorLine2="                  ~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerViewModel.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerViewModel.kt"
             line="254"
             column="19"/>
     </issue>
@@ -3326,7 +3326,7 @@
         errorLine1="            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="151"
             column="35"/>
     </issue>
@@ -3337,7 +3337,7 @@
         errorLine1="                        card = Color.parseColor(&quot;#D91C1C1E&quot;),"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="211"
             column="32"/>
     </issue>
@@ -3348,7 +3348,7 @@
         errorLine1="                        message = Color.parseColor(&quot;#AEAEB2&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="212"
             column="35"/>
     </issue>
@@ -3359,7 +3359,7 @@
         errorLine1="                        divider = Color.parseColor(&quot;#3DFFFFFF&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="213"
             column="35"/>
     </issue>
@@ -3370,7 +3370,7 @@
         errorLine1="                        danger = Color.parseColor(&quot;#FF453A&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="214"
             column="34"/>
     </issue>
@@ -3381,7 +3381,7 @@
         errorLine1="                        cancel = Color.parseColor(&quot;#0A84FF&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="215"
             column="34"/>
     </issue>
@@ -3392,7 +3392,7 @@
         errorLine1="                        card = Color.parseColor(&quot;#EBFFFFFF&quot;),"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="220"
             column="32"/>
     </issue>
@@ -3403,7 +3403,7 @@
         errorLine1="                        message = Color.parseColor(&quot;#6E6E73&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="221"
             column="35"/>
     </issue>
@@ -3414,7 +3414,7 @@
         errorLine1="                        divider = Color.parseColor(&quot;#2E3C3C43&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="222"
             column="35"/>
     </issue>
@@ -3425,7 +3425,7 @@
         errorLine1="                        danger = Color.parseColor(&quot;#FF3B30&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="223"
             column="34"/>
     </issue>
@@ -3436,7 +3436,7 @@
         errorLine1="                        cancel = Color.parseColor(&quot;#007AFF&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistOptionsActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistOptionsActionSheet.kt"
             line="224"
             column="34"/>
     </issue>
@@ -3447,7 +3447,7 @@
         errorLine1="            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="166"
             column="35"/>
     </issue>
@@ -3458,7 +3458,7 @@
         errorLine1="                        card = Color.parseColor(&quot;#D91C1C1E&quot;),"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="227"
             column="32"/>
     </issue>
@@ -3469,7 +3469,7 @@
         errorLine1="                        input = Color.parseColor(&quot;#2C2C2E&quot;),"
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="228"
             column="33"/>
     </issue>
@@ -3480,7 +3480,7 @@
         errorLine1="                        title = Color.parseColor(&quot;#F2F2F7&quot;),"
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="229"
             column="33"/>
     </issue>
@@ -3491,7 +3491,7 @@
         errorLine1="                        message = Color.parseColor(&quot;#AEAEB2&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="230"
             column="35"/>
     </issue>
@@ -3502,7 +3502,7 @@
         errorLine1="                        divider = Color.parseColor(&quot;#3DFFFFFF&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="231"
             column="35"/>
     </issue>
@@ -3513,7 +3513,7 @@
         errorLine1="                        danger = Color.parseColor(&quot;#FF453A&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="232"
             column="34"/>
     </issue>
@@ -3524,7 +3524,7 @@
         errorLine1="                        cancel = Color.parseColor(&quot;#0A84FF&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="233"
             column="34"/>
     </issue>
@@ -3535,7 +3535,7 @@
         errorLine1="                        card = Color.parseColor(&quot;#EBFFFFFF&quot;),"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="238"
             column="32"/>
     </issue>
@@ -3546,7 +3546,7 @@
         errorLine1="                        input = Color.parseColor(&quot;#1AF2F2F7&quot;),"
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="239"
             column="33"/>
     </issue>
@@ -3557,7 +3557,7 @@
         errorLine1="                        title = Color.parseColor(&quot;#1C1C1E&quot;),"
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="240"
             column="33"/>
     </issue>
@@ -3568,7 +3568,7 @@
         errorLine1="                        message = Color.parseColor(&quot;#6E6E73&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="241"
             column="35"/>
     </issue>
@@ -3579,7 +3579,7 @@
         errorLine1="                        divider = Color.parseColor(&quot;#2E3C3C43&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="242"
             column="35"/>
     </issue>
@@ -3590,7 +3590,7 @@
         errorLine1="                        danger = Color.parseColor(&quot;#FF3B30&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="243"
             column="34"/>
     </issue>
@@ -3601,7 +3601,7 @@
         errorLine1="                        cancel = Color.parseColor(&quot;#007AFF&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistRenameActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistRenameActionSheet.kt"
             line="244"
             column="34"/>
     </issue>
@@ -3612,7 +3612,7 @@
         errorLine1="            path.startsWith(&quot;content://&quot;, ignoreCase = true) -> Uri.parse(path)"
         errorLine2="                                                                ~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistVideoAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistVideoAdapter.kt"
             line="140"
             column="65"/>
     </issue>
@@ -3623,7 +3623,7 @@
         errorLine1="            path.startsWith(&quot;file://&quot;, ignoreCase = true) -> Uri.parse(path)"
         errorLine2="                                                             ~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistVideoAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistVideoAdapter.kt"
             line="141"
             column="62"/>
     </issue>
@@ -3634,7 +3634,7 @@
         errorLine1="            val p = runCatching { Uri.parse(path).path }.getOrNull() ?: return &quot;&quot;"
         errorLine2="                                  ~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/playlist/PlaylistVideoAdapter.kt"
+            file="src/main/java/com/openvideo/app/ui/playlist/PlaylistVideoAdapter.kt"
             line="149"
             column="35"/>
     </issue>
@@ -3645,7 +3645,7 @@
         errorLine1="        prefs.edit().putString(key, value).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PrefsManager.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PrefsManager.kt"
             line="15"
             column="9"/>
     </issue>
@@ -3656,7 +3656,7 @@
         errorLine1="        prefs.edit().putInt(key, value).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PrefsManager.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PrefsManager.kt"
             line="22"
             column="9"/>
     </issue>
@@ -3667,7 +3667,7 @@
         errorLine1="        prefs.edit().putLong(key, value).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PrefsManager.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PrefsManager.kt"
             line="29"
             column="9"/>
     </issue>
@@ -3678,7 +3678,7 @@
         errorLine1="        prefs.edit().putFloat(key, value).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PrefsManager.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PrefsManager.kt"
             line="36"
             column="9"/>
     </issue>
@@ -3689,7 +3689,7 @@
         errorLine1="        prefs.edit().putBoolean(key, value).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/prefs/PrefsManager.kt"
+            file="src/main/java/com/openvideo/app/core/prefs/PrefsManager.kt"
             line="43"
             column="9"/>
     </issue>
@@ -3700,7 +3700,7 @@
         errorLine1="        prefs.edit().putStringSet(KEY_HIDDEN_FOLDERS, current).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/privacy/PrivacyManager.kt"
+            file="src/main/java/com/openvideo/app/ui/privacy/PrivacyManager.kt"
             line="42"
             column="9"/>
     </issue>
@@ -3711,7 +3711,7 @@
         errorLine1="        prefs.edit().putStringSet(KEY_HIDDEN_FOLDERS, current).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/privacy/PrivacyManager.kt"
+            file="src/main/java/com/openvideo/app/ui/privacy/PrivacyManager.kt"
             line="48"
             column="9"/>
     </issue>
@@ -3722,7 +3722,7 @@
         errorLine1="        prefs.edit().putString(KEY_PASSWORD_HASH, &quot;$salt:$hash&quot;).apply()"
         errorLine2="        ~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/privacy/PrivacyManager.kt"
+            file="src/main/java/com/openvideo/app/ui/privacy/PrivacyManager.kt"
             line="58"
             column="9"/>
     </issue>
@@ -3733,7 +3733,7 @@
         errorLine1="            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="192"
             column="35"/>
     </issue>
@@ -3744,7 +3744,7 @@
         errorLine1="                        card = Color.parseColor(&quot;#D91C1C1E&quot;),"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="298"
             column="32"/>
     </issue>
@@ -3755,7 +3755,7 @@
         errorLine1="                        title = Color.parseColor(&quot;#F2F2F7&quot;),"
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="299"
             column="33"/>
     </issue>
@@ -3766,7 +3766,7 @@
         errorLine1="                        message = Color.parseColor(&quot;#AEAEB2&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="300"
             column="35"/>
     </issue>
@@ -3777,7 +3777,7 @@
         errorLine1="                        divider = Color.parseColor(&quot;#3DFFFFFF&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="301"
             column="35"/>
     </issue>
@@ -3788,7 +3788,7 @@
         errorLine1="                        danger = Color.parseColor(&quot;#FF453A&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="302"
             column="34"/>
     </issue>
@@ -3799,7 +3799,7 @@
         errorLine1="                        cancel = Color.parseColor(&quot;#0A84FF&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="303"
             column="34"/>
     </issue>
@@ -3810,7 +3810,7 @@
         errorLine1="                        card = Color.parseColor(&quot;#EBFFFFFF&quot;),"
         errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="308"
             column="32"/>
     </issue>
@@ -3821,7 +3821,7 @@
         errorLine1="                        title = Color.parseColor(&quot;#1C1C1E&quot;),"
         errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="309"
             column="33"/>
     </issue>
@@ -3832,7 +3832,7 @@
         errorLine1="                        message = Color.parseColor(&quot;#6E6E73&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="310"
             column="35"/>
     </issue>
@@ -3843,7 +3843,7 @@
         errorLine1="                        divider = Color.parseColor(&quot;#2E3C3C43&quot;),"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="311"
             column="35"/>
     </issue>
@@ -3854,7 +3854,7 @@
         errorLine1="                        danger = Color.parseColor(&quot;#FF3B30&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="312"
             column="34"/>
     </issue>
@@ -3865,7 +3865,7 @@
         errorLine1="                        cancel = Color.parseColor(&quot;#007AFF&quot;),"
         errorLine2="                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsConfirmationActionSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsConfirmationActionSheet.kt"
             line="313"
             column="34"/>
     </issue>
@@ -3876,7 +3876,7 @@
         errorLine1="        private val PROJECT_REPO_URI: Uri = Uri.parse(&quot;https://github.com/Xunzi229/openvideo&quot;)"
         errorLine2="                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsFragment.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsFragment.kt"
             line="59"
             column="45"/>
     </issue>
@@ -3887,7 +3887,7 @@
         errorLine1="                data = Uri.parse(&quot;package:${activity.packageName}&quot;)"
         errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/compat/VendorCompat.kt"
+            file="src/main/java/com/openvideo/app/core/compat/VendorCompat.kt"
             line="99"
             column="24"/>
     </issue>
@@ -3898,7 +3898,7 @@
         errorLine1="                data = Uri.parse(&quot;package:${activity.packageName}&quot;)"
         errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/compat/VendorCompat.kt"
+            file="src/main/java/com/openvideo/app/core/compat/VendorCompat.kt"
             line="99"
             column="24"/>
     </issue>
@@ -3909,7 +3909,7 @@
         errorLine1="            data = Uri.parse(&quot;package:${context.packageName}&quot;)"
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/compat/VendorCompat.kt"
+            file="src/main/java/com/openvideo/app/core/compat/VendorCompat.kt"
             line="110"
             column="20"/>
     </issue>
@@ -3920,7 +3920,7 @@
         errorLine1="            data = Uri.parse(&quot;package:${context.packageName}&quot;)"
         errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/core/compat/VendorCompat.kt"
+            file="src/main/java/com/openvideo/app/core/compat/VendorCompat.kt"
             line="110"
             column="20"/>
     </issue>
@@ -3931,7 +3931,7 @@
         errorLine1="            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))"
         errorLine2="                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/home/VideoLibraryFilterPopover.kt"
+            file="src/main/java/com/openvideo/app/ui/home/VideoLibraryFilterPopover.kt"
             line="83"
             column="35"/>
     </issue>
@@ -3942,7 +3942,7 @@
         errorLine1="        gestureOverlay.setOnTouchListener { _, event ->"
         errorLine2="                                          ^">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt"
             line="2400"
             column="43"/>
     </issue>
@@ -4019,7 +4019,7 @@
         errorLine1="            tvDelay.text = &quot;${playerPrefs.audioDelay}ms&quot;"
         errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerAudioSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerAudioSettingsActivity.kt"
             line="52"
             column="28"/>
     </issue>
@@ -4030,7 +4030,7 @@
         errorLine1="            tvDelay.text = &quot;${playerPrefs.audioDelay}ms&quot;"
         errorLine2="                                                     ~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerAudioSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerAudioSettingsActivity.kt"
             line="52"
             column="54"/>
     </issue>
@@ -4041,7 +4041,7 @@
         errorLine1="            tvRotation.text = &quot;${rotations[rotationIndex]}°&quot;"
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerDisplaySettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerDisplaySettingsActivity.kt"
             line="76"
             column="31"/>
     </issue>
@@ -4052,7 +4052,7 @@
         errorLine1="            tvRotation.text = &quot;${rotations[rotationIndex]}°&quot;"
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerDisplaySettingsSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerDisplaySettingsSheet.kt"
             line="84"
             column="31"/>
     </issue>
@@ -4063,7 +4063,7 @@
         errorLine1="            tvSeek.text = &quot;${seekIntervals[seekIndex]}s&quot;"
         errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerPlaybackSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerPlaybackSettingsActivity.kt"
             line="95"
             column="27"/>
     </issue>
@@ -4074,7 +4074,7 @@
         errorLine1="        tvSize.text = &quot;${currentSize}sp&quot;"
         errorLine2="                      ~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsActivity.kt"
             line="84"
             column="23"/>
     </issue>
@@ -4085,7 +4085,7 @@
         errorLine1="        tvSize.text = &quot;${currentSize}sp&quot;"
         errorLine2="                                     ~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsActivity.kt"
             line="84"
             column="38"/>
     </issue>
@@ -4096,7 +4096,7 @@
         errorLine1="                tvSize.text = &quot;${size}sp&quot;"
         errorLine2="                              ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsActivity.kt"
             line="89"
             column="31"/>
     </issue>
@@ -4107,7 +4107,7 @@
         errorLine1="                tvSize.text = &quot;${size}sp&quot;"
         errorLine2="                                      ~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsActivity.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsActivity.kt"
             line="89"
             column="39"/>
     </issue>
@@ -4118,7 +4118,7 @@
         errorLine1="        tvSize.text = &quot;${currentSize}sp&quot;"
         errorLine2="                      ~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsSheet.kt"
             line="97"
             column="23"/>
     </issue>
@@ -4129,7 +4129,7 @@
         errorLine1="        tvSize.text = &quot;${currentSize}sp&quot;"
         errorLine2="                                     ~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsSheet.kt"
             line="97"
             column="38"/>
     </issue>
@@ -4140,7 +4140,7 @@
         errorLine1="                tvSize.text = &quot;${size}sp&quot;"
         errorLine2="                              ~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsSheet.kt"
             line="102"
             column="31"/>
     </issue>
@@ -4151,7 +4151,7 @@
         errorLine1="                tvSize.text = &quot;${size}sp&quot;"
         errorLine2="                                      ~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/player/PlayerSubtitleSettingsSheet.kt"
+            file="src/main/java/com/openvideo/app/ui/player/PlayerSubtitleSettingsSheet.kt"
             line="102"
             column="39"/>
     </issue>
@@ -4162,7 +4162,7 @@
         errorLine1="                    viewModel.historyCount.collect { tvHistoryCount.text = it.toString() }"
         errorLine2="                                                                           ~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsFragment.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsFragment.kt"
             line="168"
             column="76"/>
     </issue>
@@ -4173,7 +4173,7 @@
         errorLine1="        tv.text = &quot;${viewModel.defaultSpeed}x&quot;"
         errorLine2="                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/example/openvideo/ui/settings/SettingsFragment.kt"
+            file="src/main/java/com/openvideo/app/ui/settings/SettingsFragment.kt"
             line="201"
             column="19"/>
     </issue>

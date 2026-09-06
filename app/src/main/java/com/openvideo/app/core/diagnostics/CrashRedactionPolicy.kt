@@ -1,0 +1,68 @@
+package com.openvideo.app.core.diagnostics
+
+/**
+ * 写入崩溃日志前对文本做轻量脱敏：把可能涉及用户文件名的私有路径替换为占位符，
+ * 但保留扩展名 / id 等对定位问题有用的信息。
+ *
+ * 纯函数，便于在 JVM 单测里覆盖。
+ */
+object CrashRedactionPolicy {
+
+    private const val MEDIA_URI_PLACEHOLDER_PREFIX = "content_media_id_"
+
+    private val storagePathRegex = Regex("""/storage/emulated/\d+/[^\s)>\]"']*""")
+    private val sdcardPathRegex = Regex("""/sdcard/[^\s)>\]"']*""")
+    private val rawFileUriRegex = Regex("""file:///?[^\s)>\]"']*""")
+    private val mediaContentUriRegex = Regex(
+        """content://media/(?:internal|external(?:_primary)?)/[A-Za-z]+/(\d+)"""
+    )
+    private val genericContentUriRegex = Regex("""content://[A-Za-z0-9.\-_/]+[^\s)>\]"']*""")
+    private val sensitiveMediaNameLineRegex = Regex(
+        """(?m)^(source_media\.title|content_resolver\.display_name)=([^\r\n]*)"""
+    )
+    private val networkUriRegex = Regex(
+        """(?i)\b(?:https?|rtsp)://[^\s)>\]"']+"""
+    )
+    private val sensitiveHeaderRegex = Regex(
+        """(?i)\b(authorization|proxy-authorization|cookie|set-cookie|x-api-key)\s*[:=]\s*([^,}\r\n]+)"""
+    )
+    private val sensitiveValueRegex = Regex(
+        """(?i)\b(access_token|refresh_token|api_key|apikey|token|secret|password)\s*[:=]\s*([^\s,;}&]+)"""
+    )
+
+    fun redact(text: String): String {
+        if (text.isEmpty()) return text
+        var result = text
+
+        result = mediaContentUriRegex.replace(result) { match ->
+            val id = match.groupValues[1]
+            "$MEDIA_URI_PLACEHOLDER_PREFIX$id"
+        }
+        result = rawFileUriRegex.replace(result) { match -> redactedPath(match.value) }
+        result = storagePathRegex.replace(result) { match -> redactedPath(match.value) }
+        result = sdcardPathRegex.replace(result) { match -> redactedPath(match.value) }
+        result = genericContentUriRegex.replace(result) { _ -> "<content_uri>" }
+        result = sensitiveMediaNameLineRegex.replace(result) { match ->
+            val key = match.groupValues[1]
+            val value = match.groupValues[2]
+            if (value.isBlank()) "$key=" else "$key=${redactedPath(value)}"
+        }
+        result = networkUriRegex.replace(result) { match -> redactedNetworkUri(match.value) }
+        result = sensitiveHeaderRegex.replace(result) { match -> "${match.groupValues[1]}=<redacted>" }
+        result = sensitiveValueRegex.replace(result) { match -> "${match.groupValues[1]}=<redacted>" }
+        return result
+    }
+
+    fun redactUri(uri: String): String = redact(uri)
+
+    private fun redactedNetworkUri(uri: String): String {
+        val scheme = uri.substringBefore("://").lowercase()
+        return "<$scheme-network-uri>"
+    }
+
+    private fun redactedPath(path: String): String {
+        val extension = path.substringAfterLast('.', missingDelimiterValue = "")
+            .takeIf { it.isNotEmpty() && it.length <= 6 && it.all { ch -> ch.isLetterOrDigit() } }
+        return if (extension != null) "<file>.$extension" else "<file>"
+    }
+}

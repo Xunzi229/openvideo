@@ -1,0 +1,96 @@
+package com.openvideo.app.ui.player
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+class PlayerContentFrameSourceTest {
+
+    @Test
+    fun contentFramePolicyFileExistsAsWaveThreeFoundation() {
+        val path = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "openvideo",
+            "app",
+            "ui",
+            "player",
+            "PlayerContentFramePolicy.kt"
+        )
+        val resolved = sequenceOf(path, Paths.get("app").resolve(path)).first(Files::exists)
+        val source = String(Files.readAllBytes(resolved))
+        assertTrue(source.contains("object PlayerContentFramePolicy"))
+        assertTrue(source.contains("fun fittedVideoRect"))
+        assertTrue(source.contains("fun contentFrameInViewport"))
+        assertTrue(source.contains("fun transformToFillViewport"))
+        assertTrue(source.contains("fun allowsContentFrameAdjustment"))
+    }
+
+    @Test
+    fun playerActivityDelegatesContentFrameTransformToApplyPolicy() {
+        val displaySource = String(Files.readAllBytes(playerDisplayControllerSource()))
+        val controllerSource = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val displayBlock = displaySource.substringAfter("fun applyDisplaySettings() {")
+            .substringBefore("\n    fun initBrightnessAndVolume()")
+        val transformBlock = controllerSource.substringAfter("fun applyTransform(")
+            .substringBefore("\n    fun sourceSize(")
+
+        assertTrue(displayBlock.contains("onApplyContentFrameTransform()"))
+        assertTrue(transformBlock.contains("PlayerContentFrameApplyPolicy.resolveTransformWithManualZoom"))
+        assertTrue(controllerSource.contains("PlayerVideoLayoutPolicy.displayFrameSize"))
+        assertFalse(
+            "Transform math must stay in policy, not Activity.",
+            transformBlock.contains("PlayerContentFramePolicy.fittedVideoRect(")
+        )
+    }
+
+    @Test
+    fun contentFrameSourceSizeUsesCurrentQueueItemBeforeInitialIntentFallback() {
+        val source = String(Files.readAllBytes(contentFrameTransformControllerSource()))
+        val block = source.substringAfter("fun sourceSize(")
+            .substringBefore("\n    fun videoRenderView()")
+        val currentItemIndex = block.indexOf("viewModel.currentVideoItemForDiagnostics()")
+        val currentWidthIndex = block.indexOf("currentItem?.width")
+        val intentWidthIndex = block.indexOf("intent.getIntExtra(PlayerActivity.EXTRA_VIDEO_WIDTH, 0)")
+
+        assertTrue(currentItemIndex >= 0)
+        assertTrue(currentWidthIndex >= 0)
+        assertTrue(intentWidthIndex >= 0)
+        assertTrue(currentWidthIndex < intentWidthIndex)
+    }
+
+    private fun playerActivitySource(): Path {
+        return kotlinSource("PlayerActivity.kt")
+    }
+
+    private fun contentFrameTransformControllerSource(): Path {
+        return kotlinSource("PlayerContentFrameTransformController.kt")
+    }
+
+    private fun playerDisplayControllerSource(): Path {
+        return kotlinSource("PlayerDisplayController.kt")
+    }
+
+    private fun kotlinSource(name: String): Path {
+        val relativePath = Paths.get(
+            "src",
+            "main",
+            "java",
+            "com",
+            "openvideo",
+            "app",
+            "ui",
+            "player",
+            name
+        )
+        return sequenceOf(
+            relativePath,
+            Paths.get("app").resolve(relativePath)
+        ).first(Files::exists)
+    }
+}

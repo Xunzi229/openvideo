@@ -1,14 +1,14 @@
 ---
 description: 播放器视频横竖屏进入逻辑 — 禁止先横后竖闪屏；MediaStore 显示尺寸与 Policy 唯一决策链
 globs:
-  - app/src/main/java/com/example/openvideo/ui/player/PlayerActivity.kt
-  - app/src/main/java/com/example/openvideo/ui/player/PlayerVideoLayoutPolicy.kt
-  - app/src/main/java/com/example/openvideo/ui/player/PlayerControlState.kt
-  - app/src/main/java/com/example/openvideo/ui/player/PlayerVideoOrientationApplyPolicy.kt
-  - app/src/main/java/com/example/openvideo/ui/player/PlayerOrientationTogglePolicy.kt
-  - app/src/main/java/com/example/openvideo/data/scanner/VideoScanner.kt
-  - app/src/main/java/com/example/openvideo/data/scanner/MediaStoreVideoDimensionsPolicy.kt
-  - app/src/main/java/com/example/openvideo/data/model/VideoItem.kt
+  - app/src/main/java/com/openvideo/app/ui/player/PlayerActivity.kt
+  - app/src/main/java/com/openvideo/app/ui/player/PlayerVideoLayoutPolicy.kt
+  - app/src/main/java/com/openvideo/app/ui/player/PlayerControlState.kt
+  - app/src/main/java/com/openvideo/app/ui/player/PlayerVideoOrientationApplyPolicy.kt
+  - app/src/main/java/com/openvideo/app/ui/player/PlayerOrientationTogglePolicy.kt
+  - app/src/main/java/com/openvideo/app/data/scanner/VideoScanner.kt
+  - app/src/main/java/com/openvideo/app/data/scanner/MediaStoreVideoDimensionsPolicy.kt
+  - app/src/main/java/com/openvideo/app/data/model/VideoItem.kt
   - app/src/main/AndroidManifest.xml
   - design/rules/player-video-orientation.md
 alwaysApply: false

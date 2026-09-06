@@ -18,8 +18,8 @@ try {
     $reader.Dispose()
 }
 
-$prefix = "com/example/openvideo/"
-$sourceRoot = Join-Path $repo "app/src/main/java/com/example/openvideo"
+$prefix = "com/openvideo/app/"
+$sourceRoot = Join-Path $repo "app/src/main/java/com/openvideo/app"
 $selected = @{}
 foreach ($file in Get-ChildItem $sourceRoot -Recurse -Filter *.kt) {
     $path = $file.FullName.Substring($sourceRoot.Length + 1).Replace('\', '/')
