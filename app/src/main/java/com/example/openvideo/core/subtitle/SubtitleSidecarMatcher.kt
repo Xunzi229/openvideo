@@ -38,7 +38,7 @@ object SubtitleSidecarMatcher {
                 val path = item.path
                 val cleanPath = path.substringBefore('?').substringBefore('#')
                 if (cleanPath.endsWith('/')) return@mapNotNull null
-                val fileName = cleanPath.substringAfterLast('/')
+                val fileName = cleanPath.substringAfterLast('/').substringAfterLast('\\')
                 val dotIndex = fileName.lastIndexOf('.')
                 if (dotIndex <= 0 || dotIndex == fileName.lastIndex) return@mapNotNull null
 

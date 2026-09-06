@@ -27,7 +27,7 @@ class SeriesListFragmentSourceTest {
         assertTrue(source.contains("\"series:\${series.seriesId}\""))
         assertTrue(source.contains("viewModel.series.collect { series ->"))
         assertTrue(source.contains("adapter.submitList(series) { restoreSeriesFocusIfNeeded(series) }"))
-        assertTrue(source.contains("emptyView.visibility = if (series.isEmpty()) View.VISIBLE else View.GONE"))
+        assertTrue(source.contains("AppleEmptyState.setVisible(emptyView, series.isEmpty())"))
         assertTrue(source.contains("recyclerView.visibility = if (series.isEmpty()) View.GONE else View.VISIBLE"))
         assertTrue(source.contains("emptyView.isFocusable = true"))
         assertFalse(source.contains("PlayerActivity"))

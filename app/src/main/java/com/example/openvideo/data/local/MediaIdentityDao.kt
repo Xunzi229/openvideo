@@ -35,7 +35,7 @@ interface MediaIdentityDao {
         val existing = getByNormalizedPathKey(identity.normalizedPathKey)
             ?: getByCurrentVideoId(identity.currentVideoId)
             ?: return insertIdentityIgnoringConflicts(identity)
-        val existingIdentity = identity.copy(identityId = existing.identityId)
+        val existingIdentity = identity.copy(identityId = existing.identityId, firstSeen = existing.firstSeen)
         val existingVideoOwner = getByCurrentVideoId(identity.currentVideoId)
         if (existingVideoOwner == null || existingVideoOwner.identityId == existing.identityId) {
             updateIdentity(existingIdentity)

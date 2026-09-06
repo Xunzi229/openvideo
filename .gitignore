@@ -35,6 +35,7 @@ scripts/*
 !scripts/sign-release.ps1
 !scripts/sign-release-default.ps1
 !scripts/configure-github-release-secrets.ps1
+!scripts/Test-BusinessCoverage.ps1
 !scripts/tests/
 scripts/tests/*
 !scripts/tests/Test-OpenVideoRelease.ps1

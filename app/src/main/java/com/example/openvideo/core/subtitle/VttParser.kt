@@ -29,6 +29,8 @@ object VttParser {
                     if (textLines.isNotEmpty()) {
                         items.add(SubtitleItem(index++, startTime, endTime, textLines.joinToString("\n")))
                     }
+                } else {
+                    i++
                 }
             } else {
                 i++
@@ -38,12 +40,14 @@ object VttParser {
     }
 
     private fun parseTime(time: String): Long {
-        val parts = time.split(":", ".")
-        if (parts.size < 3) return 0
-        val hours = parts[0].toLongOrNull() ?: 0
-        val minutes = parts[1].toLongOrNull() ?: 0
-        val seconds = parts[2].toLongOrNull() ?: 0
-        val millis = if (parts.size > 3) parts[3].toLongOrNull() ?: 0 else 0
+        val timestamp = time.takeWhile { !it.isWhitespace() }
+        val parts = timestamp.split(":", ".")
+        if (parts.size !in 3..4) return 0
+        val offset = if (parts.size == 4) 1 else 0
+        val hours = if (offset == 1) parts[0].toLongOrNull() ?: 0 else 0
+        val minutes = parts[offset].toLongOrNull() ?: 0
+        val seconds = parts[offset + 1].toLongOrNull() ?: 0
+        val millis = parts[offset + 2].toLongOrNull() ?: 0
         return hours * 3600000 + minutes * 60000 + seconds * 1000 + millis
     }
 }

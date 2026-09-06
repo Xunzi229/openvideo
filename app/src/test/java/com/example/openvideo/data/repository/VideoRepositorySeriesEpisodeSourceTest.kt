@@ -15,7 +15,7 @@ class VideoRepositorySeriesEpisodeSourceTest {
         assertTrue(source.contains("private val seriesEpisodeDao: SeriesEpisodeDao"))
         assertTrue(source.contains("syncSeriesEpisode(video = video, identityId = identityId, now = now)"))
         assertTrue(source.contains("EpisodeNameParser.parse"))
-        assertTrue(source.contains("MediaPathNormalizer.normalize(video.path)"))
+        assertTrue(source.contains("MediaPathNormalizer.normalize(video.libraryPath)"))
         assertTrue(source.contains("parentFolderName = parentFolderName(normalizedPath.displayPath)"))
         assertTrue(source.contains("seriesEpisodeDao.getSeriesByKey"))
         assertTrue(source.contains("seriesEpisodeDao.insertSeries"))
@@ -29,7 +29,7 @@ class VideoRepositorySeriesEpisodeSourceTest {
     fun repositoryStoresLocalSeriesPosterPathDuringSeriesMaterialization() {
         val source = repositorySource()
 
-        assertTrue(source.contains("LocalArtworkCandidateScanner.candidatesNear(video.path)"))
+        assertTrue(source.contains("LocalArtworkCandidateScanner.candidatesNear(video.libraryPath)"))
         assertTrue(source.contains("LocalArtworkFinder.find("))
         assertTrue(source.contains("posterPath = resolveSeriesPosterPath("))
         assertTrue(source.contains("existingPosterPath = existingSeries?.posterPath"))

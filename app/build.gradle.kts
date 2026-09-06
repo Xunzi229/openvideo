@@ -1,7 +1,9 @@
 import org.gradle.api.GradleException
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
 import java.util.Properties
 
 plugins {
+    jacoco
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
@@ -92,6 +94,7 @@ android {
 
     buildTypes {
         debug {
+            enableUnitTestCoverage = true
             if (releaseSigningConfigured) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -131,6 +134,18 @@ android {
 
     lint {
         baseline = file("lint-baseline.xml")
+    }
+
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+}
+
+tasks.withType<Test>().configureEach {
+    extensions.configure<JacocoTaskExtension> {
+        // Robolectric loads application classes without a source location.
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
     }
 }
 
@@ -189,5 +204,6 @@ dependencies {
     implementation(libs.play.services.oss.licenses)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
     testImplementation(libs.okhttp.mockwebserver)
 }

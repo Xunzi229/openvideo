@@ -22,7 +22,8 @@ class HomeOpenUrlSourceTest {
         val source = sourceText("HomeFragment.kt")
 
         assertTrue(source.contains("import com.example.openvideo.ui.player.NetworkOpenUrlDialog"))
-        assertTrue(source.contains("view.findViewById<ImageButton>(R.id.btn_open_url).setOnClickListener"))
+        assertTrue(source.contains("btnOpenUrl = view.findViewById(R.id.btn_open_url)"))
+        assertTrue(source.contains("btnOpenUrl.setOnClickListener { showOpenUrlDialog() }"))
         assertTrue(source.contains("showOpenUrlDialog()"))
         assertTrue(source.contains("private fun showOpenUrlDialog()"))
         val dialogBody = source.substringAfter("private fun showOpenUrlDialog()")

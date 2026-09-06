@@ -22,6 +22,7 @@ androidxMedia = "1.7.0"
 securityCrypto = "1.1.0-alpha06"
 okhttp = "5.3.2"
 junit = "4.13.2"
+robolectric = "4.16.1"
 playServicesOssLicenses = "17.1.0"
 desugarJdkLibs = "2.0.3"
 [libraries]
@@ -74,6 +75,7 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # Window (WindowSizeClass)
 androidx-window = { group = "androidx.window", name = "window", version.ref = "window" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 play-services-oss-licenses = { group = "com.google.android.gms", name = "play-services-oss-licenses", version.ref = "playServicesOssLicenses" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 
