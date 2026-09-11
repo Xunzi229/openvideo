@@ -29,6 +29,11 @@ output
 keys/
 release/
 docs/
+!docs/
+docs/*
+!docs/design-system.md
+!docs/roadmap/
+!docs/roadmap/**
 scripts/*
 !scripts/OpenVideo.Release.psm1
 !scripts/package-helper.ps1
