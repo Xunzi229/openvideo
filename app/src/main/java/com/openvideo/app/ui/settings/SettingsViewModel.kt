@@ -24,6 +24,7 @@ import com.openvideo.app.core.ui.AppleAlertDialog
 import com.openvideo.app.core.ui.AppleHud
 import com.openvideo.app.core.update.GitHubReleaseChecker
 import com.openvideo.app.core.update.ReleasePageLauncher
+import com.openvideo.app.core.update.UpdateBadgeState
 import com.openvideo.app.data.repository.VideoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +54,9 @@ class SettingsViewModel @Inject constructor(
     private val _historyCount = MutableStateFlow(0)
     val historyCount: StateFlow<Int> = _historyCount
 
-    private val _updateBadgeVisible = MutableStateFlow(appPrefs.githubUpdateBadgeVisible)
+    private val _updateBadgeVisible = MutableStateFlow(
+        UpdateBadgeState.restore(appPrefs, installedVersionName())
+    )
     val updateBadgeVisible: StateFlow<Boolean> = _updateBadgeVisible
     private val updateCheckRunning = AtomicBoolean(false)
 
