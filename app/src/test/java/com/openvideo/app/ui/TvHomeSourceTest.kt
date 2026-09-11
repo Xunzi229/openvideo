@@ -638,7 +638,7 @@ class TvHomeSourceTest {
 
     private fun loadText(relativePath: Path): String {
         val path = sequenceOf(relativePath, Paths.get("app").resolve(relativePath)).first(Files::exists)
-        return String(Files.readAllBytes(path))
+        return String(Files.readAllBytes(path)).replace("\r\n", "\n")
     }
 
     private fun cardBlock(layout: String, id: String): String =

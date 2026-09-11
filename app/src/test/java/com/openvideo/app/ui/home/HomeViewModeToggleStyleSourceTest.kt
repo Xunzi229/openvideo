@@ -11,7 +11,7 @@ class HomeViewModeToggleStyleSourceTest {
 
     @Test
     fun viewModeToggleDoesNotUseElevatedWhiteBackground() {
-        val source = String(Files.readAllBytes(homeLayoutSource()))
+        val source = String(Files.readAllBytes(homeLayoutSource())).replace("\r\n", "\n")
         val toggleContainer = source
             .substringBefore("<ImageButton\n                android:id=\"@+id/btn_list_view\"")
             .substringAfterLast("<LinearLayout")
