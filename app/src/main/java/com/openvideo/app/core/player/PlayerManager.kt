@@ -102,14 +102,15 @@ class PlayerManager @Inject constructor(
         mediaRequestHeaders = emptyMap()
     }
 
-    fun setMediaUri(uri: Uri, requestHeaders: Map<String, String> = emptyMap()) {
+    fun setMediaUri(uri: Uri, requestHeaders: Map<String, String> = emptyMap(), startPositionMs: Long? = null) {
         mediaRequestHeaders = requestHeaders.toMap()
         httpDataSourceFactory?.setDefaultRequestProperties(
             NetworkPlaybackHeaderPolicy.defaultRequestProperties() + requestHeaders
         )
         val mediaItem = MediaItem.fromUri(uri)
         player?.let {
-            it.setMediaItem(mediaItem)
+            if (startPositionMs != null) it.setMediaItem(mediaItem, startPositionMs.coerceAtLeast(0L))
+            else it.setMediaItem(mediaItem)
             it.playWhenReady = true
             it.prepare()
         }

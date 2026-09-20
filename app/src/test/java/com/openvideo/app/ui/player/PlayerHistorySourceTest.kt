@@ -145,8 +145,8 @@ class PlayerHistorySourceTest {
         val switchToVideo = source.substringAfter("fun switchToVideo(")
             .substringBefore("\n    private fun markPlaybackStarted()")
 
-        assertTrue(restorePrefs.contains("if (videoId != this@PlayerViewModel.videoId) return@launch"))
-        assertTrue(restorePosition.contains("if (videoId != this@PlayerViewModel.videoId) return@launch"))
+        assertTrue(restorePrefs.contains("if (videoId != this@PlayerViewModel.videoId || generation != mediaGeneration) return@launch"))
+        assertTrue(restorePosition.contains("if (videoId != this@PlayerViewModel.videoId || generation != mediaGeneration) return@launch"))
         assertTrue(switchToVideo.contains("if (item.id == videoId)"))
     }
 

@@ -4,6 +4,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class PlayerSubtitleLoadPolicyTest {
+    @Test fun explicitDocumentsAndKnownSubtitleFilesWinOverLocalVideoSidecars() {
+        for (uri in listOf("content://documents/123", "file:///private/copy.subtitle")) {
+            assertEquals(PlayerSubtitleLoadRequest.SubtitleUri(uri),
+                PlayerSubtitleLoadPolicy.resolve(uri, "/local/movie.mp4", explicitSubtitle = true))
+        }
+        assertEquals(PlayerSubtitleLoadRequest.SubtitleUri("/local/chosen.ass"),
+            PlayerSubtitleLoadPolicy.resolve("/local/chosen.ass", "/local/movie.mp4"))
+    }
 
     @Test
     fun fileUriUsesItsOwnVideoPathForSidecarLookup() {

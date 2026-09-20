@@ -4,13 +4,28 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SeriesEpisodeDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertSeries(series: SeriesEntity): Long
+    @Transaction
+    suspend fun insertSeries(series: SeriesEntity): Long {
+        val existing = getSeriesByKey(series.normalizedTitleKey, series.folderPath)
+        if (existing != null) {
+            updateSeries(series.copy(seriesId = existing.seriesId, createdAt = existing.createdAt))
+            return existing.seriesId
+        }
+        return insertNewSeries(series)
+    }
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertNewSeries(series: SeriesEntity): Long
+
+    @Update
+    suspend fun updateSeries(series: SeriesEntity)
 
     @Query(
         """

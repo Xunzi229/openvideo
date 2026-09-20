@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/compatibility_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -33,7 +34,7 @@
             android:layout_height="56dp"
             android:importantForAccessibility="no"
             android:src="@drawable/ic_error_outline"
-            android:tint="@color/player_icon" />
+            app:tint="@color/player_icon" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -87,7 +88,7 @@
                 android:contentDescription="@string/player_error_action_back"
                 android:padding="12dp"
                 android:src="@drawable/ic_arrow_back"
-                android:tint="@color/player_icon" />
+                app:tint="@color/player_icon" />
 
             <TextView
                 android:id="@+id/compatibility_title"
@@ -169,7 +170,7 @@
                     android:contentDescription="@string/compatibility_player_rewind"
                     android:padding="12dp"
                     android:src="@drawable/ic_land_seek_back"
-                    android:tint="@color/player_icon" />
+                    app:tint="@color/player_icon" />
 
                 <ImageButton
                     android:id="@+id/compatibility_play_pause"
@@ -181,7 +182,7 @@
                     android:contentDescription="@string/compatibility_player_play_pause"
                     android:padding="14dp"
                     android:src="@drawable/ic_pause"
-                    android:tint="@color/player_icon" />
+                    app:tint="@color/player_icon" />
 
                 <ImageButton
                     android:id="@+id/compatibility_forward"
@@ -191,7 +192,7 @@
                     android:contentDescription="@string/compatibility_player_forward"
                     android:padding="12dp"
                     android:src="@drawable/ic_land_seek_forward"
-                    android:tint="@color/player_icon" />
+                    app:tint="@color/player_icon" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

@@ -153,7 +153,7 @@ class SubtitleLoaderWiringTest {
         )
 
         assertTrue(source.contains("private val webDavMemoryCache: WebDavMemoryCache"))
-        assertTrue(source.contains("namespace = \"subtitle\""))
+        assertTrue(source.contains("namespace = \"subtitle:\$encoding\""))
         assertTrue(source.contains("webDavMemoryCache.getSubtitle(cacheKey)?.let"))
         assertTrue(source.contains("webDavMemoryCache.putSubtitle(cacheKey, subtitles)"))
     }

@@ -32,7 +32,7 @@ class PlayerRequestHeadersSourceTest {
         assertTrue(source.contains("private var requestHeaders: Map<String, String> = emptyMap()"))
         assertTrue(initialize.contains("this.requestHeaders = requestHeaders"))
         assertTrue(initialize.contains("playerManager.setMediaUri(uri, requestHeaders)"))
-        assertTrue(retry.contains("playerManager.setMediaUri(uri, requestHeaders)"))
+        assertTrue(retry.contains("playerManager.setMediaUri(uri, requestHeaders, retryPosition)"))
         assertTrue(source.contains("playerManager.setMediaUri(uri, emptyMap())"))
         assertTrue(source.contains("playerManager.setMediaUri(item.uri, emptyMap())"))
     }
@@ -44,7 +44,7 @@ class PlayerRequestHeadersSourceTest {
             .substringBefore("\n    fun getCurrentSubtitle()")
 
         assertTrue(loadSubtitles.contains("PlayerSubtitleLoadCoordinator.loadWithOutcome("))
-        assertTrue(loadSubtitles.contains("requestHeaders = requestHeaders"))
+        assertTrue(loadSubtitles.contains("requestHeaders = headers"))
     }
 
     @Test

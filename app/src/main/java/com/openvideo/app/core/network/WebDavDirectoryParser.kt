@@ -1,7 +1,9 @@
 package com.openvideo.app.core.network
 
 import org.w3c.dom.Element
-import java.io.ByteArrayInputStream
+import java.io.StringReader
+import org.xml.sax.InputSource
+import org.xml.sax.SAXException
 import java.net.URI
 import javax.xml.parsers.DocumentBuilderFactory
 
@@ -19,21 +21,25 @@ object WebDavDirectoryParser {
         "mp4", "m4v", "mkv", "webm", "mov", "avi", "ts", "m3u8", "mpd"
     )
 
-    fun parse(baseUrl: String, xml: String): List<Entry> {
+    fun parse(
+        baseUrl: String,
+        xml: String,
+        factory: DocumentBuilderFactory = DocumentBuilderFactory.newInstance()
+    ): List<Entry> {
+        // Reject DTDs before parsing. Android's XML factory does not implement
+        // Xerces feature switches; an entity resolver alone cannot stop internal entities.
+        require(!xml.contains("<!DOCTYPE", ignoreCase = true)) { "DTD is not allowed" }
         val normalizedBase = WebDavConnectionPolicy.validateBaseUrl(baseUrl)
             .let { it as? WebDavConnectionPolicy.Validation.Valid }
             ?.normalizedBaseUrl
             ?: baseUrl
         val baseUri = URI(normalizedBase)
-        val document = DocumentBuilderFactory.newInstance().apply {
+        val builder = factory.apply {
             isNamespaceAware = true
-            setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
-            setFeature("http://xml.org/sax/features/external-general-entities", false)
-            setFeature("http://xml.org/sax/features/external-parameter-entities", false)
-            setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false)
-            isXIncludeAware = false
             setExpandEntityReferences(false)
-        }.newDocumentBuilder().parse(ByteArrayInputStream(xml.toByteArray(Charsets.UTF_8)))
+        }.newDocumentBuilder()
+        builder.setEntityResolver { _, _ -> throw SAXException("External entities are not allowed") }
+        val document = builder.parse(InputSource(StringReader(xml)))
 
         val responses = document.getElementsByTagNameNS("*", "response")
         return (0 until responses.length)

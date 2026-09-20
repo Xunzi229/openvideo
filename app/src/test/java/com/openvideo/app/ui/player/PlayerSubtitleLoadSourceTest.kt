@@ -32,7 +32,7 @@ class PlayerSubtitleLoadSourceTest {
         assertTrue(block.contains("PlayerSubtitleLoadCoordinator.loadWithOutcome("))
         assertTrue(block.contains("PlayerSubtitleLoadApplyPolicy.afterLoad("))
         assertTrue(block.contains("setSubtitles(outcome.subtitles)"))
-        assertTrue(block.contains("rememberedSubtitlePath = playerPrefs.externalSubtitleUri"))
+        assertTrue(block.contains("rememberedSubtitlePath = rememberedPath"))
         assertTrue(block.contains("languagePreference = playerPrefs.subtitleLanguagePreference()"))
     }
 
@@ -82,7 +82,7 @@ class PlayerSubtitleLoadSourceTest {
         val source = String(Files.readAllBytes(playerViewModelSource()))
         val block = source.substringAfter("fun loadSubtitles(")
             .substringBefore("\n    fun getCurrentSubtitle()")
-        val staleGuardIndex = block.indexOf("if (videoPath != this@PlayerViewModel.videoPath)")
+        val staleGuardIndex = block.indexOf("if (!primarySubtitleRequest.accepts(token) || videoPath != this@PlayerViewModel.videoPath)")
         val applyIndex = block.indexOf("setSubtitles(outcome.subtitles)")
 
         assertTrue(staleGuardIndex >= 0)

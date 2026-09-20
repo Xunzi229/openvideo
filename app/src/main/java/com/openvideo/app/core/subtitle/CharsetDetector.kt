@@ -6,8 +6,11 @@ import java.nio.charset.Charset
 object CharsetDetector {
 
     fun detect(file: File): Charset {
-        val bytes = file.readBytes()
+        val bytes = file.inputStream().use(SubtitleInput::readBounded)
+        return detect(bytes)
+    }
 
+    fun detect(bytes: ByteArray): Charset {
         // Check BOM
         if (bytes.size >= 3 && bytes[0] == 0xEF.toByte() && bytes[1] == 0xBB.toByte() && bytes[2] == 0xBF.toByte()) {
             return Charsets.UTF_8

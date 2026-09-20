@@ -38,7 +38,7 @@ class PlayerLifecycleController(
         if (decision.saveHistory) viewModel.saveHistory()
         if (decision.pausePlayer) {
             if (decision.unlockBeforePause) onUnlockPlayerForPause()
-            viewModel.player?.pause()
+            viewModel.pausePlayback()
         }
         if (isFinishingProvider()) {
             onDismissPlaybackNotification()

@@ -244,6 +244,13 @@ class VideoRepository @Inject constructor(
     }
 
     private suspend fun resolveMediaIdentityId(video: VideoItem): Long? {
+        // Playback snapshots may lack scanner metadata. Reuse only an existing
+        // identity for the same ID AND source, rather than inventing a fingerprint.
+        if (video.size <= 0L) {
+            return mediaIdentityDao.getByCurrentVideoId(video.id)
+                ?.takeIf { it.currentPath == video.path || it.currentPath == video.uri.toString() }
+                ?.identityId
+        }
         val fingerprint = MediaFingerprintPolicy.fromFields(
             title = video.title,
             pathOrUri = video.libraryPath,

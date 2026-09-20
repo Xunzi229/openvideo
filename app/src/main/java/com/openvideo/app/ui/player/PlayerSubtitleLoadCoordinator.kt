@@ -26,7 +26,8 @@ object PlayerSubtitleLoadCoordinator {
         loader: SubtitleLoader,
         requestHeaders: Map<String, String> = emptyMap(),
         rememberedSubtitlePath: String = "",
-        languagePreference: SubtitleLanguagePreference = SubtitleLanguagePreference()
+        languagePreference: SubtitleLanguagePreference = SubtitleLanguagePreference(),
+        explicitSubtitle: Boolean = false
     ): List<SubtitleItem> =
         when (val outcome = loadWithOutcome(
             uriString = uriString,
@@ -34,7 +35,8 @@ object PlayerSubtitleLoadCoordinator {
             loader = loader,
             requestHeaders = requestHeaders,
             rememberedSubtitlePath = rememberedSubtitlePath,
-            languagePreference = languagePreference
+            languagePreference = languagePreference,
+            explicitSubtitle = explicitSubtitle
         )) {
             is PlayerSubtitleLoadOutcome.Loaded -> outcome.subtitles
             is PlayerSubtitleLoadOutcome.RequiresUserChoice,
@@ -47,9 +49,10 @@ object PlayerSubtitleLoadCoordinator {
         loader: SubtitleLoader,
         requestHeaders: Map<String, String> = emptyMap(),
         rememberedSubtitlePath: String = "",
-        languagePreference: SubtitleLanguagePreference = SubtitleLanguagePreference()
+        languagePreference: SubtitleLanguagePreference = SubtitleLanguagePreference(),
+        explicitSubtitle: Boolean = false
     ): PlayerSubtitleLoadOutcome =
-        when (val request = PlayerSubtitleLoadPolicy.resolve(uriString, videoPath)) {
+        when (val request = PlayerSubtitleLoadPolicy.resolve(uriString, videoPath, explicitSubtitle)) {
             is PlayerSubtitleLoadRequest.SidecarFile -> {
                 val candidates = loader.findSubtitleCandidates(request.videoPath)
                 when (val selection = SubtitleCandidateSelectionPolicy.select(
@@ -65,7 +68,8 @@ object PlayerSubtitleLoadCoordinator {
                 }
             }
             is PlayerSubtitleLoadRequest.SubtitleUri -> {
-                val uri = Uri.parse(request.uriString)
+                val parsedUri = Uri.parse(request.uriString)
+                val uri = if (parsedUri.scheme == null) Uri.fromFile(File(request.uriString)) else parsedUri
                 val subtitles = if (uri.scheme in setOf("http", "https")) {
                     loader.loadFromNetworkUrl(request.uriString, requestHeaders)
                 } else {

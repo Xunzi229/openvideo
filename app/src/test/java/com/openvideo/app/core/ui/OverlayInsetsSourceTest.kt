@@ -46,7 +46,7 @@ class OverlayInsetsSourceTest {
         assertTrue(popover.contains("AppleFormSheet.show"))
         assertTrue(layout.contains("@+id/filter_popover_scroll"))
         assertTrue(layout.contains("@+id/filter_popover_actions"))
-        assertTrue(theme.contains("windowOptOutEdgeToEdgeEnforcement"))
+        assertTrue(String(Files.readAllBytes(res("values-v35", "review_compat_themes.xml"))).contains("windowOptOutEdgeToEdgeEnforcement"))
     }
 
     private fun source(vararg parts: String): Path =

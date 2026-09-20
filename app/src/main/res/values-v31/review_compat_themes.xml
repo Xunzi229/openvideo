@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Widget.OpenVideo.GroupedSection" parent="Widget.OpenVideo.GroupedSection.Base">
+        <item name="android:clipToOutline">true</item>
+    </style>
+</resources>

@@ -66,6 +66,9 @@ class PlaylistVideoAdapter(
         return ViewHolder(view)
     }
 
+    // position is used only for synchronous binding/hairlines; click listeners
+    // above resolve bindingAdapterPosition at click time.
+    @android.annotation.SuppressLint("RecyclerView")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = getItem(position)
         PlaylistMarqueeTextPolicy.apply(holder.title, item.videoTitle)

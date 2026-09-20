@@ -397,7 +397,7 @@ class PlayerPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SUBTITLE_SIZE = "subtitle_size"
         private const val KEY_SUBTITLE_COLOR = "subtitle_color"
         private const val KEY_SUBTITLE_BG = "subtitle_bg"
-        private const val KEY_SUBTITLE_ENCODING = "subtitle_encoding"
+        const val KEY_SUBTITLE_ENCODING = "subtitle_encoding"
         private const val KEY_SUBTITLE_DELAY_MS = "subtitle_delay_ms"
         private const val KEY_SECONDARY_SUBTITLE_SIZE = "secondary_subtitle_size"
         private const val KEY_SECONDARY_SUBTITLE_COLOR = "secondary_subtitle_color"

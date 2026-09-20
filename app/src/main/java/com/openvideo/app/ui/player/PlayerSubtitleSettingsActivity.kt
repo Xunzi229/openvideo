@@ -1,6 +1,10 @@
 package com.openvideo.app.ui.player
 
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.openvideo.app.core.subtitle.SubtitleDocumentAccess
+import com.openvideo.app.core.ui.AppleHud
 import android.view.View
 import android.content.Intent
 import androidx.activity.ComponentActivity
@@ -26,11 +30,18 @@ class PlayerSubtitleSettingsActivity : ComponentActivity() {
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            val result = Intent().apply {
-                putExtra("subtitle_uri", uri.toString())
+            lifecycleScope.launch {
+                val retained = SubtitleDocumentAccess.retain(applicationContext, uri)
+                if (retained == null) {
+                    AppleHud.show(this@PlayerSubtitleSettingsActivity, R.string.player_subtitle_load_failed)
+                    return@launch
+                }
+                val result = Intent().apply {
+                    putExtra("subtitle_uri", retained.toString())
+                }
+                setResult(RESULT_OK, result)
+                finish()
             }
-            setResult(RESULT_OK, result)
-            finish()
         }
     }
 

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.OpenVideo" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.OpenVideo.Base" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryVariant">@color/primary_variant</item>
         <item name="colorOnPrimary">@color/on_primary</item>
@@ -19,13 +19,11 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
         <item name="switchStyle">@style/Widget.OpenVideo.Switch.Legacy</item>
         <item name="materialSwitchStyle">@style/Widget.OpenVideo.Switch</item>
     </style>
 
-    <style name="Theme.OpenVideo.Player" parent="Theme.OpenVideo">
+    <style name="Theme.OpenVideo.Player.Base" parent="Theme.OpenVideo">
         <item name="colorPrimary">@color/player_accent</item>
         <item name="colorPrimaryVariant">@color/player_accent</item>
         <item name="colorOnPrimary">@color/player_title_primary</item>
@@ -40,7 +38,6 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:selectableItemBackground">@drawable/bg_player_ripple</item>
         <item name="selectableItemBackground">@drawable/bg_player_ripple</item>
         <item name="android:selectableItemBackgroundBorderless">@drawable/bg_player_ripple</item>
@@ -112,7 +109,7 @@
         <item name="android:textSize">15sp</item>
     </style>
 
-    <style name="ThemeOverlay.OpenVideo.MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+    <style name="ThemeOverlay.OpenVideo.MaterialAlertDialog.Base" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="colorSurface">@color/ov_dialog_surface</item>
         <item name="colorOnSurface">@color/ov_text_primary</item>
         <item name="colorPrimary">@color/ov_accent_blue</item>
@@ -124,7 +121,6 @@
         <item name="materialAlertDialogBodyTextStyle">@style/TextAppearance.OpenVideo.Dialog.Body</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.OpenVideo.Dialog.Button.Positive</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.OpenVideo.Dialog.Button.Negative</item>
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
     </style>
 
     <style name="ShapeAppearance.OpenVideo.Dialog" parent="">
@@ -143,13 +139,12 @@
         <item name="android:letterSpacing">0.04</item>
     </style>
 
-    <style name="Widget.OpenVideo.GroupedSection" parent="">
+    <style name="Widget.OpenVideo.GroupedSection.Base" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginStart">@dimen/ov_space_page</item>
         <item name="android:layout_marginEnd">@dimen/ov_space_page</item>
         <item name="android:background">@drawable/bg_grouped_section</item>
-        <item name="android:clipToOutline">true</item>
         <item name="android:orientation">vertical</item>
     </style>
 
@@ -233,4 +228,8 @@
     <style name="Widget.OpenVideo.Dialog.Button.Negative" parent="Widget.OpenVideo.Dialog.Button">
         <item name="android:textColor">@color/ov_text_secondary</item>
     </style>
+    <style name="Theme.OpenVideo" parent="Theme.OpenVideo.Base" />
+    <style name="Theme.OpenVideo.Player" parent="Theme.OpenVideo.Player.Base" />
+    <style name="ThemeOverlay.OpenVideo.MaterialAlertDialog" parent="ThemeOverlay.OpenVideo.MaterialAlertDialog.Base" />
+    <style name="Widget.OpenVideo.GroupedSection" parent="Widget.OpenVideo.GroupedSection.Base" />
 </resources>

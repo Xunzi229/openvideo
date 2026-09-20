@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.OpenVideo" parent="Theme.OpenVideo.Base">
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+    <style name="Theme.OpenVideo.Player" parent="Theme.OpenVideo.Player.Base">
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+</resources>

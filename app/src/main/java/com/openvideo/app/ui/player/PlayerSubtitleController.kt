@@ -14,6 +14,9 @@ import com.openvideo.app.core.ui.AppleAction
 import com.openvideo.app.core.ui.AppleActionSheet
 import com.openvideo.app.core.ui.AppleHud
 import java.io.File
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import com.openvideo.app.core.subtitle.SubtitleDocumentAccess
 
 class PlayerSubtitleController(
     private val activity: AppCompatActivity,
@@ -25,6 +28,7 @@ class PlayerSubtitleController(
     private val onApplyPlayerSettings: () -> Unit,
     private val onScheduleHideControls: () -> Unit
 ) {
+    private val importRequest = LatestPlayerRequest()
     private lateinit var settingsPrefs: SharedPreferences
     private lateinit var prefsListener: SharedPreferences.OnSharedPreferenceChangeListener
 
@@ -78,6 +82,9 @@ class PlayerSubtitleController(
     fun registerPrefsListener() {
         settingsPrefs = activity.getSharedPreferences("player_settings", Context.MODE_PRIVATE)
         prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+            if (key == PlayerPrefs.KEY_SUBTITLE_ENCODING) {
+                viewModel.reloadSubtitlesForEncoding()
+            }
             if (key == PlayerPrefs.KEY_EXTERNAL_SUBTITLE) {
                 val uri = prefs.getString(key, "") ?: ""
                 if (uri.isNotBlank()) {
@@ -107,12 +114,19 @@ class PlayerSubtitleController(
 
     private fun onSubtitlePicked(uri: Uri?) {
         if (uri == null) return
-        val subtitles = subtitleLoader.loadFromUri(uri)
-        if (subtitles.isNotEmpty()) {
-            viewModel.setSubtitles(subtitles)
-            AppleHud.show(activity, R.string.player_subtitle_loaded)
-        } else {
-            AppleHud.show(activity, R.string.player_subtitle_load_failed)
+        val source = currentVideoPath
+        val token = importRequest.next()
+        val generation = viewModel.currentMediaGeneration
+        activity.lifecycleScope.launch {
+            val retained = SubtitleDocumentAccess.retain(activity.applicationContext, uri)
+            if (!importRequest.accepts(token) || generation != viewModel.currentMediaGeneration || source != currentVideoPath) return@launch
+            if (retained == null) {
+                AppleHud.show(activity, R.string.player_subtitle_load_failed)
+                return@launch
+            }
+            val value = retained.toString()
+            if (playerPrefs.externalSubtitleUri == value) loadSubtitlesAsync(value, source, showToast = true)
+            else playerPrefs.externalSubtitleUri = value
         }
     }
 }

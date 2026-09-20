@@ -11,13 +11,13 @@ import javax.inject.Singleton
 class WebDavCredentialStore @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val prefs = EncryptedSharedPreferences.create(
+    private val prefs by lazy { EncryptedSharedPreferences.create(
         context,
         PREFS_NAME,
         MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    ) }
 
     fun save(sourceId: Long, username: String, password: String) {
         prefs.edit()

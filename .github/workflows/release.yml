@@ -122,8 +122,35 @@ jobs:
           --tests "com.openvideo.app.ui.settings.SettingsLanguageRowSourceTest"
           --tests "com.openvideo.app.ui.sources.SourcesInformationArchitectureSourceTest"
 
+      - name: Check Android Lint
+        run: .\gradlew.bat :app:lintDebug
+
       - name: Build signed release APKs
         run: .\gradlew.bat :app:assembleRelease -POPENVIDEO_ABI_SPLITS=true
+
+      - name: Record release build identity
+        shell: pwsh
+        run: |
+          $identity = [ordered]@{
+            commit = "${{ github.sha }}"
+            runId = "${{ github.run_id }}"
+            runAttempt = "${{ github.run_attempt }}"
+            metadata = Get-Content app/build/outputs/apk/release/output-metadata.json -Raw | ConvertFrom-Json
+            apks = @(Get-ChildItem app/build/outputs/apk/release -Filter *.apk | ForEach-Object {
+              @{ name = $_.Name; sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash }
+            })
+          }
+          $identity | ConvertTo-Json -Depth 20 | Set-Content app/build/outputs/mapping/release/build-identity.json -Encoding utf8
+
+      - name: Archive exact release mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-r8-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            app/build/outputs/mapping/release/mapping.txt
+            app/build/outputs/mapping/release/build-identity.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Verify and stage release artifacts
         shell: pwsh

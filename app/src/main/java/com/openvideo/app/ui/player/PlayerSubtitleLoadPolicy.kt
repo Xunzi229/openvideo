@@ -7,7 +7,10 @@ sealed interface PlayerSubtitleLoadRequest {
 }
 
 object PlayerSubtitleLoadPolicy {
-    fun resolve(uriString: String, videoPath: String): PlayerSubtitleLoadRequest {
+    fun resolve(uriString: String, videoPath: String, explicitSubtitle: Boolean = false): PlayerSubtitleLoadRequest {
+        if (uriString.isNotBlank() && (explicitSubtitle || PlayerSubtitleAutoload.canLoadAsSubtitleUri(uriString))) {
+            return PlayerSubtitleLoadRequest.SubtitleUri(uriString)
+        }
         val scheme = uriString.substringBefore(':', "").lowercase()
         val sidecarPath = when {
             scheme == "file" -> uriString.removePrefix("file://")

@@ -4,6 +4,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.exoplayer.upstream.Loader
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -27,6 +28,9 @@ object NetworkErrorClassifier {
     }
 
     fun classifyPlaybackError(errorCode: Int, cause: Throwable? = null): Result {
+        if (generateSequence(cause) { it.cause }.any { it is Loader.UnexpectedLoaderException }) {
+            return Result(Type.NON_NETWORK, isRetryable = false)
+        }
         classifyCause(cause)?.let { return it }
 
         return when (errorCode) {

@@ -13,7 +13,7 @@ class PlayerDualSubtitleStateSourceTest {
 
         assertTrue(source.contains("import com.openvideo.app.core.subtitle.DualSubtitleState"))
         assertTrue(source.contains("val dualSubtitles: DualSubtitleState = DualSubtitleState()"))
-        assertTrue(source.contains("dualSubtitles = DualSubtitleState(primary = PrimarySubtitle(items = subtitles))"))
+        assertTrue(source.contains("dualSubtitles = _uiState.value.dualSubtitles.copy(primary = PrimarySubtitle(items = subtitles))"))
     }
 
     @Test

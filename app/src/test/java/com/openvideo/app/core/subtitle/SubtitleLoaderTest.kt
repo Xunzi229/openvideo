@@ -22,6 +22,59 @@ import java.io.IOException
 @RunWith(RobolectricTestRunner::class)
 @Config(manifest = Config.NONE, sdk = [28], application = Application::class)
 class SubtitleLoaderTest {
+    @Test fun changingNetworkSubtitleEncodingDoesNotReuseDecodedText() {
+        val bytes = srt.replace("hello", "中文").toByteArray(charset("GBK"))
+        var requests = 0
+        val client = OkHttpClient.Builder().addInterceptor {
+            requests++
+            Response.Builder().request(it.request()).protocol(Protocol.HTTP_1_1)
+                .code(200).message("OK").body(bytes.toResponseBody()).build()
+        }.build()
+        val loader = loader(client)
+        prefs.subtitleEncoding = "UTF-8"
+        assertNotEquals("中文", loader.loadFromNetworkUrl("https://host/a.srt").single().text)
+        prefs.subtitleEncoding = "GBK"
+        assertEquals("中文", loader.loadFromNetworkUrl("https://host/a.srt").single().text)
+        assertEquals("中文", loader.loadFromNetworkUrl("https://host/a.srt").single().text)
+        assertEquals(2, requests)
+    }
+
+    @Test fun documentMetadataSelectsFormatForOpaqueUris() {
+        val uri = Uri.parse("content://subtitle-metadata/document/123")
+        for ((name, mime, content) in listOf(
+            Triple("captions.ass", "application/octet-stream", ass),
+            Triple(null, "text/vtt", vtt),
+            Triple("no-extension", "text/x-ssa", ass),
+            Triple(null, "application/x-subrip", srt)
+        )) {
+            org.robolectric.shadows.ShadowContentResolver.registerProviderInternal(
+                "subtitle-metadata", MetadataProvider(name, mime)
+            )
+            org.robolectric.Shadows.shadowOf(context.contentResolver).registerInputStreamSupplier(uri) { content.byteInputStream() }
+            assertEquals("hello", loader().loadFromUri(uri).single().text)
+        }
+    }
+
+    @Test fun opaqueUrisDetectAssVttAndLegacyEncodingFromContent() {
+        prefs.subtitleEncoding = "auto"
+        for (text in listOf(ass, vtt)) {
+            val file = temporary.newFile().apply { writeText(text) }
+            assertEquals("hello", loader().loadFromUri(Uri.fromFile(file)).single().text)
+        }
+        val file = temporary.newFile().apply { writeBytes(srt.replace("hello", "中文").toByteArray(charset("GBK"))) }
+        assertEquals("中文", loader().loadFromUri(Uri.fromFile(file)).single().text)
+    }
+
+    @Test fun oversizedLocalAndNetworkInputsFailWithoutParsing() {
+        val file = temporary.newFile("large.srt").apply { writeBytes(ByteArray(SubtitleInput.MAX_BYTES + 1)) }
+        assertTrue(loader().loadFromFile(file).isEmpty())
+        assertTrue(loader().loadFromUri(Uri.fromFile(file)).isEmpty())
+        val client = OkHttpClient.Builder().addInterceptor {
+            Response.Builder().request(it.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
+                .body(ByteArray(SubtitleInput.MAX_BYTES + 1).toResponseBody()).build()
+        }.build()
+        assertTrue(loader(client).loadFromNetworkUrl("https://host/a.srt").isEmpty())
+    }
     @get:Rule val temporary = TemporaryFolder()
     private val context get() = RuntimeEnvironment.getApplication()
     private val prefs get() = PlayerPrefs(context)
@@ -94,4 +147,14 @@ class SubtitleLoaderTest {
         assertEquals(listOf(subtitle), loader().findSubtitleFiles(video.path))
         assertTrue(loader().findSubtitleCandidates(File(temporary.root, "absent.mp4").path).isEmpty())
     }
+}
+
+private class MetadataProvider(private val name: String?, private val mime: String) : android.content.ContentProvider() {
+    override fun onCreate() = true
+    override fun getType(uri: Uri): String = mime
+    override fun query(uri: Uri, projection: Array<out String>?, selection: String?, args: Array<out String>?, sort: String?): android.database.Cursor =
+        android.database.MatrixCursor(arrayOf(android.provider.OpenableColumns.DISPLAY_NAME)).apply { addRow(arrayOf(name)) }
+    override fun insert(uri: Uri, values: android.content.ContentValues?): Uri? = null
+    override fun delete(uri: Uri, selection: String?, args: Array<out String>?): Int = 0
+    override fun update(uri: Uri, values: android.content.ContentValues?, selection: String?, args: Array<out String>?): Int = 0
 }

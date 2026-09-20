@@ -36,6 +36,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 
 data class PlayerUiState(
@@ -71,6 +74,17 @@ class PlayerViewModel @Inject constructor(
     private var videoPath: String = ""
     private var requestHeaders: Map<String, String> = emptyMap()
     val currentRequestHeaders: Map<String, String> get() = requestHeaders.toMap()
+    private val subtitleLoadMutex = Mutex()
+    private val primarySubtitleRequest = LatestPlayerRequest()
+    private val secondarySubtitleRequest = LatestPlayerRequest()
+    private var mediaGeneration = 0L
+    internal val currentMediaGeneration: Long get() = mediaGeneration
+    private var primarySubtitleJob: Job? = null
+    private var secondarySubtitleJob: Job? = null
+    private var switchJob: Job? = null
+    private var reloadPrimarySubtitle: (() -> Unit)? = null
+    private var reloadSecondarySubtitle: (() -> Unit)? = null
+    private var playbackPreferencesRestored = false
     private var playerListener: androidx.media3.common.Player.Listener? = null
     private var pendingRestorePosition: Long? = null
     private var pendingAudioSelection: PendingAudioSelection? = null
@@ -92,6 +106,21 @@ class PlayerViewModel @Inject constructor(
     /** 当前正在播放的条目 id（与会话列表高亮一致）。 */
     val playingVideoId: Long get() = videoId
 
+    private fun invalidateMediaRequests() {
+        mediaGeneration++
+        primarySubtitleRequest.next()
+        secondarySubtitleRequest.next()
+        primarySubtitleJob?.cancel()
+        secondarySubtitleJob?.cancel()
+        resetNetworkAutoRetry()
+        pendingRestorePosition = null
+        pendingAudioSelection = null
+        playbackPreferencesRestored = false
+        reloadPrimarySubtitle = null
+        reloadSecondarySubtitle = null
+        _uiState.value = _uiState.value.withoutSubtitles()
+    }
+
     fun isActiveSessionFor(videoId: Long): Boolean =
         videoId != 0L && this.videoId == videoId && player != null
 
@@ -106,7 +135,9 @@ class PlayerViewModel @Inject constructor(
         val activeUri = activePlayer.currentMediaItem?.localConfiguration?.uri ?: return false
         if (activeUri != uri) return false
 
-        resetNetworkAutoRetry()
+        switchJob?.cancel()
+        invalidateMediaRequests()
+        playbackPreferencesRestored = true
         playerListener?.let { playerManager.removeListener(it) }
         videoId = id
         videoUri = uri
@@ -119,6 +150,14 @@ class PlayerViewModel @Inject constructor(
             duration = activePlayer.duration.takeIf { it > 0L } ?: 0L
         )
         playerListener = object : androidx.media3.common.Player.Listener {
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (!playWhenReady) resetNetworkAutoRetry()
+            }
+
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                applyPendingAudioSelection()
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
             }
@@ -128,7 +167,7 @@ class PlayerViewModel @Inject constructor(
                 if (playbackState == androidx.media3.common.Player.STATE_READY) {
                     resetNetworkAutoRetry()
                     applyPendingAudioSelection()
-                    markPlaybackStarted()
+                    if (playbackPreferencesRestored) markPlaybackStarted()
                     applyPendingRestore()
                 }
             }
@@ -151,7 +190,8 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun initialize(uri: Uri, title: String, id: Long, path: String = "", requestHeaders: Map<String, String> = emptyMap()) {
-        resetNetworkAutoRetry()
+        switchJob?.cancel()
+        invalidateMediaRequests()
         playerListener?.let { playerManager.removeListener(it) }
         playerListener = null
 
@@ -163,6 +203,14 @@ class PlayerViewModel @Inject constructor(
 
         playerManager.initialize(uri)
         playerListener = object : androidx.media3.common.Player.Listener {
+            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+                if (!playWhenReady) resetNetworkAutoRetry()
+            }
+
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                applyPendingAudioSelection()
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _uiState.value = _uiState.value.copy(isPlaying = isPlaying)
             }
@@ -174,7 +222,7 @@ class PlayerViewModel @Inject constructor(
                 if (playbackState == androidx.media3.common.Player.STATE_READY) {
                     resetNetworkAutoRetry()
                     applyPendingAudioSelection()
-                    markPlaybackStarted()
+                    if (playbackPreferencesRestored) markPlaybackStarted()
                     applyPendingRestore()
                 }
             }
@@ -184,14 +232,16 @@ class PlayerViewModel @Inject constructor(
 
         viewModelScope.launch {
             val isFav = repository.isFavorite(id)
+            if (id != videoId) return@launch
             _uiState.value = _uiState.value.copy(isFavorite = isFav)
         }
     }
 
     fun restorePosition(videoId: Long, fallbackPositionMs: Long = 0L) {
+        val generation = mediaGeneration
         viewModelScope.launch {
             val history = repository.getHistory(videoId)
-            if (videoId != this@PlayerViewModel.videoId) return@launch
+            if (videoId != this@PlayerViewModel.videoId || generation != mediaGeneration) return@launch
             val restorePositionMs = history?.lastPosition?.takeIf { it > 0 } ?: fallbackPositionMs
             if (restorePositionMs > 0) {
                 pendingRestorePosition = restorePositionMs
@@ -205,9 +255,10 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun restorePlaybackPreferences(videoId: Long, onRestored: () -> Unit) {
+        val generation = mediaGeneration
         viewModelScope.launch {
             val history = repository.getHistory(videoId)
-            if (videoId != this@PlayerViewModel.videoId) return@launch
+            if (videoId != this@PlayerViewModel.videoId || generation != mediaGeneration) return@launch
             val speed: Float
             if (history != null) {
                 speed = history.speed
@@ -246,11 +297,25 @@ class PlayerViewModel @Inject constructor(
                 aspectRatio = playerPrefs.aspectRatio,
                 contentFrameMode = playerPrefs.contentFrameMode
             )
+            playbackPreferencesRestored = true
+            applyPendingAudioSelection()
             onRestored()
+            if (playerManager.playbackState == Player.STATE_READY) markPlaybackStarted()
         }
     }
 
-    fun togglePlayPause() = playerManager.togglePlayPause()
+    fun pausePlayback() {
+        resetNetworkAutoRetry()
+        player?.pause()
+    }
+
+    fun togglePlayPause() {
+        when {
+            player?.playWhenReady == true -> pausePlayback()
+            player?.playerError != null -> retryPlayback()
+            else -> playerManager.togglePlayPause()
+        }
+    }
 
     /**
      * 播放出错后重新 prepare 当前媒体。
@@ -261,24 +326,29 @@ class PlayerViewModel @Inject constructor(
             resetNetworkAutoRetry()
         }
         val uri = videoUri ?: return
-        if (_uiState.value.decodeMode == DecodeMode.SOFT) {
+        val retryPosition = if (player?.isCurrentMediaItemLive == true) null else playerManager.currentPosition
+        if (resetAutoRetry && _uiState.value.decodeMode == DecodeMode.SOFT) {
             playerManager.initialize(uri)
             playerListener?.let { playerManager.addListener(it) }
         }
-        playerManager.setMediaUri(uri, requestHeaders)
+        playerManager.setMediaUri(uri, requestHeaders, retryPosition)
     }
 
     fun handleNetworkAutoRetry(error: PlaybackException): Boolean {
+        if (player?.playWhenReady != true) return false
         val decision = NetworkPlaybackRetryPolicy.nextDecision(
             errorCode = error.errorCode,
             cause = error.cause,
             completedAttempts = networkAutoRetryAttempts
         )
         if (decision !is NetworkPlaybackRetryPolicy.Decision.Retry) return false
+        if (videoUri?.scheme !in setOf("http", "https", "rtsp")) return false
         networkAutoRetryAttempts = decision.nextAttempt
         networkAutoRetryJob?.cancel()
+        val expectedUri = videoUri
         networkAutoRetryJob = viewModelScope.launch {
             delay(decision.delayMs)
+            if (videoUri != expectedUri || player?.playWhenReady != true) return@launch
             retryPlayback(resetAutoRetry = false)
         }
         return true
@@ -341,7 +411,7 @@ class PlayerViewModel @Inject constructor(
     fun setSubtitles(subtitles: List<SubtitleItem>) {
         _uiState.value = _uiState.value.copy(
             subtitles = subtitles,
-            dualSubtitles = DualSubtitleState(primary = PrimarySubtitle(items = subtitles))
+            dualSubtitles = _uiState.value.dualSubtitles.copy(primary = PrimarySubtitle(items = subtitles))
         )
     }
 
@@ -368,15 +438,29 @@ class PlayerViewModel @Inject constructor(
         videoPath: String,
         onFinished: (PlayerSubtitleLoadApplyDecision) -> Unit = {}
     ) {
-        viewModelScope.launch {
-            val subtitles = withContext(Dispatchers.IO) {
-                PlayerSubtitleLoadCoordinator.load(
-                    uriString,
-                    videoPath,
-                    subtitleLoader,
-                    requestHeaders = requestHeaders
-                )
+        reloadSecondarySubtitle = {
+            val enabled = _uiState.value.dualSubtitles.secondary.enabled
+            loadSecondarySubtitles(uriString, videoPath) {
+                setSecondarySubtitlesEnabled(enabled)
             }
+        }
+        secondarySubtitleJob?.cancel()
+        val token = secondarySubtitleRequest.next()
+        val headers = requestHeaders.toMap()
+        secondarySubtitleJob = viewModelScope.launch {
+            val subtitles = withContext(Dispatchers.IO) {
+                subtitleLoadMutex.withLock {
+                    ensureActive()
+                    PlayerSubtitleLoadCoordinator.load(
+                        uriString,
+                        videoPath,
+                        subtitleLoader,
+                        requestHeaders = headers,
+                        explicitSubtitle = true
+                    )
+                }
+            }
+            if (!secondarySubtitleRequest.accepts(token)) return@launch
             val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(subtitles.size, requestedToast = true)
             if (decision.shouldApplyToPlayer) {
                 setSecondarySubtitles(subtitles)
@@ -392,18 +476,30 @@ class PlayerViewModel @Inject constructor(
         onFinished: (PlayerSubtitleLoadApplyDecision) -> Unit = {},
         onCandidateChoiceRequired: (List<SubtitleCandidate>) -> Unit = {}
     ) {
-        viewModelScope.launch {
+        reloadPrimarySubtitle = {
+            loadSubtitles(uriString, videoPath, showToast, onFinished, onCandidateChoiceRequired)
+        }
+        primarySubtitleJob?.cancel()
+        val token = primarySubtitleRequest.next()
+        val headers = requestHeaders.toMap()
+        val rememberedPath = playerPrefs.externalSubtitleUri
+        val languagePreference = playerPrefs.subtitleLanguagePreference()
+        primarySubtitleJob = viewModelScope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                PlayerSubtitleLoadCoordinator.loadWithOutcome(
-                    uriString,
-                    videoPath,
-                    subtitleLoader,
-                    requestHeaders = requestHeaders,
-                    rememberedSubtitlePath = playerPrefs.externalSubtitleUri,
-                    languagePreference = playerPrefs.subtitleLanguagePreference()
-                )
+                subtitleLoadMutex.withLock {
+                    ensureActive()
+                    PlayerSubtitleLoadCoordinator.loadWithOutcome(
+                        uriString,
+                        videoPath,
+                        subtitleLoader,
+                        requestHeaders = headers,
+                        rememberedSubtitlePath = rememberedPath,
+                        languagePreference = languagePreference,
+                        explicitSubtitle = uriString.isNotBlank() && uriString == rememberedPath
+                    )
+                }
             }
-            if (videoPath != this@PlayerViewModel.videoPath) return@launch
+            if (!primarySubtitleRequest.accepts(token) || videoPath != this@PlayerViewModel.videoPath) return@launch
             when (outcome) {
                 is PlayerSubtitleLoadOutcome.Loaded -> {
                     val decision = PlayerSubtitleLoadApplyPolicy.afterLoad(outcome.subtitles.size, showToast)
@@ -422,6 +518,11 @@ class PlayerViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    fun reloadSubtitlesForEncoding() {
+        reloadPrimarySubtitle?.invoke()
+        reloadSecondarySubtitle?.invoke()
     }
 
     sealed class SubtitleExportResult {
@@ -545,6 +646,9 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun playStream(streamUrl: String) {
+        switchJob?.cancel()
+        invalidateMediaRequests()
+        playbackPreferencesRestored = true
         val uri = Uri.parse(streamUrl)
         videoId = streamUrl.hashCode().toLong()
         videoUri = uri
@@ -631,7 +735,7 @@ class PlayerViewModel @Inject constructor(
     }
 
     fun saveHistory() {
-        viewModelScope.launch { persistCurrentPlaybackProgress() }
+        viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) { persistCurrentPlaybackProgress() }
     }
 
     private suspend fun persistCurrentPlaybackProgress() {
@@ -655,7 +759,9 @@ class PlayerViewModel @Inject constructor(
         if (playerManager.playbackState == Player.STATE_ENDED) 0L else playerManager.currentPosition
 
     private fun currentHistoryVideoItem(uri: Uri): VideoItem =
-        VideoItem(
+        _sessionQueue.value.firstOrNull { it.id == videoId && it.uri == uri }?.let { item ->
+            item.copy(duration = playerManager.duration.takeIf { it > 0L } ?: item.duration)
+        } ?: VideoItem(
             id = videoId,
             title = _uiState.value.title,
             path = videoPath.ifBlank { uri.toString() },
@@ -676,8 +782,11 @@ class PlayerViewModel @Inject constructor(
         onPlayerRecreated: () -> Unit = {},
         onSwitched: () -> Unit = {}
     ) {
-        viewModelScope.launch {
+        switchJob?.cancel()
+        resetNetworkAutoRetry()
+        switchJob = viewModelScope.launch {
             persistCurrentPlaybackProgress()
+            invalidateMediaRequests()
             withContext(Dispatchers.Main.immediate) {
                 videoId = item.id
                 videoUri = item.uri
@@ -709,12 +818,15 @@ class PlayerViewModel @Inject constructor(
     }
 
     private fun markPlaybackStarted() {
+        val uri = videoUri ?: return
+        val item = currentHistoryVideoItem(uri)
+        val expectedVideoId = videoId
         viewModelScope.launch {
-            val uri = videoUri ?: return@launch
-            val history = repository.getHistory(videoId)
+            val history = repository.getHistory(expectedVideoId)
+            if (videoId != expectedVideoId || videoUri != uri) return@launch
             val selectedAudioTrack = selectedAudioTrack()
             repository.saveHistory(
-                currentHistoryVideoItem(uri),
+                item,
                 history?.lastPosition ?: 0L,
                 speed = playerPrefs.speed,
                 aspectRatioKey = playerPrefs.aspectRatio.key,
@@ -730,6 +842,8 @@ class PlayerViewModel @Inject constructor(
 
     private fun applyPendingAudioSelection() {
         val selection = pendingAudioSelection ?: return
+        if (playerManager.playbackState != Player.STATE_READY) return
+        if (!selection.muted && selection.groupIndex >= 0 && player?.currentTracks?.groups.isNullOrEmpty()) return
         pendingAudioSelection = null
         when {
             selection.muted -> disableAudioTrack()
@@ -753,6 +867,8 @@ class PlayerViewModel @Inject constructor(
 
     fun release() {
         saveHistory()
+        switchJob?.cancel()
+        invalidateMediaRequests()
         detachFromActiveSession()
         playerManager.release()
     }

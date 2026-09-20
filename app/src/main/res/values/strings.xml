@@ -743,4 +743,5 @@
     <string name="history_continue_hours_ago">%1$d hr ago</string>
     <string name="history_continue_days_ago">%1$d d ago</string>
     <string name="history_continue_progress_percent">%1$d%%</string>
+    <string name="compatibility_player_headers_unsupported">This source requires authentication or custom request headers that compatibility mode does not support. Please use the current player.</string>
 </resources>

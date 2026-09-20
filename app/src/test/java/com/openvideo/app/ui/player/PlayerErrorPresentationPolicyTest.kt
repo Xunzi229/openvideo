@@ -313,7 +313,7 @@ class PlayerErrorPresentationPolicyTest {
 
         assertTrue(retry.contains("playerManager.initialize(uri)"))
         assertTrue(retry.contains("playerManager.addListener(it)"))
-        assertTrue(retry.contains("playerManager.setMediaUri(uri, requestHeaders)"))
+        assertTrue(retry.contains("playerManager.setMediaUri(uri, requestHeaders, retryPosition)"))
     }
 
     @Test

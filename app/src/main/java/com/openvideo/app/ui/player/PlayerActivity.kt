@@ -3,6 +3,7 @@ package com.openvideo.app.ui.player
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import com.openvideo.app.core.ui.AppleHud
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
@@ -1015,6 +1016,10 @@ class PlayerActivity : AppCompatActivity() {
     private fun finishPlayer() = playerExit.finishPlayer()
 
     private fun openCompatibilityMode() {
+        if (!CompatibilityRequestPolicy.supports(viewModel.currentRequestHeaders)) {
+            AppleHud.show(this, R.string.compatibility_player_headers_unsupported)
+            return
+        }
         val uri = viewModel.currentVideoUri ?: return
         val player = viewModel.player
         val positionMs = player?.currentPosition?.coerceAtLeast(0L) ?: 0L

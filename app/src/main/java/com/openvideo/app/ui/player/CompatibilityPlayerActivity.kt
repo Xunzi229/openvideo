@@ -53,6 +53,11 @@ class CompatibilityPlayerActivity : AppCompatActivity() {
             finish()
             return
         }
+        if (!CompatibilityRequestPolicy.supports(request.requestHeaders)) {
+            com.openvideo.app.core.ui.AppleHud.show(this, R.string.compatibility_player_headers_unsupported)
+            finish()
+            return
+        }
         lastPositionMs = savedInstanceState?.getLong(STATE_POSITION_MS) ?: request.startPositionMs
         durationMs = savedInstanceState?.getLong(STATE_DURATION_MS) ?: request.durationMs
         viewModel.initialize(request)

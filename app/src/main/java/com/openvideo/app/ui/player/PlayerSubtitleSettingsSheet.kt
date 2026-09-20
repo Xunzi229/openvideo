@@ -26,9 +26,12 @@ import com.openvideo.app.core.ui.AppleActionStyle
 import com.openvideo.app.core.ui.AppleAlertDialog
 import com.openvideo.app.core.ui.AppleHud
 import kotlinx.coroutines.launch
+import com.openvideo.app.core.subtitle.SubtitleDocumentAccess
 
 @AndroidEntryPoint
 class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
+    private val primaryImportRequest = LatestPlayerRequest()
+    private val secondaryImportRequest = LatestPlayerRequest()
     override val layoutResId: Int = R.layout.activity_player_subtitle_settings
 
     override fun settingsSheetPanelRootId(): Int = R.id.subtitle_settings_panel_root
@@ -53,9 +56,21 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri != null) {
-            // store into prefs so PlayerActivity can pick it up
-            playerPrefs.externalSubtitleUri = uri.toString()
-            dismiss()
+            val source = viewModel.currentVideoSource()
+            val generation = viewModel.currentMediaGeneration
+            val token = primaryImportRequest.next()
+            lifecycleScope.launch {
+                val retained = SubtitleDocumentAccess.retain(requireContext().applicationContext, uri)
+                if (!primaryImportRequest.accepts(token) || generation != viewModel.currentMediaGeneration) return@launch
+                if (retained == null) {
+                    AppleHud.show(requireContext(), R.string.player_subtitle_load_failed)
+                } else {
+                    val value = retained.toString()
+                    if (playerPrefs.externalSubtitleUri == value) viewModel.loadSubtitles(value, source)
+                    else playerPrefs.externalSubtitleUri = value
+                    dismiss()
+                }
+            }
         }
     }
 
@@ -63,13 +78,20 @@ class PlayerSubtitleSettingsSheet : BaseSettingsSheet() {
         ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
         if (uri == null) return@registerForActivityResult
-        viewModel.loadSecondarySubtitles(
-            uriString = uri.toString(),
-            videoPath = viewModel.currentVideoSource()
-        ) { decision ->
-            val messageRes = PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)
-            if (messageRes != null) {
-                AppleHud.show(requireContext(), messageRes)
+        val source = viewModel.currentVideoSource()
+        val generation = viewModel.currentMediaGeneration
+        val token = secondaryImportRequest.next()
+        lifecycleScope.launch {
+            val retained = SubtitleDocumentAccess.retain(requireContext().applicationContext, uri)
+            if (!secondaryImportRequest.accepts(token) || generation != viewModel.currentMediaGeneration) return@launch
+            if (retained == null) {
+                AppleHud.show(requireContext(), R.string.player_subtitle_load_failed)
+                return@launch
+            }
+            viewModel.loadSecondarySubtitles(retained.toString(), source) { decision ->
+                if (isAdded) PlayerSubtitleLoadToastPolicy.messageRes(decision.toastKind)?.let {
+                    AppleHud.show(requireContext(), it)
+                }
             }
         }
     }

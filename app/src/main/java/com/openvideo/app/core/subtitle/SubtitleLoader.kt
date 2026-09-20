@@ -2,6 +2,7 @@ package com.openvideo.app.core.subtitle
 
 import android.content.Context
 import android.net.Uri
+import android.provider.OpenableColumns
 import com.openvideo.app.core.network.WebDavMemoryCache
 import com.openvideo.app.core.prefs.PlayerPrefs
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,26 +24,21 @@ class SubtitleLoader @Inject constructor(
     fun loadFromFile(file: File): List<SubtitleItem> {
         if (!file.exists()) return emptyList()
 
-        val charset = charsetForPreference(file)
-        val content = file.readText(charset)
-
-        return when (file.extension.lowercase()) {
-            "srt" -> SrtParser.parse(content)
-            "ass", "ssa" -> AssParser.parse(content)
-            "vtt" -> VttParser.parse(content)
-            else -> emptyList()
+        if (file.extension.lowercase() !in setOf("srt", "ass", "ssa", "vtt")) return emptyList()
+        return try {
+            val bytes = file.inputStream().use(SubtitleInput::readBounded)
+            parseSubtitleContent(String(bytes, charsetForPreference(bytes)), file.extension)
+        } catch (_: java.io.IOException) {
+            emptyList()
         }
     }
 
     fun loadFromUri(uri: Uri): List<SubtitleItem> {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return emptyList()
-            val charset = charsetForPreference(null)
-            val content = inputStream.bufferedReader(charset).readText()
-            inputStream.close()
-
-            val ext = getExtensionFromUri(uri)
-            parseSubtitleContent(content, ext)
+            val bytes = context.contentResolver.openInputStream(uri)?.use(SubtitleInput::readBounded)
+                ?: return emptyList()
+            val content = String(bytes, charsetForPreference(bytes)).removePrefix("\uFEFF")
+            parseSubtitleContent(content, getExtensionFromUri(uri))
         } catch (e: Exception) {
             emptyList()
         }
@@ -50,8 +46,9 @@ class SubtitleLoader @Inject constructor(
 
     fun loadFromNetworkUrl(url: String, requestHeaders: Map<String, String> = emptyMap()): List<SubtitleItem> {
         return try {
+            val encoding = playerPrefs.subtitleEncoding
             val cacheKey = webDavMemoryCache.cacheKey(
-                namespace = "subtitle",
+                namespace = "subtitle:$encoding",
                 url = url,
                 requestHeaders = requestHeaders
             )
@@ -65,7 +62,8 @@ class SubtitleLoader @Inject constructor(
             val request = builder.build()
             okHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return emptyList()
-                val content = response.body.string()
+                val bytes = response.body.byteStream().use(SubtitleInput::readBounded)
+                val content = String(bytes, charsetForPreference(bytes, encoding)).removePrefix("\uFEFF")
                 val subtitles = parseSubtitleContent(content, extensionFromPathOrUrl(url))
                 webDavMemoryCache.putSubtitle(cacheKey, subtitles)
                 subtitles
@@ -99,9 +97,22 @@ class SubtitleLoader @Inject constructor(
     }
 
     private fun getExtensionFromUri(uri: Uri): String {
-        val path = uri.path ?: return ""
-        val dotIndex = path.lastIndexOf('.')
-        return if (dotIndex >= 0) path.substring(dotIndex + 1).lowercase() else ""
+        if (uri.scheme == "content") {
+            val displayName = runCatching {
+                context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                    if (it.moveToFirst()) it.getString(0) else null
+                }
+            }.getOrNull()
+            displayName?.substringAfterLast('.', "")?.lowercase()?.let {
+                if (it in setOf("srt", "ass", "ssa", "vtt")) return it
+            }
+            when (context.contentResolver.getType(uri)?.lowercase()) {
+                "text/vtt" -> return "vtt"
+                "text/x-ssa", "text/x-ass", "application/x-ass", "application/x-ssa" -> return "ass"
+                "application/x-subrip" -> return "srt"
+            }
+        }
+        return extensionFromPathOrUrl(uri.path.orEmpty())
     }
 
     private fun extensionFromPathOrUrl(value: String): String {
@@ -115,16 +126,15 @@ class SubtitleLoader @Inject constructor(
             "srt" -> SrtParser.parse(content)
             "ass", "ssa" -> AssParser.parse(content)
             "vtt" -> VttParser.parse(content)
-            else -> SrtParser.parse(content)
+            else -> when {
+                content.trimStart().startsWith("WEBVTT") -> VttParser.parse(content)
+                content.contains("[Events]", ignoreCase = true) -> AssParser.parse(content)
+                else -> SrtParser.parse(content)
+            }
         }
 
-    private fun charsetForPreference(file: File?): Charset {
-        val value = playerPrefs.subtitleEncoding
-        if (value == "auto") {
-            return file?.let(CharsetDetector::detect) ?: Charsets.UTF_8
-        }
-        return runCatching { Charset.forName(value) }.getOrElse {
-            file?.let(CharsetDetector::detect) ?: Charsets.UTF_8
-        }
+    private fun charsetForPreference(bytes: ByteArray, value: String = playerPrefs.subtitleEncoding): Charset {
+        if (value == "auto") return CharsetDetector.detect(bytes)
+        return runCatching { Charset.forName(value) }.getOrElse { CharsetDetector.detect(bytes) }
     }
 }

@@ -33,7 +33,7 @@ object GitHubReleaseChecker {
         return try {
             val code = conn.responseCode
             if (code !in 200..299) return null
-            if (conn.contentLengthLong > MAX_RELEASE_JSON_BYTES) return null
+            if ((conn.getHeaderField("Content-Length")?.toLongOrNull() ?: -1L) > MAX_RELEASE_JSON_BYTES) return null
             val body = conn.inputStream.use { input ->
                 val output = java.io.ByteArrayOutputStream()
                 val buffer = ByteArray(DEFAULT_BUFFER_SIZE)

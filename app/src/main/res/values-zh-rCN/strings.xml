@@ -738,4 +738,5 @@
     <string name="sources_future_title">SMB、Jellyfin、Plex</string>
     <string name="sources_future_subtitle">后续网络来源适配器</string>
     <string name="sources_future_status_planned">后续</string>
+    <string name="compatibility_player_headers_unsupported">此来源需要认证或自定义请求头，兼容模式暂不支持。请使用当前播放器。</string>
 </resources>

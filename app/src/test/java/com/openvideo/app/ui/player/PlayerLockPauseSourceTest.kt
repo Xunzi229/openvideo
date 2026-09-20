@@ -16,7 +16,7 @@ class PlayerLockPauseSourceTest {
 
         assertTrue(onPause.contains("PlayerLifecyclePolicy.onPause("))
         val unlockIndex = onPause.indexOf("onUnlockPlayerForPause()")
-        val pauseIndex = onPause.indexOf("pause()")
+        val pauseIndex = onPause.indexOf("viewModel.pausePlayback()")
 
         assertTrue("onPause should unlock the player when it is about to pause playback", unlockIndex >= 0)
         assertTrue(
