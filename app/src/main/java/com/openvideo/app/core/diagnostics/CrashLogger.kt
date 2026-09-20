@@ -165,12 +165,16 @@ object CrashLogger {
         diagnostics: String? = null
     ): String {
         val stack = stackTraceForLog(throwable, category)
+        val runtime = Runtime.getRuntime()
         return buildString {
             appendLine("time=${Date()}")
             appendLine("version=${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
             appendLine("source=$source")
             appendLine("event=${eventName(source)}")
             appendLine("category=${category.token}")
+            appendLine("memory.heap_max_bytes=${runtime.maxMemory()}")
+            appendLine("memory.heap_committed_bytes=${runtime.totalMemory()}")
+            appendLine("memory.heap_free_bytes=${runtime.freeMemory()}")
             appendLine("thread=$threadName")
             appendLine("device=${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("sdk=${Build.VERSION.SDK_INT}")

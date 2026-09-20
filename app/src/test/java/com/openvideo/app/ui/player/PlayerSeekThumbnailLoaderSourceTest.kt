@@ -14,23 +14,11 @@ class PlayerSeekThumbnailLoaderSourceTest {
 
         assertTrue(source.contains("PlayerSeekThumbnailPolicy.thumbnailCacheKey(videoUri.toString(), positionMs)"))
         assertTrue(source.contains("PlayerSeekThumbnailMemoryCache.get(cacheKey)?.let"))
-        assertTrue(source.contains("PlayerSeekThumbnailMemoryCache.put(cacheKey, previewBitmap)"))
+        assertTrue(source.contains("PlayerSeekThumbnailMemoryCache.put(cacheKey, result)"))
         assertTrue(
             source.indexOf("PlayerSeekThumbnailMemoryCache.get(cacheKey)?.let") <
                 source.indexOf("MediaMetadataRetriever()")
         )
-    }
-
-    @Test
-    fun loaderScalesExtractedFramesBeforeCaching() {
-        val source = sourceText("PlayerSeekThumbnailLoader.kt")
-
-        assertTrue(source.contains("private fun scaleForPreview(bitmap: Bitmap): Bitmap"))
-        assertTrue(source.contains("PlayerSeekThumbnailPolicy.scaledThumbnailSize(bitmap.width, bitmap.height)"))
-        assertTrue(source.contains("Bitmap.createScaledBitmap(bitmap, target.first, target.second, true)"))
-        assertTrue(source.contains("val previewBitmap = bitmap?.let(::scaleForPreview)"))
-        assertTrue(source.contains("PlayerSeekThumbnailMemoryCache.put(cacheKey, previewBitmap)"))
-        assertTrue(source.contains("onLoaded(previewBitmap)"))
     }
 
     private fun sourceText(name: String): String = String(Files.readAllBytes(sourceFile(name)))

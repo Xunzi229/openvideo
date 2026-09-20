@@ -16,6 +16,32 @@ import java.nio.file.Paths
 
 class PlayerErrorPresentationPolicyTest {
 
+    @Test
+    fun wrappedLoaderRuntimeFailureOffersCompatibilityInsteadOfNetworkAdvice() {
+        val loaderError = androidx.media3.exoplayer.upstream.Loader.UnexpectedLoaderException(
+            IllegalArgumentException("invalid read position")
+        )
+        val result = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            IllegalStateException("Source error", loaderError)
+        )
+        assertEquals(R.string.player_error_title_general, result.titleRes)
+        assertEquals(
+            PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE,
+            result.actions.first()
+        )
+        assertTrue(result.actions.contains(PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS))
+    }
+
+    @Test
+    fun ordinaryIoFailureDoesNotOfferCompatibilityMode() {
+        val result = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            java.io.IOException("read failed")
+        )
+        assertFalse(result.actions.contains(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE))
+    }
+
     // --- isDecoderError ---
 
     @Test

@@ -1,7 +1,10 @@
 package com.openvideo.app.ui.player
 
 import androidx.annotation.StringRes
+import androidx.annotation.OptIn
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.upstream.Loader
 import com.openvideo.app.R
 import com.openvideo.app.core.network.NetworkErrorClassifier
 
@@ -11,6 +14,7 @@ import com.openvideo.app.core.network.NetworkErrorClassifier
  * 不做 IO，不持有 Context，便于在 JVM 单测里全量覆盖。
  * 文案 StringRes 由调用方（PlayerActivity）通过 [getString] 解析。
  */
+@OptIn(UnstableApi::class)
 object PlayerErrorPresentationPolicy {
 
     /** 错误展示模型。 */
@@ -39,6 +43,22 @@ object PlayerErrorPresentationPolicy {
                 descRes  = R.string.player_error_desc_format,
                 actions  = listOf(
                     ErrorAction.OPEN_COMPATIBILITY_MODE,
+                    ErrorAction.COPY_DIAGNOSTICS,
+                    ErrorAction.GO_BACK
+                )
+            )
+        }
+        // Extractor runtime failures are wrapped as IO_UNSPECIFIED too. Retrying
+        // the network cannot repair them; offer the independent demuxer instead.
+        if (errorCode == PlaybackException.ERROR_CODE_IO_UNSPECIFIED &&
+            generateSequence(cause) { it.cause }.any { it is Loader.UnexpectedLoaderException }
+        ) {
+            return Presentation(
+                titleRes = R.string.player_error_title_general,
+                descRes = R.string.player_error_desc_general,
+                actions = listOf(
+                    ErrorAction.OPEN_COMPATIBILITY_MODE,
+                    ErrorAction.RETRY,
                     ErrorAction.COPY_DIAGNOSTICS,
                     ErrorAction.GO_BACK
                 )
