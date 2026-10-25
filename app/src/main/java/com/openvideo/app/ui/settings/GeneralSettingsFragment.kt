@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.openvideo.app.R
 import com.openvideo.app.core.prefs.LocalContinuePlaybackPosition
+import com.openvideo.app.core.prefs.PlaybackOrientation
 import com.openvideo.app.core.ui.AppleAction
 import com.openvideo.app.core.ui.AppleActionSheet
 import com.openvideo.app.core.ui.LibraryNavigator
@@ -51,6 +52,27 @@ class GeneralSettingsFragment : Fragment() {
                 onDismiss = { activeDialog = null }
             )
         }
+        val orientationValue = view.findViewById<TextView>(R.id.tv_playback_orientation_value)
+        updateOrientationLabel(orientationValue)
+        view.findViewById<View>(R.id.row_playback_orientation).setOnClickListener {
+            if (activeDialog?.isShowing == true) return@setOnClickListener
+            activeDialog = AppleActionSheet.show(
+                context = requireContext(),
+                title = getString(R.string.settings_playback_orientation),
+                actions = PlaybackOrientation.entries.map { orientation ->
+                    AppleAction(
+                        title = orientationLabel(orientation),
+                        selected = orientation == viewModel.playbackOrientation,
+                        onClick = {
+                            viewModel.setPlaybackOrientation(orientation)
+                            updateOrientationLabel(orientationValue)
+                        }
+                    )
+                },
+                defaultFocusCancel = false,
+                onDismiss = { activeDialog = null }
+            )
+        }
     }
 
     private fun positionLabel(position: LocalContinuePlaybackPosition): String = getString(
@@ -64,6 +86,20 @@ class GeneralSettingsFragment : Fragment() {
         value.text = positionLabel(viewModel.localContinuePlaybackPosition)
         (value.parent as View).contentDescription =
             "${getString(R.string.settings_continue_playback_position)} ${value.text}"
+    }
+
+    private fun orientationLabel(orientation: PlaybackOrientation): String = getString(
+        when (orientation) {
+            PlaybackOrientation.DEFAULT -> R.string.settings_playback_orientation_default
+            PlaybackOrientation.PORTRAIT -> R.string.settings_playback_orientation_portrait
+            PlaybackOrientation.LANDSCAPE -> R.string.settings_playback_orientation_landscape
+        }
+    )
+
+    private fun updateOrientationLabel(value: TextView) {
+        value.text = orientationLabel(viewModel.playbackOrientation)
+        (value.parent as View).contentDescription =
+            "${getString(R.string.settings_playback_orientation)} ${value.text}"
     }
 
     override fun onDestroyView() {

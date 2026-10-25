@@ -12,6 +12,7 @@ import com.openvideo.app.R
 import com.openvideo.app.core.network.WebDavMemoryCache
 import com.openvideo.app.core.prefs.AppPrefs
 import com.openvideo.app.core.prefs.LocalContinuePlaybackPosition
+import com.openvideo.app.core.prefs.PlaybackOrientation
 import com.openvideo.app.core.prefs.AspectRatio
 import com.openvideo.app.core.prefs.PlayerPrefs
 import com.openvideo.app.core.prefs.SettingsBackupExporter
@@ -52,6 +53,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setLocalContinuePlaybackPosition(position: LocalContinuePlaybackPosition) {
         appPrefs.localContinuePlaybackPosition = position
+    }
+
+    val playbackOrientation: PlaybackOrientation get() = appPrefs.playbackOrientation
+
+    fun setPlaybackOrientation(orientation: PlaybackOrientation) {
+        appPrefs.playbackOrientation = orientation
     }
 
     val defaultSpeed: Float get() = DefaultPlayerSettings.supportedSpeedOrDefault(playerPrefs.speed)

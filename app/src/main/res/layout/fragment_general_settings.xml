@@ -69,6 +69,45 @@
                     style="@style/Widget.OpenVideo.Chevron"
                     android:importantForAccessibility="no" />
             </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0.5dp"
+                android:layout_marginStart="@dimen/ov_space_lg"
+                android:background="@color/ov_divider" />
+
+            <LinearLayout
+                android:id="@+id/row_playback_orientation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="@dimen/ov_row_height"
+                android:background="?attr/selectableItemBackground"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="@dimen/ov_space_lg"
+                android:paddingVertical="@dimen/ov_space_sm">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/settings_playback_orientation"
+                    android:textColor="@color/ov_text_primary"
+                    android:textSize="@dimen/ov_text_body" />
+
+                <TextView
+                    android:id="@+id/tv_playback_orientation_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_playback_orientation_default"
+                    android:textColor="@color/ov_text_secondary"
+                    android:textSize="@dimen/ov_text_meta" />
+
+                <ImageView
+                    style="@style/Widget.OpenVideo.Chevron"
+                    android:importantForAccessibility="no" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

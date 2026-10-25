@@ -1,12 +1,14 @@
 package com.openvideo.app.ui.player
 
 import android.app.Activity
+import com.openvideo.app.core.prefs.AppPrefs
 import com.openvideo.app.core.prefs.PlayerPrefs
 import com.openvideo.app.data.model.VideoItem
 
 class PlayerVideoOrientationController(
     private val activity: Activity,
     private val playerPrefs: PlayerPrefs,
+    private val appPrefs: AppPrefs,
     private val userOverrodeOrientationProvider: () -> Boolean,
     private val onUserOverrodeOrientationChanged: (Boolean) -> Unit
 ) {
@@ -17,6 +19,15 @@ class PlayerVideoOrientationController(
         pixelWidthHeightRatio: Float = 1f,
         unappliedRotationDegrees: Int = 0
     ) {
+        // Keep the preferred entry orientation after late video-size callbacks, but
+        // let the fullscreen button override it for the current video.
+        val preferredOrientation = PlayerOrientationPolicy.preferredOrientation(appPrefs.playbackOrientation)
+        if (preferredOrientation != null) {
+            if (!userOverrodeOrientationProvider() && activity.requestedOrientation != preferredOrientation) {
+                activity.requestedOrientation = preferredOrientation
+            }
+            return
+        }
         if (!PlayerVideoOrientationApplyPolicy.shouldApply(
                 autoOrientationByVideo = playerPrefs.autoOrientationByVideo,
                 userOverrodeOrientation = userOverrodeOrientationProvider(),
@@ -37,6 +48,11 @@ class PlayerVideoOrientationController(
     }
 
     fun applyInitial() {
+        val preferredOrientation = PlayerOrientationPolicy.preferredOrientation(appPrefs.playbackOrientation)
+        if (preferredOrientation != null) {
+            activity.requestedOrientation = preferredOrientation
+            return
+        }
         val (width, height) = resolveInitialVideoDimensions()
         activity.requestedOrientation = PlayerOrientationPolicy.initialOrientationForVideo(
             width = width,

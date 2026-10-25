@@ -3,6 +3,7 @@ package com.openvideo.app.ui.player
 import android.content.pm.ActivityInfo
 import android.view.Gravity
 import com.openvideo.app.R
+import com.openvideo.app.core.prefs.PlaybackOrientation
 
 data class ControlVisibility(
     val chromeVisible: Boolean,
@@ -39,6 +40,12 @@ object PlayerControlState {
 }
 
 object PlayerOrientationPolicy {
+    fun preferredOrientation(preference: PlaybackOrientation): Int? = when (preference) {
+        PlaybackOrientation.DEFAULT -> null
+        PlaybackOrientation.PORTRAIT -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        PlaybackOrientation.LANDSCAPE -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+    }
+
     fun defaultOrientation(): Int = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
     fun initialOrientationForVideo(

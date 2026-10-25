@@ -30,6 +30,7 @@ import com.openvideo.app.core.media.LocalMediaUriPolicy
 import com.openvideo.app.core.player.PlaybackNotificationCoordinator
 import com.openvideo.app.core.player.PlayerManager
 import com.openvideo.app.core.prefs.PlayerPrefs
+import com.openvideo.app.core.prefs.AppPrefs
 import com.openvideo.app.core.subtitle.SubtitleLoader
 import com.openvideo.app.data.model.VideoItem
 import dagger.hilt.android.AndroidEntryPoint
@@ -40,6 +41,7 @@ class PlayerActivity : AppCompatActivity() {
 
     @Inject lateinit var playerManager: PlayerManager
     @Inject lateinit var playerPrefs: PlayerPrefs
+    @Inject lateinit var appPrefs: AppPrefs
     @Inject lateinit var subtitleLoader: SubtitleLoader
     @Inject lateinit var playbackCoordinator: PlaybackNotificationCoordinator
     private val viewModel: PlayerViewModel by viewModels()
@@ -172,6 +174,7 @@ class PlayerActivity : AppCompatActivity() {
         PlayerVideoOrientationController(
             activity = this,
             playerPrefs = playerPrefs,
+            appPrefs = appPrefs,
             userOverrodeOrientationProvider = { userOverrodeOrientation },
             onUserOverrodeOrientationChanged = { userOverrodeOrientation = it }
         )

@@ -153,18 +153,7 @@ class VideoScanner @Inject constructor(
     private fun queryVideoIndex(): Map<Long, MediaStoreIndexEntry> {
         val index = linkedMapOf<Long, MediaStoreIndexEntry>()
         val collection = videoCollectionUri()
-        val projection = arrayOf(
-            MediaStore.Video.Media._ID,
-            MediaStore.Video.Media.DISPLAY_NAME,
-            mediaStorePathColumn(),
-            MediaStore.Video.Media.DURATION,
-            MediaStore.Video.Media.SIZE,
-            MediaStore.Video.Media.WIDTH,
-            MediaStore.Video.Media.HEIGHT,
-            MediaStore.Video.Media.DATE_ADDED,
-            MediaStore.Video.Media.DATE_MODIFIED,
-            MediaStore.Video.Media.ORIENTATION
-        )
+        val projection = videoProjection()
         context.contentResolver.query(collection, projection, null, null, null)?.use { cursor ->
             val idCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
             val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
@@ -276,7 +265,11 @@ class VideoScanner @Inject constructor(
         add(MediaStore.Video.Media.HEIGHT)
         add(MediaStore.Video.Media.DATE_ADDED)
         add(MediaStore.Video.Media.DATE_MODIFIED)
-        add(MediaStore.Video.Media.ORIENTATION)
+        // AOSP video views before Android 10 have no orientation column.
+        // Cursor readers already default missing orientation metadata to zero.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            add(MediaStore.Video.Media.ORIENTATION)
+        }
     }.toTypedArray()
 
     private fun readVideoItem(cursor: android.database.Cursor, collection: Uri = videoCollectionUri()): VideoItem? {

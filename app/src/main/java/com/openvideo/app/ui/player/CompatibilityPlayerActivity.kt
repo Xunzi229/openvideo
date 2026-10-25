@@ -14,14 +14,17 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.openvideo.app.R
+import com.openvideo.app.core.prefs.AppPrefs
 import dagger.hilt.android.AndroidEntryPoint
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.util.VLCVideoLayout
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class CompatibilityPlayerActivity : AppCompatActivity() {
+    @Inject lateinit var appPrefs: AppPrefs
     private val viewModel: CompatibilityPlayerViewModel by viewModels()
     private val handler = Handler(Looper.getMainLooper())
     private val hideControlsRunnable = Runnable { setControlsVisible(false) }
@@ -49,6 +52,9 @@ class CompatibilityPlayerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        PlayerOrientationPolicy.preferredOrientation(appPrefs.playbackOrientation)?.let {
+            requestedOrientation = it
+        }
         request = CompatibilityPlayerContract.read(intent) ?: run {
             finish()
             return

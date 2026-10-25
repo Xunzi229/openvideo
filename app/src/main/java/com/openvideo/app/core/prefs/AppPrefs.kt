@@ -61,6 +61,10 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = LocalContinuePlaybackPosition.fromKey(getString(KEY_LOCAL_CONTINUE_PLAYBACK_POSITION, "top"))
         set(value) = putString(KEY_LOCAL_CONTINUE_PLAYBACK_POSITION, value.key)
 
+    var playbackOrientation: PlaybackOrientation
+        get() = PlaybackOrientation.fromKey(getString(KEY_PLAYBACK_ORIENTATION, "default"))
+        set(value) = putString(KEY_PLAYBACK_ORIENTATION, value.key)
+
     /** Tabs remain resumed while hidden, so observe preferences instead of relying on onResume. */
     fun observeLocalContinuePlaybackPosition(): Flow<LocalContinuePlaybackPosition> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -118,6 +122,7 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_SORT_FIELD = "sort_field"
         private const val KEY_SORT_ASC = "sort_asc"
         private const val KEY_LOCAL_CONTINUE_PLAYBACK_POSITION = "local_continue_playback_position"
+        private const val KEY_PLAYBACK_ORIENTATION = "playback_orientation"
         private const val KEY_PINNED_FOLDER_KEYS = "pinned_folder_keys"
         private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"
         private const val KEY_GITHUB_UPDATE_BADGE = "github_update_badge_visible"
