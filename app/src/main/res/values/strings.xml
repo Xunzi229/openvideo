@@ -526,7 +526,7 @@
     <string name="settings_continue_playback_position">Local continue playback position</string>
     <string name="settings_general_configuration">General settings</string>
     <string name="settings_playback_orientation">Playback screen orientation</string>
-    <string name="settings_playback_orientation_default">Default</string>
+    <string name="settings_playback_orientation_default">Auto</string>
     <string name="settings_playback_orientation_portrait">Portrait</string>
     <string name="settings_playback_orientation_landscape">Landscape</string>
     <string name="settings_continue_playback_position_top">Top</string>

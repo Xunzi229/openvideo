@@ -439,7 +439,7 @@
     <string name="settings_continue_playback_position">本地继续播放位置</string>
     <string name="settings_general_configuration">通用配置</string>
     <string name="settings_playback_orientation">播放屏幕方向</string>
-    <string name="settings_playback_orientation_default">默认</string>
+    <string name="settings_playback_orientation_default">自动</string>
     <string name="settings_playback_orientation_portrait">竖屏</string>
     <string name="settings_playback_orientation_landscape">横屏</string>
     <string name="settings_continue_playback_position_top">上方</string>
