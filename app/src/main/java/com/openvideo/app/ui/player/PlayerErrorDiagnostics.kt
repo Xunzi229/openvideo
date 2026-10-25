@@ -4,12 +4,15 @@ import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import com.openvideo.app.data.model.VideoItem
 import com.openvideo.app.core.diagnostics.CrashRedactionPolicy
 import java.io.File
 
+@OptIn(UnstableApi::class)
 object PlayerErrorDiagnostics {
 
     data class Snapshot(
@@ -25,13 +28,21 @@ object PlayerErrorDiagnostics {
         val playerCurrentPositionMs: Long,
         val playerDurationMs: Long,
         val playerBufferedPositionMs: Long,
-        val playerCurrentMediaUri: Uri?
+        val playerCurrentMediaUri: Uri?,
+        val playerPlaybackState: Int,
+        val playerIsLoading: Boolean,
+        val playerPlayWhenReady: Boolean,
+        val playerTotalBufferedDurationMs: Long,
+        val playerPlaybackSpeed: Float,
+        val selectedTrackFormats: List<String>,
+        val recentPlaybackEvents: List<String>
     )
 
     /** Capture Player state on its application thread before any diagnostic IO is dispatched. */
     fun capture(
         video: VideoItem?,
-        player: Player?
+        player: Player?,
+        recentPlaybackEvents: List<String> = emptyList()
     ): Snapshot {
         val uri = video?.uri ?: currentMediaUri(player)
         return Snapshot(
@@ -47,7 +58,23 @@ object PlayerErrorDiagnostics {
             playerCurrentPositionMs = player?.currentPosition ?: 0L,
             playerDurationMs = player?.duration?.takeIf { it != C.TIME_UNSET } ?: 0L,
             playerBufferedPositionMs = player?.bufferedPosition ?: 0L,
-            playerCurrentMediaUri = currentMediaUri(player)
+            playerCurrentMediaUri = currentMediaUri(player),
+            playerPlaybackState = player?.playbackState ?: Player.STATE_IDLE,
+            playerIsLoading = player?.isLoading ?: false,
+            playerPlayWhenReady = player?.playWhenReady ?: false,
+            playerTotalBufferedDurationMs = player?.totalBufferedDuration ?: 0L,
+            playerPlaybackSpeed = player?.playbackParameters?.speed ?: 1f,
+            selectedTrackFormats = player?.currentTracks?.groups.orEmpty().flatMap { group ->
+                (0 until group.length).filter { group.isTrackSelected(it) }.map { index ->
+                    val format = group.getTrackFormat(index)
+                    // Whitelist technical fields; Format.toString() may contain identifying labels.
+                    "type=${group.type},mime=${format.sampleMimeType},codecs=${format.codecs}," +
+                        "size=${format.width}x${format.height},fps=${format.frameRate}," +
+                        "channels=${format.channelCount},sample_rate=${format.sampleRate}," +
+                        "bitrate=${format.bitrate}"
+                }
+            },
+            recentPlaybackEvents = recentPlaybackEvents.toList()
         )
     }
 
@@ -126,6 +153,18 @@ object PlayerErrorDiagnostics {
         appendLine("player.duration_ms=${snapshot.playerDurationMs}")
         appendLine("player.buffered_position_ms=${snapshot.playerBufferedPositionMs}")
         appendLine("player.current_media_uri=${redactedUri(snapshot.playerCurrentMediaUri)}")
+        appendLine("player.playback_state=${snapshot.playerPlaybackState}")
+        appendLine("player.is_loading=${snapshot.playerIsLoading}")
+        appendLine("player.play_when_ready=${snapshot.playerPlayWhenReady}")
+        appendLine("player.total_buffered_duration_ms=${snapshot.playerTotalBufferedDurationMs}")
+        appendLine("player.playback_speed=${snapshot.playerPlaybackSpeed}")
+        snapshot.selectedTrackFormats.forEachIndexed { index, format ->
+            appendLine("player.selected_track.$index=$format")
+        }
+        // The error callback can already expose STATE_IDLE and cleared buffers. Keep earlier events.
+        snapshot.recentPlaybackEvents.forEachIndexed { index, event ->
+            appendLine("player.recent_event.$index=$event")
+        }
     }
 
     private fun fileFor(path: String, uri: Uri?): File? =

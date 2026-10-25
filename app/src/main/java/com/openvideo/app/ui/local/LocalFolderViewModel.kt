@@ -28,6 +28,8 @@ class LocalFolderViewModel @Inject constructor(
     private val appPrefs: AppPrefs
 ) : ViewModel() {
 
+    val continuePlaybackPosition = appPrefs.observeLocalContinuePlaybackPosition()
+
     private val _videos = MutableStateFlow<List<VideoItem>>(emptyList())
     private val _pinnedFolderKeys = MutableStateFlow(appPrefs.pinnedFolderKeys)
     private val _folders = MutableStateFlow<List<VideoFolder>>(emptyList())

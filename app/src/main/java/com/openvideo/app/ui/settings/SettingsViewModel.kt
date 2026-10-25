@@ -11,6 +11,7 @@ import com.bumptech.glide.Glide
 import com.openvideo.app.R
 import com.openvideo.app.core.network.WebDavMemoryCache
 import com.openvideo.app.core.prefs.AppPrefs
+import com.openvideo.app.core.prefs.LocalContinuePlaybackPosition
 import com.openvideo.app.core.prefs.AspectRatio
 import com.openvideo.app.core.prefs.PlayerPrefs
 import com.openvideo.app.core.prefs.SettingsBackupExporter
@@ -46,6 +47,13 @@ class SettingsViewModel @Inject constructor(
 
     val themeMode: ThemeMode get() = appPrefs.themeMode
     val language: String get() = appPrefs.language
+    val localContinuePlaybackPosition: LocalContinuePlaybackPosition
+        get() = appPrefs.localContinuePlaybackPosition
+
+    fun setLocalContinuePlaybackPosition(position: LocalContinuePlaybackPosition) {
+        appPrefs.localContinuePlaybackPosition = position
+    }
+
     val defaultSpeed: Float get() = DefaultPlayerSettings.supportedSpeedOrDefault(playerPrefs.speed)
     val defaultRatio: AspectRatio get() = DefaultPlayerSettings.aspectRatioOrDefault(playerPrefs.aspectRatio)
     private val _cacheSize = MutableStateFlow("0 MB")

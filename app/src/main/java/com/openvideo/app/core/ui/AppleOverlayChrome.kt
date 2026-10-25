@@ -16,6 +16,7 @@ import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.Space
 import android.widget.TextView
 import androidx.core.view.WindowCompat
 import com.openvideo.app.R
@@ -182,11 +183,15 @@ object AppleOverlayChrome {
             descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
             foreground = selectableForeground(context)
             contentDescription = action.title
-            setPadding(dp(context, 20), 0, dp(context, 16), 0)
+            setPadding(dp(context, 16), 0, dp(context, 16), 0)
             setOnClickListener(onRowClick)
+            // Balance the checkmark slot so every label stays centered in the whole row.
+            addView(Space(context), LinearLayout.LayoutParams(dp(context, 22), 1).apply {
+                marginEnd = dp(context, 8)
+            })
             addView(TextView(context).apply {
                 text = action.title
-                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                gravity = Gravity.CENTER
                 setTextColor(
                     if (action.style == AppleActionStyle.DESTRUCTIVE) colors.danger else colors.title
                 )
@@ -197,7 +202,7 @@ object AppleOverlayChrome {
             addView(ImageView(context).apply {
                 setImageResource(R.drawable.ic_check)
                 imageTintList = ColorStateList.valueOf(colors.accent)
-                visibility = if (action.selected == true) View.VISIBLE else View.GONE
+                visibility = if (action.selected == true) View.VISIBLE else View.INVISIBLE
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             }, LinearLayout.LayoutParams(dp(context, 22), dp(context, 22)).apply {
                 marginStart = dp(context, 8)

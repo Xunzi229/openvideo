@@ -3,6 +3,7 @@ package com.openvideo.app.ui.player
 import androidx.annotation.StringRes
 import androidx.annotation.OptIn
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.util.StuckPlayerException
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.upstream.Loader
 import com.openvideo.app.R
@@ -37,6 +38,19 @@ object PlayerErrorPresentationPolicy {
     }
 
     fun present(errorCode: Int, cause: Throwable? = null): Presentation {
+        // Match the cause, not error code 1004: other runtime checks need different handling.
+        if (generateSequence(cause) { it.cause }.any { it is StuckPlayerException }) {
+            return Presentation(
+                titleRes = R.string.player_error_title_stuck,
+                descRes = R.string.player_error_desc_stuck,
+                actions = listOf(
+                    ErrorAction.OPEN_COMPATIBILITY_MODE,
+                    ErrorAction.RETRY,
+                    ErrorAction.COPY_DIAGNOSTICS,
+                    ErrorAction.GO_BACK
+                )
+            )
+        }
         if (PlayerFailureClassificationPolicy.isMediaInputFailure(errorCode, cause)) {
             return Presentation(
                 titleRes = R.string.player_error_title_format,

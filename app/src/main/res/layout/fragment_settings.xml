@@ -122,6 +122,35 @@
             android:layout_marginStart="@dimen/ov_space_lg"
             android:background="@color/ov_divider" />
 
+        <LinearLayout
+            android:id="@+id/row_general_settings"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/ov_row_height"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/ov_space_lg">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/settings_general_configuration"
+                android:textColor="@color/ov_text_primary"
+                android:textSize="@dimen/ov_text_body" />
+
+            <ImageView
+                style="@style/Widget.OpenVideo.Chevron"
+                android:importantForAccessibility="no" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/divider_general_settings"
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:layout_marginStart="@dimen/ov_space_lg"
+            android:background="@color/ov_divider" />
+
         <!-- Notifications -->
         <LinearLayout
             android:id="@+id/row_notifications"

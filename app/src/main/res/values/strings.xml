@@ -523,6 +523,10 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_light">Light</string>
     <string name="settings_language">Language</string>
+    <string name="settings_continue_playback_position">Local continue playback position</string>
+    <string name="settings_general_configuration">General settings</string>
+    <string name="settings_continue_playback_position_top">Top</string>
+    <string name="settings_continue_playback_position_bottom">Bottom</string>
     <string name="settings_language_system">Follow system</string>
     <string name="settings_language_zh">中文</string>
     <string name="settings_language_en">English</string>
@@ -591,6 +595,8 @@
     <string name="player_error_title_network">Network Playback Error</string>
     <string name="player_error_title_format">Video File Not Recognized</string>
     <string name="player_error_title_general">Playback Error</string>
+    <string name="player_error_title_stuck">Playback Stalled</string>
+    <string name="player_error_desc_stuck">The player stopped making progress. Try compatibility mode to resume from the current position, or retry playback.</string>
     <string name="player_error_desc_decode">The default player could not decode this video. Compatibility mode may support it, but damaged files or content beyond this device\'s capabilities may still fail.</string>
     <string name="player_error_desc_io">The file could not be read. It may have been moved or deleted.</string>
     <string name="player_error_desc_format">The file header is missing or unrecognized. The file may be incomplete, damaged, or use the wrong extension. You can still try compatibility mode.</string>

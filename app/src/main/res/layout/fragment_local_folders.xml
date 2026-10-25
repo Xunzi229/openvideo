@@ -110,7 +110,7 @@
         android:clipToPadding="false"
         android:paddingHorizontal="@dimen/ov_space_page"
         android:paddingTop="16dp"
-        android:paddingBottom="80dp"
+        android:paddingBottom="@dimen/ov_space_lg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

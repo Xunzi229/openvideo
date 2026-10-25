@@ -99,8 +99,10 @@ class PlayerControlsBinder(
         }
 
         val castButton = activity.findViewById<View>(R.id.btn_land_cast)
-        castButton?.visibility =
+        val castVisibility =
             if (DeferredFeaturePolicy.PLAYER_CAST_VISIBLE) View.VISIBLE else View.GONE
+        castButton?.visibility = castVisibility
+        activity.findViewById<View>(R.id.tv_land_tv_badge)?.visibility = castVisibility
         if (DeferredFeaturePolicy.PLAYER_CAST_VISIBLE) {
             castButton?.setGuardedClick(PlayerLockedInteraction.SETTINGS) {
                 AppleHud.show(activity, R.string.player_land_cast)

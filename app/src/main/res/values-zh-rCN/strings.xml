@@ -436,6 +436,10 @@
     <string name="settings_theme_dark">深色</string>
     <string name="settings_theme_light">浅色</string>
     <string name="settings_language">语言</string>
+    <string name="settings_continue_playback_position">本地继续播放位置</string>
+    <string name="settings_general_configuration">通用配置</string>
+    <string name="settings_continue_playback_position_top">上方</string>
+    <string name="settings_continue_playback_position_bottom">下方</string>
     <string name="settings_language_system">跟随系统</string>
     <string name="settings_language_zh">中文</string>
     <string name="settings_language_en">English</string>
@@ -521,6 +525,8 @@
     <string name="player_error_title_network">网络播放出错</string>
     <string name="player_error_title_format">无法识别视频文件</string>
     <string name="player_error_title_general">播放出错</string>
+    <string name="player_error_title_stuck">播放卡住了</string>
+    <string name="player_error_desc_stuck">播放器无法继续播放。可以尝试兼容模式，从当前位置继续，或重试播放。</string>
     <string name="player_error_desc_decode">默认播放器无法解码该视频。兼容模式可能支持，但文件损坏或超出设备能力时仍可能失败。</string>
     <string name="player_error_desc_io">文件读取失败，文件可能已移动或被删除。</string>
     <string name="player_error_desc_format">文件头缺失或无法识别，文件可能未下载完整、已经损坏，或扩展名与实际内容不符。仍可尝试兼容模式。</string>

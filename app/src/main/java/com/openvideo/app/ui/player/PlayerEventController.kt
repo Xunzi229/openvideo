@@ -2,9 +2,11 @@ package com.openvideo.app.ui.player
 
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
+import androidx.media3.common.Format
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.openvideo.app.core.diagnostics.CrashLogger
 import com.openvideo.app.core.prefs.PlayerPrefs
@@ -35,12 +37,15 @@ class PlayerEventController(
 ) {
     private var playerListener: Player.Listener? = null
     private var startupAnalyticsListener: AnalyticsListener? = null
+    private val playbackDiagnosticsTrace = PlayerPlaybackDiagnosticsTrace()
 
     fun attach() {
+        playbackDiagnosticsTrace.clear()
         playerListener?.let { viewModel.player?.removeListener(it) }
         val listener = createPlayerListener()
         playerListener = listener
         viewModel.player?.addListener(listener)
+        recordPlaybackDiagnostic("attached")
         attachStartupAnalyticsListener()
     }
 
@@ -53,6 +58,20 @@ class PlayerEventController(
 
     private fun createPlayerListener(): Player.Listener =
         object : Player.Listener {
+            override fun onIsLoadingChanged(isLoading: Boolean) {
+                recordPlaybackDiagnostic("loading=$isLoading")
+            }
+
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int
+            ) {
+                recordPlaybackDiagnostic(
+                    "discontinuity=$reason,from_ms=${oldPosition.positionMs},to_ms=${newPosition.positionMs}"
+                )
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 val playWhenReady = viewModel.player?.playWhenReady == true
                 onUpdatePlayPauseIcon(isPlaying, playWhenReady)
@@ -69,6 +88,7 @@ class PlayerEventController(
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
+                recordPlaybackDiagnostic("state=$playbackState")
                 val readyTraceUpdate = PlayerPlaybackReadyTracePolicy.onPlaybackStateChanged(
                     playbackState = playbackState,
                     wasBuffering = playbackWasBufferingProvider(),
@@ -110,7 +130,8 @@ class PlayerEventController(
                 val diagnosticsContext = activity.applicationContext
                 val diagnosticsSnapshot = PlayerErrorDiagnostics.capture(
                     video = viewModel.currentVideoItemForDiagnostics(),
-                    player = viewModel.player
+                    player = viewModel.player,
+                    recentPlaybackEvents = playbackDiagnosticsTrace.snapshot()
                 )
                 CrashLogger.logPlayerErrorAsync(
                     context = diagnosticsContext,
@@ -154,6 +175,14 @@ class PlayerEventController(
             }
         }
 
+    private fun recordPlaybackDiagnostic(event: String) {
+        val player = viewModel.player ?: return
+        playbackDiagnosticsTrace.record(
+            "$event,state=${player.playbackState},loading=${player.isLoading}," +
+                "position_ms=${player.currentPosition},buffered_ms=${player.totalBufferedDuration}"
+        )
+    }
+
     private fun applyNetworkStatus(playbackState: Int, autoRetryPending: Boolean = false) {
         val presentation = PlayerNetworkStatusPolicy.present(
             playbackState = playbackState,
@@ -173,12 +202,35 @@ class PlayerEventController(
     private fun attachStartupAnalyticsListener() {
         if (startupAnalyticsListener != null) return
         val listener = object : AnalyticsListener {
+            override fun onVideoInputFormatChanged(
+                eventTime: AnalyticsListener.EventTime,
+                format: Format,
+                decoderReuseEvaluation: DecoderReuseEvaluation?
+            ) {
+                recordPlaybackDiagnostic(
+                    "video_format=${format.sampleMimeType},codecs=${format.codecs}," +
+                        "size=${format.width}x${format.height},fps=${format.frameRate}"
+                )
+            }
+
+            override fun onAudioInputFormatChanged(
+                eventTime: AnalyticsListener.EventTime,
+                format: Format,
+                decoderReuseEvaluation: DecoderReuseEvaluation?
+            ) {
+                recordPlaybackDiagnostic(
+                    "audio_format=${format.sampleMimeType},codecs=${format.codecs}," +
+                        "channels=${format.channelCount},sample_rate=${format.sampleRate}"
+                )
+            }
+
             override fun onVideoDecoderInitialized(
                 eventTime: AnalyticsListener.EventTime,
                 decoderName: String,
                 initializedTimestampMs: Long,
                 initializationDurationMs: Long
             ) {
+                recordPlaybackDiagnostic("video_decoder=$decoderName")
                 PlayerDecoderEventPolicy.videoDecoderEvents(decoderName)
                     .forEach { startupTrace.recordOnce(it) }
             }
@@ -189,6 +241,7 @@ class PlayerEventController(
                 initializedTimestampMs: Long,
                 initializationDurationMs: Long
             ) {
+                recordPlaybackDiagnostic("audio_decoder=$decoderName")
                 PlayerDecoderEventPolicy.audioDecoderEvents(decoderName)
                     .forEach { startupTrace.recordOnce(it) }
             }

@@ -31,8 +31,14 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="14dp"
         android:layout_weight="1"
+        android:gravity="center"
         android:ellipsize="end"
         android:maxLines="2"
         android:textColor="@color/player_aspect_row_label_normal"
         android:textSize="15sp" />
+    <Space
+        android:layout_width="@dimen/player_aspect_radio_size"
+        android:layout_height="1dp"
+        android:layout_marginStart="14dp"
+        android:importantForAccessibility="no" />
 </LinearLayout>

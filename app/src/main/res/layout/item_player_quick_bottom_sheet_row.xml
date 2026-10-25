@@ -15,11 +15,17 @@
     android:paddingEnd="8dp"
     android:paddingBottom="8dp">
 
+    <Space
+        android:layout_width="34dp"
+        android:layout_height="1dp"
+        android:importantForAccessibility="no" />
+
     <TextView
         android:id="@+id/player_glass_sheet_label"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
+        android:gravity="center"
         android:ellipsize="end"
         android:maxLines="2"
         android:textColor="@color/player_title_normal"

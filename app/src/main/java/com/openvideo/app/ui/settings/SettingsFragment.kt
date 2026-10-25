@@ -116,6 +116,10 @@ class SettingsFragment : Fragment() {
             showLanguageSheet(tvLanguage)
         }
 
+        view.findViewById<View>(R.id.row_general_settings).setOnClickListener {
+            LibraryNavigator.push(this, GeneralSettingsFragment())
+        }
+
         view.findViewById<View>(R.id.row_notifications).setOnClickListener {
             LibraryNavigator.push(this, NotificationSettingsFragment())
         }
@@ -261,6 +265,8 @@ class SettingsFragment : Fragment() {
             R.id.divider_theme,
             R.id.row_language,
             R.id.divider_language,
+            R.id.row_general_settings,
+            R.id.divider_general_settings,
             R.id.row_notifications,
             R.id.divider_notifications,
             R.id.row_check_update,

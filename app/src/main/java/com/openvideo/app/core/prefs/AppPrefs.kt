@@ -1,6 +1,11 @@
 package com.openvideo.app.core.prefs
 
 import android.content.Context
+import android.content.SharedPreferences
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
 
@@ -52,6 +57,22 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         get() = getBoolean(KEY_SORT_ASC, false)
         set(value) = putBoolean(KEY_SORT_ASC, value)
 
+    var localContinuePlaybackPosition: LocalContinuePlaybackPosition
+        get() = LocalContinuePlaybackPosition.fromKey(getString(KEY_LOCAL_CONTINUE_PLAYBACK_POSITION, "top"))
+        set(value) = putString(KEY_LOCAL_CONTINUE_PLAYBACK_POSITION, value.key)
+
+    /** Tabs remain resumed while hidden, so observe preferences instead of relying on onResume. */
+    fun observeLocalContinuePlaybackPosition(): Flow<LocalContinuePlaybackPosition> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_LOCAL_CONTINUE_PLAYBACK_POSITION || key == null) {
+                trySend(localContinuePlaybackPosition)
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(localContinuePlaybackPosition)
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
+
     var pinnedFolderKeys: Set<String>
         get() = prefs.getStringSet(KEY_PINNED_FOLDER_KEYS, emptySet()) ?: emptySet()
         set(value) = prefs.edit().putStringSet(KEY_PINNED_FOLDER_KEYS, value.toSet()).apply()
@@ -96,6 +117,7 @@ class AppPrefs(context: Context) : PrefsManager(context, PREFS_NAME) {
         private const val KEY_HOME_FAVORITE_VIEW_MODE = "home_favorite_view_mode"
         private const val KEY_SORT_FIELD = "sort_field"
         private const val KEY_SORT_ASC = "sort_asc"
+        private const val KEY_LOCAL_CONTINUE_PLAYBACK_POSITION = "local_continue_playback_position"
         private const val KEY_PINNED_FOLDER_KEYS = "pinned_folder_keys"
         private const val KEY_LAST_GITHUB_RELEASE_CHECK_MS = "last_github_release_check_ms"
         private const val KEY_GITHUB_UPDATE_BADGE = "github_update_badge_visible"

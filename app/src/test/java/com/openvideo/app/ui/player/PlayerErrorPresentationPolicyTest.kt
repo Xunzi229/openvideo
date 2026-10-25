@@ -2,6 +2,7 @@ package com.openvideo.app.ui.player
 
 import android.net.Uri
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.util.StuckPlayerException
 import androidx.media3.exoplayer.source.UnrecognizedInputFormatException
 import com.openvideo.app.R
 import org.junit.Assert.assertEquals
@@ -15,6 +16,51 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 class PlayerErrorPresentationPolicyTest {
+
+    @Test
+    fun stuckBufferingOffersCompatibilityAndRetryWithoutBlamingTheFile() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_FAILED_RUNTIME_CHECK,
+            StuckPlayerException(StuckPlayerException.STUCK_BUFFERING_NOT_LOADING, 4_000)
+        )
+
+        assertEquals(R.string.player_error_title_stuck, presentation.titleRes)
+        assertEquals(R.string.player_error_desc_stuck, presentation.descRes)
+        assertEquals(
+            listOf(
+                PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE,
+                PlayerErrorPresentationPolicy.ErrorAction.RETRY,
+                PlayerErrorPresentationPolicy.ErrorAction.COPY_DIAGNOSTICS,
+                PlayerErrorPresentationPolicy.ErrorAction.GO_BACK
+            ),
+            presentation.actions
+        )
+    }
+
+    @Test
+    fun nestedStuckFailureStillOffersCompatibility() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_FAILED_RUNTIME_CHECK,
+            IllegalStateException(
+                "wrapped",
+                StuckPlayerException(StuckPlayerException.STUCK_BUFFERING_NO_PROGRESS, 4_000)
+            )
+        )
+
+        assertEquals(R.string.player_error_title_stuck, presentation.titleRes)
+        assertTrue(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions)
+    }
+
+    @Test
+    fun unrelatedRuntimeCheckDoesNotBecomeAStuckFailure() {
+        val presentation = PlayerErrorPresentationPolicy.present(
+            PlaybackException.ERROR_CODE_FAILED_RUNTIME_CHECK,
+            IllegalStateException("unexpected state")
+        )
+
+        assertEquals(R.string.player_error_title_general, presentation.titleRes)
+        assertFalse(PlayerErrorPresentationPolicy.ErrorAction.OPEN_COMPATIBILITY_MODE in presentation.actions)
+    }
 
     @Test
     fun wrappedLoaderRuntimeFailureOffersCompatibilityInsteadOfNetworkAdvice() {

@@ -12,6 +12,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -112,6 +113,14 @@ class LocalFolderFragment : Fragment() {
     private fun observeFolders() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.continuePlaybackPosition.collect { position ->
+                        LocalContinuePlaybackLayout.apply(
+                            requireView() as ConstraintLayout,
+                            position
+                        )
+                    }
+                }
                 launch {
                     viewModel.folders.collect { folders ->
                         adapter.submitList(folders) { restoreFolderFocusIfNeeded(folders) }
