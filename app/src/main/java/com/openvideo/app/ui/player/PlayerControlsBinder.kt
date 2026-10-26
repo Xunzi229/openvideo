@@ -42,6 +42,7 @@ class PlayerControlsBinder(
     private val onRequestedOrientationChanged: (Int) -> Unit,
     private val currentOrientationProvider: () -> Int,
     private val videoRenderViewProvider: () -> View?,
+    private val withScreenshotWritePermission: (() -> Unit) -> Unit,
     private val onToggleScreenLock: () -> Unit,
     private val onHideControls: () -> Unit,
     private val onShowControls: () -> Unit
@@ -161,8 +162,8 @@ class PlayerControlsBinder(
         }
     }
 
-    private fun takeScreenshot() {
-        val videoView = videoRenderViewProvider() ?: return
+    private fun takeScreenshot() = withScreenshotWritePermission {
+        val videoView = videoRenderViewProvider() ?: return@withScreenshotWritePermission
         playerManager.takeScreenshot(videoView) { success, path ->
             activity.runOnUiThread {
                 if (success) {

@@ -17,6 +17,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.openvideo.app.R
+import com.openvideo.app.core.permissions.LegacyMediaWritePermission
 import com.openvideo.app.core.ui.AppleAction
 import com.openvideo.app.core.ui.AppleActionSheet
 import com.openvideo.app.core.ui.AppleActionStyle
@@ -51,6 +52,9 @@ class FolderVideosFragment : Fragment() {
     private var pendingDeleteVideos: List<VideoItem> = emptyList()
     private var lastFocusedVideoId: Long? = null
     private var pendingVideoFocusRestoreId: Long? = null
+    private val deleteWritePermission = LegacyMediaWritePermission(this) {
+        context?.takeIf { view != null }
+    }
 
     private val deleteRequestLauncher = registerForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
@@ -237,6 +241,10 @@ class FolderVideosFragment : Fragment() {
     }
 
     private fun deleteVideosWithSystemRequest(videos: List<VideoItem>) {
+        deleteWritePermission.runWhenGranted { performDeleteVideosWithSystemRequest(videos) }
+    }
+
+    private fun performDeleteVideosWithSystemRequest(videos: List<VideoItem>) {
         viewModel.deleteVideosWithResult(videos) { result ->
             if (result is VideoDeleteResult.RequiresUserAction) {
                 pendingDeleteVideos = videos

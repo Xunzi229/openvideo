@@ -29,6 +29,7 @@ import com.openvideo.app.R
 import com.openvideo.app.core.media.LocalMediaUriPolicy
 import com.openvideo.app.core.player.PlaybackNotificationCoordinator
 import com.openvideo.app.core.player.PlayerManager
+import com.openvideo.app.core.permissions.LegacyMediaWritePermission
 import com.openvideo.app.core.prefs.PlayerPrefs
 import com.openvideo.app.core.prefs.AppPrefs
 import com.openvideo.app.core.subtitle.SubtitleLoader
@@ -45,6 +46,9 @@ class PlayerActivity : AppCompatActivity() {
     @Inject lateinit var subtitleLoader: SubtitleLoader
     @Inject lateinit var playbackCoordinator: PlaybackNotificationCoordinator
     private val viewModel: PlayerViewModel by viewModels()
+    private val screenshotWritePermission = LegacyMediaWritePermission(this) {
+        this.takeUnless { isFinishing || isDestroyed }
+    }
 
     private lateinit var playerView: PlayerView
     private lateinit var playerRoot: View
@@ -435,6 +439,7 @@ class PlayerActivity : AppCompatActivity() {
             onRequestedOrientationChanged = { requestedOrientation = it },
             currentOrientationProvider = { resources.configuration.orientation },
             videoRenderViewProvider = { videoRenderView() },
+            withScreenshotWritePermission = screenshotWritePermission::runWhenGranted,
             onToggleScreenLock = ::toggleScreenLock,
             onHideControls = ::hideControls,
             onShowControls = ::showControls

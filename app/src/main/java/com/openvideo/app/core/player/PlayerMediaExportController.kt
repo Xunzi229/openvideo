@@ -7,6 +7,7 @@ import android.media.MediaCodec
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -196,9 +197,13 @@ internal class PlayerMediaExportController(
         val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), "OpenVideo")
         dir.mkdirs()
         val file = File(dir, name)
-        return MediaExportFile.write(file) {
+        val savedPath = MediaExportFile.write(file) {
             FileOutputStream(file).use { check(bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it)) }
         }
+        runCatching {
+            MediaScannerConnection.scanFile(context, arrayOf(savedPath), arrayOf("image/jpeg"), null)
+        }
+        return savedPath
     }
 
     private fun clipOutputFile(): File {

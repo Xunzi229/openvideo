@@ -345,6 +345,7 @@
     <string name="media_library_loading">正在扫描视频...</string>
     <string name="media_library_scanning_count">已扫描 %1$d 个视频…</string>
     <string name="media_library_permission_denied">需要视频访问权限才能扫描本地文件</string>
+    <string name="media_write_permission_denied">保存截图或删除视频需要存储写入权限</string>
     <string name="media_library_scan_error">无法刷新本地媒体库，请重试</string>
     <string name="media_library_empty_favorites">暂无收藏</string>
     <string name="media_library_empty_privacy">视频已被隐私文件夹隐藏</string>

@@ -367,6 +367,7 @@
     <string name="media_library_loading">Scanning videos...</string>
     <string name="media_library_scanning_count">Scanned %1$d videos…</string>
     <string name="media_library_permission_denied">Video access permission is required to scan local files</string>
+    <string name="media_write_permission_denied">Storage write permission is required to save screenshots or delete videos</string>
     <string name="media_library_scan_error">Could not refresh the local library. Try again.</string>
     <string name="media_library_empty_favorites">No favorites yet</string>
     <string name="media_library_empty_privacy">Videos are hidden by private folders</string>
